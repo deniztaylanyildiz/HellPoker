@@ -236,7 +236,7 @@ MonoBehaviour:
   _forcedRaiseYears: 250
   _stakeDivisor: 10
   _minimumUnit: 10
-  _tableCapPercent: 50
+  _tableCapPercent: 30
   _openingCardsShown: 2
   _raiseUnitsBeforeDraw: 1
   _raiseUnitsAfterDraw: 2

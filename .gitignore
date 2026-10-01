@@ -63,3 +63,5 @@ Tools/ArtGen/__pycache__/
 # Temporary scenes the Unity Test Runner leaves behind
 /Assets/InitTestScene*.unity*
 /sim.xml
+# Art preview pages (py Tools/ArtGen/preview.py)
+/Tools/ArtGen/preview/

@@ -3,55 +3,55 @@ using UnityEngine;
 
 namespace HellPoker.Presentation.Ui
 {
+    /// <summary>UI colours, all taken from the art palette in Tools/ArtGen/pixel.py so text and sprites match.</summary>
     internal static class Palette
     {
-        public static readonly Color Background = new Color(0.07f, 0.015f, 0.015f);
-        public static readonly Color Felt = new Color(0.17f, 0.03f, 0.025f);
-        public static readonly Color Ember = new Color(1f, 0.45f, 0.1f);
-        public static readonly Color Gold = new Color(1f, 0.78f, 0.3f);
-        public static readonly Color PaleGold = new Color(0.93f, 0.82f, 0.58f);
-        public static readonly Color Bone = new Color(0.96f, 0.93f, 0.86f);
-        public static readonly Color Ink = new Color(0.1f, 0.08f, 0.08f);
-        public static readonly Color SepiaInk = new Color(0.22f, 0.12f, 0.06f);
-        public static readonly Color Blood = new Color(0.72f, 0.05f, 0.05f);
-        public static readonly Color CardBack = new Color(0.42f, 0.03f, 0.03f);
-        public static readonly Color CardBackInner = new Color(0.25f, 0.015f, 0.015f);
-        public static readonly Color MutedText = new Color(0.8f, 0.66f, 0.56f);
-        public static readonly Color Button = new Color(0.55f, 0.08f, 0.05f);
-        public static readonly Color Slot = new Color(0.12f, 0.02f, 0.02f);
-        public static readonly Color Forgiven = new Color(0.6f, 0.95f, 0.55f);
-        public static readonly Color Fold = new Color(0.22f, 0.07f, 0.06f);
+        public static readonly Color Black = Hex(0x0b0610);
+        public static readonly Color Night = Hex(0x160b1e);
+        public static readonly Color Dusk = Hex(0x22122c);
+        public static readonly Color Plum = Hex(0x321a3c);
+        public static readonly Color Violet = Hex(0x4a2856);
+        public static readonly Color BloodDark = Hex(0x3a0a10);
+        public static readonly Color Crimson = Hex(0x8c1a1a);
+        public static readonly Color Red = Hex(0xb8261c);
+        public static readonly Color Hell = Hex(0xe0401c);
+        public static readonly Color Ember = Hex(0xff7a1c);
+        public static readonly Color Amber = Hex(0xffb02e);
+        public static readonly Color Bone = Hex(0xf2e8d0);
+        public static readonly Color BoneMid = Hex(0xc8b89a);
+        public static readonly Color BoneDark = Hex(0x8e7c64);
+        public static readonly Color Gold = Hex(0xe0a828);
+        public static readonly Color GoldLight = Hex(0xffd860);
+        public static readonly Color GreenLight = Hex(0x8a9a3a);
+        public static readonly Color LilacLight = Hex(0xc8a8d4);
 
-        /// <summary>Multiplied over the backdrop and the table in the final stretch: everything runs hotter.</summary>
-        public static readonly Color HellTint = new Color(1f, 0.62f, 0.45f);
-        public static readonly Color HellFeltTint = new Color(1f, 0.78f, 0.55f);
+        public static readonly Color Background = Black;
+        public static readonly Color Felt = Dusk;
+        public static readonly Color Ink = Black;
+        public static readonly Color MutedText = BoneMid;
+        public static readonly Color Slot = Night;
+
+        /// <summary>Card ink: black suits and red suits (matching the suit sprites).</summary>
+        public static readonly Color BlackSuit = Black;
+        public static readonly Color RedSuit = Crimson;
 
         public static Color For(Tone tone)
         {
             switch (tone)
             {
                 case Tone.Muted: return MutedText;
-                case Tone.Good: return Forgiven;
+                case Tone.Good: return GreenLight;
                 case Tone.Bad:
                 case Tone.Warning: return Ember;
-                case Tone.Triumph: return Gold;
-                case Tone.Doom: return Blood;
+                case Tone.Triumph: return GoldLight;
+                case Tone.Doom: return Hell;
                 default: return Bone;
             }
         }
 
-        /// <summary>The light behind the dealer's portrait as they speak.</summary>
-        public static Color AuraFor(Tone tone)
+        private static Color Hex(int rgb)
         {
-            switch (tone)
-            {
-                case Tone.Good: return new Color(0.45f, 0.6f, 1f);
-                case Tone.Bad: return new Color(1f, 0.3f, 0.05f);
-                case Tone.Warning: return new Color(1f, 0.55f, 0.1f);
-                case Tone.Doom: return new Color(0.85f, 0f, 0f);
-                case Tone.Triumph: return Gold;
-                default: return new Color(1f, 0.4f, 0.15f);
-            }
+            return new Color32((byte)(rgb >> 16), (byte)((rgb >> 8) & 0xff), (byte)(rgb & 0xff), 255);
         }
     }
 }

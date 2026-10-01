@@ -9,10 +9,12 @@ using UnityEngine.UI;
 
 namespace HellPoker.Presentation.Views
 {
-    /// <summary>Lists what each winning hand forgives under the current dealer, and highlights the last winner.</summary>
+    /// <summary>A pixel panel listing what each winning hand pays under the current dealer; the last winner is highlighted.</summary>
     public sealed class PayoutTableView : MonoBehaviour, IPayoutView
     {
-        private const float RowHeight = 36f;
+        public const int Width = 104;
+        private const int RowHeight = 10;
+        private const int FirstRow = 20;
 
         private readonly Dictionary<HandCategory, (Image row, Text name, Text value)> _rows =
             new Dictionary<HandCategory, (Image, Text, Text)>();
@@ -20,40 +22,40 @@ namespace HellPoker.Presentation.Views
         private AnimationSequencer _sequencer;
         private Text _loss;
 
-        public static PayoutTableView Create(Transform parent, Vector2 anchor, Vector2 position, Vector2 pivot, AnimationSequencer sequencer)
+        public static PayoutTableView Create(Transform parent, int x, int y, int height, AnimationSequencer sequencer)
         {
             HandCategory[] categories = System.Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
-            var size = new Vector2(400f, 96f + RowHeight * categories.Length + 74f);
 
             Image panel = UiFactory.CreatePanel("Payouts", parent);
-            panel.rectTransform.Place(anchor, position, size, pivot);
+            panel.rectTransform.PlaceTL(x, y, Width, height);
 
             var view = panel.gameObject.AddComponent<PayoutTableView>();
             view._sequencer = sequencer;
 
-            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 24, Palette.Gold, style: FontStyle.Bold).WithShadow()
-                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(size.x, 36f));
-            UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider)
-                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -64f), new Vector2(300f, 24f));
+            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+                .rectTransform.PlaceTL(0, 6, Width, 8);
+            UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider).rectTransform.PlaceTL((Width - 48) / 2, 15, 48, 3);
 
             for (int i = 0; i < categories.Length; i++)
             {
                 HandCategory category = categories[i];
-                float y = -96f - i * RowHeight;
-
                 Image row = UiFactory.CreateImage(category.ToString(), panel.transform, Color.clear);
-                row.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(size.x - 36f, RowHeight - 4f));
+                row.rectTransform.PlaceTL(4, FirstRow + i * RowHeight, Width - 8, RowHeight);
 
-                Text name = UiFactory.CreateText("Name", row.transform, UiText.CategoryName(category), 23, Palette.Bone, TextAnchor.MiddleLeft);
-                name.rectTransform.Stretch(10f);
-                Text value = UiFactory.CreateText("Value", row.transform, "", 21, Palette.Bone, TextAnchor.MiddleRight, FontStyle.Bold);
-                value.rectTransform.Stretch(10f);
+                Text name = UiFactory.CreateText("Name", row.transform, UiText.CategoryName(category), 8, Palette.Bone, TextAnchor.MiddleLeft);
+                name.rectTransform.Stretch();
+                name.rectTransform.offsetMin = new Vector2(3f, 0f);
+                Text value = UiFactory.CreateText("Value", row.transform, "", 8, Palette.Bone, TextAnchor.MiddleRight);
+                value.rectTransform.Stretch();
+                value.rectTransform.offsetMax = new Vector2(-2f, 0f);
 
                 view._rows[category] = (row, name, value);
             }
 
-            view._loss = UiFactory.CreateText("Loss", panel.transform, "", 18, Palette.MutedText, style: FontStyle.Italic);
-            view._loss.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(size.x - 24f, 56f));
+            int footerY = FirstRow + categories.Length * RowHeight + 3;
+            view._loss = UiFactory.CreateText("Loss", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
+            view._loss.rectTransform.PlaceTL(6, footerY, Width - 12, height - footerY - 4);
+            view._loss.lineSpacing = 1f;
 
             return view;
         }
@@ -65,17 +67,17 @@ namespace HellPoker.Presentation.Views
                 foreach (var pair in _rows)
                 {
                     bool absolution = payouts.IsAbsolution(pair.Key);
-                    Color color = absolution ? Palette.Gold : Palette.Bone;
+                    Color color = absolution ? Palette.GoldLight : Palette.Bone;
                     pair.Value.name.color = color;
                     pair.Value.value.color = color;
                     pair.Value.value.text = absolution ? UiText.Absolution : "×" + payouts.GetMultiplier(pair.Key);
                 }
 
-                string loss = UiText.StakeShare(payouts.LossPercent);
+                string loss = UiText.LossSurcharge(payouts.LossPercent);
                 _loss.text = payouts.FoldPercentBeforeDraw == payouts.FoldPercentAfterDraw
-                    ? string.Format(UiText.PayoutLossSameFoldFormat, loss, UiText.StakeShare(payouts.FoldPercentAfterDraw))
-                    : string.Format(UiText.PayoutLossFormat, loss, UiText.StakeShare(payouts.FoldPercentBeforeDraw),
-                        UiText.StakeShare(payouts.FoldPercentAfterDraw));
+                    ? string.Format(UiText.PayoutLossSameFoldFormat, loss, UiText.ShareShort(payouts.FoldPercentAfterDraw))
+                    : string.Format(UiText.PayoutLossFormat, loss, UiText.ShareShort(payouts.FoldPercentBeforeDraw),
+                        UiText.ShareShort(payouts.FoldPercentAfterDraw));
             });
         }
 
@@ -84,7 +86,11 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 foreach (var pair in _rows)
-                    pair.Value.row.color = pair.Key == category ? new Color(Palette.Ember.r, Palette.Ember.g, Palette.Ember.b, 0.35f) : Color.clear;
+                {
+                    bool lit = pair.Key == category;
+                    pair.Value.row.color = lit ? Palette.Crimson : Color.clear;
+                    pair.Value.name.color = lit ? Palette.GoldLight : pair.Value.value.color;
+                }
             });
         }
     }

@@ -34,7 +34,7 @@ namespace HellPoker.Core.Game
         /// <summary>Highest threshold first.</summary>
         public IReadOnlyList<Tier> Tiers { get; }
 
-        public StakeScale(int divisor = 10, int minimumUnit = 10, int tableCapPercent = 50, IEnumerable<Tier> tiers = null)
+        public StakeScale(int divisor = 10, int minimumUnit = 10, int tableCapPercent = 30, IEnumerable<Tier> tiers = null)
         {
             if (divisor <= 0) throw new ArgumentOutOfRangeException(nameof(divisor));
             if (minimumUnit <= 0) throw new ArgumentOutOfRangeException(nameof(minimumUnit));

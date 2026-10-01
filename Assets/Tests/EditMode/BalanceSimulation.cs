@@ -42,7 +42,7 @@ namespace HellPoker.Core.Tests
 
                     while (!game.IsGameOver && played < MaxHandsPerRun)
                     {
-                        PlayHand(game, player);
+                        PlayHand(game, player, dealer.Payouts);
                         played++;
                         if (game.LastRound.Showdown?.Player.Category == HandCategory.DeadMansHand &&
                             game.LastRound.Showdown.Outcome == ShowdownOutcome.PlayerWins)
@@ -66,10 +66,13 @@ namespace HellPoker.Core.Tests
         private static string Percent(int count) => (100.0 * count / Runs).ToString("0.0") + "%";
 
         /// <summary>
-        /// A plain player: raises on a visible pair before the draw and on two pair or better after it, never folds a
-        /// made hand, calls re-raises with a pair or better. Uses only cards that are face up.
+        /// A sensible player who raises and folds, using only cards that are face up:
+        /// before the draw raises on a visible pair and, with all five cards seen, folds plain high cards that have no draw
+        /// (only where folding early is cheap — at a table where it costs the whole stake it plays on);
+        /// after the draw raises with two pair or better, folds high card when the House shows a pair;
+        /// calls a re-raise with a pair or better.
         /// </summary>
-        private static void PlayHand(HellPokerGame game, IDrawStrategy drawing)
+        private static void PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
         {
             game.PlaceBet();
             while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
@@ -85,21 +88,42 @@ namespace HellPoker.Core.Tests
                         break;
 
                     default:
-                        bool strong = game.IsAfterDraw ? Strength(game) >= HandCategory.TwoPair : VisiblePair(game);
-                        BetAction action = strong && game.CanBet(BetAction.Raise, out _) ? BetAction.Raise : BetAction.Pass;
-                        if (!game.CanBet(action, out _))
-                            action = game.CanBet(BetAction.Raise, out _) ? BetAction.Raise : BetAction.Fold;
-                        game.Bet(action);
+                        game.Bet(Choose(game, drawing, payouts));
                         break;
                 }
             }
         }
 
+        private static BetAction Choose(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
+        {
+            bool raise, fold;
+            if (!game.IsAfterDraw)
+            {
+                bool allSeen = game.PlayerCardsRevealed == Hand.Size;
+                bool hasDraw = drawing.ChooseDiscards(game.PlayerHand).Count == 1;
+                bool cheapFold = payouts.FoldPercentBeforeDraw < 100;
+                raise = PairAmong(game.PlayerHand.Take(game.PlayerCardsRevealed));
+                fold = cheapFold && allSeen && Strength(game) == HandCategory.HighCard && !hasDraw;
+            }
+            else
+            {
+                HandCategory mine = Strength(game);
+                bool houseShowsPair = PairAmong(game.HouseHand.Take(game.HouseCardsRevealed));
+                raise = mine >= HandCategory.TwoPair;
+                fold = mine == HandCategory.HighCard && houseShowsPair;
+            }
+
+            if (raise && game.CanBet(BetAction.Raise, out _)) return BetAction.Raise;
+            if (fold) return BetAction.Fold;
+            if (game.CanBet(BetAction.Pass, out _)) return BetAction.Pass;
+            return game.CanBet(BetAction.Raise, out _) ? BetAction.Raise : BetAction.Fold;
+        }
+
         private static HandCategory Strength(HellPokerGame game) => Evaluator.Evaluate(game.PlayerHand).Category;
 
-        private static bool VisiblePair(HellPokerGame game)
+        private static bool PairAmong(System.Collections.Generic.IEnumerable<Card> cards)
         {
-            return game.PlayerHand.Take(game.PlayerCardsRevealed).GroupBy(card => card.Rank).Any(group => group.Count() >= 2);
+            return cards.GroupBy(card => card.Rank).Any(group => group.Count() >= 2);
         }
     }
 }

@@ -29,10 +29,15 @@ namespace HellPoker.Core.Tests
         private const string Nothing = "2C 5D 7H 9S JC";
         private const string HouseFullHouse = "KS KH KD 4C 4H";
 
-        private static GameRules Rules(int startingYears = 1000, int damnationYears = 2000, int forcedRaiseYears = 250, int houseCardsShown = 2)
+        private static GameRules Rules(int startingYears = 1000, int damnationYears = 2000, int forcedRaiseYears = 250, int houseCardsShown = 2,
+            int tableCapPercent = 30)
         {
-            return new GameRules(startingYears, damnationYears, forcedRaiseYears: forcedRaiseYears, houseCardsShown: houseCardsShown);
+            return new GameRules(startingYears, damnationYears, forcedRaiseYears: forcedRaiseYears, houseCardsShown: houseCardsShown,
+                stakes: new StakeScale(tableCapPercent: tableCapPercent));
         }
+
+        /// <summary>A roomier table (cap 500 of 1000), so a raise after the draw still leaves room for a house re-raise.</summary>
+        private static GameRules RoomyRules() => Rules(tableCapPercent: 50);
 
         /// <summary>Deals the player's five, then the house's five, then the replacement cards in order.</summary>
         private static HellPokerGame CreateGame(string player, string house, string rest = "", GameRules rules = null,
@@ -65,9 +70,9 @@ namespace HellPoker.Core.Tests
             return game.LastRound;
         }
 
-        private static HellPokerGame GameAtDrawReveal(IHouseBettingStrategy houseBetting = null, string player = Nothing, string house = HouseFullHouse)
+        private static HellPokerGame GameAtDrawReveal(IHouseBettingStrategy houseBetting = null, GameRules rules = null)
         {
-            var game = CreateGame(player, house, houseBetting: houseBetting);
+            var game = CreateGame(Nothing, HouseFullHouse, rules: rules, houseBetting: houseBetting);
             game.PlaceBet();
             PassUntil(game, GamePhase.Drawing);
             game.Draw(new int[0]);
@@ -97,7 +102,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(100, game.Unit);
             Assert.AreEqual(100, game.Ante);
             Assert.AreEqual(100, game.CurrentStake);
-            Assert.AreEqual(500, game.TableCap);
+            Assert.AreEqual(300, game.TableCap);
             Assert.AreEqual(3, game.PlayerCardsRevealed, "Two cards turn together, the third brings the first decision.");
             Assert.AreEqual(0, game.HouseCardsRevealed);
             Assert.AreEqual(TestCards.Hand("2C 3C 4C 5C 7D").ToString(), game.PlayerHand.ToString());
@@ -253,21 +258,36 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TableCap_IsHalfTheSentence_AndLocksRaising()
+        public void TableCap_IsThirtyPercentOfTheSentence_AndLocksRaising()
         {
             var game = CreateGame(Nothing, HouseFullHouse);
             game.PlaceBet();
-            for (int i = 0; i < 3; i++) game.Bet(BetAction.Raise);
-            Assert.AreEqual(400, game.CurrentStake);
-            game.Draw(new int[0]);
-
-            Assert.AreEqual(100, game.RaiseAmount, "The double raise is cut down to what the cap leaves.");
+            game.Bet(BetAction.Raise);
             game.Bet(BetAction.Raise);
 
-            Assert.AreEqual(500, game.CurrentStake);
+            Assert.AreEqual(300, game.CurrentStake);
             Assert.AreEqual(0, game.RaiseAmount);
             Assert.IsFalse(game.CanBet(BetAction.Raise, out string reason));
             Assert.IsNotNull(reason);
+
+            game.Bet(BetAction.Pass);
+            game.Draw(new int[0]);
+            Assert.AreEqual(0, game.RaiseAmount, "The cap holds after the draw too.");
+        }
+
+        [Test]
+        public void DoubleRaise_IsCutDown_ToWhatTheCapLeaves()
+        {
+            var game = CreateGame(Nothing, HouseFullHouse);
+            game.PlaceBet();
+            game.Bet(BetAction.Raise);
+            PassUntil(game, GamePhase.Drawing);
+            game.Draw(new int[0]);
+
+            Assert.AreEqual(100, game.RaiseAmount);
+            game.Bet(BetAction.Raise);
+
+            Assert.AreEqual(300, game.CurrentStake);
         }
 
         [Test]
@@ -286,7 +306,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void FinalStretch_ForbidsPassing_UntilTheTableIsFull()
         {
-            // 250 years: unit 25, ante 25, cap 125.
+            // 250 years: unit 25, ante 25, cap 75.
             var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(startingYears: 250, forcedRaiseYears: 250));
             game.PlaceBet();
 
@@ -298,11 +318,8 @@ namespace HellPoker.Core.Tests
 
             game.Bet(BetAction.Raise);
             game.Bet(BetAction.Raise);
-            game.Bet(BetAction.Raise);
-            game.Draw(new int[0]);
-            game.Bet(BetAction.Raise);
 
-            Assert.AreEqual(125, game.CurrentStake);
+            Assert.AreEqual(75, game.CurrentStake);
             Assert.IsTrue(game.CanBet(BetAction.Pass, out _), "At the cap there is nothing left to raise, so passing is allowed.");
         }
 
@@ -321,7 +338,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void RaiseAfterTheDraw_CanBeAnsweredByAHouseReRaise()
         {
-            var game = GameAtDrawReveal(new FixedHouseBetting(true));
+            var game = GameAtDrawReveal(new FixedHouseBetting(true), RoomyRules());
 
             game.Bet(BetAction.Raise);
 
@@ -337,7 +354,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void CallingTheReRaise_PutsItOnTheTable_AndPlayGoesOn()
         {
-            var game = GameAtDrawReveal(new FixedHouseBetting(true));
+            var game = GameAtDrawReveal(new FixedHouseBetting(true), RoomyRules());
             game.Bet(BetAction.Raise);
 
             game.Bet(BetAction.Call);
@@ -350,7 +367,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ReRaiseAtTheLastDecision_GoesToShowdownWhenCalled()
         {
-            var game = GameAtDrawReveal(new FixedHouseBetting(true));
+            var game = GameAtDrawReveal(new FixedHouseBetting(true), RoomyRules());
             game.Bet(BetAction.Pass);
             game.Bet(BetAction.Raise);
             Assert.AreEqual(GamePhase.HouseReRaise, game.Phase);
@@ -364,7 +381,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void FoldingToTheReRaise_CostsTheStakeBeforeIt()
         {
-            var game = GameAtDrawReveal(new FixedHouseBetting(true));
+            var game = GameAtDrawReveal(new FixedHouseBetting(true), RoomyRules());
             game.Bet(BetAction.Raise);
 
             game.Bet(BetAction.Fold);
@@ -389,24 +406,23 @@ namespace HellPoker.Core.Tests
         [Test]
         public void HouseCannotReRaise_PastTheCap()
         {
-            var game = CreateGame(Nothing, HouseFullHouse, houseBetting: new FixedHouseBetting(true));
-            game.PlaceBet();
-            for (int i = 0; i < 3; i++) game.Bet(BetAction.Raise);
-            game.Draw(new int[0]);
+            var game = GameAtDrawReveal(new FixedHouseBetting(true));
 
             game.Bet(BetAction.Raise);
 
-            Assert.AreEqual(500, game.CurrentStake);
+            Assert.AreEqual(300, game.CurrentStake);
             Assert.AreEqual(GamePhase.HouseReveal, game.Phase, "No room left under the cap, so no re-raise.");
         }
 
         [Test]
         public void HouseThatDeclines_LetsTheRaiseStand()
         {
-            var game = GameAtDrawReveal(new FixedHouseBetting(false));
+            var betting = new FixedHouseBetting(false);
+            var game = GameAtDrawReveal(betting, RoomyRules());
 
             game.Bet(BetAction.Raise);
 
+            Assert.AreEqual(1, betting.Asked, "The house had room and was asked.");
             Assert.AreEqual(GamePhase.HouseReveal, game.Phase);
         }
 
@@ -438,7 +454,22 @@ namespace HellPoker.Core.Tests
             PassUntil(game, GamePhase.RoundOver);
 
             Assert.AreEqual(ShowdownOutcome.HouseWins, game.LastRound.Showdown.Outcome);
-            Assert.AreEqual(1000 + 200 * 8, game.Years, "Full house ×8.");
+            Assert.AreEqual(1000 + 200 + 100 * 7, game.Years, "Full house ×8 on the ante, the raise one to one.");
+        }
+
+        [Test]
+        public void PlayerWin_MultipliesTheAnte_RaisesPayOneToOne()
+        {
+            // Full house for the player (stands), a pair of twos for the house (draws three blanks).
+            var game = CreateGame("QS QH QD 7C 7H", "2D 2H 5S 8H 9D", "3S 4S 6C");
+            game.PlaceBet();
+            game.Bet(BetAction.Raise);
+            PassUntil(game, GamePhase.Drawing);
+            game.Draw(new int[0]);
+            PassUntil(game, GamePhase.RoundOver);
+
+            Assert.AreEqual(200, game.LastRound.Stake);
+            Assert.AreEqual(1000 - (200 + 100 * 7), game.Years, "Full house ×8 on the 100 ante, the 100 raise one to one: 900 forgiven.");
         }
 
         [Test]
@@ -590,7 +621,7 @@ namespace HellPoker.Core.Tests
 
                 int sentence = game.Years;
                 game.PlaceBet();
-                Assert.LessOrEqual(game.TableCap, Math.Max(game.Ante, sentence / 2));
+                Assert.LessOrEqual(game.TableCap, Math.Max(game.Ante, sentence * 30 / 100));
 
                 while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
                 {

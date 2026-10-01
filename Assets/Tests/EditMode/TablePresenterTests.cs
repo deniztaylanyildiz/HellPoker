@@ -1,4 +1,4 @@
-using HellPoker.Core.Betting;
+﻿using HellPoker.Core.Betting;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
@@ -21,14 +21,14 @@ namespace HellPoker.Core.Tests
         /// Every run gets a fresh game on the same stacked deck, whatever the dealer.
         /// </summary>
         private void Setup(string player = "2C 9C JC 4C KC", string house = "2D 2H 5S 7H 9D", string rest = "3S 4S 6D AH",
-            int startingYears = 1000, Dealer dealer = null, IHouseBettingStrategy houseBetting = null)
+            int startingYears = 1000, Dealer dealer = null, IHouseBettingStrategy houseBetting = null, int tableCapPercent = 30)
         {
             _view = new FakeTableView();
             _presenter = new TablePresenter(d =>
             {
                 _lastDealer = d;
                 return _game = new HellPokerGame(
-                    d.ApplyTo(new GameRules(startingYears, 5000)),
+                    d.ApplyTo(new GameRules(startingYears, 5000, stakes: new StakeScale(tableCapPercent: tableCapPercent))),
                     TestDecks.Stacked($"{player} {house} {rest}"),
                     HandEvaluator.CreateDefault(),
                     new CardExchanger(new MaxDiscardPolicy()),
@@ -134,16 +134,15 @@ namespace HellPoker.Core.Tests
         {
             Setup();
             _view.PressAction();
-            for (int i = 0; i < 3; i++) _view.PressBet(BetAction.Raise);
-            _view.PressAction();
-            Assert.AreEqual("RAISE +100", _view.BetControls.RaiseLabel, "The double raise is cut to the cap.");
+            _view.PressBet(BetAction.Raise);
+            Assert.AreEqual("RAISE +100", _view.BetControls.RaiseLabel);
 
             _view.PressBet(BetAction.Raise);
 
-            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
-            Assert.AreEqual(500, _view.Pot);
+            Assert.AreEqual(300, _view.Pot, "30% of 1000.");
             Assert.AreEqual("TABLE FULL", _view.BetControls.RaiseLabel);
             Assert.IsFalse(_view.BetControls.CanRaise);
+            Assert.IsTrue(_view.BetControls.CanPass);
         }
 
         [Test]
@@ -188,7 +187,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void HouseReRaise_OffersCallOrFold_AndTheDealerSpeaks()
         {
-            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true), tableCapPercent: 50);
             DealAndDraw();
             int lines = _view.DealerView.LinesSaid;
 
@@ -199,13 +198,13 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual("CALL +100", _view.BetControls.CallLabel);
             Assert.AreEqual(Tone.Warning, _view.MessageTone);
             Assert.AreEqual(lines + 1, _view.DealerView.LinesSaid);
-            Assert.AreEqual(Tone.Bad, _view.DealerView.LastTone);
+            Assert.AreEqual(DealerMood.Scheming, _view.DealerView.LastMood);
         }
 
         [Test]
         public void SpaceKey_CallsTheReRaise()
         {
-            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true), tableCapPercent: 50);
             DealAndDraw();
             _view.PressBet(BetAction.Raise);
 
@@ -219,7 +218,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void PassIsRefused_AgainstAReRaise()
         {
-            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true), tableCapPercent: 50);
             DealAndDraw();
             _view.PressBet(BetAction.Raise);
 
@@ -286,7 +285,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(ShowdownOutcome.HouseWins, _game.LastRound.Showdown.Outcome);
             Assert.AreEqual(1000 + 100 * 2, _game.Years, "Two pair ×2.");
             Assert.AreNotEqual(greeting, _view.DealerView.LastLine);
-            Assert.AreEqual(Tone.Bad, _view.DealerView.LastTone);
+            Assert.AreEqual(DealerMood.Gloating, _view.DealerView.LastMood);
         }
 
         [Test]
@@ -297,7 +296,7 @@ namespace HellPoker.Core.Tests
             PassUntil(GamePhase.RoundOver);
 
             Assert.AreEqual(ShowdownOutcome.PlayerWins, _game.LastRound.Showdown.Outcome);
-            Assert.AreEqual(Tone.Good, _view.DealerView.LastTone);
+            Assert.AreEqual(DealerMood.Annoyed, _view.DealerView.LastMood);
         }
 
         [Test]
@@ -306,7 +305,7 @@ namespace HellPoker.Core.Tests
             Setup(startingYears: 200);
 
             Assert.IsTrue(_view.FinalStretch);
-            Assert.AreEqual(Tone.Warning, _view.DealerView.LastTone);
+            Assert.AreEqual(DealerMood.Menacing, _view.DealerView.LastMood);
             int lines = _view.DealerView.LinesSaid;
 
             _view.PressAction();

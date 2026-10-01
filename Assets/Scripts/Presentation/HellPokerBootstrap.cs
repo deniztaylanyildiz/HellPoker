@@ -27,7 +27,7 @@ namespace HellPoker.Presentation
         [Tooltip("The smallest betting unit, in years.")]
         [SerializeField] private int _minimumUnit = 10;
         [Tooltip("At most this share of the sentence may be on the table in one hand.")]
-        [SerializeField, Range(1, 100)] private int _tableCapPercent = 50;
+        [SerializeField, Range(1, 100)] private int _tableCapPercent = 30;
 
         [Header("Bet flow")]
         [Tooltip("Player cards that turn together at the deal, before the first decision.")]
@@ -55,13 +55,13 @@ namespace HellPoker.Presentation
                 raiseUnitsBeforeDraw: _raiseUnitsBeforeDraw, raiseUnitsAfterDraw: _raiseUnitsAfterDraw, houseReRaiseUnits: _houseReRaiseUnits);
             int? seed = _useFixedSeed ? _seed : (int?)null;
 
-            TableView tableView = TableView.Create(transform);
+            TableView tableView = TableView.Create(transform, UiArt.Dealers);
             _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView);
 
             MainMenuView menu = MainMenuView.Create(transform,
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
                 string.Format(UiText.RulesFormat, table.StartingYears, table.DamnationYears, table.ForcedRaiseYears, table.Stakes.TableCapPercent));
-            DealerSelectView dealerSelect = DealerSelectView.Create(transform);
+            DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers);
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, tableView, _tablePresenter, new UnityApplicationQuitter(), DealerRoster.All);
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter);

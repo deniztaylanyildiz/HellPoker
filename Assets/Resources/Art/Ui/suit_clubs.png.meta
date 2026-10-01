@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -129,10 +129,10 @@ TextureImporter:
       name: suit_clubs_0
       rect:
         serializedVersion: 2
-        x: 8
-        y: 3
-        width: 112
-        height: 117
+        x: 0
+        y: 0
+        width: 11
+        height: 11
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

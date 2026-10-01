@@ -20,7 +20,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Bahis birimi** (`StakeScale`): elin başındaki cezanın 1/10'u, okunaklı adıma **aşağı** yuvarlanır:
   ceza ≥1000 → 100'ün katı, ≥500 → 50, ≥250 → 25, altı → 10 (en az 10; ceza daha azsa all-in).
   Örnek: 1000 → 100, 650 → 50, 340 → 25, 180 → 10. **Ante = 1 birim** (seçici yok; "ANTE X YEARS" + DEAL).
-- **Masa tavanı:** masadaki toplam bahis elin başındaki cezanın en fazla **%50**'si (ante'den az olamaz). Tavanda artırma kilitlenir ("TABLE FULL").
+- **Masa tavanı:** masadaki toplam bahis elin başındaki cezanın en fazla **%30**'u (ante'den az olamaz). Tavanda artırma kilitlenir ("TABLE FULL").
   Masaya konan yıllar sayaçtan anında düşer (`YearsOffTable`).
 - Her elin akışı (en fazla **5** karar):
   1. DEAL: ante masaya konur, oyuncunun ilk **2** kartı birlikte açılır (karar yok).
@@ -29,6 +29,8 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   4. Kasa `HouseCardsShown` kadar kart açar (Mammon 2, Belial 1, Lilith 2) → **1 karar** → kalanlar showdown'a.
   5. Kart değiştirdikten sonra oyuncu artırırsa kasa **re-raise** yapabilir (1 birim, tavan geçerli) → oyuncu **Karşıla (Call) / Çekil**.
      Karar `IHouseBettingStrategy` (`HandStrengthBettingStrategy` + şeytanın `HouseBettingStyle`'ı, zar `IRandomSource`'tan).
+     **Dikkat:** varsayılan sayılarla (birim ≈ %10, tavan %30) ante + draw sonrası artırma = 3 birim = tavan; re-raise ancak
+     yuvarlamanın tavanda boşluk bıraktığı cezalarda olur (ör. 650: birim 50, tavan 195). Kullanıcıya bildirildi, karar bekliyor.
 - **Pas** = artırmadan devam. **Çekil** = eli bırak; draw'dan önce `FoldPercentBeforeDraw`, sonra `FoldPercentAfterDraw` (yukarı yuvarlanır).
 - **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; **tavana ya da all-in'e** ulaşınca Pas serbest.
   Ekran "cehennem ateşi" moduna geçer.
@@ -39,10 +41,13 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   |---|---|---|---|---|---|
   | **Mammon** (Tefeci, dürüst) | 3 | 2 | standart | %50 / %100 | %70 / %5 |
   | **Belial** (Gümüş Dil, blöfçü) | 3 | 1 | yüksek (Quads ×15, SF ×25, Royal ×30) | %50 / %100 | %60 / %30 |
-  | **Lilith** (Gecenin Kraliçesi, acımasız) | 4 | 2 | standart | %100 / %100 | %90 / %10 |
-  - Hepsinde `LossPercent` = 100. Şeytan masada portresiyle oturur ve replik söyler (re-raise dahil, `UiText.Dealers.cs`).
-- **Ödeme simetrik:** kazanırsan `toplam bahis × senin el çarpanın` yıl silinir; kaybedersen `toplam bahis × kasanın el çarpanı × LossPercent`
-  yıl eklenir (yukarı yuvarlanır). Beraberlik: değişiklik yok.
+  | **Lilith** (Gecenin Kraliçesi, acımasız, en zor) | 4 | 2 | standart, kayıp **×1.25** | %100 / %100 | %90 / %10 |
+  - Mammon ve Belial'de `LossPercent` = 100, Lilith'te 125. Şeytan masada portresiyle oturur ve replik söyler (re-raise dahil, `UiText.Dealers.cs`).
+- **Ödeme simetrik, çarpan sadece ante'ye:** artırmalar ve re-raise'ler 1'e 1 ödenir.
+  - Kazanç: `toplam bahis + ante × (oyuncunun çarpanı − 1)` yıl silinir (cezayı geçemez).
+  - Kayıp: `(toplam bahis + ante × (kasanın çarpanı − 1)) × LossPercent` yıl eklenir, yukarı yuvarlanır.
+  - Örnek: ante 100, toplam 300, Full House (×8) → 300 + 700 = 1000. Beraberlik: değişiklik yok.
+- **Denge** (`BalanceSimulation`, 2000 koşu, akıllı oyuncu): Mammon ~%79 aklanma / ~49 el, Belial ~%74 / ~23, Lilith ~%64 / ~38.
 - **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) **yenilmez**: Royal Flush dahil her eli yener (testlerle sabit)
   ve oyuncu kazanırsa **tüm cezayı siler**. Kasa onunla kazanırsa en yüksek çarpan sayılır.
 - Standart çarpanlar: High Card/Pair ×1, Two Pair ×2, Trips ×3, Straight ×4, Flush ×5, Full House ×8, Quads ×10, Straight Flush ×15, Royal ×20.
@@ -62,33 +67,51 @@ Assets/Scripts/
     Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle), DealerRoster
                    (Game/ altında ayrıca StakeScale: bahis birimi, ante, masa tavanı)
   Presentation/  HellPoker.Presentation.asmdef — Unity katmanı (MVP)
-    Abstractions/  ITableView, IHandView, IDealerView, IDealerSelectView, DealerCard, ... , ITableCommands, Tone
+    Abstractions/  ITableView, IHandView, IDealerView (+ DealerMood), IDealerSelectView, DealerCard, ... , ITableCommands, Tone
+    Animation/     SpriteClip + SpriteSheet (yatay şeridi kare karelere böler), DealerAnimationLibrary (yedek zinciri),
+                   SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer)
     Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, CardView...
-    Ui/            UiFactory, UiArt (Resources'tan sprite/font yükler), Palette, UiText + UiText.Dealers (tüm oyuncu metinleri)
+    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font), Palette, UiText + UiText.Dealers
     TablePresenter (masa; IRunSession; her koşuda seçilen şeytan için oyunu Func<Dealer, IHellPokerGame> ile kurar),
     MainMenuPresenter (menü → şeytan seçimi → masa), DealerCards (şeytan kurallarından özellik metni üretir), KeyboardInput,
     HellPokerBootstrap (composition root)
   Editor/        HellPokerSceneBuilder (menü: Hell Poker ▸ Build Main Scene), HellPokerMenu (Hell Poker ▸ Play, Ctrl+Shift+P),
-                 HellPokerArtImporter (Resources/Art altındaki PNG'leri UI sprite + 9-slice kenarlarıyla içe aktarır),
+                 HellPokerArtImporter (Resources/Art: Point filtre, PPU 100, sıkıştırmasız, 9-slice; Resources/Fonts: Hinted Raster),
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
 Assets/Tests/EditMode/  NUnit testleri (Core + Presenter, fake view'larla)
 Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla bir el oynayan uçtan uca test
                         + HellPokerScreenshots ([Explicit]: tüm ekranların 1920×1080 görüntüsünü alır)
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
-Assets/Resources/Art/   Üretilmiş görseller: Demons/<dealerId>.png portreler, Ui/ (masa, arka plan, çerçeve, buton, fiş, kart, logo...)
-Assets/Resources/Fonts/ HellPokerDisplay (Cinzel), HellPokerSerif(+Italic) (IM Fell) — OFL, ♠♥♦♣↑↓ glifleri eklenmiş
-Tools/ArtGen/           Görselleri üreten Python (Pillow+numpy) ve font script'leri — görsel değişince buradan yeniden üret
+Assets/Resources/Art/   Üretilmiş piksel görseller:
+                          Demons/<dealerId>/<durum>.png  (idle, talk, gloat, angry, reraise, final — yatay şerit, kareler 96×96)
+                          Ui/ (background[_hell], panel[_hot], dialog, button_*, card_face/back/slot, suit_*[_small], digits, title, coin, flames, divider)
+Assets/Resources/Fonts/ HellPokerPixelTitle (Press Start 2P), HellPokerPixel (Tiny5) — OFL lisansları yanında; eksik glifler piksel olarak eklendi
+Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_ui.py, fonts.py, generate_art.py, preview.py
+                        (preview/ çıktısı repoya girmez)
 ```
 
-### Görsel kurallar
+### Görsel kurallar (16-bit piksel art)
 
-- Stil: **gotik cehennem kumarhanesi** — koyu kadife, altın süsleme, Cinzel başlıklar, IM Fell metin.
-- `UiFactory.CreateText` stili fonta çevirir: `Bold` = Display (Cinzel), `Italic` = serif italik, diğerleri serif.
-- Görseller **Python ile üretilir** (`Tools/ArtGen`), elle düzenlenmez; değişiklik script'te yapılıp yeniden üretilir.
-  Gerçek çizim gelirse aynı isimle `Assets/Resources/Art/...` altına konması yeterli.
-- Yeni şeytan: `DealerRoster`'a `Dealer`, `UiText.Dealers.cs`'e metinler, `Tools/ArtGen/demons.py`'ye portre (dosya adı = id).
-- Proje **lineer renk uzayında**: UI'da düşük alfa bile ekranda güçlü görünür (ör. %13 turuncu ≈ ekranın yarısı turuncu).
+- Stil: **SNES / eski DOS** — masa yok, sade koyu taş zemin, solda animasyonlu şeytan, eski RPG menü kutuları.
+- **Palet:** `Tools/ArtGen/pixel.py` içindeki tek palet, en fazla 32 renk (koyu mor/siyah, cehennem kırmızısı/turuncusu,
+  kemik beyazı, eski altın + Mammon yeşili, Lilith leylağı, Belial gümüşü). Her görsel ondan üretilir; kenar yumuşatma yok.
+  Unity'deki `Palette` renkleri aynı hex değerleri (metin rengi de palet içinde kalır). Saydam karıştırma yerine sprite değiştir
+  (ör. son 250 yılda `background_hell`).
+- **Ekran:** her şey 480×270 piksellik `Screen` rect'i içinde, tam sayı piksellerle (`UiFactory.PlaceTL`). `PixelScreen`
+  bunu tam sayı katıyla ölçekler (1920×1080'de ×4), kenarda siyah dolgu kalır; `Canvas.pixelPerfect` açık.
+- **Boyutlar:** şeytan karesi 96×96, kart 32×48 (köşede 5×5, ortada 11×11 renk sembolü), butonlar / paneller / diyalog 12×12
+  9-slice (kenar 4 px), piksel rakam 12×16, zemin 480×270, alev şeridi 32×20 karelik.
+- **Fontlar:** iki font da 8 px ızgarada; boyut her zaman 8'in katı. `UiFactory.CreateText`: `Bold` = başlık fontu
+  (Press Start 2P), diğerleri metin fontu (Tiny5). Fontta olmayan karakter kullanma (ör. "→"); gerekirse `fonts.py`'ye piksel glif ekle.
+- **Animasyon:** kart hareketleri tam piksel adımlarla (dağıtma yukarıdan düşer, çevirme 2'şer piksel daralır).
+  Şeytan durumları ~8 FPS (idle 5 FPS); `DealerView` presenter'ın `DealerMood`'unu animasyona çevirir:
+  Gloating → gloat, Annoyed → angry, Scheming → reraise (tek sefer, sonra talk/idle); yazı yazılırken talk; son 250 yılda idle yerine final.
+- **Yedek zinciri:** durum dosyası yoksa idle, o da yoksa tek portre (`Demons/<id>.png`), o da yoksa düz renk. Eksik görsel
+  oyunu asla bozmaz (`DealerAnimationTests`).
+- Görseller **elle düzenlenmez**: script'te değiştirip `generate_art.py` ile yeniden üret, `preview.py` ile kontrol et.
+- Yeni şeytan: `DealerRoster`'a `Dealer`, `UiText.Dealers.cs`'e metinler, `pixel_demons.py`'ye çizim fonksiyonu (DEMONS'a id ile).
+- Proje **lineer renk uzayında**: UI'da düşük alfa bile ekranda güçlü görünür.
 - Hileler/eventler (ileride): `Dealer` paketine yeni parçalar olarak eklenecek; presenter şeytanı yalnızca `Dealer` üzerinden tanır.
 
 ### Mimari kurallar
@@ -97,7 +120,8 @@ Tools/ArtGen/           Görselleri üreten Python (Pillow+numpy) ve font script
 - **Yeni el türü / özel el** → yeni bir `IHandRule` yaz, `StandardHandRules`'a ekle. `HandEvaluator`'a dokunma (OCP).
 - **Yeni kural varyasyonu** (ör. 4 kart değiştirme, farklı ödeme) → yeni `IDiscardPolicy` / `IPayoutTable` implementasyonu.
 - **Somut sınıflar sadece composition root'larda seçilir:** `HellPokerGameFactory` (Core) ve `HellPokerBootstrap` (Unity).
-- **Presenter sadece arayüzlere bağlıdır** (`IHellPokerGame`, `ITableView`), renk/stil bilmez; anlamsal `Tone` gönderir, rengi view seçer.
+- **Presenter sadece arayüzlere bağlıdır** (`IHellPokerGame`, `ITableView`), renk/stil bilmez; anlamsal `Tone` / `DealerMood` gönderir,
+  rengi ve animasyonu view seçer.
 - **Presenter durum tarif eder, animasyon bilmez:** her komuttan sonra masanın olması gereken halini (`CardSlot[]` vb.) gönderir.
   View'lar farkı bulup animasyonla gösterir. Tüm view güncellemeleri tek bir `AnimationSequencer` kuyruğundan geçer
   (sonuç mesajı kartlar açılmadan görünmez). Animasyon sürerken `ITableView.IsBusy` true olur ve presenter girdiyi yok sayar.
@@ -122,8 +146,9 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform EditMode -testFilter HellPoker.Core.Tests.BalanceSimulation -testResults sim.xml -logFile sim.log
 
 # Görselleri / fontları yeniden üret (py -m pip install --user pillow numpy fonttools)
-py Tools/ArtGen/generate_art.py [isim ...]     # ör. belial card_back
+py Tools/ArtGen/generate_art.py [demons] [ui]
 py Tools/ArtGen/fonts.py
+py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: tüm şeytan karelerinin animasyonlu önizlemesi
 
 # Ana sahneyi yeniden oluştur
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerSceneBuilder.Build -logFile build.log

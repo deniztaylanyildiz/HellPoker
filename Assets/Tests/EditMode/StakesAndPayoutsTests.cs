@@ -35,11 +35,12 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(ante, StakeScale.Default.AnteFor(years));
         }
 
-        [TestCase(1000, 500)]
-        [TestCase(251, 125)]
+        [TestCase(1000, 300)]
+        [TestCase(650, 195)]
+        [TestCase(251, 75)]
         [TestCase(15, 10)]
         [TestCase(7, 7)]
-        public void Cap_IsHalfTheSentence_ButNeverBelowTheAnte(int years, int cap)
+        public void Cap_IsThirtyPercentOfTheSentence_ButNeverBelowTheAnte(int years, int cap)
         {
             Assert.AreEqual(cap, StakeScale.Default.CapFor(years));
         }
@@ -79,34 +80,60 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Loss_IsSymmetric_StakeTimesHouseMultiplier()
+        public void Win_MultipliesTheAnte_RaisesPayOneToOne()
         {
             PayoutTable payouts = PayoutTable.CreateDefault();
 
-            Assert.AreEqual(100, payouts.GetYearsAdded(HandCategory.OnePair, 100));
-            Assert.AreEqual(500, payouts.GetYearsAdded(HandCategory.Flush, 100));
-            Assert.AreEqual(500, payouts.GetYearsForgiven(HandCategory.Flush, 100, 1000));
+            Assert.AreEqual(1000, payouts.GetYearsForgiven(HandCategory.FullHouse, stake: 300, ante: 100, currentYears: 2000),
+                "300 + 100 × 7 — not 300 × 8 = 2400.");
+            Assert.AreEqual(300, payouts.GetYearsForgiven(HandCategory.OnePair, 300, 100, 2000), "A ×1 hand returns the table.");
+            Assert.AreEqual(100 + 100 * 4, payouts.GetYearsForgiven(HandCategory.Flush, 100, 100, 2000));
+        }
+
+        [Test]
+        public void Win_NeverForgivesMoreThanTheSentence()
+        {
+            Assert.AreEqual(400, PayoutTable.CreateDefault().GetYearsForgiven(HandCategory.FullHouse, 300, 100, 400));
+        }
+
+        [Test]
+        public void Loss_IsTheSameFormula_OnTheHousesHand()
+        {
+            PayoutTable payouts = PayoutTable.CreateDefault();
+
+            Assert.AreEqual(300, payouts.GetYearsAdded(HandCategory.OnePair, 300, 100));
+            Assert.AreEqual(1000, payouts.GetYearsAdded(HandCategory.FullHouse, 300, 100));
         }
 
         [Test]
         public void Loss_AppliesLossPercent_RoundingUp()
         {
-            var payouts = new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 150);
+            var payouts = new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 125);
 
-            Assert.AreEqual(38, payouts.GetYearsAdded(HandCategory.HighCard, 25), "37.5 rounds up.");
-            Assert.AreEqual(750, payouts.GetYearsAdded(HandCategory.Flush, 100));
+            Assert.AreEqual(1250, payouts.GetYearsAdded(HandCategory.FullHouse, 300, 100));
+            Assert.AreEqual(32, payouts.GetYearsAdded(HandCategory.HighCard, 25, 25), "31.25 rounds up.");
+            Assert.AreEqual(63, payouts.GetYearsAdded(HandCategory.TwoPair, 25, 25), "(25 + 25) × 1.25 = 62.5 rounds up.");
+        }
+
+        [Test]
+        public void TheAnteMustBePartOfTheStake()
+        {
+            PayoutTable payouts = PayoutTable.CreateDefault();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => payouts.GetYearsAdded(HandCategory.Flush, 100, 200));
+            Assert.Throws<ArgumentOutOfRangeException>(() => payouts.GetYearsForgiven(HandCategory.Flush, 100, -1, 1000));
         }
 
         [Test]
         public void HouseWinningWithDeadMansHand_CountsAsTheTopMultiplier()
         {
-            Assert.AreEqual(20 * 50, PayoutTable.CreateDefault().GetYearsAdded(HandCategory.DeadMansHand, 50));
+            Assert.AreEqual(50 + 50 * 19, PayoutTable.CreateDefault().GetYearsAdded(HandCategory.DeadMansHand, 50, 50));
         }
 
         [Test]
         public void PlayerWinningWithDeadMansHand_ForgivesEverything()
         {
-            Assert.AreEqual(1234, PayoutTable.CreateDefault().GetYearsForgiven(HandCategory.DeadMansHand, 10, 1234));
+            Assert.AreEqual(1234, PayoutTable.CreateDefault().GetYearsForgiven(HandCategory.DeadMansHand, 10, 10, 1234));
         }
 
         [Test]
@@ -123,17 +150,19 @@ namespace HellPoker.Core.Tests
         {
             PayoutTable payouts = PayoutTable.CreateDefault();
 
-            Assert.AreEqual(200, payouts.GetLeastYearsForgiven(200, 1000));
-            Assert.AreEqual(150, payouts.GetLeastYearsForgiven(200, 150), "Never more than the sentence.");
-            Assert.AreEqual(200, payouts.GetLeastYearsAdded(200));
+            Assert.AreEqual(200, payouts.GetLeastYearsForgiven(200, 100, 1000));
+            Assert.AreEqual(150, payouts.GetLeastYearsForgiven(200, 100, 150), "Never more than the sentence.");
+            Assert.AreEqual(200, payouts.GetLeastYearsAdded(200, 100));
+            Assert.AreEqual(250, new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 125)
+                .GetLeastYearsAdded(200, 100));
         }
 
         [Test]
-        public void NegativeSettings_Throw()
+        public void InvalidSettings_Throw()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: -1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PayoutTable(new Dictionary<HandCategory, int> { { HandCategory.HighCard, -1 } }, HandCategory.DeadMansHand));
+                new PayoutTable(new Dictionary<HandCategory, int> { { HandCategory.HighCard, 0 } }, HandCategory.DeadMansHand));
         }
     }
 

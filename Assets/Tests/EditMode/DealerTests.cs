@@ -70,6 +70,7 @@ namespace HellPoker.Core.Tests
 
             Assert.AreEqual(4, lilith.MaxDiscards);
             Assert.AreEqual(2, lilith.HouseCardsShown);
+            Assert.AreEqual(125, lilith.Payouts.LossPercent, "The hardest table: losses cost a quarter more.");
             Assert.AreEqual(100, lilith.Payouts.FoldPercentBeforeDraw);
             Assert.AreEqual(100, lilith.Payouts.FoldPercentAfterDraw);
             AssertTemper(lilith, 90, 10);
@@ -142,7 +143,7 @@ namespace HellPoker.Core.Tests
             Assert.That(card.Traits, Has.Some.Contains("3 cards"));
             Assert.That(card.Traits, Has.Some.Contains("only 1"));
             Assert.That(card.Traits, Has.Some.Contains("Royal ×30"));
-            Assert.That(card.Traits, Has.Some.Contains("half the stake before the draw"));
+            Assert.That(card.Traits, Has.Some.Contains("half before the draw, all after"));
             Assert.That(card.Traits, Has.Some.Contains("60%"));
             Assert.That(card.Traits, Has.Some.Contains("bluffs 30%"));
         }
@@ -153,7 +154,16 @@ namespace HellPoker.Core.Tests
             var card = DealerCards.Describe(DealerRoster.Lilith);
 
             Assert.That(card.Traits, Has.Some.Contains("4 cards"));
-            Assert.That(card.Traits, Has.Some.Contains("Fold: always + the stake"));
+            Assert.That(card.Traits, Has.Some.Contains("Fold: always all of the stake"));
+            Assert.That(card.Traits, Has.Some.Contains("House's hand × 1.25"));
+        }
+
+        [Test]
+        public void DealerCard_ForMammon_HasNoLossSurcharge()
+        {
+            var card = DealerCards.Describe(DealerRoster.Mammon);
+
+            Assert.That(card.Traits, Has.Some.EndsWith("on the House's hand"));
         }
     }
 }

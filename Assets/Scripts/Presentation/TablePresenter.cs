@@ -59,7 +59,7 @@ namespace HellPoker.Presentation
             _view.Payouts.SetTable(dealer.Payouts);
             _view.Sentence.SetDamnationLimit(_game.Rules.DamnationYears);
             _view.Sentence.SetYears(_game.Years, animate: false);
-            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), Tone.Neutral);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
             Refresh();
         }
 
@@ -99,7 +99,7 @@ namespace HellPoker.Presentation
                     _game.Restart();
                     _finalStretchAnnounced = false;
                     _view.Sentence.SetYears(_game.Years, animate: true);
-                    _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), Tone.Neutral);
+                    _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
                     break;
             }
 
@@ -119,7 +119,7 @@ namespace HellPoker.Presentation
 
             _game.Bet(action);
             if (_game.Phase == GamePhase.HouseReRaise)
-                _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), Tone.Bad);
+                _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), DealerMood.Scheming);
             Refresh();
         }
 
@@ -180,7 +180,7 @@ namespace HellPoker.Presentation
             if (_game.IsRaiseForced && !_finalStretchAnnounced && !_game.IsGameOver)
             {
                 _finalStretchAnnounced = true;
-                _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), Tone.Warning);
+                _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), DealerMood.Menacing);
             }
         }
 
@@ -303,12 +303,12 @@ namespace HellPoker.Presentation
                 case GamePhase.Absolved:
                     bool deadMansHand = showdown != null && showdown.Player.Category == HandCategory.DeadMansHand;
                     _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : UiText.ServedMessage, Tone.Triumph);
-                    _view.Dealer.Say(_dealerText.Absolved, Tone.Bad);
+                    _view.Dealer.Say(_dealerText.Absolved, DealerMood.Annoyed);
                     _view.SetAction(UiText.Again);
                     break;
                 case GamePhase.Damned:
                     _view.SetMessage(string.Format(UiText.DamnedFormat, _game.Years), Tone.Doom);
-                    _view.Dealer.Say(_dealerText.Damned, Tone.Doom);
+                    _view.Dealer.Say(_dealerText.Damned, DealerMood.Gloating);
                     _view.SetAction(UiText.Again);
                     break;
                 default:
@@ -324,13 +324,13 @@ namespace HellPoker.Presentation
         {
             int counter = _game.RoundNumber;
             if (round.Folded)
-                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerFolds, counter), Tone.Bad);
+                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerFolds, counter), DealerMood.Gloating);
             else if (round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
-                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerWins, counter), Tone.Good);
+                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerWins, counter), DealerMood.Annoyed);
             else if (round.Showdown.Outcome == ShowdownOutcome.HouseWins)
-                _view.Dealer.Say(UiText.Pick(_dealerText.HouseWins, counter), Tone.Bad);
+                _view.Dealer.Say(UiText.Pick(_dealerText.HouseWins, counter), DealerMood.Gloating);
             else
-                _view.Dealer.Say(UiText.Pick(_dealerText.Push, counter), Tone.Neutral);
+                _view.Dealer.Say(UiText.Pick(_dealerText.Push, counter), DealerMood.Neutral);
         }
 
         private static string ResultMessage(RoundResult round)

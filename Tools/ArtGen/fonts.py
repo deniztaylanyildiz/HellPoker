@@ -1,10 +1,11 @@
-"""Adds the glyphs Hell Poker needs (♠ ♥ ♦ ♣ ↑ ↓) to the OFL fonts that lack them.
+"""Builds Hell Poker's pixel fonts: adds the glyphs they lack, drawn as pixel bitmaps on each font's own grid.
 
 Usage (from the project root):  py Tools/ArtGen/fonts.py
 Reads the originals from Tools/ArtGen/fonts and writes Assets/Resources/Fonts.
 Needs fonttools:  py -m pip install --user fonttools
+
+Both fonts are drawn on an 8 px em: use them in Unity at font size 8 (or 16, 24...) so every font pixel is a whole screen pixel.
 """
-import math
 import os
 
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -14,74 +15,66 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "fonts")
 DST = os.path.abspath(os.path.join(HERE, "..", "..", "Assets", "Resources", "Fonts"))
 
-# Original file -> (output file, new family name). Modified OFL fonts get their own names.
+# 5 px tall suit bitmaps for the small body font (Tiny5: cap height 5 px).
+SUITS_5 = {
+    0x2660: ["..#..", ".###.", "#####", "..#..", ".###."],   # spade: pointed top, stem on a foot
+    0x2663: [".###.", ".###.", "#####", "#.#.#", "..#.."],   # club: round top, three lobes
+    0x2665: ["##.##", "#####", "#####", ".###.", "..#.."],   # heart
+    0x2666: ["..#..", ".###.", "#####", ".###.", "..#.."],   # diamond
+}
+
+# Original file -> (output file, new family name, glyphs to add as bitmaps, codepoints to alias to an existing character).
 FONTS = {
-    "Cinzel-Bold.ttf": ("HellPokerDisplay.ttf", "Hell Poker Display"),
-    "IMFellEnglish-Regular.ttf": ("HellPokerSerif.ttf", "Hell Poker Serif"),
-    "IMFellEnglish-Italic.ttf": ("HellPokerSerif-Italic.ttf", "Hell Poker Serif Italic"),
+    "PressStart2P-Regular.ttf": ("HellPokerPixelTitle.ttf", "Hell Poker Pixel Title", {}, {0x2212: "-"}),
+    "Tiny5-Regular.ttf": ("HellPokerPixel.ttf", "Hell Poker Pixel", SUITS_5, {}),
 }
 
 
-def circle(cx, cy, r, steps=32):
-    # Counter-clockwise in font space (y up) is a TrueType hole, so go clockwise.
-    return [(cx + r * math.cos(-2 * math.pi * i / steps), cy + r * math.sin(-2 * math.pi * i / steps)) for i in range(steps)]
+def pixel_unit(font):
+    """Font units per design pixel: these fonts are drawn on an 8 px em."""
+    return font["head"].unitsPerEm // 8
 
 
-def shapes(kind):
-    """Contours in a 0..1 box (y up). Overlapping clockwise contours merge under the non-zero fill rule."""
-    if kind == "spade":
-        return [circle(0.31, 0.44, 0.2), circle(0.69, 0.44, 0.2),
-                [(0.11, 0.5), (0.5, 0.96), (0.89, 0.5), (0.5, 0.34)][::-1],
-                [(0.5, 0.45), (0.66, 0.04), (0.34, 0.04)][::-1]]
-    if kind == "heart":
-        return [circle(0.31, 0.64, 0.22), circle(0.69, 0.64, 0.22),
-                [(0.1, 0.55), (0.5, 0.06), (0.9, 0.55), (0.5, 0.6)][::-1]]
-    if kind == "diamond":
-        return [[(0.5, 0.98), (0.86, 0.5), (0.5, 0.02), (0.14, 0.5)]]
-    if kind == "club":
-        r = 0.19
-        return [circle(0.5, 0.72, r), circle(0.28, 0.42, r), circle(0.72, 0.42, r), circle(0.5, 0.5, r * 0.6),
-                [(0.5, 0.5), (0.66, 0.04), (0.34, 0.04)][::-1]]
-    if kind == "up":
-        return [[(0.5, 0.98), (0.88, 0.58), (0.62, 0.58), (0.62, 0.02), (0.38, 0.02), (0.38, 0.58), (0.12, 0.58)]]
-    if kind == "down":
-        return [[(0.5, 0.02), (0.12, 0.42), (0.38, 0.42), (0.38, 0.98), (0.62, 0.98), (0.62, 0.42), (0.88, 0.42)]]
-    raise ValueError(kind)
+def bitmap_glyph(rows, unit):
+    pen = TTGlyphPen(None)
+    height = len(rows)
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch != "#":
+                continue
+            x0, x1 = c * unit, (c + 1) * unit
+            y1 = (height - r) * unit
+            y0 = y1 - unit
+            # Clockwise square (TrueType fills clockwise contours).
+            pen.moveTo((x0, y0))
+            pen.lineTo((x0, y1))
+            pen.lineTo((x1, y1))
+            pen.lineTo((x1, y0))
+            pen.closePath()
+    return pen.glyph()
 
 
-GLYPHS = {0x2660: "spade", 0x2665: "heart", 0x2666: "diamond", 0x2663: "club", 0x2191: "up", 0x2193: "down"}
-
-
-def add_glyphs(font):
-    upm = font["head"].unitsPerEm
-    cap = font["OS/2"].sCapHeight if getattr(font["OS/2"], "sCapHeight", 0) else int(upm * 0.7)
-    size = cap * 1.05
-    margin = upm * 0.06
+def add_glyphs(font, bitmaps, aliases):
+    unit = pixel_unit(font)
     order = font.getGlyphOrder()
     cmap_tables = [t for t in font["cmap"].tables if t.isUnicode()]
+    best = font.getBestCmap()
 
-    for codepoint, kind in GLYPHS.items():
-        name = "hp_" + kind
-        pen = TTGlyphPen(None)
-        for contour in shapes(kind):
-            pts = [(round(margin + x * size), round(y * size)) for x, y in contour]
-            # TrueType fills clockwise contours; a counter-clockwise one would punch a hole where shapes overlap.
-            area = sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]))
-            if area > 0:
-                pts.reverse()
-            pen.moveTo(pts[0])
-            for p in pts[1:]:
-                pen.lineTo(p)
-            pen.closePath()
-        glyph = pen.glyph()
+    for codepoint, rows in bitmaps.items():
+        name = "hp_uni%04X" % codepoint
+        glyph = bitmap_glyph(rows, unit)
         font["glyf"][name] = glyph
         glyph.recalcBounds(font["glyf"])
-        font["hmtx"][name] = (round(size + margin * 2), glyph.xMin if hasattr(glyph, "xMin") else 0)
+        font["hmtx"][name] = ((len(rows[0]) + 1) * unit, 0)
         if name not in order:
             order.append(name)
         for table in cmap_tables:
-            if table.format in (4, 12) or table.format == 6:
-                table.cmap[codepoint] = name
+            table.cmap[codepoint] = name
+
+    for codepoint, existing in aliases.items():
+        name = best[ord(existing)]
+        for table in cmap_tables:
+            table.cmap[codepoint] = name
 
     font.setGlyphOrder(order)
     font["maxp"].numGlyphs = len(order)
@@ -100,9 +93,9 @@ def rename(font, family):
 
 def main():
     os.makedirs(DST, exist_ok=True)
-    for source, (target, family) in FONTS.items():
+    for source, (target, family, bitmaps, aliases) in FONTS.items():
         font = TTFont(os.path.join(SRC, source))
-        add_glyphs(font)
+        add_glyphs(font, bitmaps, aliases)
         rename(font, family)
         font.save(os.path.join(DST, target))
         print("wrote", target)

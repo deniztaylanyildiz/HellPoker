@@ -29,10 +29,12 @@ namespace HellPoker.Presentation.Ui
         public const string TraitDrawFormat = "Exchange up to {0} cards";
         public const string TraitRevealFormat = "Shows {0} House cards before your last bet";
         public const string TraitRevealOne = "Shows only 1 House card before your last bet";
-        public const string TraitPayoutFormat = "Pays Pair ×{0}  ·  Flush ×{1}  ·  Full House ×{2}  ·  Royal ×{3}";
-        public const string TraitLossFormat = "Lose: + {0} × the House's hand";
-        public const string TraitFoldFormat = "Fold: + {0} before the draw, + {1} after";
-        public const string TraitFoldSameFormat = "Fold: always + {0}";
+        public const string TraitPayoutFormat = "Pair ×{0} · Flush ×{1} · Full ×{2} · Royal ×{3}";
+        /// <summary>{0} loss surcharge (see <see cref="UiText.LossSurcharge"/>).</summary>
+        public const string TraitLossFormat = "Lose: same, on the House's hand{0}";
+        /// <summary>{0}, {1}: <see cref="UiText.ShareShort"/> before and after the draw.</summary>
+        public const string TraitFoldFormat = "Fold: {0} before the draw, {1} after";
+        public const string TraitFoldSameFormat = "Fold: always {0} of the stake";
         /// <summary>{0} weakest strong hand, {1} re-raise percent with it, {2} bluff percent.</summary>
         public const string TraitTemperFormat = "Re-raises with {0}+ {1}% · bluffs {2}%";
 

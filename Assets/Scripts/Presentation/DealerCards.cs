@@ -21,10 +21,10 @@ namespace HellPoker.Presentation
                 dealer.HouseCardsShown == 1 ? UiText.TraitRevealOne : string.Format(UiText.TraitRevealFormat, dealer.HouseCardsShown),
                 string.Format(UiText.TraitPayoutFormat, payouts.GetMultiplier(HandCategory.OnePair), payouts.GetMultiplier(HandCategory.Flush),
                     payouts.GetMultiplier(HandCategory.FullHouse), payouts.GetMultiplier(HandCategory.RoyalFlush)),
-                string.Format(UiText.TraitLossFormat, UiText.StakeShare(payouts.LossPercent)),
+                string.Format(UiText.TraitLossFormat, UiText.LossSurcharge(payouts.LossPercent)),
                 payouts.FoldPercentBeforeDraw == payouts.FoldPercentAfterDraw
-                    ? string.Format(UiText.TraitFoldSameFormat, UiText.StakeShare(payouts.FoldPercentAfterDraw))
-                    : string.Format(UiText.TraitFoldFormat, UiText.StakeShare(payouts.FoldPercentBeforeDraw), UiText.StakeShare(payouts.FoldPercentAfterDraw)),
+                    ? string.Format(UiText.TraitFoldSameFormat, UiText.ShareShort(payouts.FoldPercentAfterDraw))
+                    : string.Format(UiText.TraitFoldFormat, UiText.ShareShort(payouts.FoldPercentBeforeDraw), UiText.ShareShort(payouts.FoldPercentAfterDraw)),
                 string.Format(UiText.TraitTemperFormat, UiText.CategoryName(dealer.Betting.StrongFrom), dealer.Betting.StrongPercent,
                     dealer.Betting.BluffPercent)
             };

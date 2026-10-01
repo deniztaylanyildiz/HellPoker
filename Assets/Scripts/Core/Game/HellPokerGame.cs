@@ -56,10 +56,11 @@ namespace HellPoker.Core.Game
             }
         }
 
-        public int LeastYearsForgiven => _payouts.GetLeastYearsForgiven(StakeForOutlook, _ledger.Years);
-        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook);
+        public int LeastYearsForgiven => _payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, _ledger.Years);
+        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook);
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
+        private int AnteForOutlook => CurrentStake > 0 ? Ante : UpcomingAnte;
 
         /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
@@ -268,9 +269,9 @@ namespace HellPoker.Core.Game
             if (showdown == null)
                 _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw));
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
-                _ledger.Forgive(_payouts.GetYearsForgiven(showdown.Player.Category, CurrentStake, _ledger.Years));
+                _ledger.Forgive(_payouts.GetYearsForgiven(showdown.Player.Category, CurrentStake, Ante, _ledger.Years));
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake));
+                _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante));
 
             HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;

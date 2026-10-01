@@ -6,8 +6,9 @@ using HellPoker.Core.Evaluation;
 namespace HellPoker.Core.Game
 {
     /// <summary>
-    /// Symmetric payouts: a winning hand forgives stake × the player's multiplier; a losing one adds
-    /// stake × the house's multiplier × <see cref="LossPercent"/>. Winning with the absolution hand wipes the whole sentence.
+    /// Symmetric payouts where the hand multiplier applies to the ante and raises pay one to one:
+    /// a win forgives stake + ante × (player's multiplier − 1); a loss adds (stake + ante × (house's multiplier − 1)) × <see cref="LossPercent"/>.
+    /// Example: ante 100, stake 300, full house ×8 → 300 + 100 × 7 = 1000. Winning with the absolution hand wipes the whole sentence.
     /// Folding adds a share of the stake that depends on whether the cards were already exchanged.
     /// Partial years always round up — the House never rounds in your favour.
     /// </summary>
@@ -29,7 +30,7 @@ namespace HellPoker.Core.Game
             int foldPercentAfterDraw = DefaultFoldPercentAfterDraw)
         {
             _multipliers = multipliers ?? throw new ArgumentNullException(nameof(multipliers));
-            if (_multipliers.Values.Any(m => m < 0)) throw new ArgumentOutOfRangeException(nameof(multipliers), "Multipliers cannot be negative.");
+            if (_multipliers.Values.Any(m => m < 1)) throw new ArgumentOutOfRangeException(nameof(multipliers), "Multipliers start at 1.");
             if (lossPercent < 0) throw new ArgumentOutOfRangeException(nameof(lossPercent));
             if (foldPercentBeforeDraw < 0) throw new ArgumentOutOfRangeException(nameof(foldPercentBeforeDraw));
             if (foldPercentAfterDraw < 0) throw new ArgumentOutOfRangeException(nameof(foldPercentAfterDraw));
@@ -72,17 +73,17 @@ namespace HellPoker.Core.Game
             return 1;
         }
 
-        public int GetYearsForgiven(HandCategory playerCategory, int stake, int currentYears)
+        public int GetYearsForgiven(HandCategory playerCategory, int stake, int ante, int currentYears)
         {
             if (IsAbsolution(playerCategory))
                 return currentYears;
 
-            return Math.Min(currentYears, stake * GetMultiplier(playerCategory));
+            return Math.Min(currentYears, Settlement(stake, ante, GetMultiplier(playerCategory)));
         }
 
-        public int GetYearsAdded(HandCategory houseCategory, int stake)
+        public int GetYearsAdded(HandCategory houseCategory, int stake, int ante)
         {
-            return PercentRoundedUp(stake * GetMultiplier(houseCategory), LossPercent);
+            return PercentRoundedUp(Settlement(stake, ante, GetMultiplier(houseCategory)), LossPercent);
         }
 
         public int GetFoldPenalty(int stake, bool afterDraw)
@@ -90,14 +91,22 @@ namespace HellPoker.Core.Game
             return PercentRoundedUp(stake, afterDraw ? FoldPercentAfterDraw : FoldPercentBeforeDraw);
         }
 
-        public int GetLeastYearsForgiven(int stake, int currentYears)
+        public int GetLeastYearsForgiven(int stake, int ante, int currentYears)
         {
-            return Math.Min(currentYears, stake * LowestMultiplier());
+            return Math.Min(currentYears, Settlement(stake, ante, LowestMultiplier()));
         }
 
-        public int GetLeastYearsAdded(int stake)
+        public int GetLeastYearsAdded(int stake, int ante)
         {
-            return PercentRoundedUp(stake * LowestMultiplier(), LossPercent);
+            return PercentRoundedUp(Settlement(stake, ante, LowestMultiplier()), LossPercent);
+        }
+
+        /// <summary>The whole table once, plus the ante once more for every step of the multiplier above one.</summary>
+        private static int Settlement(int stake, int ante, int multiplier)
+        {
+            if (stake < 0) throw new ArgumentOutOfRangeException(nameof(stake));
+            if (ante < 0 || ante > stake) throw new ArgumentOutOfRangeException(nameof(ante), "The ante is part of the stake.");
+            return stake + ante * (multiplier - 1);
         }
 
         private int LowestMultiplier()

@@ -5,67 +5,92 @@ using UnityEngine.UI;
 namespace HellPoker.Presentation.Views
 {
     /// <summary>
-    /// The end-of-sentence look: the table heats up, a pulsing hellfire vignette closes in, and a warning banner throbs.
-    /// Fades in and out smoothly when toggled.
+    /// The end-of-sentence look, in pixels: the stone wall turns to blood-red stone, rows of pixel flames burn along the
+    /// top and bottom edges of the screen, and a warning banner blinks. No blending — every colour stays in the palette.
     /// </summary>
     public sealed class FinalStretchEffect : MonoBehaviour
     {
-        private const float FadeSeconds = 1.5f;
+        private const float FlameFps = 8f;
+        private const int FlameHeight = 20;
 
         private Image _background;
-        private Image _felt;
-        private Image _vignette;
+        private Sprite _calm;
+        private Sprite _hell;
+        private Image _flamesBottom;
+        private Image _flamesTop;
+        private Sprite[] _flameFrames;
         private Text _banner;
         private bool _active;
-        private float _blend;
 
-        public static FinalStretchEffect Create(Transform parent, Image background, Image felt, Vector2 bannerPosition)
+        /// <param name="background">The full-screen backdrop whose sprite is swapped.</param>
+        /// <param name="bannerY">Top of the banner line, in screen pixels from the top.</param>
+        public static FinalStretchEffect Create(Transform screen, Image background, int bannerX, int bannerY, int bannerWidth)
         {
-            // Sits right above the background, behind the table, so the fire frames the game without covering it.
-            Image vignette = UiFactory.CreateImage("HellfireVignette", parent, Color.clear);
-            vignette.rectTransform.Stretch();
-            vignette.sprite = UiFactory.CreateVignetteSprite();
-            vignette.raycastTarget = false;
-            vignette.transform.SetSiblingIndex(background.transform.GetSiblingIndex() + 1);
-
-            Text banner = UiFactory.CreateText("FinalStretchBanner", parent, "", 24, Palette.Ember, style: FontStyle.Bold).WithShadow(2f);
-            banner.rectTransform.Place(new Vector2(0.5f, 1f), bannerPosition, new Vector2(1000f, 36f));
-            banner.horizontalOverflow = HorizontalWrapMode.Overflow;
-
-            var effect = vignette.gameObject.AddComponent<FinalStretchEffect>();
+            var effect = background.gameObject.AddComponent<FinalStretchEffect>();
             effect._background = background;
-            effect._felt = felt;
-            effect._vignette = vignette;
-            effect._banner = banner;
-            effect.Apply(0f);
+            effect._calm = background.sprite;
+            effect._hell = UiArt.Sprite(UiArt.BackgroundHell);
+            effect._flameFrames = UiArt.Strip(UiArt.Flames, UiArt.FlameFrameWidth);
+
+            // Flames sit just above the backdrop, behind everything else.
+            effect._flamesBottom = CreateFlames(screen, "FlamesBottom", background, flipped: false);
+            effect._flamesTop = CreateFlames(screen, "FlamesTop", background, flipped: true);
+
+            effect._banner = UiFactory.CreateText("FinalStretchBanner", screen, "", 8, Palette.Hell, style: FontStyle.Bold).WithShadow();
+            effect._banner.rectTransform.PlaceTL(bannerX, bannerY, bannerWidth, 8);
+            effect._banner.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            effect.Apply();
             return effect;
+        }
+
+        private static Image CreateFlames(Transform screen, string name, Image background, bool flipped)
+        {
+            Image flames = UiFactory.CreateImage(name, screen, Color.white);
+            flames.raycastTarget = false;
+            flames.type = Image.Type.Tiled;
+            flames.pixelsPerUnitMultiplier = 1f;
+            RectTransform rect = flames.rectTransform;
+            rect.anchorMin = new Vector2(0f, flipped ? 1f : 0f);
+            rect.anchorMax = new Vector2(1f, flipped ? 1f : 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(0f, FlameHeight);
+            rect.anchoredPosition = Vector2.zero;
+            if (flipped)
+                rect.localScale = new Vector3(1f, -1f, 1f);
+            flames.transform.SetSiblingIndex(background.transform.GetSiblingIndex() + 1);
+            return flames;
         }
 
         public void SetActive(bool active, string banner)
         {
             _active = active;
             if (active) _banner.text = banner;
+            Apply();
+        }
+
+        private void Apply()
+        {
+            _background.sprite = _active && _hell != null ? _hell : _calm;
+            bool flames = _active && _flameFrames != null;
+            _flamesBottom.enabled = flames;
+            _flamesTop.enabled = flames;
+            _banner.enabled = _active;
         }
 
         private void Update()
         {
-            _blend = Mathf.MoveTowards(_blend, _active ? 1f : 0f, Time.deltaTime / FadeSeconds);
-            Apply(Mathf.SmoothStep(0f, 1f, _blend));
-        }
+            if (!_active) return;
 
-        private void Apply(float blend)
-        {
-            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 2.6f);
+            if (_flameFrames != null)
+            {
+                Sprite frame = _flameFrames[Mathf.FloorToInt(Time.unscaledTime * FlameFps) % _flameFrames.Length];
+                _flamesBottom.sprite = frame;
+                _flamesTop.sprite = frame;
+            }
 
-            // The backdrop and table are art, so the heat is a tint over them rather than a new colour.
-            _background.color = Color.Lerp(Color.white, Palette.HellTint, blend * (0.8f + 0.2f * pulse));
-            _felt.color = Color.Lerp(Color.white, Palette.HellFeltTint, blend);
-            _vignette.color = new Color(1f, 0.22f + 0.14f * pulse, 0.03f, blend * (0.25f + 0.25f * pulse));
-
-            _banner.gameObject.SetActive(blend > 0.01f);
-            Color bannerColor = Color.Lerp(Palette.Ember, Palette.Gold, pulse);
-            bannerColor.a = blend;
-            _banner.color = bannerColor;
+            // Hard blink between two palette colours.
+            _banner.color = Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.3f ? Palette.Hell : Palette.Amber;
         }
     }
 }

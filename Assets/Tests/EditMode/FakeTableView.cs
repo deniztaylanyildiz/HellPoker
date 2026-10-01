@@ -112,15 +112,15 @@ namespace HellPoker.Core.Tests
     {
         public DealerCard Dealer { get; private set; }
         public string LastLine { get; private set; }
-        public Tone LastTone { get; private set; }
+        public DealerMood LastMood { get; private set; }
         public int LinesSaid { get; private set; }
 
         public void SetDealer(DealerCard dealer) => Dealer = dealer;
 
-        public void Say(string line, Tone tone)
+        public void Say(string line, DealerMood mood)
         {
             LastLine = line;
-            LastTone = tone;
+            LastMood = mood;
             LinesSaid++;
         }
     }

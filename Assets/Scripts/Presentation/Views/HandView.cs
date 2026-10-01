@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace HellPoker.Presentation.Views
 {
-    /// <summary>A captioned row of five card slots.</summary>
+    /// <summary>A captioned row of five pixel cards, placed on whole pixels.</summary>
     public sealed class HandView : MonoBehaviour, IHandView
     {
         private readonly List<CardView> _cards = new List<CardView>();
@@ -19,40 +19,34 @@ namespace HellPoker.Presentation.Views
 
         public event Action<int> CardClicked;
 
-        public static HandView Create(Transform parent, string name, Vector2 position, Vector2 cardSize, float spacing, bool captionAbove,
-            AnimationSequencer sequencer)
+        /// <param name="x">Left edge of the row, in screen pixels from the left.</param>
+        /// <param name="y">Top edge of the row, in screen pixels from the top.</param>
+        /// <param name="captionY">Top of the caption line, in screen pixels from the top.</param>
+        public static HandView Create(Transform parent, string name, int x, int y, int spacing, int captionY, AnimationSequencer sequencer)
         {
-            float width = cardSize.x * Hand.Size + spacing * (Hand.Size - 1);
-            RectTransform root = UiFactory.CreateRect(name, parent).Place(new Vector2(0.5f, 0.5f), position, new Vector2(width, cardSize.y));
+            int width = CardView.Size.x * Hand.Size + spacing * (Hand.Size - 1);
+            RectTransform root = UiFactory.CreateRect(name, parent).PlaceTL(x, y, width, CardView.Size.y);
 
             var view = root.gameObject.AddComponent<HandView>();
             view._sequencer = sequencer;
-            view.Build(root, cardSize, spacing, captionAbove);
+            view.Build(root, spacing, x, captionY, width);
             return view;
         }
 
-        private void Build(RectTransform root, Vector2 cardSize, float spacing, bool captionAbove)
+        private void Build(RectTransform root, int spacing, int x, int captionY, int width)
         {
-            var row = root.gameObject.AddComponent<HorizontalLayoutGroup>();
-            row.spacing = spacing;
-            row.childAlignment = TextAnchor.MiddleCenter;
-            row.childControlWidth = false;
-            row.childControlHeight = false;
-            row.childForceExpandWidth = false;
-            row.childForceExpandHeight = false;
-
             for (int i = 0; i < Hand.Size; i++)
             {
                 int index = i;
-                CardView card = CardView.Create(root, cardSize);
+                CardView card = CardView.Create(root);
+                ((RectTransform)card.transform).PlaceTL(i * (CardView.Size.x + spacing), 0, CardView.Size.x, CardView.Size.y);
                 card.Clicked += () => CardClicked?.Invoke(index);
                 _cards.Add(card);
             }
 
-            // Caption lives outside the layout row so the group does not try to arrange it.
-            float captionY = captionAbove ? cardSize.y / 2f + 34f : -cardSize.y / 2f - 34f;
-            _caption = UiFactory.CreateText("Caption", root.parent, "", 28, Palette.MutedText, style: FontStyle.Bold).WithShadow();
-            _caption.rectTransform.Place(new Vector2(0.5f, 0.5f), root.anchoredPosition + new Vector2(0f, captionY), new Vector2(root.sizeDelta.x + 200f, 44f));
+            _caption = UiFactory.CreateText("Caption", root.parent, "", 8, Palette.MutedText, style: FontStyle.Bold).WithShadow();
+            _caption.rectTransform.PlaceTL(x - 40, captionY, width + 80, 8);
+            _caption.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
         public void SetCaption(string text, Tone tone)

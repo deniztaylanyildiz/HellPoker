@@ -8,14 +8,19 @@ using UnityEngine.UI;
 
 namespace HellPoker.Presentation.Views
 {
-    /// <summary>A single card slot: empty, face down, or face up, optionally marked for discard. Animates its changes.</summary>
+    /// <summary>
+    /// A single 32×48 pixel card slot: empty, face down, or face up, optionally marked for discard. Animates its changes
+    /// in whole-pixel steps (no half-pixel drift): it drops in from above, and flips by narrowing a pixel column at a time.
+    /// </summary>
     public sealed class CardView : MonoBehaviour
     {
-        private const float SelectedLift = 28f;
-        private const float DealDistance = 320f;
+        public static readonly Vector2Int Size = new Vector2Int(32, 48);
+
+        private const int SelectedLift = 6;
+        private const int DealDistance = 40;
         private const float DealDuration = 0.16f;
-        private const float HalfFlipDuration = 0.1f;
-        private const float FadeDuration = 0.18f;
+        private const float HalfFlipDuration = 0.08f;
+        private const float FadeDuration = 0.12f;
 
         private RectTransform _content;
         private CanvasGroup _contentGroup;
@@ -30,26 +35,27 @@ namespace HellPoker.Presentation.Views
         private Text _centerSymbol;
         private GameObject _discardTag;
         private Button _button;
+        private bool _selected;
 
         /// <summary>The state this card will be in once all queued animations have played.</summary>
         public CardSlot Planned { get; private set; } = CardSlot.Empty;
 
         public event Action Clicked;
 
-        public static CardView Create(Transform parent, Vector2 size)
+        public static CardView Create(Transform parent)
         {
             RectTransform root = UiFactory.CreateRect("Card", parent);
-            root.sizeDelta = size;
+            root.sizeDelta = Size;
             var layout = root.gameObject.AddComponent<LayoutElement>();
-            layout.preferredWidth = size.x;
-            layout.preferredHeight = size.y;
+            layout.preferredWidth = Size.x;
+            layout.preferredHeight = Size.y;
 
             var view = root.gameObject.AddComponent<CardView>();
-            view.Build(root, size);
+            view.Build(root);
             return view;
         }
 
-        private void Build(RectTransform root, Vector2 size)
+        private void Build(RectTransform root)
         {
             // Invisible hit area so the card stays clickable while lifted or empty.
             Image hitArea = UiFactory.CreateImage("HitArea", root, Color.clear);
@@ -60,26 +66,20 @@ namespace HellPoker.Presentation.Views
             UiFactory.MakeClickOnly(_button);
             _button.onClick.AddListener(() => Clicked?.Invoke());
 
-            _slot = UiFactory.CreateSprite("Slot", root, UiArt.CardSlot, Palette.Slot).gameObject;
+            _slot = UiFactory.CreateSprite("Slot", root, UiArt.CardSlot, new Color(0f, 0f, 0f, 0f)).gameObject;
             ((RectTransform)_slot.transform).Stretch();
 
             _content = UiFactory.CreateRect("Content", root).Stretch();
             _contentGroup = _content.gameObject.AddComponent<CanvasGroup>();
             _contentGroup.blocksRaycasts = false;
 
-            // Soft shadow under the card, so it lifts off the felt.
-            Image shadow = UiFactory.CreateSprite("Shadow", _content, UiArt.CardSlot, new Color(0f, 0f, 0f, 0.4f));
-            shadow.color = new Color(0f, 0f, 0f, 0.55f);
-            shadow.rectTransform.Stretch();
-            shadow.rectTransform.anchoredPosition = new Vector2(5f, -7f);
-
-            BuildFace(size);
+            BuildFace();
             BuildBack();
 
-            Image tag = UiFactory.CreateImage("DiscardTag", _content, new Color(0.2f, 0.01f, 0.01f, 0.92f));
-            tag.rectTransform.Place(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size.x - 8f, size.y * 0.2f));
-            UiFactory.AddBorder(tag.gameObject, Palette.Gold, 1.5f);
-            UiFactory.CreateText("Label", tag.transform, UiText.DiscardTag, Mathf.RoundToInt(size.y * 0.085f), Palette.Ember, style: FontStyle.Bold)
+            Image tag = UiFactory.CreateImage("DiscardTag", _content, Palette.BloodDark);
+            tag.rectTransform.PlaceTL(0, 20, Size.x, 10);
+            UiFactory.AddBorder(tag.gameObject, Palette.Black, 1f);
+            UiFactory.CreateText("Label", tag.transform, UiText.DiscardTag, 8, Palette.Ember, style: FontStyle.Bold)
                 .rectTransform.Stretch();
             _discardTag = tag.gameObject;
 
@@ -87,56 +87,44 @@ namespace HellPoker.Presentation.Views
             SetSelected(false);
         }
 
-        private void BuildFace(Vector2 size)
+        private void BuildFace()
         {
             Image face = UiFactory.CreateSprite("Face", _content, UiArt.CardFace, Palette.Bone);
             face.rectTransform.Stretch();
-            if (face.sprite == null)
-                UiFactory.AddBorder(face.gameObject, Palette.Ink, 2f);
             _faceGroup = face.gameObject;
 
-            int rankSize = Mathf.RoundToInt(size.y * 0.15f);
-            float pip = size.y * 0.1f;
-            (_rankTop, _suitTop) = BuildCorner(face.transform, "CornerTop", rankSize, pip, size);
-            (_rankBottom, _suitBottom) = BuildCorner(face.transform, "CornerBottom", rankSize, pip, size);
+            (_rankTop, _suitTop) = BuildCorner(face.transform, "CornerTop");
+            (_rankBottom, _suitBottom) = BuildCorner(face.transform, "CornerBottom");
+            // A 180° turn keeps every pixel on the grid.
             _rankBottom.transform.parent.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             _centerSuit = UiFactory.CreateImage("Suit", face.transform, Color.white);
             _centerSuit.raycastTarget = false;
-            _centerSuit.preserveAspect = true;
-            _centerSuit.rectTransform.Place(new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one * size.x * 0.52f);
+            _centerSuit.rectTransform.Place(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(11, 11));
 
             // Text fallback when the suit sprites are missing.
-            _centerSymbol = UiFactory.CreateText("SuitSymbol", face.transform, "", Mathf.RoundToInt(size.y * 0.42f), Palette.Ink);
+            _centerSymbol = UiFactory.CreateText("SuitSymbol", face.transform, "", 16, Palette.Ink, style: FontStyle.Bold);
             _centerSymbol.rectTransform.Stretch();
         }
 
-        private static (Text rank, Image suit) BuildCorner(Transform face, string name, int rankSize, float pip, Vector2 size)
+        private static (Text rank, Image suit) BuildCorner(Transform face, string name)
         {
             RectTransform corner = UiFactory.CreateRect(name, face).Stretch();
-            Text rank = UiFactory.CreateText("Rank", corner, "", rankSize, Palette.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
-            rank.rectTransform.Place(new Vector2(0f, 1f), new Vector2(14f, -10f), new Vector2(size.x * 0.24f, rankSize * 1.2f), new Vector2(0f, 1f));
+            Text rank = UiFactory.CreateText("Rank", corner, "", 8, Palette.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
+            rank.rectTransform.PlaceTL(3, 3, 20, 8);
             rank.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             Image suit = UiFactory.CreateImage("Pip", corner, Color.white);
             suit.raycastTarget = false;
-            suit.preserveAspect = true;
-            suit.rectTransform.Place(new Vector2(0f, 1f), new Vector2(14f + size.x * 0.12f, -14f - rankSize * 1.15f), Vector2.one * pip, new Vector2(0.5f, 1f));
+            suit.rectTransform.PlaceTL(3, 12, 5, 5);
             return (rank, suit);
         }
 
         private void BuildBack()
         {
-            Image back = UiFactory.CreateSprite("Back", _content, UiArt.CardBack, Palette.CardBack);
+            Image back = UiFactory.CreateSprite("Back", _content, UiArt.CardBack, Palette.Crimson);
             back.rectTransform.Stretch();
             _backGroup = back.gameObject;
-
-            if (back.sprite == null)
-            {
-                Image inner = UiFactory.CreateImage("BackInner", back.transform, Palette.CardBackInner);
-                inner.rectTransform.Stretch(12f);
-                UiFactory.AddBorder(inner.gameObject, Palette.Ember, 2f);
-            }
         }
 
         /// <summary>Records the new target state and returns the animation that gets there.</summary>
@@ -158,27 +146,32 @@ namespace HellPoker.Presentation.Views
         {
             Apply(CardSlot.Back);
             _contentGroup.alpha = 0f;
-            float tilt = UnityEngine.Random.Range(-9f, 9f);
             yield return Tween.Run(DealDuration, t =>
             {
-                _content.anchoredPosition = new Vector2(0f, Mathf.Lerp(DealDistance, 0f, t));
-                _content.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(tilt, 0f, t));
-                _contentGroup.alpha = t;
+                _content.anchoredPosition = new Vector2(0f, Mathf.Round(Mathf.Lerp(DealDistance, 0f, t)));
+                _contentGroup.alpha = t < 0.25f ? 0f : 1f;
             });
-            _content.localRotation = Quaternion.identity;
+            _content.anchoredPosition = new Vector2(0f, Lift);
         }
 
         private IEnumerator FlipTo(CardSlot target)
         {
-            yield return Tween.Run(HalfFlipDuration, t => _content.localScale = new Vector3(1f - t, 1f + 0.06f * t, 1f));
+            // Narrow by whole pixel columns (width stays an even number, so the card stays centred on the grid).
+            yield return Tween.Run(HalfFlipDuration, t => SetWidth(1f - t));
             Apply(target);
-            yield return Tween.Run(HalfFlipDuration, t => _content.localScale = new Vector3(t, 1.06f - 0.06f * t, 1f));
+            yield return Tween.Run(HalfFlipDuration, SetWidth);
+        }
+
+        private void SetWidth(float share)
+        {
+            float pixels = Mathf.Round(Size.x * Mathf.Clamp01(share) / 2f) * 2f;
+            _content.localScale = new Vector3(pixels / Size.x, 1f, 1f);
         }
 
         private IEnumerator FadeOut()
         {
             if (_backGroup.activeSelf || _faceGroup.activeSelf)
-                yield return Tween.Run(FadeDuration, t => _contentGroup.alpha = 1f - t);
+                yield return Tween.Run(FadeDuration, t => _contentGroup.alpha = t < 0.5f ? 1f : 0f);
             Apply(CardSlot.Empty);
         }
 
@@ -188,11 +181,12 @@ namespace HellPoker.Presentation.Views
                 yield return step;
         }
 
+        private float Lift => _selected ? SelectedLift : 0f;
+
         private void Apply(CardSlot slot)
         {
             _content.localScale = Vector3.one;
-            _content.localRotation = Quaternion.identity;
-            _content.anchoredPosition = Vector2.zero;
+            _content.anchoredPosition = new Vector2(0f, Lift);
             _contentGroup.alpha = 1f;
             _discardTag.SetActive(false);
 
@@ -204,8 +198,7 @@ namespace HellPoker.Presentation.Views
             if (slot.Kind != CardSlot.SlotKind.Face) return;
 
             Card card = slot.Card;
-            Color ink = card.Suit.IsBlack() ? Palette.Ink : Palette.Blood;
-            Sprite suit = UiArt.Suit(card.Suit);
+            Color ink = card.Suit.IsBlack() ? Palette.BlackSuit : Palette.RedSuit;
             string rank = card.Rank.ToShortString();
 
             foreach (Text text in new[] { _rankTop, _rankBottom })
@@ -214,20 +207,24 @@ namespace HellPoker.Presentation.Views
                 text.color = ink;
             }
 
-            foreach (Image image in new[] { _suitTop, _suitBottom, _centerSuit })
+            Sprite small = UiArt.Suit(card.Suit, small: true);
+            Sprite big = UiArt.Suit(card.Suit, small: false);
+            foreach (Image pip in new[] { _suitTop, _suitBottom })
             {
-                image.sprite = suit;
-                image.color = ink;
-                image.enabled = suit != null;
+                pip.sprite = small;
+                pip.enabled = small != null;
             }
+            _centerSuit.sprite = big;
+            _centerSuit.enabled = big != null;
 
-            _centerSymbol.text = suit == null ? card.Suit.ToSymbol().ToString() : "";
+            _centerSymbol.text = big == null ? card.Suit.ToSymbol().ToString() : "";
             _centerSymbol.color = ink;
         }
 
         public void SetSelected(bool selected)
         {
-            _content.anchoredPosition = new Vector2(0f, selected ? SelectedLift : 0f);
+            _selected = selected;
+            _content.anchoredPosition = new Vector2(0f, Lift);
             _discardTag.SetActive(selected);
         }
 

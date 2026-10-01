@@ -33,9 +33,13 @@ namespace HellPoker.Core.Dealers
             }, HandCategory.DeadMansHand),
             new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 60, bluffPercent: 30));
 
-        /// <summary>The Queen of the Night: four cards may be exchanged, but folding always costs the whole stake, and she presses every edge.</summary>
+        /// <summary>
+        /// The Queen of the Night, the hardest table: four cards may be exchanged, but losses cost a quarter more,
+        /// folding always costs the whole stake, and she presses every edge.
+        /// </summary>
         public static Dealer Lilith => new Dealer(LilithId, maxDiscards: 4, houseCardsShown: 2,
-            new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, foldPercentBeforeDraw: 100, foldPercentAfterDraw: 100),
+            new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 125,
+                foldPercentBeforeDraw: 100, foldPercentAfterDraw: 100),
             new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 90, bluffPercent: 10));
 
         public static IReadOnlyList<Dealer> All => new[] { Mammon, Belial, Lilith };

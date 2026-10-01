@@ -45,15 +45,16 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(2.5f);
             yield return Shot("04_table_mammon");
 
-            // Make the house re-raise every time, to see the Call / Fold answer (screenshot tool only).
+            // Screenshot tool only: a 650-year sentence (unit 50, cap 195) leaves room under the cap for a house re-raise,
+            // and the house re-raises every time it can, to show the Call / Fold answer.
             var bootstrap = Object.FindFirstObjectByType<HellPokerBootstrap>();
             var presenter = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", Flags).GetValue(bootstrap);
             presenter.Game.GetType().GetField("_houseBetting", Flags).SetValue(presenter.Game, new AlwaysReRaise());
+            SetSentence(presenter, 650);
 
             Press("ActionButton");
             yield return WaitForTable();
-            Press("RaiseButton");
-            yield return WaitForTable();
+            yield return new WaitForSeconds(0.5f);
             yield return Shot("05_decision");
 
             for (int guard = 0; guard < 10 && IsActive("PassButton"); guard++)
@@ -72,7 +73,7 @@ namespace HellPoker.PlayMode.Tests
             yield return Shot("07_after_draw");
             Press("RaiseButton");
             yield return WaitForTable();
-            yield return new WaitForSeconds(1.5f);
+            yield return new WaitForSeconds(0.4f);
             yield return Shot("07b_house_reraise");
             Press("CallButton");
             yield return WaitForTable();
@@ -82,9 +83,41 @@ namespace HellPoker.PlayMode.Tests
                 Press("PassButton");
                 yield return WaitForTable();
             }
+            yield return new WaitForSeconds(0.3f);
+            yield return Shot("08_result_first");
 
-            yield return new WaitForSeconds(2.5f);
-            yield return Shot("08_result");
+            // Keep playing plain hands until both a win and a loss have been on screen.
+            bool won = false, lost = false;
+            for (int hand = 0; hand < 30 && !(won && lost); hand++)
+            {
+                if (presenter.Game.IsGameOver || presenter.Game.Years < 300)
+                {
+                    SetSentence(presenter, 1000);
+                    yield return WaitForTable();
+                }
+                Press("ActionButton");   // next hand / play again
+                yield return WaitForTable();
+                if (presenter.Game.Phase == HellPoker.Core.Game.GamePhase.Betting)
+                {
+                    Press("ActionButton");   // deal
+                    yield return WaitForTable();
+                }
+                yield return PlayToShowdown();
+
+                var outcome = presenter.Game.LastRound?.Showdown?.Outcome;
+                if (outcome == HellPoker.Core.Game.ShowdownOutcome.PlayerWins && !won)
+                {
+                    won = true;
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Shot("08_result_win");
+                }
+                else if (outcome == HellPoker.Core.Game.ShowdownOutcome.HouseWins && !lost)
+                {
+                    lost = true;
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Shot("08_result_loss");
+                }
+            }
 
             foreach (int dealer in new[] { 1, 2 })
             {
@@ -97,16 +130,45 @@ namespace HellPoker.PlayMode.Tests
             }
 
             // Final stretch: cut the sentence to 200 years behind the game's back (screenshot tool only).
-            object ledger = presenter.Game.GetType().GetField("_ledger", Flags).GetValue(presenter.Game);
-            ledger.GetType().GetMethod("Reset").Invoke(ledger, new object[] { 200 });
-            typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+            presenter = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", Flags).GetValue(bootstrap);
+            SetSentence(presenter, 200);
             Press("ActionButton");
             yield return WaitForTable();
-            yield return new WaitForSeconds(2.5f);
+            yield return new WaitForSeconds(1.5f);
             yield return Shot("10_final_stretch");
         }
 
         private const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
+        /// <summary>Screenshot tool only: rewrites the sentence between hands and refreshes the table.</summary>
+        private static void SetSentence(TablePresenter presenter, int years)
+        {
+            object ledger = presenter.Game.GetType().GetField("_ledger", Flags).GetValue(presenter.Game);
+            ledger.GetType().GetMethod("Reset").Invoke(ledger, new object[] { years });
+            if (presenter.Game.IsGameOver)
+                presenter.Game.GetType().GetProperty("Phase").SetValue(presenter.Game, HellPoker.Core.Game.GamePhase.RoundOver);
+            typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+        }
+
+        /// <summary>Passes every decision, stands pat, calls any re-raise, until the hand is settled.</summary>
+        private static IEnumerator PlayToShowdown()
+        {
+            for (int guard = 0; guard < 20; guard++)
+            {
+                if (IsActive("PassButton") && Find<Button>("PassButton").interactable) Press("PassButton");
+                else if (IsActive("RaiseButton") && Find<Button>("RaiseButton").interactable && !IsActive("ActionButton")) Press("RaiseButton");
+                else if (IsActive("CallButton")) Press("CallButton");
+                else if (ActionLabelIs("STAND PAT")) Press("ActionButton");
+                else break;
+                yield return WaitForTable();
+            }
+        }
+
+        private static bool ActionLabelIs(string label)
+        {
+            Button action = Find<Button>("ActionButton");
+            return action.gameObject.activeInHierarchy && action.GetComponentInChildren<Text>().text == label;
+        }
 
         private sealed class AlwaysReRaise : HellPoker.Core.Betting.IHouseBettingStrategy
         {
