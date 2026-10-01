@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using HellPoker.Core.Betting;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
@@ -10,7 +11,7 @@ namespace HellPoker.Core.Tests
 {
     public class DealerTests
     {
-        private static readonly GameRules Table = new GameRules(1000, 2000, 10, 200, forcedRaiseYears: 250);
+        private static readonly GameRules Table = new GameRules(1000, 2000, forcedRaiseYears: 250);
 
         [Test]
         public void Roster_HasThreeDistinctDealers()
@@ -27,50 +28,65 @@ namespace HellPoker.Core.Tests
 
             Assert.AreEqual(1000, rules.StartingYears);
             Assert.AreEqual(2000, rules.DamnationYears);
-            Assert.AreEqual(10, rules.MinStake);
-            Assert.AreEqual(200, rules.MaxStake);
             Assert.AreEqual(250, rules.ForcedRaiseYears);
+            Assert.AreSame(Table.Stakes, rules.Stakes);
             Assert.AreEqual(4, rules.MaxDiscards);
-            Assert.AreEqual(3, rules.HouseRevealDecisions);
+            Assert.AreEqual(2, rules.HouseCardsShown);
         }
 
         [Test]
-        public void Mammon_PlaysByTheBook()
+        public void Mammon_PlaysByTheBook_AndHonestly()
         {
             Dealer mammon = DealerRoster.Mammon;
 
             Assert.AreEqual(3, mammon.MaxDiscards);
-            Assert.AreEqual(3, mammon.HouseRevealDecisions);
-            Assert.AreEqual(100, mammon.Payouts.GetYearsAdded(HandCategory.OnePair, 100));
-            Assert.AreEqual(50, mammon.Payouts.GetFoldPenalty(100));
-            Assert.AreEqual(5, mammon.Payouts.GetMultiplier(HandCategory.Flush));
+            Assert.AreEqual(2, mammon.HouseCardsShown);
+            Assert.AreEqual(100, mammon.Payouts.LossPercent);
+            Assert.AreEqual(50, mammon.Payouts.FoldPercentBeforeDraw);
+            Assert.AreEqual(100, mammon.Payouts.FoldPercentAfterDraw);
+            Assert.AreEqual(10, mammon.Payouts.GetMultiplier(HandCategory.FourOfAKind));
+            Assert.AreEqual(20, mammon.Payouts.GetMultiplier(HandCategory.RoyalFlush));
+            AssertTemper(mammon, 70, 5);
         }
 
         [Test]
-        public void Belial_PaysMore_ChargesMore_AndHidesHisHand()
+        public void Belial_PaysMore_ShowsOneCard_AndBluffs()
         {
             Dealer belial = DealerRoster.Belial;
 
-            Assert.AreEqual(1, belial.HouseRevealDecisions);
-            Assert.AreEqual(150, belial.Payouts.GetYearsAdded(HandCategory.OnePair, 100));
-            Assert.AreEqual(38, belial.Payouts.GetYearsAdded(HandCategory.OnePair, 25), "37.5 rounds up.");
-            Assert.Greater(belial.Payouts.GetMultiplier(HandCategory.Flush), DealerRoster.Mammon.Payouts.GetMultiplier(HandCategory.Flush));
+            Assert.AreEqual(1, belial.HouseCardsShown);
+            Assert.AreEqual(100, belial.Payouts.LossPercent, "Symmetric losses: 150% was too harsh.");
+            Assert.AreEqual(8, belial.Payouts.GetMultiplier(HandCategory.Flush));
+            Assert.AreEqual(15, belial.Payouts.GetMultiplier(HandCategory.FourOfAKind));
+            Assert.AreEqual(25, belial.Payouts.GetMultiplier(HandCategory.StraightFlush));
+            Assert.AreEqual(30, belial.Payouts.GetMultiplier(HandCategory.RoyalFlush));
+            AssertTemper(belial, 60, 30);
         }
 
         [Test]
-        public void Lilith_AllowsFourDiscards_ButFoldingCostsTheWholeStake()
+        public void Lilith_AllowsFourDiscards_ButFoldingAlwaysCostsTheWholeStake()
         {
             Dealer lilith = DealerRoster.Lilith;
 
             Assert.AreEqual(4, lilith.MaxDiscards);
-            Assert.AreEqual(100, lilith.Payouts.GetFoldPenalty(100));
+            Assert.AreEqual(2, lilith.HouseCardsShown);
+            Assert.AreEqual(100, lilith.Payouts.FoldPercentBeforeDraw);
+            Assert.AreEqual(100, lilith.Payouts.FoldPercentAfterDraw);
+            AssertTemper(lilith, 90, 10);
+        }
+
+        private static void AssertTemper(Dealer dealer, int strong, int bluff)
+        {
+            Assert.AreEqual(HandCategory.TwoPair, dealer.Betting.StrongFrom);
+            Assert.AreEqual(strong, dealer.Betting.StrongPercent);
+            Assert.AreEqual(bluff, dealer.Betting.BluffPercent);
         }
 
         [Test]
         public void Factory_BuildsGameUnderTheDealersRules()
         {
             HellPokerGame game = HellPokerGameFactory.Create(Table, DealerRoster.Lilith, seed: 1);
-            game.PlaceBet(50);
+            game.PlaceBet();
             while (game.Phase == GamePhase.PlayerReveal)
                 game.Bet(BetAction.Pass);
 
@@ -79,10 +95,21 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void FoldUnderLilith_AddsTheWholeStake()
+        public void FoldBeforeTheDraw_UnderLilith_AddsTheWholeStake()
         {
             HellPokerGame game = HellPokerGameFactory.Create(Table, DealerRoster.Lilith, seed: 1);
-            game.PlaceBet(50);
+            game.PlaceBet();
+
+            game.Bet(BetAction.Fold);
+
+            Assert.AreEqual(1100, game.Years);
+        }
+
+        [Test]
+        public void FoldBeforeTheDraw_UnderMammon_AddsHalf()
+        {
+            HellPokerGame game = HellPokerGameFactory.Create(Table, DealerRoster.Mammon, seed: 1);
+            game.PlaceBet();
 
             game.Bet(BetAction.Fold);
 
@@ -92,19 +119,17 @@ namespace HellPoker.Core.Tests
         [Test]
         public void Dealer_RejectsInvalidRules()
         {
-            Assert.Throws<ArgumentException>(() => new Dealer("", 3, 3, PayoutTable.CreateDefault()));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new Dealer("x", 6, 3, PayoutTable.CreateDefault()));
+            Assert.Throws<ArgumentException>(() => new Dealer("", 3, 2, PayoutTable.CreateDefault()));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Dealer("x", 6, 2, PayoutTable.CreateDefault()));
             Assert.Throws<ArgumentOutOfRangeException>(() => new Dealer("x", 3, 5, PayoutTable.CreateDefault()));
-            Assert.Throws<ArgumentNullException>(() => new Dealer("x", 3, 3, null));
+            Assert.Throws<ArgumentNullException>(() => new Dealer("x", 3, 2, null));
         }
 
         [Test]
-        public void PayoutTable_DefaultsMatchTheClassicLedger()
+        public void Dealer_WithoutTemper_NeverReRaises()
         {
-            PayoutTable payouts = PayoutTable.CreateDefault();
-
-            Assert.AreEqual(25, payouts.GetYearsAdded(HandCategory.Flush, 25));
-            Assert.AreEqual(13, payouts.GetFoldPenalty(25), "Half of 25 rounds up.");
+            Assert.AreEqual(0, new Dealer("x", 3, 2, PayoutTable.CreateDefault()).Betting.StrongPercent);
+            Assert.AreEqual(0, new Dealer("x", 3, 2, PayoutTable.CreateDefault(), HouseBettingStyle.Silent).Betting.BluffPercent);
         }
 
         [Test]
@@ -116,7 +141,10 @@ namespace HellPoker.Core.Tests
             Assert.IsNotEmpty(card.Title);
             Assert.That(card.Traits, Has.Some.Contains("3 cards"));
             Assert.That(card.Traits, Has.Some.Contains("only 1"));
-            Assert.That(card.Traits, Has.Some.Contains("1.5 × the stake"));
+            Assert.That(card.Traits, Has.Some.Contains("Royal ×30"));
+            Assert.That(card.Traits, Has.Some.Contains("half the stake before the draw"));
+            Assert.That(card.Traits, Has.Some.Contains("60%"));
+            Assert.That(card.Traits, Has.Some.Contains("bluffs 30%"));
         }
 
         [Test]
@@ -125,7 +153,7 @@ namespace HellPoker.Core.Tests
             var card = DealerCards.Describe(DealerRoster.Lilith);
 
             Assert.That(card.Traits, Has.Some.Contains("4 cards"));
-            Assert.That(card.Traits, Has.Some.Contains("Fold: + the stake"));
+            Assert.That(card.Traits, Has.Some.Contains("Fold: always + the stake"));
         }
     }
 }

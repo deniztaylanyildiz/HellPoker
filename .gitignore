@@ -60,3 +60,6 @@ Thumbs.db
 /*.log
 /Screenshots/
 Tools/ArtGen/__pycache__/
+# Temporary scenes the Unity Test Runner leaves behind
+/Assets/InitTestScene*.unity*
+/sim.xml

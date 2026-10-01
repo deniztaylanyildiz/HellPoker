@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace HellPoker.Presentation
 {
     /// <summary>
-    /// Keyboard shortcuts: Esc menu; at the table Space/Enter main action or pass, R raise, F fold, 1-5 pick cards, ↑/↓ ante.
+    /// Keyboard shortcuts: Esc menu; at the table Space/Enter main action, pass or call, R raise, C call, F fold, 1-5 pick cards.
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
     {
@@ -36,10 +36,8 @@ namespace HellPoker.Presentation
                 _table.PerformAction();
 
             if (keyboard.rKey.wasPressedThisFrame) _table.Bet(BetAction.Raise);
+            if (keyboard.cKey.wasPressedThisFrame) _table.Bet(BetAction.Call);
             if (keyboard.fKey.wasPressedThisFrame) _table.Bet(BetAction.Fold);
-
-            if (keyboard.upArrowKey.wasPressedThisFrame) _table.StepStake(+1);
-            if (keyboard.downArrowKey.wasPressedThisFrame) _table.StepStake(-1);
 
             if (keyboard.digit1Key.wasPressedThisFrame) _table.ToggleDiscard(0);
             if (keyboard.digit2Key.wasPressedThisFrame) _table.ToggleDiscard(1);

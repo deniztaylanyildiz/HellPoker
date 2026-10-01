@@ -15,6 +15,7 @@ namespace HellPoker.Presentation.Ui
         public string[] PlayerFolds;
         public string[] Push;
         public string[] FinalStretch;
+        public string[] ReRaise;
         public string Absolved;
         public string Damned;
     }
@@ -26,10 +27,14 @@ namespace HellPoker.Presentation.Ui
         public const string Challenge = "SIT DOWN";
 
         public const string TraitDrawFormat = "Exchange up to {0} cards";
-        public const string TraitRevealFormat = "Shows {0} of the House's cards before you must commit";
-        public const string TraitRevealOne = "Shows only 1 House card before you must commit";
-        public const string TraitPayoutFormat = "Pays Pair ×{0}  ·  Flush ×{1}  ·  Full House ×{2}";
-        public const string TraitLossFormat = "Lose: + {0}   ·   Fold: + {1}";
+        public const string TraitRevealFormat = "Shows {0} House cards before your last bet";
+        public const string TraitRevealOne = "Shows only 1 House card before your last bet";
+        public const string TraitPayoutFormat = "Pays Pair ×{0}  ·  Flush ×{1}  ·  Full House ×{2}  ·  Royal ×{3}";
+        public const string TraitLossFormat = "Lose: + {0} × the House's hand";
+        public const string TraitFoldFormat = "Fold: + {0} before the draw, + {1} after";
+        public const string TraitFoldSameFormat = "Fold: always + {0}";
+        /// <summary>{0} weakest strong hand, {1} re-raise percent with it, {2} bluff percent.</summary>
+        public const string TraitTemperFormat = "Re-raises with {0}+ {1}% · bluffs {2}%";
 
         /// <summary>How a share of the stake reads in rule texts: "half the stake", "the stake", "1.5 × the stake"...</summary>
         public static string StakeShare(int percent)
@@ -77,6 +82,12 @@ namespace HellPoker.Presentation.Ui
             PlayerFolds = new[] { "A partial payment. Wise, and still profitable.", "Running from a bad debt? Half of it follows you." },
             Push = new[] { "Even. How dreadfully unprofitable." },
             FinalStretch = new[] { "So close to settling the account. No more cheap bets — pay up or walk away." },
+            ReRaise = new[]
+            {
+                "I'll see that, and I'll charge interest.",
+                "A fine figure. Let us make it finer.",
+                "Collateral, please. A little more."
+            },
             Absolved = "Paid in full?! Impossible... Get out before I find an error in the books.",
             Damned = "Your account is closed. Forever. Next!"
         };
@@ -85,7 +96,7 @@ namespace HellPoker.Presentation.Ui
         {
             Name = "BELIAL",
             Title = "The Silver Tongue",
-            Description = "Pays like a prince and collects like a tyrant. Keeps most of his hand hidden until it is far too late.",
+            Description = "Pays like a prince and lies like breathing. Keeps most of his hand hidden until it is far too late.",
             Greeting = new[] { "Charmed. Shall we make this interesting? I insist." },
             PlayerWins = new[]
             {
@@ -97,11 +108,17 @@ namespace HellPoker.Presentation.Ui
             {
                 "Did you really think I'd show you everything?",
                 "Pity. You were so sure of yourself.",
-                "Half again what you bet. Read the fine print, darling."
+                "Read the fine print, darling. There always is some."
             },
             PlayerFolds = new[] { "Leaving so soon? The night was young.", "Prudence. How very... mortal." },
             Push = new[] { "A draw. How terribly polite of us." },
             FinalStretch = new[] { "The gates! I can almost see your hope. Raise — the show must go on." },
+            ReRaise = new[]
+            {
+                "Oh, darling. Raise me? I raise you back.",
+                "Do I have it? Perhaps. Do you dare find out?",
+                "More. I love it when you squirm."
+            },
             Absolved = "Well played. Do come back — I always win in the end.",
             Damned = "Welcome home. I saved you a seat. Forever."
         };
@@ -127,6 +144,12 @@ namespace HellPoker.Presentation.Ui
             PlayerFolds = new[] { "No one slips away from me. You pay in full.", "Running? The whole wager, sweet thing." },
             Push = new[] { "Neither of us bleeds tonight." },
             FinalStretch = new[] { "The gates are near... show me how badly you want them." },
+            ReRaise = new[]
+            {
+                "Bold. I like bold. Bolder, then.",
+                "You reach for me? I reach back.",
+                "Mm. Pay a little more to stay in my dark."
+            },
             Absolved = "Go, then. The dawn will find you dull. You will miss me.",
             Damned = "Mine. All mine. For every night that ever was."
         };
@@ -142,6 +165,7 @@ namespace HellPoker.Presentation.Ui
             PlayerFolds = new[] { "Folded." },
             Push = new[] { "Push." },
             FinalStretch = new[] { "No passing now." },
+            ReRaise = new[] { "Raise." },
             Absolved = "You are free.",
             Damned = "Damned."
         };

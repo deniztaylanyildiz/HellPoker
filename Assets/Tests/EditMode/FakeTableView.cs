@@ -13,14 +13,12 @@ namespace HellPoker.Core.Tests
         public FakeHandView HouseView { get; } = new FakeHandView();
         public FakeHandView PlayerView { get; } = new FakeHandView();
         public FakeSentenceView SentenceView { get; } = new FakeSentenceView();
-        public FakeStakeSelectorView StakesView { get; } = new FakeStakeSelectorView();
         public FakePayoutView PayoutsView { get; } = new FakePayoutView();
         public FakeDealerView DealerView { get; } = new FakeDealerView();
 
         public IHandView House => HouseView;
         public IHandView Player => PlayerView;
         public ISentenceView Sentence => SentenceView;
-        public IStakeSelectorView Stakes => StakesView;
         public IPayoutView Payouts => PayoutsView;
         public IDealerView Dealer => DealerView;
 
@@ -30,6 +28,8 @@ namespace HellPoker.Core.Tests
         public string ActionLabel { get; private set; }
         public BetControls BetControls { get; private set; }
         public int Pot { get; private set; }
+        public string StakeInfo { get; private set; }
+        public int Ante { get; private set; }
         public bool FinalStretch { get; private set; }
 
         public bool Visible { get; private set; } = true;
@@ -47,6 +47,8 @@ namespace HellPoker.Core.Tests
         public void SetAction(string label) => ActionLabel = label;
         public void SetBetControls(BetControls controls) => BetControls = controls;
         public void SetPot(int years) => Pot = years;
+        public void SetStakeInfo(string text) => StakeInfo = text;
+        public void SetAnte(int years) => Ante = years;
         public void SetFinalStretch(bool active, string banner) => FinalStretch = active;
         public void Pause(float seconds) { }
         public void SetVisible(bool visible) => Visible = visible;
@@ -95,26 +97,6 @@ namespace HellPoker.Core.Tests
 
         public void SetDamnationLimit(int years) => DamnationLimit = years;
         public void SetYears(int years, bool animate) => Years = years;
-    }
-
-    internal sealed class FakeStakeSelectorView : IStakeSelectorView
-    {
-        public int Selected { get; private set; }
-        public bool Visible { get; private set; }
-
-        public event Action<int> StakeChosen;
-
-        public void Choose(int stake) => StakeChosen?.Invoke(stake);
-        public HashSet<int> Available { get; } = new HashSet<int>();
-
-        public void SetSelected(int stake) => Selected = stake;
-
-        public void SetAvailable(ICollection<int> stakes)
-        {
-            Available.Clear();
-            Available.UnionWith(stakes);
-        }
-        public void SetVisible(bool visible) => Visible = visible;
     }
 
     internal sealed class FakePayoutView : IPayoutView

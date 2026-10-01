@@ -52,8 +52,8 @@ namespace HellPoker.Presentation.Views
                 view._rows[category] = (row, name, value);
             }
 
-            view._loss = UiFactory.CreateText("Loss", panel.transform, "", 19, Palette.MutedText, style: FontStyle.Italic);
-            view._loss.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(size.x - 30f, 56f));
+            view._loss = UiFactory.CreateText("Loss", panel.transform, "", 18, Palette.MutedText, style: FontStyle.Italic);
+            view._loss.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(size.x - 24f, 56f));
 
             return view;
         }
@@ -71,7 +71,11 @@ namespace HellPoker.Presentation.Views
                     pair.Value.value.text = absolution ? UiText.Absolution : "×" + payouts.GetMultiplier(pair.Key);
                 }
 
-                _loss.text = string.Format(UiText.PayoutLossFormat, UiText.StakeShare(payouts.LossPercent), UiText.StakeShare(payouts.FoldPercent));
+                string loss = UiText.StakeShare(payouts.LossPercent);
+                _loss.text = payouts.FoldPercentBeforeDraw == payouts.FoldPercentAfterDraw
+                    ? string.Format(UiText.PayoutLossSameFoldFormat, loss, UiText.StakeShare(payouts.FoldPercentAfterDraw))
+                    : string.Format(UiText.PayoutLossFormat, loss, UiText.StakeShare(payouts.FoldPercentBeforeDraw),
+                        UiText.StakeShare(payouts.FoldPercentAfterDraw));
             });
         }
 

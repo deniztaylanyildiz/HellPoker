@@ -22,10 +22,21 @@ namespace HellPoker.Presentation
         [SerializeField] private int _forcedRaiseYears = 250;
 
         [Header("Stakes")]
-        [Tooltip("Ante choices. Every raise adds the ante again.")]
-        [SerializeField] private int[] _stakeOptions = { 10, 25, 50, 100, 200 };
+        [Tooltip("The betting unit (and ante) is the sentence divided by this, rounded down to a readable step.")]
+        [SerializeField] private int _stakeDivisor = 10;
+        [Tooltip("The smallest betting unit, in years.")]
+        [SerializeField] private int _minimumUnit = 10;
+        [Tooltip("At most this share of the sentence may be on the table in one hand.")]
+        [SerializeField, Range(1, 100)] private int _tableCapPercent = 50;
 
-        // Discards, house reveals and payouts are each dealer's house rules: see DealerRoster.
+        [Header("Bet flow")]
+        [Tooltip("Player cards that turn together at the deal, before the first decision.")]
+        [SerializeField, Range(0, 4)] private int _openingCardsShown = 2;
+        [SerializeField, Min(1)] private int _raiseUnitsBeforeDraw = 1;
+        [SerializeField, Min(1)] private int _raiseUnitsAfterDraw = 2;
+        [SerializeField, Min(1)] private int _houseReRaiseUnits = 1;
+
+        // Discards, house cards shown, payouts and temper are each dealer's house rules: see DealerRoster.
 
         [Header("Randomness")]
         [Tooltip("Use a fixed seed for reproducible shuffles while debugging.")]
@@ -39,16 +50,17 @@ namespace HellPoker.Presentation
         {
             EnsureEventSystem();
 
-            var table = new GameRules(_startingYears, _damnationYears, Mathf.Min(_stakeOptions), Mathf.Max(_stakeOptions),
-                forcedRaiseYears: _forcedRaiseYears);
+            var table = new GameRules(_startingYears, _damnationYears, forcedRaiseYears: _forcedRaiseYears,
+                stakes: new StakeScale(_stakeDivisor, _minimumUnit, _tableCapPercent), openingCardsShown: _openingCardsShown,
+                raiseUnitsBeforeDraw: _raiseUnitsBeforeDraw, raiseUnitsAfterDraw: _raiseUnitsAfterDraw, houseReRaiseUnits: _houseReRaiseUnits);
             int? seed = _useFixedSeed ? _seed : (int?)null;
 
-            TableView tableView = TableView.Create(transform, _stakeOptions);
-            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, _stakeOptions);
+            TableView tableView = TableView.Create(transform);
+            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView);
 
             MainMenuView menu = MainMenuView.Create(transform,
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
-                string.Format(UiText.RulesFormat, table.StartingYears, table.DamnationYears, table.ForcedRaiseYears));
+                string.Format(UiText.RulesFormat, table.StartingYears, table.DamnationYears, table.ForcedRaiseYears, table.Stakes.TableCapPercent));
             DealerSelectView dealerSelect = DealerSelectView.Create(transform);
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, tableView, _tablePresenter, new UnityApplicationQuitter(), DealerRoster.All);
 

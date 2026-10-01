@@ -1,3 +1,4 @@
+using HellPoker.Core.Betting;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
@@ -10,8 +11,6 @@ namespace HellPoker.Core.Tests
 {
     public class TablePresenterTests
     {
-        private static readonly int[] Stakes = { 10, 25, 50, 100, 200 };
-
         private FakeTableView _view;
         private HellPokerGame _game;
         private TablePresenter _presenter;
@@ -22,20 +21,21 @@ namespace HellPoker.Core.Tests
         /// Every run gets a fresh game on the same stacked deck, whatever the dealer.
         /// </summary>
         private void Setup(string player = "2C 9C JC 4C KC", string house = "2D 2H 5S 7H 9D", string rest = "3S 4S 6D AH",
-            int startingYears = 1000, Dealer dealer = null)
+            int startingYears = 1000, Dealer dealer = null, IHouseBettingStrategy houseBetting = null)
         {
             _view = new FakeTableView();
             _presenter = new TablePresenter(d =>
             {
                 _lastDealer = d;
                 return _game = new HellPokerGame(
-                    new GameRules(startingYears, 2000, 10, 200),
+                    d.ApplyTo(new GameRules(startingYears, 5000)),
                     TestDecks.Stacked($"{player} {house} {rest}"),
                     HandEvaluator.CreateDefault(),
                     new CardExchanger(new MaxDiscardPolicy()),
                     new HouseDrawStrategy(),
-                    d.Payouts);
-            }, _view, Stakes);
+                    d.Payouts,
+                    houseBetting);
+            }, _view);
             _presenter.StartNewRun(dealer ?? DealerRoster.Mammon);
         }
 
@@ -48,13 +48,23 @@ namespace HellPoker.Core.Tests
                 _view.PressBet(BetAction.Pass);
         }
 
+        private void DealAndDraw()
+        {
+            _view.PressAction();
+            PassUntil(GamePhase.Drawing);
+            _view.PressAction();
+        }
+
+        // ------------------------------------------------------------------ betting
+
         [Test]
-        public void Start_ShowsBettingTable()
+        public void Start_ShowsBettingTable_WithTheAnte()
         {
             Setup();
 
-            Assert.AreEqual(50, _view.StakesView.Selected);
-            Assert.IsTrue(_view.StakesView.Visible);
+            Assert.AreEqual(100, _view.Ante);
+            StringAssert.Contains("100", _view.Message);
+            Assert.AreEqual("Win: at least −100 years   ·   Lose: at least +100 years", _view.StakeInfo);
             Assert.IsFalse(_view.BetControls.Visible);
             Assert.IsTrue(_view.PlayerView.IsEmpty);
             Assert.AreEqual("DEAL", _view.ActionLabel);
@@ -63,82 +73,163 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Deal_TurnsFirstCard_AndOffersBetDecision()
+        public void Ante_FollowsTheSentence()
+        {
+            Setup(startingYears: 650);
+
+            Assert.AreEqual(50, _view.Ante);
+        }
+
+        [Test]
+        public void Deal_TurnsThreeCards_AndOffersBetDecision()
         {
             Setup();
-            _view.StakesView.Choose(100);
 
             _view.PressAction();
 
             Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase);
-            Assert.AreEqual(1, _view.PlayerView.FaceUpCount);
+            Assert.AreEqual(3, _view.PlayerView.FaceUpCount);
             Assert.AreEqual(0, _view.HouseView.FaceUpCount);
             Assert.IsFalse(_view.HouseView.IsEmpty);
             Assert.IsTrue(_view.BetControls.Visible);
+            Assert.IsFalse(_view.BetControls.IsAnswer);
             Assert.IsTrue(_view.BetControls.CanPass);
             Assert.AreEqual("RAISE +100", _view.BetControls.RaiseLabel);
             Assert.IsNull(_view.ActionLabel);
-            Assert.IsFalse(_view.StakesView.Visible);
+            Assert.AreEqual(0, _view.Ante, "The ante label goes once the cards are out.");
             Assert.AreEqual(100, _view.Pot);
         }
 
         [Test]
-        public void EachDecision_TurnsAnotherCard_AndRaiseGrowsPot()
+        public void EachDecision_TurnsAnotherCard_AndRaiseGrowsPotAndOutlook()
         {
             Setup();
             _view.PressAction();
 
             _view.PressBet(BetAction.Raise);
-            Assert.AreEqual(2, _view.PlayerView.FaceUpCount);
-            Assert.AreEqual(100, _view.Pot);
+            Assert.AreEqual(4, _view.PlayerView.FaceUpCount);
+            Assert.AreEqual(200, _view.Pot);
+            StringAssert.Contains("−200", _view.StakeInfo);
 
             _view.PressBet(BetAction.Pass);
-            Assert.AreEqual(3, _view.PlayerView.FaceUpCount);
-            Assert.AreEqual(100, _view.Pot);
+            Assert.AreEqual(5, _view.PlayerView.FaceUpCount);
+            Assert.AreEqual(200, _view.Pot);
         }
 
         [Test]
         public void StakeOnTable_ComesOffTheSentenceCounter()
         {
             Setup();
-            _view.StakesView.Choose(200);
             _view.PressAction();
-            Assert.AreEqual(800, _view.SentenceView.Years);
+            Assert.AreEqual(900, _view.SentenceView.Years);
 
             _view.PressBet(BetAction.Raise);
 
-            Assert.AreEqual(400, _view.Pot);
-            Assert.AreEqual(600, _view.SentenceView.Years);
+            Assert.AreEqual(200, _view.Pot);
+            Assert.AreEqual(800, _view.SentenceView.Years);
         }
 
         [Test]
-        public void RaiseButton_BecomesAllIn_ThenLocks()
+        public void RaiseButton_ShowsTableFull_AtTheCap()
         {
-            Setup(startingYears: 130);
-            _view.StakesView.Choose(50);
+            Setup();
             _view.PressAction();
+            for (int i = 0; i < 3; i++) _view.PressBet(BetAction.Raise);
+            _view.PressAction();
+            Assert.AreEqual("RAISE +100", _view.BetControls.RaiseLabel, "The double raise is cut to the cap.");
+
             _view.PressBet(BetAction.Raise);
 
-            Assert.AreEqual("ALL IN +30", _view.BetControls.RaiseLabel);
-            _view.PressBet(BetAction.Raise);
+            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
+            Assert.AreEqual(500, _view.Pot);
+            Assert.AreEqual("TABLE FULL", _view.BetControls.RaiseLabel);
+            Assert.IsFalse(_view.BetControls.CanRaise);
+        }
+
+        [Test]
+        public void TinySentence_IsAllIn()
+        {
+            Setup(startingYears: 6);
+            _view.PressAction();
 
             Assert.AreEqual("ALL IN", _view.BetControls.RaiseLabel);
             Assert.IsFalse(_view.BetControls.CanRaise);
             Assert.AreEqual(0, _view.SentenceView.Years);
         }
 
+        // ------------------------------------------------------------------ after the draw
+
         [Test]
-        public void StakesAboveTheSentence_AreNotOffered()
+        public void Draw_LeadsToOneDecision_WithDoubleRaise()
         {
-            Setup(startingYears: 80);
+            Setup();
+            DealAndDraw();
 
-            CollectionAssert.AreEquivalent(new[] { 10, 25, 50 }, _view.StakesView.Available);
-            _view.StakesView.Choose(100);
-            Assert.AreEqual(50, _presenter.SelectedStake);
-
-            _presenter.StepStake(+1);
-            Assert.AreEqual(50, _presenter.SelectedStake);
+            Assert.AreEqual(GamePhase.DrawReveal, _game.Phase);
+            Assert.AreEqual(0, _view.HouseView.FaceUpCount);
+            Assert.IsTrue(_view.BetControls.Visible);
+            Assert.AreEqual("RAISE +200", _view.BetControls.RaiseLabel);
+            Assert.IsFalse(_view.PlayerView.Interactable);
         }
+
+        [Test]
+        public void HouseShowsItsCards_ForTheLastDecision()
+        {
+            Setup(dealer: DealerRoster.Belial);
+            DealAndDraw();
+
+            _view.PressBet(BetAction.Pass);
+
+            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
+            Assert.AreEqual(1, _view.HouseView.FaceUpCount, "Belial shows only one card.");
+            Assert.IsTrue(_view.BetControls.Visible);
+        }
+
+        [Test]
+        public void HouseReRaise_OffersCallOrFold_AndTheDealerSpeaks()
+        {
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            DealAndDraw();
+            int lines = _view.DealerView.LinesSaid;
+
+            _view.PressBet(BetAction.Raise);
+
+            Assert.AreEqual(GamePhase.HouseReRaise, _game.Phase);
+            Assert.IsTrue(_view.BetControls.IsAnswer);
+            Assert.AreEqual("CALL +100", _view.BetControls.CallLabel);
+            Assert.AreEqual(Tone.Warning, _view.MessageTone);
+            Assert.AreEqual(lines + 1, _view.DealerView.LinesSaid);
+            Assert.AreEqual(Tone.Bad, _view.DealerView.LastTone);
+        }
+
+        [Test]
+        public void SpaceKey_CallsTheReRaise()
+        {
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            DealAndDraw();
+            _view.PressBet(BetAction.Raise);
+
+            _presenter.PerformAction();
+
+            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
+            Assert.AreEqual(400, _view.Pot);
+            Assert.IsFalse(_view.BetControls.IsAnswer);
+        }
+
+        [Test]
+        public void PassIsRefused_AgainstAReRaise()
+        {
+            Setup(houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            DealAndDraw();
+            _view.PressBet(BetAction.Raise);
+
+            _view.PressBet(BetAction.Pass);
+
+            Assert.AreEqual(GamePhase.HouseReRaise, _game.Phase);
+            Assert.AreEqual(Tone.Warning, _view.MessageTone);
+        }
+
+        // ------------------------------------------------------------------ runs and dealers
 
         [Test]
         public void StartNewRun_ResetsTheTable()
@@ -161,11 +252,11 @@ namespace HellPoker.Core.Tests
         public void BeforeAnyRun_InputIsIgnored()
         {
             _view = new FakeTableView();
-            _presenter = new TablePresenter(d => throw new AssertionException("No game should be built yet."), _view, Stakes);
+            _presenter = new TablePresenter(d => throw new AssertionException("No game should be built yet."), _view);
 
             _presenter.PerformAction();
             _presenter.Bet(BetAction.Raise);
-            _presenter.StepStake(+1);
+            _presenter.ToggleDiscard(0);
             _view.PressAction();
 
             Assert.IsNull(_presenter.Game);
@@ -180,21 +271,20 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(DealerRoster.BelialId, _view.DealerView.Dealer.Id);
             Assert.AreEqual("BELIAL", _view.DealerView.Dealer.Name);
             Assert.IsNotEmpty(_view.DealerView.LastLine, "The dealer greets the player.");
-            Assert.AreEqual(150, _view.PayoutsView.Table.LossPercent);
+            Assert.AreEqual(30, _view.PayoutsView.Table.GetMultiplier(HandCategory.RoyalFlush));
         }
 
         [Test]
         public void DealerGloats_WhenTheHouseWins()
         {
-            // Player: nothing. House: a pair of kings.
+            // Player: nothing. House: a pair of kings that draws into two pair.
             Setup(player: "2C 5D 9H JS 3C", house: "KD KH 4S 7H 8D", rest: "6S 4C 6D AH 2H 3D");
             string greeting = _view.DealerView.LastLine;
-            _view.PressAction();
-            PassUntil(GamePhase.Drawing);
-            _view.PressAction();
+            DealAndDraw();
             PassUntil(GamePhase.RoundOver);
 
             Assert.AreEqual(ShowdownOutcome.HouseWins, _game.LastRound.Showdown.Outcome);
+            Assert.AreEqual(1000 + 100 * 2, _game.Years, "Two pair ×2.");
             Assert.AreNotEqual(greeting, _view.DealerView.LastLine);
             Assert.AreEqual(Tone.Bad, _view.DealerView.LastTone);
         }
@@ -203,9 +293,7 @@ namespace HellPoker.Core.Tests
         public void DealerIsAnnoyed_WhenThePlayerWins()
         {
             Setup();
-            _view.PressAction();
-            PassUntil(GamePhase.Drawing);
-            _view.PressAction();
+            DealAndDraw();
             PassUntil(GamePhase.RoundOver);
 
             Assert.AreEqual(ShowdownOutcome.PlayerWins, _game.LastRound.Showdown.Outcome);
@@ -227,6 +315,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(lines, _view.DealerView.LinesSaid, "The remark is made only once.");
         }
 
+        // ------------------------------------------------------------------ the rest of a hand
+
         [Test]
         public void SpaceKeyPasses_DuringDecision()
         {
@@ -235,7 +325,7 @@ namespace HellPoker.Core.Tests
 
             _presenter.PerformAction();
 
-            Assert.AreEqual(2, _game.PlayerCardsRevealed);
+            Assert.AreEqual(4, _game.PlayerCardsRevealed);
         }
 
         [Test]
@@ -270,35 +360,18 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Draw_StartsHouseReveal_WithBetDecision()
-        {
-            Setup();
-            _view.PressAction();
-            PassUntil(GamePhase.Drawing);
-
-            _view.PressAction();
-
-            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
-            Assert.AreEqual(1, _view.HouseView.FaceUpCount);
-            Assert.IsTrue(_view.BetControls.Visible);
-            Assert.IsFalse(_view.PlayerView.Interactable);
-        }
-
-        [Test]
         public void WinningShowdown_RevealsEverything_AndReportsForgiveness()
         {
             Setup();
-            _view.StakesView.Choose(100);
-            _view.PressAction();
-            PassUntil(GamePhase.Drawing);
-            _view.PressAction();
+            DealAndDraw();
 
             PassUntil(GamePhase.RoundOver);
 
             Assert.AreEqual(5, _view.HouseView.FaceUpCount);
             Assert.AreEqual(Tone.Good, _view.MessageTone);
             Assert.AreEqual(HandCategory.Flush, _view.PayoutsView.Highlighted);
-            Assert.AreEqual(500, _view.SentenceView.Years);
+            Assert.AreEqual(500, _view.SentenceView.Years, "Flush ×5 on 100.");
+            Assert.IsNull(_view.StakeInfo);
             Assert.AreEqual("NEXT HAND", _view.ActionLabel);
         }
 
@@ -314,7 +387,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(Tone.Bad, _view.MessageTone);
             Assert.AreEqual("FOLDED", _view.PlayerView.Caption);
             Assert.AreEqual(5, _view.HouseView.FaceUpCount);
-            Assert.AreEqual(1025, _view.SentenceView.Years);
+            Assert.AreEqual(1050, _view.SentenceView.Years);
         }
 
         [Test]
@@ -329,6 +402,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(GamePhase.Betting, _game.Phase);
             Assert.IsTrue(_view.PlayerView.IsEmpty);
             Assert.AreEqual(0, _view.Pot);
+            Assert.AreEqual(100, _view.Ante);
             Assert.IsNull(_view.PayoutsView.Highlighted);
         }
 
@@ -342,14 +416,14 @@ namespace HellPoker.Core.Tests
             Assert.IsFalse(_view.BetControls.CanPass);
 
             _view.PressBet(BetAction.Pass);
-            Assert.AreEqual(1, _game.PlayerCardsRevealed);
+            Assert.AreEqual(3, _game.PlayerCardsRevealed);
             Assert.AreEqual(Tone.Warning, _view.MessageTone);
 
             _presenter.PerformAction();
-            Assert.AreEqual(1, _game.PlayerCardsRevealed);
+            Assert.AreEqual(3, _game.PlayerCardsRevealed);
 
             _view.PressBet(BetAction.Raise);
-            Assert.AreEqual(2, _game.PlayerCardsRevealed);
+            Assert.AreEqual(4, _game.PlayerCardsRevealed);
         }
 
         [Test]
@@ -359,19 +433,15 @@ namespace HellPoker.Core.Tests
             _view.IsBusy = true;
 
             _view.PressAction();
-            _view.StakesView.Choose(200);
 
             Assert.AreEqual(GamePhase.Betting, _game.Phase);
-            Assert.AreEqual(50, _presenter.SelectedStake);
         }
 
         [Test]
         public void DeadMansHand_ShowsTriumph()
         {
             Setup(player: "AS AC 8S 8C 3H", house: "KS KH 4D 4C 2H", rest: "QD");
-            _view.PressAction();
-            PassUntil(GamePhase.Drawing);
-            _view.PressAction();
+            DealAndDraw();
 
             PassUntil(GamePhase.Absolved);
 

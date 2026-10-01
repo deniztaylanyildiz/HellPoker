@@ -233,8 +233,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _startingYears: 1000
   _damnationYears: 2000
-  _stakeOptions: 0a000000190000003200000064000000c8000000
-  _maxDiscards: 3
+  _forcedRaiseYears: 250
+  _stakeDivisor: 10
+  _minimumUnit: 10
+  _tableCapPercent: 50
+  _openingCardsShown: 2
+  _raiseUnitsBeforeDraw: 1
+  _raiseUnitsAfterDraw: 2
+  _houseReRaiseUnits: 1
   _useFixedSeed: 0
   _seed: 666
 --- !u!4 &2125101020

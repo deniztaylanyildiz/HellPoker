@@ -12,7 +12,7 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Translates player intent into game commands and game state into view updates.
-    /// Holds only UI state (selected discards, chosen ante); all rules live in the game.
+    /// Holds only UI state (selected discards); all rules — including the size of every bet — live in the game.
     /// Each run is a new game built for the chosen dealer. Before the first run there is no game and input is ignored.
     /// Depends on abstractions only, so it can be tested without Unity scenes.
     /// </summary>
@@ -22,30 +22,22 @@ namespace HellPoker.Presentation
 
         private readonly Func<Dealer, IHellPokerGame> _createGame;
         private readonly ITableView _view;
-        private readonly int[] _configuredStakes;
         private readonly HashSet<int> _discards = new HashSet<int>();
 
         private IHellPokerGame _game;
         private DealerText _dealerText;
-        private int[] _stakeOptions;
-        private int _stake;
         private bool _finalStretchAnnounced;
 
         /// <param name="createGame">Builds a fresh game for a run at this dealer's table.</param>
-        public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IReadOnlyList<int> stakeOptions)
+        public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view)
         {
             _createGame = createGame ?? throw new ArgumentNullException(nameof(createGame));
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            if (stakeOptions == null) throw new ArgumentNullException(nameof(stakeOptions));
-            _configuredStakes = stakeOptions.Distinct().OrderBy(s => s).ToArray();
 
             _view.ActionPressed += PerformAction;
             _view.BetPressed += Bet;
             _view.Player.CardClicked += ToggleDiscard;
-            _view.Stakes.StakeChosen += ChooseStake;
         }
-
-        public int SelectedStake => _stake;
 
         public IReadOnlyCollection<int> SelectedDiscards => _discards;
 
@@ -58,22 +50,15 @@ namespace HellPoker.Presentation
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
-            IHellPokerGame game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
-            int[] stakes = _configuredStakes.Where(s => s >= game.Rules.MinStake && s <= game.Rules.MaxStake).ToArray();
-            if (stakes.Length == 0)
-                throw new InvalidOperationException("None of the stake options are allowed by the game rules.");
-
-            _game = game;
-            _stakeOptions = stakes;
-            _stake = stakes[stakes.Length / 2];
+            _game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
             _discards.Clear();
             _finalStretchAnnounced = false;
             _dealerText = UiText.Dealer(dealer.Id);
 
             _view.Dealer.SetDealer(DealerCards.Describe(dealer));
             _view.Payouts.SetTable(dealer.Payouts);
-            _view.Sentence.SetDamnationLimit(game.Rules.DamnationYears);
-            _view.Sentence.SetYears(game.Years, animate: false);
+            _view.Sentence.SetDamnationLimit(_game.Rules.DamnationYears);
+            _view.Sentence.SetYears(_game.Years, animate: false);
             _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), Tone.Neutral);
             Refresh();
         }
@@ -83,7 +68,6 @@ namespace HellPoker.Presentation
             _view.ActionPressed -= PerformAction;
             _view.BetPressed -= Bet;
             _view.Player.CardClicked -= ToggleDiscard;
-            _view.Stakes.StakeChosen -= ChooseStake;
         }
 
         public void PerformAction()
@@ -93,12 +77,16 @@ namespace HellPoker.Presentation
             switch (_game.Phase)
             {
                 case GamePhase.Betting:
-                    _game.PlaceBet(_stake);
+                    _game.PlaceBet();
                     _discards.Clear();
                     break;
                 case GamePhase.PlayerReveal:
+                case GamePhase.DrawReveal:
                 case GamePhase.HouseReveal:
                     Bet(BetAction.Pass);
+                    return;
+                case GamePhase.HouseReRaise:
+                    Bet(BetAction.Call);
                     return;
                 case GamePhase.Drawing:
                     _game.Draw(_discards.ToArray());
@@ -124,12 +112,14 @@ namespace HellPoker.Presentation
 
             if (!_game.CanBet(action, out string reason))
             {
-                if (reason != null && (_game.Phase == GamePhase.PlayerReveal || _game.Phase == GamePhase.HouseReveal))
+                if (reason != null && IsBetPhase(_game.Phase))
                     _view.SetMessage(reason, Tone.Warning);
                 return;
             }
 
             _game.Bet(action);
+            if (_game.Phase == GamePhase.HouseReRaise)
+                _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), Tone.Bad);
             Refresh();
         }
 
@@ -151,29 +141,10 @@ namespace HellPoker.Presentation
             Refresh();
         }
 
-        public void StepStake(int direction)
+        private static bool IsBetPhase(GamePhase phase)
         {
-            if (_game == null) return;
-
-            int[] available = AvailableStakes();
-            if (available.Length == 0) return;
-
-            int index = Array.IndexOf(available, _stake) + Math.Sign(direction);
-            ChooseStake(available[Math.Max(0, Math.Min(index, available.Length - 1))]);
-        }
-
-        private void ChooseStake(int stake)
-        {
-            if (_game == null || _view.IsBusy || _game.Phase != GamePhase.Betting || !AvailableStakes().Contains(stake)) return;
-
-            _stake = stake;
-            Refresh();
-        }
-
-        /// <summary>The configured stakes the game currently allows (you cannot wager years you do not have).</summary>
-        private int[] AvailableStakes()
-        {
-            return _stakeOptions.Where(_game.IsValidStake).ToArray();
+            return phase == GamePhase.PlayerReveal || phase == GamePhase.DrawReveal || phase == GamePhase.HouseReveal ||
+                   phase == GamePhase.HouseReRaise;
         }
 
         private void Refresh()
@@ -184,13 +155,19 @@ namespace HellPoker.Presentation
                     ShowBetting();
                     break;
                 case GamePhase.PlayerReveal:
-                    ShowDecision(UiText.PromptPlayerCardFormat, _game.PlayerCardsRevealed);
+                    ShowDecision(string.Format(UiText.PromptPlayerCardFormat, _game.PlayerCardsRevealed, Hand.Size));
                     break;
                 case GamePhase.Drawing:
                     ShowDrawing();
                     break;
+                case GamePhase.DrawReveal:
+                    ShowDecision(UiText.PromptAfterDraw);
+                    break;
                 case GamePhase.HouseReveal:
-                    ShowDecision(UiText.PromptHouseCardFormat, _game.HouseCardsRevealed);
+                    ShowDecision(string.Format(UiText.PromptHouseShowsFormat, _game.HouseCardsRevealed, Hand.Size));
+                    break;
+                case GamePhase.HouseReRaise:
+                    ShowReRaise();
                     break;
                 default:
                     ShowResult(_game.LastRound);
@@ -219,42 +196,51 @@ namespace HellPoker.Presentation
             _view.Player.SetCaption(UiText.PlayerCaption, Tone.Muted);
             _view.SetPot(0);
             _view.Sentence.SetYears(_game.Years, animate: true);
-
-            int[] available = AvailableStakes();
-            if (!available.Contains(_stake) && available.Length > 0)
-                _stake = available.Last();
-            _view.Stakes.SetAvailable(available);
-            _view.Stakes.SetSelected(_stake);
-            _view.Stakes.SetVisible(true);
-            _view.SetMessage(UiText.PromptBet, Tone.Neutral);
+            ShowStakeInfo();
+            _view.SetAnte(_game.UpcomingAnte);
+            _view.SetMessage(string.Format(UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
             _view.SetAction(UiText.Deal);
         }
 
-        /// <summary>A card was just turned: animate it, then offer Raise / Pass / Fold.</summary>
-        private void ShowDecision(string promptFormat, int cardNumber)
+        /// <summary>Cards were just turned: animate them, then offer Raise / Pass / Fold.</summary>
+        private void ShowDecision(string prompt)
         {
-            _view.Stakes.SetVisible(false);
+            ShowHandInPlay();
             _view.SetAction(null);
+
+            bool mustRaise = !_game.CanBet(BetAction.Pass, out _);
+            _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice), mustRaise ? Tone.Warning : Tone.Neutral);
+            _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise));
+        }
+
+        /// <summary>The house raised back: Call or Fold.</summary>
+        private void ShowReRaise()
+        {
+            ShowHandInPlay();
+            _view.SetAction(null);
+            _view.SetMessage(string.Format(UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
+            _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount)));
+        }
+
+        /// <summary>Common to every decision: cards as the game shows them, the stake on the table, no ante or discards.</summary>
+        private void ShowHandInPlay()
+        {
+            _view.SetAnte(0);
             _view.SetBetControls(BetControls.Hidden);
             _view.Player.SetInteractable(false);
             _view.Player.SetSelection(null);
 
-            // House cards first, so on the deal the table fills up before the player's first card turns.
+            // House cards first, so on the deal the table fills up before the player's cards turn.
             _view.House.Show(Slots(_game.HouseHand, _game.HouseCardsRevealed));
             _view.Player.Show(Slots(_game.PlayerHand, _game.PlayerCardsRevealed));
             ShowStakeOnTable();
-
-            bool mustRaise = !_game.CanBet(BetAction.Pass, out _);
-            string prompt = string.Format(promptFormat, cardNumber, Hand.Size);
-            _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice), mustRaise ? Tone.Warning : Tone.Neutral);
-            _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise));
         }
 
         private string RaiseLabel()
         {
             int amount = _game.RaiseAmount;
-            if (amount == 0) return UiText.AllInDone;
-            return amount < _game.Ante ? string.Format(UiText.AllInFormat, amount) : string.Format(UiText.RaiseFormat, amount);
+            if (amount == 0) return _game.YearsOffTable == 0 ? UiText.AllInDone : UiText.TableFull;
+            return amount == _game.YearsOffTable ? string.Format(UiText.AllInFormat, amount) : string.Format(UiText.RaiseFormat, amount);
         }
 
         /// <summary>Years put on the table come straight off the sentence counter, like chips pushed forward.</summary>
@@ -262,6 +248,12 @@ namespace HellPoker.Presentation
         {
             _view.SetPot(_game.CurrentStake);
             _view.Sentence.SetYears(_game.YearsOffTable, animate: true);
+            ShowStakeInfo();
+        }
+
+        private void ShowStakeInfo()
+        {
+            _view.SetStakeInfo(string.Format(UiText.StakeInfoFormat, _game.LeastYearsForgiven, _game.LeastYearsAdded));
         }
 
         private void ShowDrawing()
@@ -279,6 +271,8 @@ namespace HellPoker.Presentation
         {
             _view.SetBetControls(BetControls.Hidden);
             _view.SetAction(null);
+            _view.SetAnte(0);
+            _view.SetStakeInfo(null);
             _view.Player.SetInteractable(false);
             _view.Player.SetSelection(null);
             _view.Player.Show(Slots(_game.PlayerHand, Hand.Size));

@@ -86,7 +86,7 @@ namespace HellPoker.Presentation.Views
             card.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(x, 0f), CardSize);
             Transform t = card.transform;
 
-            var portraitSize = new Vector2(300f, 375f);
+            var portraitSize = new Vector2(272f, 340f);
             const float portraitY = -40f;
             Sprite sprite = UiArt.Portrait(dealer.Id);
             Image portrait = UiFactory.CreateImage("Portrait", t, sprite != null ? Color.white : Palette.Slot);
@@ -102,14 +102,14 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(CardSize.x, 50f));
             UiFactory.CreateText("Title", t, dealer.Title, 23, Palette.MutedText, style: FontStyle.Italic)
                 .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y - 36f), new Vector2(CardSize.x, 30f));
-            UiFactory.CreateText("Description", t, dealer.Description, 21, Palette.Bone, TextAnchor.UpperCenter)
+            UiFactory.CreateText("Description", t, dealer.Description, 20, Palette.Bone, TextAnchor.UpperCenter)
                 .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y - 60f), new Vector2(CardSize.x - 60f, 80f), new Vector2(0.5f, 1f));
             UiFactory.CreateSprite("Divider", t, UiArt.Divider)
                 .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y - 146f), new Vector2(320f, 24f));
 
-            Text traits = UiFactory.CreateText("Traits", t, "• " + string.Join("\n• ", dealer.Traits), 19, Palette.PaleGold, TextAnchor.UpperLeft);
-            traits.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y - 164f), new Vector2(CardSize.x - 60f, 120f), new Vector2(0.5f, 1f));
-            traits.lineSpacing = 1.05f;
+            Text traits = UiFactory.CreateText("Traits", t, "• " + string.Join("\n• ", dealer.Traits), 18, Palette.PaleGold, TextAnchor.UpperLeft);
+            traits.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y - 162f), new Vector2(CardSize.x - 50f, 150f), new Vector2(0.5f, 1f));
+            traits.lineSpacing = 1f;
 
             Button choose = UiFactory.CreateButton($"ChooseDealer{index}", t, UiText.Challenge, 28, out _, ButtonSkin.Ember);
             ((RectTransform)choose.transform).Place(new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(280f, 70f));

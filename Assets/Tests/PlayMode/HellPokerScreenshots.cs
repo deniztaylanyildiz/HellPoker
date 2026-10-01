@@ -45,12 +45,14 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(2.5f);
             yield return Shot("04_table_mammon");
 
-            Press("Chip100");
+            // Make the house re-raise every time, to see the Call / Fold answer (screenshot tool only).
+            var bootstrap = Object.FindFirstObjectByType<HellPokerBootstrap>();
+            var presenter = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", Flags).GetValue(bootstrap);
+            presenter.Game.GetType().GetField("_houseBetting", Flags).SetValue(presenter.Game, new AlwaysReRaise());
+
             Press("ActionButton");
             yield return WaitForTable();
             Press("RaiseButton");
-            yield return WaitForTable();
-            Press("PassButton");
             yield return WaitForTable();
             yield return Shot("05_decision");
 
@@ -67,7 +69,14 @@ namespace HellPoker.PlayMode.Tests
 
             Press("ActionButton");
             yield return WaitForTable();
-            yield return Shot("07_house_reveal");
+            yield return Shot("07_after_draw");
+            Press("RaiseButton");
+            yield return WaitForTable();
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("07b_house_reraise");
+            Press("CallButton");
+            yield return WaitForTable();
+            yield return Shot("07c_house_reveal");
             for (int guard = 0; guard < 10 && IsActive("PassButton"); guard++)
             {
                 Press("PassButton");
@@ -88,8 +97,6 @@ namespace HellPoker.PlayMode.Tests
             }
 
             // Final stretch: cut the sentence to 200 years behind the game's back (screenshot tool only).
-            var bootstrap = Object.FindFirstObjectByType<HellPokerBootstrap>();
-            var presenter = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", Flags).GetValue(bootstrap);
             object ledger = presenter.Game.GetType().GetField("_ledger", Flags).GetValue(presenter.Game);
             ledger.GetType().GetMethod("Reset").Invoke(ledger, new object[] { 200 });
             typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
@@ -100,6 +107,11 @@ namespace HellPoker.PlayMode.Tests
         }
 
         private const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
+        private sealed class AlwaysReRaise : HellPoker.Core.Betting.IHouseBettingStrategy
+        {
+            public bool WantsToReRaise(HellPoker.Core.Evaluation.HandEvaluation houseHand) => true;
+        }
 
         private static IEnumerator Shot(string name)
         {

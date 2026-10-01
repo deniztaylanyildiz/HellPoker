@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Ui;
@@ -29,6 +28,12 @@ namespace HellPoker.Presentation.Views
         private Text _raiseLabel;
         private Button _passButton;
         private Button _foldButton;
+        private Button _callButton;
+        private Text _callLabel;
+        private Text _stakeInfo;
+        private GameObject _ante;
+        private Text _anteAmount;
+        private Text _anteChip;
         private FinalStretchEffect _finalStretch;
         private SentenceView _sentence;
         private DealerView _dealer;
@@ -36,7 +41,6 @@ namespace HellPoker.Presentation.Views
         public IHandView House { get; private set; }
         public IHandView Player { get; private set; }
         public ISentenceView Sentence => _sentence;
-        public IStakeSelectorView Stakes { get; private set; }
         public IPayoutView Payouts { get; private set; }
         public IDealerView Dealer => _dealer;
 
@@ -46,16 +50,16 @@ namespace HellPoker.Presentation.Views
         public event Action<BetAction> BetPressed;
         public event Action MenuPressed;
 
-        public static TableView Create(Transform parent, IReadOnlyList<int> stakeOptions)
+        public static TableView Create(Transform parent)
         {
             Canvas canvas = UiFactory.CreateCanvas("TableCanvas", parent, 0);
             var view = canvas.gameObject.AddComponent<TableView>();
             view._sequencer = canvas.gameObject.AddComponent<AnimationSequencer>();
-            view.Build(canvas.transform, stakeOptions);
+            view.Build(canvas.transform);
             return view;
         }
 
-        private void Build(Transform root, IReadOnlyList<int> stakeOptions)
+        private void Build(Transform root)
         {
             Image background = UiFactory.CreateSprite("Background", root, UiArt.Background, Palette.Background);
             background.rectTransform.Stretch();
@@ -88,12 +92,14 @@ namespace HellPoker.Presentation.Views
             House = HandView.Create(root, "HouseHand", new Vector2(CenterX, TableY + 182f), CardSize, 22f, captionAbove: true, _sequencer);
             Player = HandView.Create(root, "PlayerHand", new Vector2(CenterX, TableY - 182f), CardSize, 22f, captionAbove: false, _sequencer);
 
-            _message = UiFactory.CreateText("Message", root, "", 30, Palette.Bone).WithShadow(2f);
-            _message.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX, TableY + 36f), new Vector2(980f, 70f));
+            _message = UiFactory.CreateText("Message", root, "", 29, Palette.Bone).WithShadow(2f);
+            _message.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX, TableY + 50f), new Vector2(980f, 40f));
             _pot = UiFactory.CreateText("Pot", root, "", 24, Palette.Gold, style: FontStyle.Bold).WithShadow(2f);
-            _pot.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX, TableY - 12f), new Vector2(800f, 34f));
+            _pot.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX, TableY + 12f), new Vector2(800f, 32f));
+            _stakeInfo = UiFactory.CreateText("StakeInfo", root, "", 20, Palette.PaleGold, style: FontStyle.Italic).WithShadow();
+            _stakeInfo.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX, TableY - 18f), new Vector2(900f, 26f));
 
-            Stakes = StakeSelectorView.Create(root, new Vector2(CenterX - 170f, ControlsY), stakeOptions, _sequencer);
+            BuildAnte(root);
 
             _actionButton = UiFactory.CreateButton("ActionButton", root, "", 32, out _actionLabel, ButtonSkin.Ember);
             ((RectTransform)_actionButton.transform).Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX + 400f, ControlsY), new Vector2(300f, 84f));
@@ -102,6 +108,7 @@ namespace HellPoker.Presentation.Views
             _raiseButton = CreateBetButton(root, "RaiseButton", "", BetAction.Raise, CenterX - 300f, ButtonSkin.Ember, out _raiseLabel);
             _passButton = CreateBetButton(root, "PassButton", UiText.Pass, BetAction.Pass, CenterX, ButtonSkin.Blood, out _);
             _foldButton = CreateBetButton(root, "FoldButton", UiText.Fold, BetAction.Fold, CenterX + 300f, ButtonSkin.Ash, out _);
+            _callButton = CreateBetButton(root, "CallButton", "", BetAction.Call, CenterX - 150f, ButtonSkin.Ember, out _callLabel);
             ApplyBetControls(BetControls.Hidden);
 
             UiFactory.CreateText("Hint", root, UiText.Hint, 18, Palette.MutedText, style: FontStyle.Italic).WithShadow()
@@ -109,6 +116,25 @@ namespace HellPoker.Presentation.Views
 
             // Last, so the hellfire glow draws over the table without blocking clicks.
             _finalStretch = FinalStretchEffect.Create(root, background, table, new Vector2(CenterX, -132f));
+        }
+
+        /// <summary>"ANTE" and a gold chip with the amount, where the deal happens.</summary>
+        private void BuildAnte(Transform root)
+        {
+            RectTransform ante = UiFactory.CreateRect("Ante", root).Place(new Vector2(0.5f, 0.5f), new Vector2(CenterX - 120f, ControlsY), new Vector2(440f, 96f));
+            _ante = ante.gameObject;
+
+            UiFactory.CreateText("Label", ante, UiText.StakeLabel, 30, Palette.Gold, TextAnchor.MiddleRight, FontStyle.Bold).WithShadow()
+                .rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0f), new Vector2(120f, 96f), new Vector2(0f, 0.5f));
+
+            Image chip = UiFactory.CreateSprite("Chip", ante, UiArt.ChipSelected, Palette.Ember);
+            chip.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(140f, 0f), new Vector2(92f, 92f), new Vector2(0f, 0.5f));
+            _anteChip = UiFactory.CreateText("Unit", chip.transform, "", 26, Palette.Ink, style: FontStyle.Bold);
+            _anteChip.rectTransform.Stretch();
+
+            _anteAmount = UiFactory.CreateText("Amount", ante, "", 30, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithShadow();
+            _anteAmount.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(250f, 0f), new Vector2(200f, 96f), new Vector2(0f, 0.5f));
+            _ante.SetActive(false);
         }
 
         private Button CreateBetButton(Transform root, string name, string label, BetAction action, float x, ButtonSkin skin, out Text labelText)
@@ -151,17 +177,39 @@ namespace HellPoker.Presentation.Views
 
         private void ApplyBetControls(BetControls controls)
         {
-            _raiseButton.gameObject.SetActive(controls.Visible);
-            _passButton.gameObject.SetActive(controls.Visible);
+            bool decide = controls.Visible && !controls.IsAnswer;
+            _raiseButton.gameObject.SetActive(decide);
+            _passButton.gameObject.SetActive(decide);
+            _callButton.gameObject.SetActive(controls.Visible && controls.IsAnswer);
             _foldButton.gameObject.SetActive(controls.Visible);
             _raiseLabel.text = controls.RaiseLabel ?? "";
+            _callLabel.text = controls.CallLabel ?? "";
             _raiseButton.interactable = controls.CanRaise;
             _passButton.interactable = controls.CanPass;
+
+            // Against a re-raise the fold button moves next to the call button.
+            var fold = (RectTransform)_foldButton.transform;
+            fold.anchoredPosition = new Vector2(controls.IsAnswer ? CenterX + 150f : CenterX + 300f, ControlsY);
         }
 
         public void SetPot(int years)
         {
             _sequencer.Do(() => _pot.text = years > 0 ? string.Format(UiText.PotFormat, years) : "");
+        }
+
+        public void SetStakeInfo(string text)
+        {
+            _sequencer.Do(() => _stakeInfo.text = text ?? "");
+        }
+
+        public void SetAnte(int years)
+        {
+            _sequencer.Do(() =>
+            {
+                _ante.SetActive(years > 0);
+                _anteAmount.text = string.Format(UiText.AnteFormat, years);
+                _anteChip.text = years.ToString();
+            });
         }
 
         public void SetFinalStretch(bool active, string banner)

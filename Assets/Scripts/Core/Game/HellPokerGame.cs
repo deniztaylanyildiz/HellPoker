@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
@@ -15,17 +16,25 @@ namespace HellPoker.Core.Game
         private readonly ICardExchanger _exchanger;
         private readonly IDrawStrategy _houseStrategy;
         private readonly IPayoutTable _payouts;
+        private readonly IHouseBettingStrategy _houseBetting;
         private readonly PunishmentLedger _ledger;
 
         private ExchangeResult _playerExchange;
         private ExchangeResult _houseExchange;
 
+        /// <summary>The decision the house's re-raise interrupted; play resumes from it after a call.</summary>
+        private GamePhase _interruptedPhase;
+
         public GameRules Rules { get; }
         public GamePhase Phase { get; private set; }
         public Hand PlayerHand { get; private set; }
         public Hand HouseHand { get; private set; }
+        public int Unit { get; private set; }
         public int Ante { get; private set; }
+        public int TableCap { get; private set; }
         public int CurrentStake { get; private set; }
+        public int HouseReRaiseAmount { get; private set; }
+        public bool IsAfterDraw { get; private set; }
         public int PlayerCardsRevealed { get; private set; }
         public int HouseCardsRevealed { get; private set; }
         public RoundResult LastRound { get; private set; }
@@ -33,12 +42,28 @@ namespace HellPoker.Core.Game
 
         public int Years => _ledger.Years;
         public int YearsOffTable => _ledger.Years - CurrentStake;
+        public int UpcomingAnte => Rules.Stakes.AnteFor(_ledger.Years);
         public bool IsGameOver => Phase == GamePhase.Absolved || Phase == GamePhase.Damned;
         public bool IsRaiseForced => _ledger.Years <= Rules.ForcedRaiseYears;
-        public int RaiseAmount => Math.Max(0, Math.Min(Ante, YearsOffTable));
 
+        public int RaiseAmount
+        {
+            get
+            {
+                if (!IsDecisionPhase(Phase)) return 0;
+                int units = IsAfterDraw ? Rules.RaiseUnitsAfterDraw : Rules.RaiseUnitsBeforeDraw;
+                return RoomToRaise(units * Unit);
+            }
+        }
+
+        public int LeastYearsForgiven => _payouts.GetLeastYearsForgiven(StakeForOutlook, _ledger.Years);
+        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook);
+
+        private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
+
+        /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
-            IDrawStrategy houseStrategy, IPayoutTable payouts)
+            IDrawStrategy houseStrategy, IPayoutTable payouts, IHouseBettingStrategy houseBetting = null)
         {
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             _deck = deck ?? throw new ArgumentNullException(nameof(deck));
@@ -46,6 +71,7 @@ namespace HellPoker.Core.Game
             _exchanger = exchanger ?? throw new ArgumentNullException(nameof(exchanger));
             _houseStrategy = houseStrategy ?? throw new ArgumentNullException(nameof(houseStrategy));
             _payouts = payouts ?? throw new ArgumentNullException(nameof(payouts));
+            _houseBetting = houseBetting;
             _ledger = new PunishmentLedger(rules.StartingYears);
 
             Restart();
@@ -60,47 +86,53 @@ namespace HellPoker.Core.Game
             Phase = GamePhase.Betting;
         }
 
-        public bool IsValidStake(int stake)
-        {
-            if (stake < Rules.MinStake || stake > Rules.MaxStake) return false;
-
-            // You cannot wager years you do not have — except the minimum, which then goes all in.
-            return stake <= _ledger.Years || stake == Rules.MinStake;
-        }
-
-        public void PlaceBet(int stake)
+        public void PlaceBet()
         {
             RequirePhase(GamePhase.Betting);
-            if (!IsValidStake(stake))
-                throw new ArgumentOutOfRangeException(nameof(stake), stake,
-                    $"Stake must be between {Rules.MinStake} and {Math.Min(Rules.MaxStake, Math.Max(Rules.MinStake, _ledger.Years))}.");
 
+            int years = _ledger.Years;
             _deck.Reset();
-            Ante = Math.Min(stake, _ledger.Years);
+            Unit = Rules.Stakes.UnitFor(years);
+            Ante = Rules.Stakes.AnteFor(years);
+            TableCap = Rules.Stakes.CapFor(years);
             CurrentStake = Ante;
             PlayerHand = _deck.DealHand();
             HouseHand = _deck.DealHand();
-            PlayerCardsRevealed = 1;
+            PlayerCardsRevealed = Math.Min(Hand.Size, Rules.OpeningCardsShown + 1);
             HouseCardsRevealed = 0;
+            IsAfterDraw = false;
             RoundNumber++;
             Phase = GamePhase.PlayerReveal;
         }
 
         public bool CanBet(BetAction action, out string reason)
         {
-            if (Phase != GamePhase.PlayerReveal && Phase != GamePhase.HouseReveal)
+            if (Phase == GamePhase.HouseReRaise)
+            {
+                bool answer = action == BetAction.Call || action == BetAction.Fold;
+                reason = answer ? null : "The House has raised. Call or fold.";
+                return answer;
+            }
+
+            if (!IsDecisionPhase(Phase))
             {
                 reason = "There is no bet to answer right now.";
                 return false;
             }
 
-            if (action == BetAction.Raise && RaiseAmount == 0)
+            if (action == BetAction.Call)
             {
-                reason = "Every year you have is already on the table.";
+                reason = "There is nothing to call.";
                 return false;
             }
 
-            // Once everything is on the table there is nothing left to raise, so passing is allowed again.
+            if (action == BetAction.Raise && RaiseAmount == 0)
+            {
+                reason = CurrentStake >= TableCap ? "The table is at its limit." : "Every year you have is already on the table.";
+                return false;
+            }
+
+            // Once nothing more can be raised (cap or all in), passing is allowed again.
             if (action == BetAction.Pass && IsRaiseForced && RaiseAmount > 0)
             {
                 reason = $"With {Rules.ForcedRaiseYears} years or less left, the House demands a raise.";
@@ -122,24 +154,22 @@ namespace HellPoker.Core.Game
                 return;
             }
 
-            if (action == BetAction.Raise)
-                CurrentStake += RaiseAmount;
+            if (action == BetAction.Call)
+            {
+                CurrentStake += HouseReRaiseAmount;
+                HouseReRaiseAmount = 0;
+                Advance(_interruptedPhase);
+                return;
+            }
 
-            if (Phase == GamePhase.PlayerReveal)
+            if (action == BetAction.Raise)
             {
-                if (PlayerCardsRevealed < Hand.Size)
-                    PlayerCardsRevealed++;
-                else
-                    Phase = GamePhase.Drawing;
+                CurrentStake += RaiseAmount;
+                if (IsAfterDraw && TryHouseReRaise())
+                    return;
             }
-            else if (HouseCardsRevealed < Rules.HouseRevealDecisions)
-            {
-                HouseCardsRevealed++;
-            }
-            else
-            {
-                FinishShowdown();
-            }
+
+            Advance(Phase);
         }
 
         public bool CanDraw(IReadOnlyCollection<int> discardIndices, out string reason)
@@ -161,16 +191,8 @@ namespace HellPoker.Core.Game
             _houseExchange = _exchanger.Exchange(HouseHand, _houseStrategy.ChooseDiscards(HouseHand), _deck);
             PlayerHand = _playerExchange.Hand;
             HouseHand = _houseExchange.Hand;
-
-            if (Rules.HouseRevealDecisions == 0)
-            {
-                FinishShowdown();
-            }
-            else
-            {
-                HouseCardsRevealed = 1;
-                Phase = GamePhase.HouseReveal;
-            }
+            IsAfterDraw = true;
+            Phase = GamePhase.DrawReveal;
 
             return _playerExchange;
         }
@@ -180,6 +202,57 @@ namespace HellPoker.Core.Game
             RequirePhase(GamePhase.RoundOver);
             ClearHand();
             Phase = GamePhase.Betting;
+        }
+
+        /// <summary>Moves on from a decision that has been answered.</summary>
+        private void Advance(GamePhase answered)
+        {
+            switch (answered)
+            {
+                case GamePhase.PlayerReveal:
+                    if (PlayerCardsRevealed < Hand.Size)
+                    {
+                        PlayerCardsRevealed++;
+                        Phase = GamePhase.PlayerReveal;
+                    }
+                    else
+                    {
+                        Phase = GamePhase.Drawing;
+                    }
+                    break;
+
+                case GamePhase.DrawReveal when Rules.HouseCardsShown > 0:
+                    HouseCardsRevealed = Rules.HouseCardsShown;
+                    Phase = GamePhase.HouseReveal;
+                    break;
+
+                default:
+                    FinishShowdown();
+                    break;
+            }
+        }
+
+        /// <summary>After a raise past the draw, the house may raise back (if the cap leaves room).</summary>
+        private bool TryHouseReRaise()
+        {
+            int amount = RoomToRaise(Rules.HouseReRaiseUnits * Unit);
+            if (amount == 0 || _houseBetting == null || !_houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand)))
+                return false;
+
+            HouseReRaiseAmount = amount;
+            _interruptedPhase = Phase;
+            Phase = GamePhase.HouseReRaise;
+            return true;
+        }
+
+        private int RoomToRaise(int wanted)
+        {
+            return Math.Max(0, Math.Min(wanted, Math.Min(TableCap - CurrentStake, YearsOffTable)));
+        }
+
+        private static bool IsDecisionPhase(GamePhase phase)
+        {
+            return phase == GamePhase.PlayerReveal || phase == GamePhase.DrawReveal || phase == GamePhase.HouseReveal;
         }
 
         private void FinishShowdown()
@@ -193,12 +266,13 @@ namespace HellPoker.Core.Game
             int yearsBefore = _ledger.Years;
 
             if (showdown == null)
-                _ledger.Add(_payouts.GetFoldPenalty(CurrentStake));
+                _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw));
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
                 _ledger.Forgive(_payouts.GetYearsForgiven(showdown.Player.Category, CurrentStake, _ledger.Years));
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
                 _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake));
 
+            HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;
             HouseCardsRevealed = Hand.Size;
             Phase = _ledger.IsServed ? GamePhase.Absolved
@@ -213,8 +287,12 @@ namespace HellPoker.Core.Game
         {
             PlayerHand = null;
             HouseHand = null;
+            Unit = 0;
             Ante = 0;
+            TableCap = 0;
             CurrentStake = 0;
+            HouseReRaiseAmount = 0;
+            IsAfterDraw = false;
             PlayerCardsRevealed = 0;
             HouseCardsRevealed = 0;
             _playerExchange = null;

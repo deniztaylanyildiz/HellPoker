@@ -9,10 +9,13 @@ namespace HellPoker.Core.Game
 
         int GetMultiplier(HandCategory category);
 
-        /// <summary>Share of the stake added to the sentence on a loss, in percent.</summary>
+        /// <summary>A loss adds stake × the house's multiplier × this percent.</summary>
         int LossPercent { get; }
 
-        /// <summary>Share of the stake added to the sentence on a fold, in percent.</summary>
-        int FoldPercent { get; }
+        /// <summary>Share of the stake added on a fold before the draw, in percent.</summary>
+        int FoldPercentBeforeDraw { get; }
+
+        /// <summary>Share of the stake added on a fold after the draw, in percent.</summary>
+        int FoldPercentAfterDraw { get; }
     }
 }

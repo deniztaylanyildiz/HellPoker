@@ -1,4 +1,5 @@
 using System;
+using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
@@ -13,18 +14,22 @@ namespace HellPoker.Core.Game
         /// <param name="rules">Defaults to <see cref="GameRules.Default"/>.</param>
         /// <param name="payouts">Defaults to <see cref="PayoutTable.CreateDefault"/>.</param>
         /// <param name="seed">Fixed seed for reproducible shuffles; null for a random game.</param>
-        public static HellPokerGame Create(GameRules rules = null, IPayoutTable payouts = null, int? seed = null)
+        /// <param name="betting">The house's temper; null for a house that never re-raises.</param>
+        public static HellPokerGame Create(GameRules rules = null, IPayoutTable payouts = null, int? seed = null, HouseBettingStyle betting = null)
         {
             rules = rules ?? GameRules.Default;
-            IRandomSource random = seed.HasValue ? new SystemRandomSource(seed.Value) : new SystemRandomSource();
+            IRandomSource deckRandom = seed.HasValue ? new SystemRandomSource(seed.Value) : new SystemRandomSource();
+            // A separate stream for the house's temper, so its dice never change the order of the cards.
+            IRandomSource houseRandom = seed.HasValue ? new SystemRandomSource(seed.Value + 1) : new SystemRandomSource();
 
             return new HellPokerGame(
                 rules,
-                new Deck(new FisherYatesShuffler(random)),
+                new Deck(new FisherYatesShuffler(deckRandom)),
                 HandEvaluator.CreateDefault(),
                 new CardExchanger(new MaxDiscardPolicy(rules.MaxDiscards)),
                 new HouseDrawStrategy(rules.MaxDiscards),
-                payouts ?? PayoutTable.CreateDefault());
+                payouts ?? PayoutTable.CreateDefault(),
+                betting == null ? null : new HandStrengthBettingStrategy(betting, houseRandom));
         }
 
         /// <summary>A run at <paramref name="table"/>'s stakes, dealt by <paramref name="dealer"/> under their house rules.</summary>
@@ -32,7 +37,7 @@ namespace HellPoker.Core.Game
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
-            return Create(dealer.ApplyTo(table ?? GameRules.Default), dealer.Payouts, seed);
+            return Create(dealer.ApplyTo(table ?? GameRules.Default), dealer.Payouts, seed, dealer.Betting);
         }
     }
 }

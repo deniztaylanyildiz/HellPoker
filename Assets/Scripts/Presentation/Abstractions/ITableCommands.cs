@@ -7,15 +7,12 @@ namespace HellPoker.Presentation.Abstractions
     {
         /// <summary>
         /// The default move: deal, draw, next hand or restart depending on the phase;
-        /// during a bet decision it passes (when passing is allowed).
+        /// during a bet decision it passes (when passing is allowed); against a house re-raise it calls.
         /// </summary>
         void PerformAction();
 
         void Bet(BetAction action);
 
         void ToggleDiscard(int index);
-
-        /// <summary>Moves the stake one option up (+1) or down (-1).</summary>
-        void StepStake(int direction);
     }
 }

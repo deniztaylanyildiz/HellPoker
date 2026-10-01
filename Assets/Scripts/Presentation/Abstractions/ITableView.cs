@@ -12,7 +12,6 @@ namespace HellPoker.Presentation.Abstractions
         IHandView House { get; }
         IHandView Player { get; }
         ISentenceView Sentence { get; }
-        IStakeSelectorView Stakes { get; }
         IPayoutView Payouts { get; }
         IDealerView Dealer { get; }
 
@@ -35,6 +34,12 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Shows the total stake on the table; 0 hides it.</summary>
         void SetPot(int years);
+
+        /// <summary>What is at stake, e.g. "Win: at least −100 years · Lose: at least +100 years"; null hides it.</summary>
+        void SetStakeInfo(string text);
+
+        /// <summary>The ante of the next hand, shown next to the deal button; 0 hides it.</summary>
+        void SetAnte(int years);
 
         /// <summary>Switches the hellfire look for the end of the sentence on or off.</summary>
         void SetFinalStretch(bool active, string banner);

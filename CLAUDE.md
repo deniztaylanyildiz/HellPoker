@@ -17,26 +17,36 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 
 - Oyuncu **1000 yıl** cehennem cezasıyla başlar; amaç cezayı **0**'a indirmek (Absolved).
 - Ceza **2000 yıla** ulaşırsa sonsuz lanet: oyun biter (Damned).
-- Her elin akışı:
-  1. **Ante** seçilir (yıl olarak, 10/25/50/100/200).
-  2. Kartlar kapalı dağıtılır; oyuncunun kartları **tek tek açılır**, her kartta **Artır / Pas / Çekil**.
-  3. Oyuncu en fazla **3** kart değiştirir; kasa kendi stratejisiyle (`HouseDrawStrategy`) değiştirir.
-  4. Kasanın kartları tek tek açılır; ilk **3** kartta yine Artır / Pas / Çekil, son 2 kart doğrudan showdown'a açılır.
-- **Artır** = ante kadar daha ekle. **Pas** = artırmadan devam. **Çekil (Fold)** = eli bırak, toplam bahsin yarısı (yukarı yuvarlanır) cezaya eklenir.
-- **Bahis sınırı:** toplam bahis asla mevcut cezayı geçemez. Masaya konan yıllar sayaçtan anında düşer
-  (`YearsOffTable`); kalan ante'den azsa artırma "ALL IN +X" olur, her şey masadaysa artırma kilitlenir.
-  Ante seçenekleri de cezayı aşamaz (en küçük ante her zaman serbesttir, gerekirse all-in olur).
-- **Son 250 yıl** (ceza ≤ 250): all-in olana kadar Pas yasak, her kararda artırmak (ya da çekilmek) zorunlu.
+- **Bahis birimi** (`StakeScale`): elin başındaki cezanın 1/10'u, okunaklı adıma **aşağı** yuvarlanır:
+  ceza ≥1000 → 100'ün katı, ≥500 → 50, ≥250 → 25, altı → 10 (en az 10; ceza daha azsa all-in).
+  Örnek: 1000 → 100, 650 → 50, 340 → 25, 180 → 10. **Ante = 1 birim** (seçici yok; "ANTE X YEARS" + DEAL).
+- **Masa tavanı:** masadaki toplam bahis elin başındaki cezanın en fazla **%50**'si (ante'den az olamaz). Tavanda artırma kilitlenir ("TABLE FULL").
+  Masaya konan yıllar sayaçtan anında düşer (`YearsOffTable`).
+- Her elin akışı (en fazla **5** karar):
+  1. DEAL: ante masaya konur, oyuncunun ilk **2** kartı birlikte açılır (karar yok).
+  2. **3., 4. ve 5.** kartta Artır / Pas / Çekil. Artırma = **1 birim**.
+  3. Kart değiştirme (şeytana göre 3 ya da 4); kasa `HouseDrawStrategy` ile değiştirir. Yeni elde **1 karar**; artırma artık **2 birim**.
+  4. Kasa `HouseCardsShown` kadar kart açar (Mammon 2, Belial 1, Lilith 2) → **1 karar** → kalanlar showdown'a.
+  5. Kart değiştirdikten sonra oyuncu artırırsa kasa **re-raise** yapabilir (1 birim, tavan geçerli) → oyuncu **Karşıla (Call) / Çekil**.
+     Karar `IHouseBettingStrategy` (`HandStrengthBettingStrategy` + şeytanın `HouseBettingStyle`'ı, zar `IRandomSource`'tan).
+- **Pas** = artırmadan devam. **Çekil** = eli bırak; draw'dan önce `FoldPercentBeforeDraw`, sonra `FoldPercentAfterDraw` (yukarı yuvarlanır).
+- **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; **tavana ya da all-in'e** ulaşınca Pas serbest.
   Ekran "cehennem ateşi" moduna geçer.
+- Masada "Win: at least −X · Lose: at least +Y" satırı (en zayıf ele göre, `LeastYearsForgiven/Added`).
 - Oyun **ana menüde** açılır (New Game / Continue / How to Play / Quit). Masada MENU butonu ya da Esc menüye döner.
 - **New Game → kurpiyer şeytan seçimi** (Mammon / Belial / Lilith). Her şeytanın kendi ev kuralları var (`DealerRoster`):
-  - **Mammon** (Tefeci): klasik kurallar — 3 kart değiştir, kasanın 3 kartında karar, standart ödeme.
-  - **Belial** (Gümüş Dil): yüksek çarpanlar, kayıp bahsin **1.5 katı**, kasanın sadece **1** kartında karar.
-  - **Lilith** (Gecenin Kraliçesi): **4** kart değiştir, ama çekilmek bahsin **tamamına** mal olur.
-  - Şeytan masada portresiyle oturur ve el sonuçlarına göre replik söyler (`UiText.Dealers.cs`).
-- Kazanırsan: `toplam bahis × çarpan` yıl silinir. Kaybedersen: toplam bahis kadar yıl eklenir (şeytana göre `LossPercent`). Beraberlik: değişiklik yok.
-- **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) en güçlü eldir (Royal Flush'tan da güçlü) ve kazanırsa **tüm cezayı siler**.
-- Çarpanlar: High Card/Pair ×1, Two Pair ×2, Trips ×3, Straight ×4, Flush ×5, Full House ×8, Quads ×25, Straight Flush ×50, Royal ×100.
+  | Şeytan | Kart değiştir | Kasa gösterir | Ödeme | Çekilme (önce/sonra) | Re-raise (Two Pair+ / blöf) |
+  |---|---|---|---|---|---|
+  | **Mammon** (Tefeci, dürüst) | 3 | 2 | standart | %50 / %100 | %70 / %5 |
+  | **Belial** (Gümüş Dil, blöfçü) | 3 | 1 | yüksek (Quads ×15, SF ×25, Royal ×30) | %50 / %100 | %60 / %30 |
+  | **Lilith** (Gecenin Kraliçesi, acımasız) | 4 | 2 | standart | %100 / %100 | %90 / %10 |
+  - Hepsinde `LossPercent` = 100. Şeytan masada portresiyle oturur ve replik söyler (re-raise dahil, `UiText.Dealers.cs`).
+- **Ödeme simetrik:** kazanırsan `toplam bahis × senin el çarpanın` yıl silinir; kaybedersen `toplam bahis × kasanın el çarpanı × LossPercent`
+  yıl eklenir (yukarı yuvarlanır). Beraberlik: değişiklik yok.
+- **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) **yenilmez**: Royal Flush dahil her eli yener (testlerle sabit)
+  ve oyuncu kazanırsa **tüm cezayı siler**. Kasa onunla kazanırsa en yüksek çarpan sayılır.
+- Standart çarpanlar: High Card/Pair ×1, Two Pair ×2, Trips ×3, Straight ×4, Flush ×5, Full House ×8, Quads ×10, Straight Flush ×15, Royal ×20.
+- Tüm sayılar ayarlanabilir: `GameRules` (+ `StakeScale`), `Dealer`, `PayoutTable`, `HouseBettingStyle`; Inspector'da `HellPokerBootstrap`.
 
 ## Mimari
 
@@ -48,7 +58,9 @@ Assets/Scripts/
     Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule)
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory
-    Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseRevealDecisions, PayoutTable), DealerRoster
+    Betting/       IHouseBettingStrategy, HandStrengthBettingStrategy, HouseBettingStyle (kasanın re-raise / blöf mizacı)
+    Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle), DealerRoster
+                   (Game/ altında ayrıca StakeScale: bahis birimi, ante, masa tavanı)
   Presentation/  HellPoker.Presentation.asmdef — Unity katmanı (MVP)
     Abstractions/  ITableView, IHandView, IDealerView, IDealerSelectView, DealerCard, ... , ITableCommands, Tone
     Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, CardView...
@@ -106,6 +118,9 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 # Ekran görüntüleri (Screenshots/ klasörüne ya da $env:HELLPOKER_SHOTS'a)
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testFilter HellPoker.PlayMode.Tests.HellPokerScreenshots -testResults shots.xml -logFile shots.log
 
+# Denge simülasyonu (her şeytana 2000 koşu; rapor sim.xml'deki test çıktısında)
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform EditMode -testFilter HellPoker.Core.Tests.BalanceSimulation -testResults sim.xml -logFile sim.log
+
 # Görselleri / fontları yeniden üret (py -m pip install --user pillow numpy fonttools)
 py Tools/ArtGen/generate_art.py [isim ...]     # ör. belial card_back
 py Tools/ArtGen/fonts.py
@@ -116,6 +131,6 @@ py Tools/ArtGen/fonts.py
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas, R artır, F çekil, 1-5 kart seç, ↑/↓ ante.
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, C karşıla, F çekil, 1-5 kart seç, Esc menü.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

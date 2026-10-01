@@ -49,7 +49,6 @@ namespace HellPoker.PlayMode.Tests
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {
             StartRun();
-            Press("Chip100");
             Press("ActionButton");
             yield return WaitForTable();
 
@@ -68,8 +67,8 @@ namespace HellPoker.PlayMode.Tests
             Press("ActionButton");
             yield return WaitForTable();
 
-            // House cards turn one by one, then the showdown.
-            Assert.IsTrue(IsActive("PassButton"), "Bet decision should follow the house's first card.");
+            // One decision on the new hand, one after the house shows its cards, then the showdown.
+            Assert.IsTrue(IsActive("PassButton"), "Bet decision should follow the draw.");
             yield return PassWhileDeciding();
 
             StringAssert.IsMatch("NEXT HAND|PLAY AGAIN", ActionLabel());
