@@ -52,3 +52,11 @@ crashlytics-build.properties
 # OS files
 .DS_Store
 Thumbs.db
+
+# Hell Poker: batchmode test output, screenshots, art tool cache
+/results.xml
+/play.xml
+/shots.xml
+/*.log
+/Screenshots/
+Tools/ArtGen/__pycache__/

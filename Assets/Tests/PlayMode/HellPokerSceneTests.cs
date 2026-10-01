@@ -35,15 +35,20 @@ namespace HellPoker.PlayMode.Tests
 
             Press("NewGameButton");
             Assert.IsFalse(Object.FindFirstObjectByType<MainMenuView>().IsVisible);
+            Assert.IsTrue(Object.FindFirstObjectByType<DealerSelectView>().IsVisible, "New Game should ask for a dealer first.");
+
+            Press("ChooseDealer1");
+            Assert.IsFalse(Object.FindFirstObjectByType<DealerSelectView>().IsVisible);
             Assert.AreEqual("DEAL", ActionLabel());
             Assert.IsFalse(IsActive("PassButton"));
+            Assert.AreEqual("BELIAL", Object.FindFirstObjectByType<DealerView>().transform.Find("Name").GetComponent<Text>().text);
             yield return null;
         }
 
         [UnityTest]
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {
-            Press("NewGameButton");
+            StartRun();
             Press("Chip100");
             Press("ActionButton");
             yield return WaitForTable();
@@ -79,7 +84,7 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest]
         public IEnumerator Folding_EndsTheHand()
         {
-            Press("NewGameButton");
+            StartRun();
             Press("ActionButton");
             yield return WaitForTable();
 
@@ -93,6 +98,12 @@ namespace HellPoker.PlayMode.Tests
 
             Assert.IsFalse(IsActive("FoldButton"));
             StringAssert.IsMatch("NEXT HAND|PLAY AGAIN", ActionLabel());
+        }
+
+        private static void StartRun(int dealer = 0)
+        {
+            Press("NewGameButton");
+            Press("ChooseDealer" + dealer);
         }
 
         private static IEnumerator PassWhileDeciding()

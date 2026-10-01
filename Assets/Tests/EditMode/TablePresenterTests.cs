@@ -1,3 +1,4 @@
+using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
@@ -14,20 +15,28 @@ namespace HellPoker.Core.Tests
         private FakeTableView _view;
         private HellPokerGame _game;
         private TablePresenter _presenter;
+        private Dealer _lastDealer;
 
-        /// <summary>Default: player gets a flush, the house a pair of twos that draws three blanks.</summary>
+        /// <summary>
+        /// Default: player gets a flush, the house a pair of twos that draws three blanks.
+        /// Every run gets a fresh game on the same stacked deck, whatever the dealer.
+        /// </summary>
         private void Setup(string player = "2C 9C JC 4C KC", string house = "2D 2H 5S 7H 9D", string rest = "3S 4S 6D AH",
-            int startingYears = 1000)
+            int startingYears = 1000, Dealer dealer = null)
         {
             _view = new FakeTableView();
-            _game = new HellPokerGame(
-                new GameRules(startingYears, 2000, 10, 200),
-                TestDecks.Stacked($"{player} {house} {rest}"),
-                HandEvaluator.CreateDefault(),
-                new CardExchanger(new MaxDiscardPolicy()),
-                new HouseDrawStrategy(),
-                PayoutTable.CreateDefault());
-            _presenter = new TablePresenter(_game, _view, Stakes);
+            _presenter = new TablePresenter(d =>
+            {
+                _lastDealer = d;
+                return _game = new HellPokerGame(
+                    new GameRules(startingYears, 2000, 10, 200),
+                    TestDecks.Stacked($"{player} {house} {rest}"),
+                    HandEvaluator.CreateDefault(),
+                    new CardExchanger(new MaxDiscardPolicy()),
+                    new HouseDrawStrategy(),
+                    d.Payouts);
+            }, _view, Stakes);
+            _presenter.StartNewRun(dealer ?? DealerRoster.Mammon);
         }
 
         [TearDown]
@@ -139,11 +148,83 @@ namespace HellPoker.Core.Tests
             _view.PressBet(BetAction.Fold);
             Assert.IsTrue(_presenter.CanContinue);
 
-            _presenter.StartNewRun();
+            _presenter.StartNewRun(DealerRoster.Belial);
 
+            Assert.AreSame(_game, _presenter.Game, "A new run plays a new game.");
+            Assert.AreEqual(DealerRoster.BelialId, _lastDealer.Id);
             Assert.AreEqual(GamePhase.Betting, _game.Phase);
             Assert.AreEqual(1000, _view.SentenceView.Years);
             Assert.IsFalse(_presenter.CanContinue);
+        }
+
+        [Test]
+        public void BeforeAnyRun_InputIsIgnored()
+        {
+            _view = new FakeTableView();
+            _presenter = new TablePresenter(d => throw new AssertionException("No game should be built yet."), _view, Stakes);
+
+            _presenter.PerformAction();
+            _presenter.Bet(BetAction.Raise);
+            _presenter.StepStake(+1);
+            _view.PressAction();
+
+            Assert.IsNull(_presenter.Game);
+            Assert.IsFalse(_presenter.CanContinue);
+        }
+
+        [Test]
+        public void StartNewRun_IntroducesTheDealer_AndTheirPayouts()
+        {
+            Setup(dealer: DealerRoster.Belial);
+
+            Assert.AreEqual(DealerRoster.BelialId, _view.DealerView.Dealer.Id);
+            Assert.AreEqual("BELIAL", _view.DealerView.Dealer.Name);
+            Assert.IsNotEmpty(_view.DealerView.LastLine, "The dealer greets the player.");
+            Assert.AreEqual(150, _view.PayoutsView.Table.LossPercent);
+        }
+
+        [Test]
+        public void DealerGloats_WhenTheHouseWins()
+        {
+            // Player: nothing. House: a pair of kings.
+            Setup(player: "2C 5D 9H JS 3C", house: "KD KH 4S 7H 8D", rest: "6S 4C 6D AH 2H 3D");
+            string greeting = _view.DealerView.LastLine;
+            _view.PressAction();
+            PassUntil(GamePhase.Drawing);
+            _view.PressAction();
+            PassUntil(GamePhase.RoundOver);
+
+            Assert.AreEqual(ShowdownOutcome.HouseWins, _game.LastRound.Showdown.Outcome);
+            Assert.AreNotEqual(greeting, _view.DealerView.LastLine);
+            Assert.AreEqual(Tone.Bad, _view.DealerView.LastTone);
+        }
+
+        [Test]
+        public void DealerIsAnnoyed_WhenThePlayerWins()
+        {
+            Setup();
+            _view.PressAction();
+            PassUntil(GamePhase.Drawing);
+            _view.PressAction();
+            PassUntil(GamePhase.RoundOver);
+
+            Assert.AreEqual(ShowdownOutcome.PlayerWins, _game.LastRound.Showdown.Outcome);
+            Assert.AreEqual(Tone.Good, _view.DealerView.LastTone);
+        }
+
+        [Test]
+        public void DealerRemarks_OnceTheGatesAreInSight()
+        {
+            Setup(startingYears: 200);
+
+            Assert.IsTrue(_view.FinalStretch);
+            Assert.AreEqual(Tone.Warning, _view.DealerView.LastTone);
+            int lines = _view.DealerView.LinesSaid;
+
+            _view.PressAction();
+            _view.PressBet(BetAction.Raise);
+
+            Assert.AreEqual(lines, _view.DealerView.LinesSaid, "The remark is made only once.");
         }
 
         [Test]

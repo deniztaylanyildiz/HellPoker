@@ -8,5 +8,11 @@ namespace HellPoker.Core.Game
         bool IsAbsolution(HandCategory category);
 
         int GetMultiplier(HandCategory category);
+
+        /// <summary>Share of the stake added to the sentence on a loss, in percent.</summary>
+        int LossPercent { get; }
+
+        /// <summary>Share of the stake added to the sentence on a fold, in percent.</summary>
+        int FoldPercent { get; }
     }
 }

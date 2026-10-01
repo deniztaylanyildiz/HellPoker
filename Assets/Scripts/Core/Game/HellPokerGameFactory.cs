@@ -1,4 +1,6 @@
+using System;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Randomness;
@@ -23,6 +25,14 @@ namespace HellPoker.Core.Game
                 new CardExchanger(new MaxDiscardPolicy(rules.MaxDiscards)),
                 new HouseDrawStrategy(rules.MaxDiscards),
                 payouts ?? PayoutTable.CreateDefault());
+        }
+
+        /// <summary>A run at <paramref name="table"/>'s stakes, dealt by <paramref name="dealer"/> under their house rules.</summary>
+        public static HellPokerGame Create(GameRules table, Dealer dealer, int? seed = null)
+        {
+            if (dealer == null) throw new ArgumentNullException(nameof(dealer));
+
+            return Create(dealer.ApplyTo(table ?? GameRules.Default), dealer.Payouts, seed);
         }
     }
 }

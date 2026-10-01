@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Dealers;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
@@ -12,50 +13,68 @@ namespace HellPoker.Presentation
     /// <summary>
     /// Translates player intent into game commands and game state into view updates.
     /// Holds only UI state (selected discards, chosen ante); all rules live in the game.
+    /// Each run is a new game built for the chosen dealer. Before the first run there is no game and input is ignored.
     /// Depends on abstractions only, so it can be tested without Unity scenes.
     /// </summary>
     public sealed class TablePresenter : ITableCommands, IRunSession, IDisposable
     {
         private const float ShowdownPause = 0.6f;
 
-        private readonly IHellPokerGame _game;
+        private readonly Func<Dealer, IHellPokerGame> _createGame;
         private readonly ITableView _view;
-        private readonly int[] _stakeOptions;
+        private readonly int[] _configuredStakes;
         private readonly HashSet<int> _discards = new HashSet<int>();
 
+        private IHellPokerGame _game;
+        private DealerText _dealerText;
+        private int[] _stakeOptions;
         private int _stake;
+        private bool _finalStretchAnnounced;
 
-        public TablePresenter(IHellPokerGame game, ITableView view, IReadOnlyList<int> stakeOptions)
+        /// <param name="createGame">Builds a fresh game for a run at this dealer's table.</param>
+        public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IReadOnlyList<int> stakeOptions)
         {
-            _game = game ?? throw new ArgumentNullException(nameof(game));
+            _createGame = createGame ?? throw new ArgumentNullException(nameof(createGame));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             if (stakeOptions == null) throw new ArgumentNullException(nameof(stakeOptions));
-
-            _stakeOptions = stakeOptions.Where(s => s >= game.Rules.MinStake && s <= game.Rules.MaxStake).Distinct().OrderBy(s => s).ToArray();
-            if (_stakeOptions.Length == 0)
-                throw new ArgumentException("None of the stake options are allowed by the game rules.", nameof(stakeOptions));
-            _stake = _stakeOptions[_stakeOptions.Length / 2];
+            _configuredStakes = stakeOptions.Distinct().OrderBy(s => s).ToArray();
 
             _view.ActionPressed += PerformAction;
             _view.BetPressed += Bet;
             _view.Player.CardClicked += ToggleDiscard;
             _view.Stakes.StakeChosen += ChooseStake;
-
-            _view.Sentence.SetDamnationLimit(game.Rules.DamnationYears);
-            _view.Sentence.SetYears(game.Years, animate: false);
-            Refresh();
         }
 
         public int SelectedStake => _stake;
 
         public IReadOnlyCollection<int> SelectedDiscards => _discards;
 
-        public bool CanContinue => _game.RoundNumber > 0 && !_game.IsGameOver;
+        /// <summary>The game of the current run; null before the first run.</summary>
+        public IHellPokerGame Game => _game;
 
-        public void StartNewRun()
+        public bool CanContinue => _game != null && _game.RoundNumber > 0 && !_game.IsGameOver;
+
+        public void StartNewRun(Dealer dealer)
         {
-            _game.Restart();
+            if (dealer == null) throw new ArgumentNullException(nameof(dealer));
+
+            IHellPokerGame game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
+            int[] stakes = _configuredStakes.Where(s => s >= game.Rules.MinStake && s <= game.Rules.MaxStake).ToArray();
+            if (stakes.Length == 0)
+                throw new InvalidOperationException("None of the stake options are allowed by the game rules.");
+
+            _game = game;
+            _stakeOptions = stakes;
+            _stake = stakes[stakes.Length / 2];
             _discards.Clear();
+            _finalStretchAnnounced = false;
+            _dealerText = UiText.Dealer(dealer.Id);
+
+            _view.Dealer.SetDealer(DealerCards.Describe(dealer));
+            _view.Payouts.SetTable(dealer.Payouts);
+            _view.Sentence.SetDamnationLimit(game.Rules.DamnationYears);
+            _view.Sentence.SetYears(game.Years, animate: false);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), Tone.Neutral);
             Refresh();
         }
 
@@ -69,7 +88,7 @@ namespace HellPoker.Presentation
 
         public void PerformAction()
         {
-            if (_view.IsBusy) return;
+            if (_game == null || _view.IsBusy) return;
 
             switch (_game.Phase)
             {
@@ -90,7 +109,9 @@ namespace HellPoker.Presentation
                     break;
                 default:
                     _game.Restart();
+                    _finalStretchAnnounced = false;
                     _view.Sentence.SetYears(_game.Years, animate: true);
+                    _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), Tone.Neutral);
                     break;
             }
 
@@ -99,7 +120,7 @@ namespace HellPoker.Presentation
 
         public void Bet(BetAction action)
         {
-            if (_view.IsBusy) return;
+            if (_game == null || _view.IsBusy) return;
 
             if (!_game.CanBet(action, out string reason))
             {
@@ -114,7 +135,7 @@ namespace HellPoker.Presentation
 
         public void ToggleDiscard(int index)
         {
-            if (_view.IsBusy || _game.Phase != GamePhase.Drawing) return;
+            if (_game == null || _view.IsBusy || _game.Phase != GamePhase.Drawing) return;
 
             if (!_discards.Remove(index))
             {
@@ -132,6 +153,8 @@ namespace HellPoker.Presentation
 
         public void StepStake(int direction)
         {
+            if (_game == null) return;
+
             int[] available = AvailableStakes();
             if (available.Length == 0) return;
 
@@ -141,7 +164,7 @@ namespace HellPoker.Presentation
 
         private void ChooseStake(int stake)
         {
-            if (_view.IsBusy || _game.Phase != GamePhase.Betting || !AvailableStakes().Contains(stake)) return;
+            if (_game == null || _view.IsBusy || _game.Phase != GamePhase.Betting || !AvailableStakes().Contains(stake)) return;
 
             _stake = stake;
             Refresh();
@@ -175,6 +198,13 @@ namespace HellPoker.Presentation
             }
 
             _view.SetFinalStretch(_game.IsRaiseForced, string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
+
+            // The dealer remarks once when the player first reaches the gates (unless the run just ended).
+            if (_game.IsRaiseForced && !_finalStretchAnnounced && !_game.IsGameOver)
+            {
+                _finalStretchAnnounced = true;
+                _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), Tone.Warning);
+            }
         }
 
         private void ShowBetting()
@@ -279,17 +309,34 @@ namespace HellPoker.Presentation
                 case GamePhase.Absolved:
                     bool deadMansHand = showdown != null && showdown.Player.Category == HandCategory.DeadMansHand;
                     _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : UiText.ServedMessage, Tone.Triumph);
+                    _view.Dealer.Say(_dealerText.Absolved, Tone.Bad);
                     _view.SetAction(UiText.Again);
                     break;
                 case GamePhase.Damned:
                     _view.SetMessage(string.Format(UiText.DamnedFormat, _game.Years), Tone.Doom);
+                    _view.Dealer.Say(_dealerText.Damned, Tone.Doom);
                     _view.SetAction(UiText.Again);
                     break;
                 default:
                     _view.SetMessage(ResultMessage(round), playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
+                    SayRoundLine(round);
                     _view.SetAction(UiText.Next);
                     break;
             }
+        }
+
+        /// <summary>The dealer reacts to how the hand ended — annoyed by your wins, gloating over your losses.</summary>
+        private void SayRoundLine(RoundResult round)
+        {
+            int counter = _game.RoundNumber;
+            if (round.Folded)
+                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerFolds, counter), Tone.Bad);
+            else if (round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
+                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerWins, counter), Tone.Good);
+            else if (round.Showdown.Outcome == ShowdownOutcome.HouseWins)
+                _view.Dealer.Say(UiText.Pick(_dealerText.HouseWins, counter), Tone.Bad);
+            else
+                _view.Dealer.Say(UiText.Pick(_dealerText.Push, counter), Tone.Neutral);
         }
 
         private static string ResultMessage(RoundResult round)

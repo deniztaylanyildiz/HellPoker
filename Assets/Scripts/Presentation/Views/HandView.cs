@@ -50,8 +50,8 @@ namespace HellPoker.Presentation.Views
             }
 
             // Caption lives outside the layout row so the group does not try to arrange it.
-            float captionY = captionAbove ? cardSize.y / 2f + 42f : -cardSize.y / 2f - 42f;
-            _caption = UiFactory.CreateText("Caption", root.parent, "", 30, Palette.MutedText, style: FontStyle.Bold);
+            float captionY = captionAbove ? cardSize.y / 2f + 34f : -cardSize.y / 2f - 34f;
+            _caption = UiFactory.CreateText("Caption", root.parent, "", 28, Palette.MutedText, style: FontStyle.Bold).WithShadow();
             _caption.rectTransform.Place(new Vector2(0.5f, 0.5f), root.anchoredPosition + new Vector2(0f, captionY), new Vector2(root.sizeDelta.x + 200f, 44f));
         }
 

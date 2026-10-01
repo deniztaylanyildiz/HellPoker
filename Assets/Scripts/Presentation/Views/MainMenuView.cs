@@ -19,7 +19,7 @@ namespace HellPoker.Presentation.Views
         private GameObject _continueButton;
         private GameObject _rulesPanel;
         private Image _glow;
-        private Text _title;
+        private RectTransform _logo;
 
         public event Action NewGamePressed;
         public event Action ContinuePressed;
@@ -29,45 +29,45 @@ namespace HellPoker.Presentation.Views
 
         public static MainMenuView Create(Transform parent, string tagline, string rules)
         {
-            var go = new GameObject("MainMenuCanvas", typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-            go.AddComponent<GraphicRaycaster>();
-
-            var view = go.AddComponent<MainMenuView>();
+            Canvas canvas = UiFactory.CreateCanvas("MainMenuCanvas", parent, SortingOrder);
+            var view = canvas.gameObject.AddComponent<MainMenuView>();
             view._canvas = canvas;
-            view.Build(go.transform, tagline, rules);
+            view.Build(canvas.transform, tagline, rules);
             return view;
         }
 
         private void Build(Transform root, string tagline, string rules)
         {
             // Opaque background also blocks clicks from reaching the table underneath.
-            UiFactory.CreateImage("Background", root, Palette.Background).rectTransform.Stretch();
+            Image background = UiFactory.CreateSprite("Background", root, UiArt.Background, Palette.Background);
+            background.rectTransform.Stretch();
+            background.raycastTarget = true;
+
             _glow = UiFactory.CreateImage("Glow", root, Color.clear);
             _glow.rectTransform.Stretch();
             _glow.sprite = UiFactory.CreateVignetteSprite();
             _glow.raycastTarget = false;
 
-            _title = UiFactory.CreateText("Title", root, UiText.Title, 150, Palette.Ember, style: FontStyle.Bold);
-            _title.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 300f), new Vector2(1600f, 180f));
-            _title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            Image logo = UiFactory.CreateSprite("Title", root, UiArt.Title);
+            logo.preserveAspect = true;
+            _logo = logo.rectTransform;
+            _logo.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 300f), new Vector2(1300f, 330f));
+            if (logo.sprite == null)
+            {
+                logo.enabled = false;
+                UiFactory.CreateText("TitleText", logo.transform, UiText.Title, 150, Palette.Ember, style: FontStyle.Bold).rectTransform.Stretch();
+            }
 
-            UiFactory.CreateText("Tagline", root, tagline, 32, Palette.Bone)
-                .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 165f), new Vector2(1400f, 90f));
-            UiFactory.CreateText("Subtagline", root, UiText.MenuSubtagline, 24, Palette.MutedText)
-                .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 95f), new Vector2(1400f, 36f));
+            UiFactory.CreateText("Tagline", root, tagline, 34, Palette.Bone, style: FontStyle.Italic).WithShadow(2f)
+                .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 140f), new Vector2(1400f, 96f));
+            UiFactory.CreateSprite("Divider", root, UiArt.Divider)
+                .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 82f), new Vector2(520f, 40f));
+            UiFactory.CreateText("Subtagline", root, UiText.MenuSubtagline, 24, Palette.MutedText).WithShadow()
+                .rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, 46f), new Vector2(1400f, 36f));
 
-            RectTransform buttons = UiFactory.CreateRect("Buttons", root).Place(new Vector2(0.5f, 0.5f), new Vector2(0f, -140f), new Vector2(440f, 400f));
+            RectTransform buttons = UiFactory.CreateRect("Buttons", root).Place(new Vector2(0.5f, 0.5f), new Vector2(0f, -200f), new Vector2(420f, 380f));
             var layout = buttons.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 18f;
+            layout.spacing = 16f;
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.childControlWidth = true;
             layout.childControlHeight = true;
@@ -75,13 +75,13 @@ namespace HellPoker.Presentation.Views
             layout.childForceExpandHeight = false;
             _buttons = buttons.gameObject;
 
-            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, Palette.Ember, () => ContinuePressed?.Invoke());
-            CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, Palette.Button, () => NewGamePressed?.Invoke());
-            CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, Palette.Fold, () => ShowRules(true));
-            CreateMenuButton(buttons, "QuitButton", UiText.Quit, Palette.Fold, () => QuitPressed?.Invoke());
+            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, ButtonSkin.Ember, () => ContinuePressed?.Invoke());
+            CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, ButtonSkin.Blood, () => NewGamePressed?.Invoke());
+            CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, ButtonSkin.Ash, () => ShowRules(true));
+            CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
 
-            UiFactory.CreateText("Footer", root, UiText.MenuFooter, 18, Palette.MutedText)
-                .rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(600f, 30f));
+            UiFactory.CreateText("Footer", root, UiText.MenuFooter, 18, Palette.MutedText, style: FontStyle.Italic)
+                .rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(600f, 30f));
 
             _rulesPanel = BuildRulesPanel(root, rules);
             ShowRules(false);
@@ -89,29 +89,31 @@ namespace HellPoker.Presentation.Views
 
         private GameObject BuildRulesPanel(Transform root, string rules)
         {
-            Image panel = UiFactory.CreateImage("RulesPanel", root, Palette.Felt);
-            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, -100f), new Vector2(1240f, 640f));
-            UiFactory.AddBorder(panel.gameObject, Palette.Ember, 2f);
+            Image panel = UiFactory.CreatePanel("RulesPanel", root);
+            panel.raycastTarget = true;
+            panel.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0f, -160f), new Vector2(1300f, 650f));
+            UiFactory.CreateFrame("Frame", panel.transform, 0.8f).rectTransform.Stretch(-8f);
 
-            UiFactory.CreateText("Title", panel.transform, UiText.RulesTitle, 32, Palette.Ember, style: FontStyle.Bold)
-                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -45f), new Vector2(1200f, 50f));
+            UiFactory.CreateText("Title", panel.transform, UiText.RulesTitle, 34, Palette.Gold, style: FontStyle.Bold).WithShadow()
+                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(1200f, 50f));
+            UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider)
+                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(420f, 30f));
 
-            Text body = UiFactory.CreateText("Body", panel.transform, rules, 23, Palette.Bone, TextAnchor.UpperLeft);
-            body.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -315f), new Vector2(1140f, 440f));
-            body.lineSpacing = 1.1f;
+            Text body = UiFactory.CreateText("Body", panel.transform, rules, 25, Palette.Bone, TextAnchor.UpperLeft);
+            body.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -320f), new Vector2(1180f, 440f));
+            body.lineSpacing = 1.05f;
 
-            Button back = UiFactory.CreateButton("BackButton", panel.transform, UiText.Back, 28, out _);
-            ((RectTransform)back.transform).Place(new Vector2(0.5f, 0f), new Vector2(0f, 55f), new Vector2(260f, 70f));
+            Button back = UiFactory.CreateButton("BackButton", panel.transform, UiText.Back, 28, out _, ButtonSkin.Blood);
+            ((RectTransform)back.transform).Place(new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(260f, 72f));
             back.onClick.AddListener(() => ShowRules(false));
             return panel.gameObject;
         }
 
-        private static GameObject CreateMenuButton(Transform parent, string name, string label, Color color, Action onClick)
+        private static GameObject CreateMenuButton(Transform parent, string name, string label, ButtonSkin skin, Action onClick)
         {
-            Button button = UiFactory.CreateButton(name, parent, label, 34, out _);
-            ((Image)button.targetGraphic).color = color;
+            Button button = UiFactory.CreateButton(name, parent, label, 34, out _, skin);
             var size = button.gameObject.AddComponent<LayoutElement>();
-            size.preferredHeight = 80f;
+            size.preferredHeight = 78f;
             button.onClick.AddListener(() => onClick());
             return button.gameObject;
         }
@@ -140,10 +142,11 @@ namespace HellPoker.Presentation.Views
         {
             if (!_canvas.enabled) return;
 
-            // A slow, breathing ember glow around the edges.
+            // A slow, breathing ember glow around the edges; the title smoulders with it.
+            // The project blends in linear space, so small alphas already read strongly on screen.
             float breath = 0.5f + 0.5f * Mathf.Sin(Time.time * 1.3f);
-            _glow.color = new Color(1f, 0.25f + 0.1f * breath, 0.04f, 0.18f + 0.14f * breath);
-            _title.color = Color.Lerp(Palette.Ember, Palette.Gold, breath * 0.35f);
+            _glow.color = new Color(1f, 0.25f + 0.1f * breath, 0.04f, 0.015f + 0.02f * breath);
+            _logo.localScale = Vector3.one * (1f + 0.012f * breath);
         }
     }
 }

@@ -3,7 +3,7 @@ using HellPoker.Core.Evaluation;
 namespace HellPoker.Presentation.Ui
 {
     /// <summary>All player-facing strings in one place, ready for localisation.</summary>
-    internal static class UiText
+    internal static partial class UiText
     {
         public const string Title = "HELL POKER";
         public const string Subtitle = "Five Card Draw against the House";
@@ -11,7 +11,7 @@ namespace HellPoker.Presentation.Ui
         public const string DamnationFormat = "Eternal damnation at {0} years";
         public const string StakeLabel = "ANTE";
         public const string PayoutsTitle = "THE DEVIL'S PAYOUTS";
-        public const string PayoutLoss = "Lose: + stake  ·  Fold: + half the stake";
+        public const string PayoutLossFormat = "Lose: + {0}\nFold: + {1}";
         public const string Absolution = "ABSOLUTION";
         public const string HouseCaption = "THE HOUSE";
         public const string PlayerCaption = "YOUR HAND";
@@ -32,17 +32,17 @@ namespace HellPoker.Presentation.Ui
         public const string MenuFooter = "Esc — menu";
         public const string RulesTitle = "THE RULES OF THE HOUSE";
 
-        /// <summary>{0} starting years, {1} damnation limit, {2} max discards, {3} forced-raise threshold.</summary>
+        /// <summary>{0} starting years, {1} damnation limit, {2} forced-raise threshold.</summary>
         public const string RulesFormat =
-            "You start with {0} years. Bring them down to 0 and you walk free; reach {1} and you are damned for eternity.\n\n" +
+            "You start with {0} years. Bring them down to 0 and you walk free; reach {1} and you are damned for eternity.\n" +
+            "First choose your dealer — every demon keeps their own house rules and payouts.\n\n" +
             "1.  Choose an ante — the years you put on the table. They come straight off your sentence counter.\n" +
             "2.  Your five cards turn one by one. After each: RAISE (add the ante again), PASS, or FOLD.\n" +
-            "3.  Throw back up to {2} cards and draw new ones. The House draws too.\n" +
+            "3.  Throw back some cards and draw new ones (the dealer says how many). The House draws too.\n" +
             "4.  The House turns its cards one by one — raise, pass or fold again — then the showdown.\n\n" +
             "Win: years forgiven = everything on the table × your hand's multiplier.\n" +
-            "Lose: everything on the table is added to your sentence.   Fold: half of it is added.\n" +
-            "You can never wager more years than you have.\n\n" +
-            "Under {3} years the gates are in sight: passing is forbidden until you are all in.\n" +
+            "Lose or fold: years are added, as the dealer's ledger says. You can never wager more years than you have.\n\n" +
+            "Under {2} years the gates are in sight: passing is forbidden until you are all in.\n" +
             "A♠ A♣ 8♠ 8♣ — the Dead Man's Hand — beats everything and wipes your sentence clean.";
 
         public const string Deal = "DEAL";

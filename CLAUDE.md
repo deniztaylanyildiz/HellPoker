@@ -29,7 +29,12 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Son 250 yıl** (ceza ≤ 250): all-in olana kadar Pas yasak, her kararda artırmak (ya da çekilmek) zorunlu.
   Ekran "cehennem ateşi" moduna geçer.
 - Oyun **ana menüde** açılır (New Game / Continue / How to Play / Quit). Masada MENU butonu ya da Esc menüye döner.
-- Kazanırsan: `toplam bahis × çarpan` yıl silinir. Kaybedersen: toplam bahis kadar yıl eklenir. Beraberlik: değişiklik yok.
+- **New Game → kurpiyer şeytan seçimi** (Mammon / Belial / Lilith). Her şeytanın kendi ev kuralları var (`DealerRoster`):
+  - **Mammon** (Tefeci): klasik kurallar — 3 kart değiştir, kasanın 3 kartında karar, standart ödeme.
+  - **Belial** (Gümüş Dil): yüksek çarpanlar, kayıp bahsin **1.5 katı**, kasanın sadece **1** kartında karar.
+  - **Lilith** (Gecenin Kraliçesi): **4** kart değiştir, ama çekilmek bahsin **tamamına** mal olur.
+  - Şeytan masada portresiyle oturur ve el sonuçlarına göre replik söyler (`UiText.Dealers.cs`).
+- Kazanırsan: `toplam bahis × çarpan` yıl silinir. Kaybedersen: toplam bahis kadar yıl eklenir (şeytana göre `LossPercent`). Beraberlik: değişiklik yok.
 - **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) en güçlü eldir (Royal Flush'tan da güçlü) ve kazanırsa **tüm cezayı siler**.
 - Çarpanlar: High Card/Pair ×1, Two Pair ×2, Trips ×3, Straight ×4, Flush ×5, Full House ×8, Quads ×25, Straight Flush ×50, Royal ×100.
 
@@ -43,19 +48,36 @@ Assets/Scripts/
     Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule)
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory
+    Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseRevealDecisions, PayoutTable), DealerRoster
   Presentation/  HellPoker.Presentation.asmdef — Unity katmanı (MVP)
-    Abstractions/  ITableView, IHandView, ... , ITableCommands, Tone
-    Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok)
-    Ui/            UiFactory, Palette, UiText (tüm oyuncu metinleri burada)
-    TablePresenter (masa; ayrıca IRunSession), MainMenuPresenter (menü ↔ masa geçişi), KeyboardInput,
+    Abstractions/  ITableView, IHandView, IDealerView, IDealerSelectView, DealerCard, ... , ITableCommands, Tone
+    Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, CardView...
+    Ui/            UiFactory, UiArt (Resources'tan sprite/font yükler), Palette, UiText + UiText.Dealers (tüm oyuncu metinleri)
+    TablePresenter (masa; IRunSession; her koşuda seçilen şeytan için oyunu Func<Dealer, IHellPokerGame> ile kurar),
+    MainMenuPresenter (menü → şeytan seçimi → masa), DealerCards (şeytan kurallarından özellik metni üretir), KeyboardInput,
     HellPokerBootstrap (composition root)
   Editor/        HellPokerSceneBuilder (menü: Hell Poker ▸ Build Main Scene), HellPokerMenu (Hell Poker ▸ Play, Ctrl+Shift+P),
+                 HellPokerArtImporter (Resources/Art altındaki PNG'leri UI sprite + 9-slice kenarlarıyla içe aktarır),
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
 Assets/Tests/EditMode/  NUnit testleri (Core + Presenter, fake view'larla)
 Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla bir el oynayan uçtan uca test
+                        + HellPokerScreenshots ([Explicit]: tüm ekranların 1920×1080 görüntüsünü alır)
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
+Assets/Resources/Art/   Üretilmiş görseller: Demons/<dealerId>.png portreler, Ui/ (masa, arka plan, çerçeve, buton, fiş, kart, logo...)
+Assets/Resources/Fonts/ HellPokerDisplay (Cinzel), HellPokerSerif(+Italic) (IM Fell) — OFL, ♠♥♦♣↑↓ glifleri eklenmiş
+Tools/ArtGen/           Görselleri üreten Python (Pillow+numpy) ve font script'leri — görsel değişince buradan yeniden üret
 ```
+
+### Görsel kurallar
+
+- Stil: **gotik cehennem kumarhanesi** — koyu kadife, altın süsleme, Cinzel başlıklar, IM Fell metin.
+- `UiFactory.CreateText` stili fonta çevirir: `Bold` = Display (Cinzel), `Italic` = serif italik, diğerleri serif.
+- Görseller **Python ile üretilir** (`Tools/ArtGen`), elle düzenlenmez; değişiklik script'te yapılıp yeniden üretilir.
+  Gerçek çizim gelirse aynı isimle `Assets/Resources/Art/...` altına konması yeterli.
+- Yeni şeytan: `DealerRoster`'a `Dealer`, `UiText.Dealers.cs`'e metinler, `Tools/ArtGen/demons.py`'ye portre (dosya adı = id).
+- Proje **lineer renk uzayında**: UI'da düşük alfa bile ekranda güçlü görünür (ör. %13 turuncu ≈ ekranın yarısı turuncu).
+- Hileler/eventler (ileride): `Dealer` paketine yeni parçalar olarak eklenecek; presenter şeytanı yalnızca `Dealer` üzerinden tanır.
 
 ### Mimari kurallar
 
@@ -80,6 +102,13 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 # Testler (sonuç: results.xml). Sahne/UI değişikliğinde PlayMode'u da çalıştır.
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults results.xml -logFile unity.log
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testResults play.xml -logFile play.log
+
+# Ekran görüntüleri (Screenshots/ klasörüne ya da $env:HELLPOKER_SHOTS'a)
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testFilter HellPoker.PlayMode.Tests.HellPokerScreenshots -testResults shots.xml -logFile shots.log
+
+# Görselleri / fontları yeniden üret (py -m pip install --user pillow numpy fonttools)
+py Tools/ArtGen/generate_art.py [isim ...]     # ör. belial card_back
+py Tools/ArtGen/fonts.py
 
 # Ana sahneyi yeniden oluştur
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerSceneBuilder.Build -logFile build.log

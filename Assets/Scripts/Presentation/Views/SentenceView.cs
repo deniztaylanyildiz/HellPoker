@@ -47,16 +47,19 @@ namespace HellPoker.Presentation.Views
 
         private void Build(RectTransform root, Vector2 size)
         {
-            _years = UiFactory.CreateText("Years", root, "", 84, Palette.Gold, style: FontStyle.Bold);
-            _years.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(size.x, 96f));
+            Image panel = UiFactory.CreatePanel("Panel", root);
+            panel.rectTransform.Stretch(-14f);
 
-            UiFactory.CreateText("Label", root, UiText.YearsLabel, 22, Palette.MutedText, style: FontStyle.Bold)
-                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(size.x, 30f));
+            _years = UiFactory.CreateText("Years", root, "", 78, Palette.Gold, style: FontStyle.Bold).WithShadow(3f);
+            _years.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -48f), new Vector2(size.x, 96f));
 
-            _barWidth = size.x;
-            Image bar = UiFactory.CreateImage("Bar", root, Palette.Slot);
-            bar.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -138f), new Vector2(_barWidth, 12f));
-            UiFactory.AddBorder(bar.gameObject, Palette.CardBack, 1f);
+            UiFactory.CreateText("Label", root, UiText.YearsLabel, 21, Palette.PaleGold, style: FontStyle.Bold)
+                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -106f), new Vector2(size.x, 30f));
+
+            _barWidth = size.x - 40f;
+            Image bar = UiFactory.CreateImage("Bar", root, new Color(0.04f, 0.005f, 0.005f));
+            bar.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -134f), new Vector2(_barWidth, 12f));
+            UiFactory.AddBorder(bar.gameObject, new Color(Palette.Gold.r, Palette.Gold.g, Palette.Gold.b, 0.6f), 1.5f);
 
             Image fill = UiFactory.CreateImage("Fill", bar.transform, Palette.Ember);
             _barFill = fill.rectTransform;
@@ -65,8 +68,8 @@ namespace HellPoker.Presentation.Views
             _barFill.pivot = new Vector2(0f, 0.5f);
             _barFill.anchoredPosition = Vector2.zero;
 
-            _damnation = UiFactory.CreateText("Damnation", root, "", 18, Palette.MutedText);
-            _damnation.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -162f), new Vector2(size.x, 24f));
+            _damnation = UiFactory.CreateText("Damnation", root, "", 19, Palette.MutedText, style: FontStyle.Italic);
+            _damnation.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -158f), new Vector2(size.x, 24f));
         }
 
         public void SetDamnationLimit(int years)

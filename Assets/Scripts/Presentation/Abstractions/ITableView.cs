@@ -14,6 +14,7 @@ namespace HellPoker.Presentation.Abstractions
         ISentenceView Sentence { get; }
         IStakeSelectorView Stakes { get; }
         IPayoutView Payouts { get; }
+        IDealerView Dealer { get; }
 
         /// <summary>True while animations are still playing; input should wait.</summary>
         bool IsBusy { get; }

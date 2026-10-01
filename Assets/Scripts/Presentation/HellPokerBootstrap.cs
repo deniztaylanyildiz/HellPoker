@@ -1,5 +1,4 @@
-using HellPoker.Core.Cards;
-using HellPoker.Core.Draw;
+using HellPoker.Core.Dealers;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
@@ -26,10 +25,7 @@ namespace HellPoker.Presentation
         [Tooltip("Ante choices. Every raise adds the ante again.")]
         [SerializeField] private int[] _stakeOptions = { 10, 25, 50, 100, 200 };
 
-        [Header("Cards")]
-        [SerializeField, Range(0, Hand.Size)] private int _maxDiscards = MaxDiscardPolicy.ClassicLimit;
-        [Tooltip("How many house cards are followed by a bet decision; the rest flip straight into the showdown.")]
-        [SerializeField, Range(0, Hand.Size - 1)] private int _houseRevealDecisions = 3;
+        // Discards, house reveals and payouts are each dealer's house rules: see DealerRoster.
 
         [Header("Randomness")]
         [Tooltip("Use a fixed seed for reproducible shuffles while debugging.")]
@@ -43,18 +39,18 @@ namespace HellPoker.Presentation
         {
             EnsureEventSystem();
 
-            var rules = new GameRules(_startingYears, _damnationYears, Mathf.Min(_stakeOptions), Mathf.Max(_stakeOptions), _maxDiscards,
-                _forcedRaiseYears, _houseRevealDecisions);
-            PayoutTable payouts = PayoutTable.CreateDefault();
-            HellPokerGame game = HellPokerGameFactory.Create(rules, payouts, _useFixedSeed ? _seed : (int?)null);
+            var table = new GameRules(_startingYears, _damnationYears, Mathf.Min(_stakeOptions), Mathf.Max(_stakeOptions),
+                forcedRaiseYears: _forcedRaiseYears);
+            int? seed = _useFixedSeed ? _seed : (int?)null;
 
-            TableView table = TableView.Create(transform, payouts, _stakeOptions);
-            _tablePresenter = new TablePresenter(game, table, _stakeOptions);
+            TableView tableView = TableView.Create(transform, _stakeOptions);
+            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, _stakeOptions);
 
             MainMenuView menu = MainMenuView.Create(transform,
-                string.Format(UiText.MenuTaglineFormat, rules.StartingYears),
-                string.Format(UiText.RulesFormat, rules.StartingYears, rules.DamnationYears, rules.MaxDiscards, rules.ForcedRaiseYears));
-            _menuPresenter = new MainMenuPresenter(menu, table, _tablePresenter, new UnityApplicationQuitter());
+                string.Format(UiText.MenuTaglineFormat, table.StartingYears),
+                string.Format(UiText.RulesFormat, table.StartingYears, table.DamnationYears, table.ForcedRaiseYears));
+            DealerSelectView dealerSelect = DealerSelectView.Create(transform);
+            _menuPresenter = new MainMenuPresenter(menu, dealerSelect, tableView, _tablePresenter, new UnityApplicationQuitter(), DealerRoster.All);
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter);
         }

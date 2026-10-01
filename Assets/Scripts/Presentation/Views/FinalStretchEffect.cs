@@ -28,7 +28,7 @@ namespace HellPoker.Presentation.Views
             vignette.raycastTarget = false;
             vignette.transform.SetSiblingIndex(background.transform.GetSiblingIndex() + 1);
 
-            Text banner = UiFactory.CreateText("FinalStretchBanner", parent, "", 26, Palette.Ember, style: FontStyle.Bold);
+            Text banner = UiFactory.CreateText("FinalStretchBanner", parent, "", 24, Palette.Ember, style: FontStyle.Bold).WithShadow(2f);
             banner.rectTransform.Place(new Vector2(0.5f, 1f), bannerPosition, new Vector2(1000f, 36f));
             banner.horizontalOverflow = HorizontalWrapMode.Overflow;
 
@@ -57,8 +57,9 @@ namespace HellPoker.Presentation.Views
         {
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 2.6f);
 
-            _background.color = Color.Lerp(Palette.Background, Palette.HellBackground, blend);
-            _felt.color = Color.Lerp(Palette.Felt, Palette.HellFelt, blend);
+            // The backdrop and table are art, so the heat is a tint over them rather than a new colour.
+            _background.color = Color.Lerp(Color.white, Palette.HellTint, blend * (0.8f + 0.2f * pulse));
+            _felt.color = Color.Lerp(Color.white, Palette.HellFeltTint, blend);
             _vignette.color = new Color(1f, 0.22f + 0.14f * pulse, 0.03f, blend * (0.25f + 0.25f * pulse));
 
             _banner.gameObject.SetActive(blend > 0.01f);

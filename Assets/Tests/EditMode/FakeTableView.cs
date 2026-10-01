@@ -15,12 +15,14 @@ namespace HellPoker.Core.Tests
         public FakeSentenceView SentenceView { get; } = new FakeSentenceView();
         public FakeStakeSelectorView StakesView { get; } = new FakeStakeSelectorView();
         public FakePayoutView PayoutsView { get; } = new FakePayoutView();
+        public FakeDealerView DealerView { get; } = new FakeDealerView();
 
         public IHandView House => HouseView;
         public IHandView Player => PlayerView;
         public ISentenceView Sentence => SentenceView;
         public IStakeSelectorView Stakes => StakesView;
         public IPayoutView Payouts => PayoutsView;
+        public IDealerView Dealer => DealerView;
 
         public bool IsBusy { get; set; }
         public string Message { get; private set; }
@@ -118,7 +120,26 @@ namespace HellPoker.Core.Tests
     internal sealed class FakePayoutView : IPayoutView
     {
         public HandCategory? Highlighted { get; private set; }
+        public IPayoutInfo Table { get; private set; }
 
+        public void SetTable(IPayoutInfo payouts) => Table = payouts;
         public void Highlight(HandCategory? category) => Highlighted = category;
+    }
+
+    internal sealed class FakeDealerView : IDealerView
+    {
+        public DealerCard Dealer { get; private set; }
+        public string LastLine { get; private set; }
+        public Tone LastTone { get; private set; }
+        public int LinesSaid { get; private set; }
+
+        public void SetDealer(DealerCard dealer) => Dealer = dealer;
+
+        public void Say(string line, Tone tone)
+        {
+            LastLine = line;
+            LastTone = tone;
+            LinesSaid++;
+        }
     }
 }

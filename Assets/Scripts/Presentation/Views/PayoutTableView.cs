@@ -9,56 +9,71 @@ using UnityEngine.UI;
 
 namespace HellPoker.Presentation.Views
 {
-    /// <summary>Lists what each winning hand forgives and highlights the last winner.</summary>
+    /// <summary>Lists what each winning hand forgives under the current dealer, and highlights the last winner.</summary>
     public sealed class PayoutTableView : MonoBehaviour, IPayoutView
     {
+        private const float RowHeight = 36f;
+
         private readonly Dictionary<HandCategory, (Image row, Text name, Text value)> _rows =
             new Dictionary<HandCategory, (Image, Text, Text)>();
 
-        public static PayoutTableView Create(Transform parent, Vector2 anchor, Vector2 position, Vector2 pivot, IPayoutInfo payouts,
-            AnimationSequencer sequencer)
+        private AnimationSequencer _sequencer;
+        private Text _loss;
+
+        public static PayoutTableView Create(Transform parent, Vector2 anchor, Vector2 position, Vector2 pivot, AnimationSequencer sequencer)
         {
             HandCategory[] categories = System.Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
-            const float rowHeight = 40f;
-            var size = new Vector2(380f, 90f + rowHeight * categories.Length + 50f);
+            var size = new Vector2(400f, 96f + RowHeight * categories.Length + 74f);
 
-            Image panel = UiFactory.CreateImage("Payouts", parent, Palette.Felt);
+            Image panel = UiFactory.CreatePanel("Payouts", parent);
             panel.rectTransform.Place(anchor, position, size, pivot);
-            UiFactory.AddBorder(panel.gameObject, Palette.CardBack, 2f);
 
             var view = panel.gameObject.AddComponent<PayoutTableView>();
             view._sequencer = sequencer;
 
-            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 24, Palette.Ember, style: FontStyle.Bold)
-                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(size.x, 40f));
+            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 24, Palette.Gold, style: FontStyle.Bold).WithShadow()
+                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(size.x, 36f));
+            UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider)
+                .rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, -64f), new Vector2(300f, 24f));
 
             for (int i = 0; i < categories.Length; i++)
             {
                 HandCategory category = categories[i];
-                float y = -85f - i * rowHeight;
+                float y = -96f - i * RowHeight;
 
                 Image row = UiFactory.CreateImage(category.ToString(), panel.transform, Color.clear);
-                row.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(size.x - 24f, rowHeight - 4f));
+                row.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(size.x - 36f, RowHeight - 4f));
 
-                bool absolution = payouts.IsAbsolution(category);
-                Color color = absolution ? Palette.Gold : Palette.Bone;
-                Text name = UiFactory.CreateText("Name", row.transform, UiText.CategoryName(category), 22, color, TextAnchor.MiddleLeft,
-                    absolution ? FontStyle.Bold : FontStyle.Normal);
+                Text name = UiFactory.CreateText("Name", row.transform, UiText.CategoryName(category), 23, Palette.Bone, TextAnchor.MiddleLeft);
                 name.rectTransform.Stretch(10f);
-                string valueText = absolution ? UiText.Absolution : "×" + payouts.GetMultiplier(category);
-                Text value = UiFactory.CreateText("Value", row.transform, valueText, 22, color, TextAnchor.MiddleRight, FontStyle.Bold);
+                Text value = UiFactory.CreateText("Value", row.transform, "", 21, Palette.Bone, TextAnchor.MiddleRight, FontStyle.Bold);
                 value.rectTransform.Stretch(10f);
 
                 view._rows[category] = (row, name, value);
             }
 
-            UiFactory.CreateText("Loss", panel.transform, UiText.PayoutLoss, 18, Palette.MutedText)
-                .rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(size.x, 30f));
+            view._loss = UiFactory.CreateText("Loss", panel.transform, "", 19, Palette.MutedText, style: FontStyle.Italic);
+            view._loss.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(size.x - 30f, 56f));
 
             return view;
         }
 
-        private AnimationSequencer _sequencer;
+        public void SetTable(IPayoutInfo payouts)
+        {
+            _sequencer.Do(() =>
+            {
+                foreach (var pair in _rows)
+                {
+                    bool absolution = payouts.IsAbsolution(pair.Key);
+                    Color color = absolution ? Palette.Gold : Palette.Bone;
+                    pair.Value.name.color = color;
+                    pair.Value.value.color = color;
+                    pair.Value.value.text = absolution ? UiText.Absolution : "×" + payouts.GetMultiplier(pair.Key);
+                }
+
+                _loss.text = string.Format(UiText.PayoutLossFormat, UiText.StakeShare(payouts.LossPercent), UiText.StakeShare(payouts.FoldPercent));
+            });
+        }
 
         public void Highlight(HandCategory? category)
         {
