@@ -16,10 +16,16 @@ namespace HellPoker.Presentation
     {
         [Header("Sentence")]
         [SerializeField] private int _startingYears = 1000;
-        [SerializeField] private int _damnationYears = 2000;
 
         [Tooltip("At or below this many years left, passing is forbidden and every decision must raise or fold.")]
         [SerializeField] private int _forcedRaiseYears = 250;
+
+        [Header("Soul")]
+        [Tooltip("What the soul is worth in years once the sentence passes the dealer's soul line. Never shown to the player.")]
+        [SerializeField, Min(10)] private int _soulWorthYears = 1000;
+        [Tooltip("Losses while the soul is on the table cost this percent (on top of the dealer's own loss percent).")]
+        [SerializeField, Min(100)] private int _soulLossPercent = 150;
+        // Each dealer's soul line is a house rule: see DealerRoster.
 
         [Header("Stakes")]
         [Tooltip("The betting unit (and ante) is the sentence divided by this, rounded down to a readable step.")]
@@ -50,18 +56,20 @@ namespace HellPoker.Presentation
         {
             EnsureEventSystem();
 
-            var table = new GameRules(_startingYears, _damnationYears, forcedRaiseYears: _forcedRaiseYears,
+            // The soul line given here is only a placeholder: every dealer sets their own (Dealer.ApplyTo).
+            var table = new GameRules(_startingYears, forcedRaiseYears: _forcedRaiseYears,
                 stakes: new StakeScale(_stakeDivisor, _minimumUnit, _tableCapPercent), openingCardsShown: _openingCardsShown,
-                raiseUnitsBeforeDraw: _raiseUnitsBeforeDraw, raiseUnitsAfterDraw: _raiseUnitsAfterDraw, houseReRaiseUnits: _houseReRaiseUnits);
+                raiseUnitsBeforeDraw: _raiseUnitsBeforeDraw, raiseUnitsAfterDraw: _raiseUnitsAfterDraw, houseReRaiseUnits: _houseReRaiseUnits,
+                soulWorthYears: _soulWorthYears, soulLossPercent: _soulLossPercent);
             int? seed = _useFixedSeed ? _seed : (int?)null;
 
-            TableView tableView = TableView.Create(transform, UiArt.Dealers);
+            TableView tableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
             _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView);
 
             MainMenuView menu = MainMenuView.Create(transform,
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
-                string.Format(UiText.RulesFormat, table.StartingYears, table.DamnationYears, table.ForcedRaiseYears, table.Stakes.TableCapPercent));
-            DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers);
+                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent));
+            DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, tableView, _tablePresenter, new UnityApplicationQuitter(), DealerRoster.All);
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter);

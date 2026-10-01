@@ -3,16 +3,44 @@ using System.Collections.Generic;
 
 namespace HellPoker.Presentation.Abstractions
 {
-    /// <summary>The screen where the player picks which demon to play against.</summary>
+    /// <summary>A demon on the choice screen, with what sitting at their table would mean right now.</summary>
+    public sealed class DealerChoice
+    {
+        public DealerCard Card { get; }
+
+        /// <summary>True when the player's current sentence is past this demon's soul line.</summary>
+        public bool SoulAtStake { get; }
+
+        /// <summary>True for the demon the player already sits with.</summary>
+        public bool IsCurrent { get; }
+
+        public DealerChoice(DealerCard card, bool soulAtStake, bool isCurrent)
+        {
+            Card = card ?? throw new ArgumentNullException(nameof(card));
+            SoulAtStake = soulAtStake;
+            IsCurrent = isCurrent;
+        }
+    }
+
+    /// <summary>The screen where the player picks which demon to play against (to start a run, or to change tables).</summary>
     public interface IDealerSelectView
     {
         /// <summary>Index into the list given to <see cref="Show"/>.</summary>
         event Action<int> DealerChosen;
         event Action BackPressed;
 
+        /// <summary>The player accepted the warning shown by <see cref="AskToConfirm"/>.</summary>
+        event Action SeatConfirmed;
+
+        /// <summary>The player backed out of the warning.</summary>
+        event Action SeatCancelled;
+
         bool IsVisible { get; }
 
-        void Show(IReadOnlyList<DealerCard> dealers);
+        void Show(IReadOnlyList<DealerChoice> dealers);
+
+        /// <summary>Shows a warning with "sit anyway" and "back".</summary>
+        void AskToConfirm(string warning);
 
         void Hide();
     }

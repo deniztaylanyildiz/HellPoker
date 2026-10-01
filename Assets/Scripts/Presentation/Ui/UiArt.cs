@@ -23,6 +23,8 @@ namespace HellPoker.Presentation.Ui
         public const string Coin = "Ui/coin";
         public const string Flames = "Ui/flames";
         public const string Digits = "Ui/digits";
+        public const string SoulLamp = "Ui/soul_lamp";
+        public const int SoulLampWidth = 16;
 
         public const int FlameFrameWidth = 32;
         public const int DigitWidth = 12;
@@ -33,6 +35,9 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Animations of the demon dealers, loaded from Resources/Art.</summary>
         public static readonly DealerAnimationLibrary Dealers = new DealerAnimationLibrary(path => Resources.Load<Texture2D>("Art/" + path));
+
+        /// <summary>The demons' halls, loaded from Resources/Art.</summary>
+        public static readonly SalonLibrary Salons = new SalonLibrary(path => Resources.Load<Texture2D>("Art/" + path));
 
         public static Sprite Sprite(string name)
         {

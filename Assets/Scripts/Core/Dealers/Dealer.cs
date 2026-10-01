@@ -27,24 +27,33 @@ namespace HellPoker.Core.Dealers
         /// <summary>When and how often this demon re-raises (or bluffs) after your raise past the draw.</summary>
         public HouseBettingStyle Betting { get; }
 
-        public Dealer(string id, int maxDiscards, int houseCardsShown, PayoutTable payouts, HouseBettingStyle betting = null)
+        /// <summary>At this sentence the demon takes the player's soul onto the table; see <see cref="GameRules.SoulThreshold"/>.</summary>
+        public int SoulThreshold { get; }
+
+        public Dealer(string id, int maxDiscards, int houseCardsShown, PayoutTable payouts, HouseBettingStyle betting = null,
+            int soulThreshold = 2000)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A dealer needs an id.", nameof(id));
             if (maxDiscards < 0 || maxDiscards > Hand.Size) throw new ArgumentOutOfRangeException(nameof(maxDiscards));
             if (houseCardsShown < 0 || houseCardsShown >= Hand.Size) throw new ArgumentOutOfRangeException(nameof(houseCardsShown));
+            if (soulThreshold <= 0) throw new ArgumentOutOfRangeException(nameof(soulThreshold));
 
             Id = id;
             MaxDiscards = maxDiscards;
             HouseCardsShown = houseCardsShown;
             Payouts = payouts ?? throw new ArgumentNullException(nameof(payouts));
             Betting = betting ?? HouseBettingStyle.Silent;
+            SoulThreshold = soulThreshold;
         }
+
+        /// <summary>True when a player with this sentence would have their soul on this demon's table.</summary>
+        public bool TakesSoulAt(int years) => years >= SoulThreshold;
 
         /// <summary>The table's rules with this dealer's house rules laid over them.</summary>
         public GameRules ApplyTo(GameRules table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            return table.WithHouseRules(MaxDiscards, HouseCardsShown);
+            return table.WithHouseRules(MaxDiscards, HouseCardsShown, SoulThreshold);
         }
     }
 }

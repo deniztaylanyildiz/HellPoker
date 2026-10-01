@@ -16,6 +16,12 @@ namespace HellPoker.Presentation.Ui
         public string[] Push;
         public string[] FinalStretch;
         public string[] ReRaise;
+        public string[] SoulTaken;
+        public string[] SoulReleased;
+        public string[] SoulLocked;
+
+        /// <summary>The warning before sitting at this demon's table with the soul already past their line.</summary>
+        public string SoulWarning;
         public string Absolved;
         public string Damned;
     }
@@ -23,6 +29,7 @@ namespace HellPoker.Presentation.Ui
     internal static partial class UiText
     {
         public const string ChooseDealerTitle = "CHOOSE YOUR DEALER";
+        public const string SoulLineCardFormat = "SOUL AT {0}";
         public const string ChooseDealerSubtitle = "Three demons keep a table in Hell. Each plays by their own rules.";
         public const string Challenge = "SIT DOWN";
 
@@ -90,6 +97,10 @@ namespace HellPoker.Presentation.Ui
                 "A fine figure. Let us make it finer.",
                 "Collateral, please. A little more."
             },
+            SoulTaken = new[] { "The account is overdrawn. I'll take your soul as collateral." },
+            SoulReleased = new[] { "Paid back? Hmph. The collateral is returned. For now." },
+            SoulLocked = new[] { "Leave? With my collateral? Sit down and pay." },
+            SoulWarning = "Your soul will be on his table — and he never lets collateral walk.",
             Absolved = "Paid in full?! Impossible... Get out before I find an error in the books.",
             Damned = "Your account is closed. Forever. Next!"
         };
@@ -121,6 +132,10 @@ namespace HellPoker.Presentation.Ui
                 "Do I have it? Perhaps. Do you dare find out?",
                 "More. I love it when you squirm."
             },
+            SoulTaken = new[] { "At last, the real stakes. Your soul, darling, on my table." },
+            SoulReleased = new[] { "You slipped the hook. How... unexpectedly entertaining." },
+            SoulLocked = new[] { "Leaving mid-performance? Not with your soul in my hands." },
+            SoulWarning = "Your soul will be on his table — and he does not let an audience leave.",
             Absolved = "Well played. Do come back — I always win in the end.",
             Damned = "Welcome home. I saved you a seat. Forever."
         };
@@ -152,6 +167,10 @@ namespace HellPoker.Presentation.Ui
                 "You reach for me? I reach back.",
                 "Mm. Pay a little more to stay in my dark."
             },
+            SoulTaken = new[] { "There it is. Your soul, cold and lovely, in my hands." },
+            SoulReleased = new[] { "You took it back. I will remember how it felt." },
+            SoulLocked = new[] { "Go? Your soul stays with me, and so do you." },
+            SoulWarning = "Your soul will be on her table. She does not give back what she holds.",
             Absolved = "Go, then. The dawn will find you dull. You will miss me.",
             Damned = "Mine. All mine. For every night that ever was."
         };
@@ -168,6 +187,10 @@ namespace HellPoker.Presentation.Ui
             Push = new[] { "Push." },
             FinalStretch = new[] { "No passing now." },
             ReRaise = new[] { "Raise." },
+            SoulTaken = new[] { "Your soul is mine to play for." },
+            SoulReleased = new[] { "Your soul is yours again." },
+            SoulLocked = new[] { "Not with your soul on the table." },
+            SoulWarning = "Your soul will be on this table.",
             Absolved = "You are free.",
             Damned = "Damned."
         };

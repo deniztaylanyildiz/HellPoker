@@ -1,3 +1,4 @@
+using HellPoker.Presentation.Animation;
 using HellPoker.Presentation.Ui;
 using UnityEngine;
 using UnityEngine.UI;
@@ -5,34 +6,31 @@ using UnityEngine.UI;
 namespace HellPoker.Presentation.Views
 {
     /// <summary>
-    /// The end-of-sentence look, in pixels: the stone wall turns to blood-red stone, rows of pixel flames burn along the
-    /// top and bottom edges of the screen, and a warning banner blinks. No blending — every colour stays in the palette.
+    /// The end-of-sentence look, in pixels: the demon's hall turns to its burning variant, rows of pixel flames burn along
+    /// the top and bottom edges of the screen, and a warning banner blinks. No blending — every colour stays in the palette.
     /// </summary>
     public sealed class FinalStretchEffect : MonoBehaviour
     {
         private const float FlameFps = 8f;
         private const int FlameHeight = 20;
 
-        private Image _background;
-        private Sprite _calm;
-        private Sprite _hell;
+        private SalonView _salon;
         private Image _flamesBottom;
         private Image _flamesTop;
         private Sprite[] _flameFrames;
         private Text _banner;
         private bool _active;
 
-        /// <param name="background">The full-screen backdrop whose sprite is swapped.</param>
+        /// <param name="salon">The demon's hall, switched to its burning look.</param>
         /// <param name="bannerY">Top of the banner line, in screen pixels from the top.</param>
-        public static FinalStretchEffect Create(Transform screen, Image background, int bannerX, int bannerY, int bannerWidth)
+        public static FinalStretchEffect Create(Transform screen, SalonView salon, int bannerX, int bannerY, int bannerWidth)
         {
-            var effect = background.gameObject.AddComponent<FinalStretchEffect>();
-            effect._background = background;
-            effect._calm = background.sprite;
-            effect._hell = UiArt.Sprite(UiArt.BackgroundHell);
+            var effect = salon.gameObject.AddComponent<FinalStretchEffect>();
+            effect._salon = salon;
             effect._flameFrames = UiArt.Strip(UiArt.Flames, UiArt.FlameFrameWidth);
 
             // Flames sit just above the backdrop, behind everything else.
+            Image background = salon.GetComponent<Image>();
             effect._flamesBottom = CreateFlames(screen, "FlamesBottom", background, flipped: false);
             effect._flamesTop = CreateFlames(screen, "FlamesTop", background, flipped: true);
 
@@ -62,6 +60,8 @@ namespace HellPoker.Presentation.Views
             return flames;
         }
 
+        public bool IsActive => _active;
+
         public void SetActive(bool active, string banner)
         {
             _active = active;
@@ -71,7 +71,8 @@ namespace HellPoker.Presentation.Views
 
         private void Apply()
         {
-            _background.sprite = _active && _hell != null ? _hell : _calm;
+            if (_salon.Mode != SalonMode.Soul)
+                _salon.SetMode(_active ? SalonMode.Hell : SalonMode.Normal);
             bool flames = _active && _flameFrames != null;
             _flamesBottom.enabled = flames;
             _flamesTop.enabled = flames;

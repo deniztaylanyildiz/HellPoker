@@ -29,6 +29,7 @@ namespace HellPoker.Presentation.Views
         private string _fullLine = "";
         private float _typed;
         private bool _finalStretch;
+        private bool _soul;
         private bool _reacting;
 
         public static DealerView Create(Transform parent, int x, int y, AnimationSequencer sequencer, DealerAnimationLibrary library)
@@ -121,6 +122,15 @@ namespace HellPoker.Presentation.Views
                 PlayTalkOrBase();
         }
 
+        /// <summary>The cold, ghostly look while the player's soul is on the table.</summary>
+        public void SetSoul(bool active)
+        {
+            if (_soul == active) return;
+            _soul = active;
+            if (!_reacting)
+                PlayTalkOrBase();
+        }
+
         /// <summary>Which one-shot animation a mood plays before the dealer goes back to talking; null for none.</summary>
         public static DealerAnimation? ReactionTo(DealerMood mood)
         {
@@ -151,7 +161,7 @@ namespace HellPoker.Presentation.Views
 
         private void PlayBase()
         {
-            Play(_finalStretch ? DealerAnimation.Final : DealerAnimation.Idle);
+            Play(_soul ? DealerAnimation.Soul : _finalStretch ? DealerAnimation.Final : DealerAnimation.Idle);
         }
 
         private void Play(DealerAnimation animation)

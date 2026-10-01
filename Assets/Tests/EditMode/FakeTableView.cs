@@ -31,24 +31,71 @@ namespace HellPoker.Core.Tests
         public string StakeInfo { get; private set; }
         public int Ante { get; private set; }
         public bool FinalStretch { get; private set; }
+        public SoulGauge Soul { get; private set; } = SoulGauge.Hidden;
+        public LeaveState Leave { get; private set; }
+
+        /// <summary>Every text the table was told to show, in order (messages, labels, info lines, dealer lines).</summary>
+        public List<string> TextLog { get; } = new List<string>();
+
+        /// <summary>Every year amount the table was told to show (pot, ante, sentence), in order.</summary>
+        public List<int> NumberLog { get; } = new List<int>();
 
         public bool Visible { get; private set; } = true;
 
         public event Action ActionPressed;
         public event Action<BetAction> BetPressed;
         public event Action MenuPressed;
+        public event Action LeavePressed;
+
+        public FakeTableView()
+        {
+            SentenceView.Log = NumberLog;
+            DealerView.Log = TextLog;
+            HouseView.Log = TextLog;
+            PlayerView.Log = TextLog;
+        }
 
         public void SetMessage(string text, Tone tone)
         {
+            TextLog.Add(text);
             Message = text;
             MessageTone = tone;
         }
 
-        public void SetAction(string label) => ActionLabel = label;
-        public void SetBetControls(BetControls controls) => BetControls = controls;
-        public void SetPot(int years) => Pot = years;
-        public void SetStakeInfo(string text) => StakeInfo = text;
-        public void SetAnte(int years) => Ante = years;
+        public void SetAction(string label)
+        {
+            TextLog.Add(label);
+            ActionLabel = label;
+        }
+
+        public void SetBetControls(BetControls controls)
+        {
+            TextLog.Add(controls.RaiseLabel);
+            TextLog.Add(controls.CallLabel);
+            BetControls = controls;
+        }
+
+        public void SetPot(int years)
+        {
+            NumberLog.Add(years);
+            Pot = years;
+        }
+
+        public void SetStakeInfo(string text)
+        {
+            TextLog.Add(text);
+            StakeInfo = text;
+        }
+
+        public void SetAnte(int years)
+        {
+            NumberLog.Add(years);
+            Ante = years;
+        }
+
+        public void SetSoul(SoulGauge gauge) => Soul = gauge;
+        public void SetLeave(LeaveState state) => Leave = state;
+        public void PressLeave() => LeavePressed?.Invoke();
         public void SetFinalStretch(bool active, string banner) => FinalStretch = active;
         public void Pause(float seconds) { }
         public void SetVisible(bool visible) => Visible = visible;
@@ -70,11 +117,13 @@ namespace HellPoker.Core.Tests
         public bool IsEmpty => Slots.All(slot => slot.Kind == CardSlot.SlotKind.Empty);
 
         public event Action<int> CardClicked;
+        public List<string> Log { get; set; }
 
         public void Click(int index) => CardClicked?.Invoke(index);
 
         public void SetCaption(string text, Tone tone)
         {
+            Log?.Add(text);
             Caption = text;
             CaptionTone = tone;
         }
@@ -92,11 +141,21 @@ namespace HellPoker.Core.Tests
 
     internal sealed class FakeSentenceView : ISentenceView
     {
-        public int DamnationLimit { get; private set; }
+        public int SoulLine { get; private set; }
         public int Years { get; private set; }
+        public List<int> Log { get; set; }
 
-        public void SetDamnationLimit(int years) => DamnationLimit = years;
-        public void SetYears(int years, bool animate) => Years = years;
+        public void SetSoulLine(int years)
+        {
+            Log?.Add(years);
+            SoulLine = years;
+        }
+
+        public void SetYears(int years, bool animate)
+        {
+            Log?.Add(years);
+            Years = years;
+        }
     }
 
     internal sealed class FakePayoutView : IPayoutView
@@ -114,11 +173,13 @@ namespace HellPoker.Core.Tests
         public string LastLine { get; private set; }
         public DealerMood LastMood { get; private set; }
         public int LinesSaid { get; private set; }
+        public List<string> Log { get; set; }
 
         public void SetDealer(DealerCard dealer) => Dealer = dealer;
 
         public void Say(string line, DealerMood mood)
         {
+            Log?.Add(line);
             LastLine = line;
             LastMood = mood;
             LinesSaid++;

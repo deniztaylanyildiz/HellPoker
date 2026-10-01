@@ -27,40 +27,57 @@ namespace HellPoker.Core.Tests
         [Test]
         public void EveryDealer()
         {
+            // HELLPOKER_SOUL_WORTH / HELLPOKER_SOUL_LOSS try other soul numbers without touching the code.
+            GameRules table = new GameRules(
+                soulWorthYears: EnvInt("HELLPOKER_SOUL_WORTH", GameRules.Default.SoulWorthYears),
+                soulLossPercent: EnvInt("HELLPOKER_SOUL_LOSS", GameRules.Default.SoulLossPercent));
+
             var report = new StringBuilder();
-            report.AppendLine($"{Runs} runs per dealer, at most {MaxHandsPerRun} hands each.");
-            report.AppendLine("dealer   absolved  damned  unfinished  avg hands  dead man's hand wins");
+            report.AppendLine($"{Runs} runs per dealer, at most {MaxHandsPerRun} hands each. " +
+                              $"Soul worth {table.SoulWorthYears}, soul losses {table.SoulLossPercent}%.");
+            report.AppendLine("dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved");
 
             foreach (Dealer dealer in DealerRoster.All)
             {
-                int absolved = 0, damned = 0, hands = 0, deadMan = 0;
+                int absolved = 0, damned = 0, hands = 0, deadMan = 0, reRaised = 0, soulStaked = 0, soulSaved = 0;
                 for (int run = 0; run < Runs; run++)
                 {
-                    HellPokerGame game = HellPokerGameFactory.Create(GameRules.Default, dealer, seed: run * 7919 + 13);
+                    HellPokerGame game = HellPokerGameFactory.Create(table, dealer, seed: run * 7919 + 13);
                     var player = new HouseDrawStrategy(game.Rules.MaxDiscards);
                     int played = 0;
+                    bool staked = false;
 
                     while (!game.IsGameOver && played < MaxHandsPerRun)
                     {
-                        PlayHand(game, player, dealer.Payouts);
+                        if (PlayHand(game, player, dealer.Payouts))
+                            reRaised++;
                         played++;
                         if (game.LastRound.Showdown?.Player.Category == HandCategory.DeadMansHand &&
                             game.LastRound.Showdown.Outcome == ShowdownOutcome.PlayerWins)
                             deadMan++;
+                        staked |= game.IsSoulAtStake || game.Phase == GamePhase.Damned;
                         if (!game.IsGameOver) game.NextRound();
                     }
 
                     hands += played;
                     if (game.Phase == GamePhase.Absolved) absolved++;
                     else if (game.Phase == GamePhase.Damned) damned++;
+                    if (staked) soulStaked++;
+                    if (staked && game.Phase == GamePhase.Absolved) soulSaved++;
                 }
 
+                string reRaiseShare = (100.0 * reRaised / Math.Max(1, hands)).ToString("0.0") + "%";
                 report.AppendLine($"{dealer.Id,-8} {Percent(absolved),7}  {Percent(damned),6}  {Percent(Runs - absolved - damned),10}  " +
-                                  $"{hands / (double)Runs,9:0.0}  {deadMan,6}");
+                                  $"{hands / (double)Runs,9:0.0}  {reRaiseShare,15}  {deadMan,6}  {Percent(soulStaked),11}  {Percent(soulSaved),10}");
             }
 
             TestContext.WriteLine(report.ToString());
             Assert.Pass(report.ToString());
+        }
+
+        private static int EnvInt(string name, int fallback)
+        {
+            return int.TryParse(Environment.GetEnvironmentVariable(name), out int value) ? value : fallback;
         }
 
         private static string Percent(int count) => (100.0 * count / Runs).ToString("0.0") + "%";
@@ -72,8 +89,10 @@ namespace HellPoker.Core.Tests
         /// after the draw raises with two pair or better, folds high card when the House shows a pair;
         /// calls a re-raise with a pair or better.
         /// </summary>
-        private static void PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
+        /// <returns>True if the house re-raised during the hand.</returns>
+        private static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
         {
+            bool reRaised = false;
             game.PlaceBet();
             while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
             {
@@ -84,6 +103,7 @@ namespace HellPoker.Core.Tests
                         break;
 
                     case GamePhase.HouseReRaise:
+                        reRaised = true;
                         game.Bet(Strength(game) >= HandCategory.OnePair ? BetAction.Call : BetAction.Fold);
                         break;
 
@@ -92,6 +112,7 @@ namespace HellPoker.Core.Tests
                         break;
                 }
             }
+            return reRaised;
         }
 
         private static BetAction Choose(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)

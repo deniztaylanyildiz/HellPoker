@@ -13,8 +13,9 @@ namespace HellPoker.Presentation
     /// <summary>
     /// Translates player intent into game commands and game state into view updates.
     /// Holds only UI state (selected discards); all rules — including the size of every bet — live in the game.
-    /// Each run is a new game built for the chosen dealer. Before the first run there is no game and input is ignored.
-    /// Depends on abstractions only, so it can be tested without Unity scenes.
+    /// Each table is a game built for its dealer; changing tables carries the sentence over. Before the first run there is
+    /// no game and input is ignored. While the soul is on the table no number of years ever reaches the view: the soul
+    /// bar shows shares of a soul instead. Depends on abstractions only, so it can be tested without Unity scenes.
     /// </summary>
     public sealed class TablePresenter : ITableCommands, IRunSession, IDisposable
     {
@@ -25,8 +26,12 @@ namespace HellPoker.Presentation
         private readonly HashSet<int> _discards = new HashSet<int>();
 
         private IHellPokerGame _game;
+        private Dealer _dealer;
         private DealerText _dealerText;
         private bool _finalStretchAnnounced;
+        private bool _soulShown;
+
+        public event Action LeaveRequested;
 
         /// <param name="createGame">Builds a fresh game for a run at this dealer's table.</param>
         public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view)
@@ -36,37 +41,97 @@ namespace HellPoker.Presentation
 
             _view.ActionPressed += PerformAction;
             _view.BetPressed += Bet;
+            _view.LeavePressed += RequestLeave;
             _view.Player.CardClicked += ToggleDiscard;
         }
 
         public IReadOnlyCollection<int> SelectedDiscards => _discards;
 
-        /// <summary>The game of the current run; null before the first run.</summary>
+        /// <summary>The game of the current table; null before the first run.</summary>
         public IHellPokerGame Game => _game;
 
         public bool CanContinue => _game != null && _game.RoundNumber > 0 && !_game.IsGameOver;
 
+        public string CurrentDealerId => _dealer?.Id;
+
         public void StartNewRun(Dealer dealer)
+        {
+            SeatAt(dealer, carriedYears: null, roundsPlayed: 0);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+            Refresh();
+        }
+
+        public bool WouldStakeSoul(Dealer dealer)
+        {
+            if (dealer == null) throw new ArgumentNullException(nameof(dealer));
+            return _game != null && dealer.TakesSoulAt(_game.Years);
+        }
+
+        public void SwitchTable(Dealer dealer)
+        {
+            if (dealer == null) throw new ArgumentNullException(nameof(dealer));
+            if (_game == null)
+            {
+                StartNewRun(dealer);
+                return;
+            }
+
+            SeatAt(dealer, _game.Years, _game.RoundNumber);
+            if (!_game.IsSoulAtStake)
+                _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+            Refresh();
+        }
+
+        public void RequestLeave()
+        {
+            if (_game == null || _view.IsBusy || _game.IsGameOver) return;
+
+            // A finished hand counts as "between hands": move on to the next one first.
+            if (_game.Phase == GamePhase.RoundOver)
+            {
+                _game.NextRound();
+                Refresh();
+            }
+
+            if (_game.CanLeaveTable(out string reason))
+                LeaveRequested?.Invoke();
+            else if (_game.IsSoulAtStake && _game.Phase == GamePhase.Betting)
+                _view.Dealer.Say(UiText.Pick(_dealerText.SoulLocked, _game.RoundNumber), DealerMood.Menacing);
+            else
+                _view.SetMessage(reason, Tone.Warning);
+        }
+
+        /// <summary>Builds the dealer's game, carries the sentence over if moving from another table, and dresses the table.</summary>
+        private void SeatAt(Dealer dealer, int? carriedYears, int roundsPlayed)
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
-            _game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
+            IHellPokerGame game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
+            if (carriedYears.HasValue)
+                game.TakeOver(carriedYears.Value, roundsPlayed);
+
+            _game = game;
+            _dealer = dealer;
             _discards.Clear();
             _finalStretchAnnounced = false;
+            _soulShown = false;
             _dealerText = UiText.Dealer(dealer.Id);
 
             _view.Dealer.SetDealer(DealerCards.Describe(dealer));
             _view.Payouts.SetTable(dealer.Payouts);
-            _view.Sentence.SetDamnationLimit(_game.Rules.DamnationYears);
-            _view.Sentence.SetYears(_game.Years, animate: false);
-            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
-            Refresh();
+            _view.SetSoul(SoulGauge.Hidden);
+            if (!_game.IsSoulAtStake)
+            {
+                _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
+                _view.Sentence.SetYears(_game.Years, animate: false);
+            }
         }
 
         public void Dispose()
         {
             _view.ActionPressed -= PerformAction;
             _view.BetPressed -= Bet;
+            _view.LeavePressed -= RequestLeave;
             _view.Player.CardClicked -= ToggleDiscard;
         }
 
@@ -98,7 +163,9 @@ namespace HellPoker.Presentation
                 default:
                     _game.Restart();
                     _finalStretchAnnounced = false;
-                    _view.Sentence.SetYears(_game.Years, animate: true);
+                    _soulShown = false;
+                    _view.SetSoul(SoulGauge.Hidden);
+                    _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
                     _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
                     break;
             }
@@ -147,6 +214,9 @@ namespace HellPoker.Presentation
                    phase == GamePhase.HouseReRaise;
         }
 
+        /// <summary>True while numbers must stay hidden: the soul is on the table, or this hand was dealt with it there.</summary>
+        private bool SoulMode => _game.IsSoulAtStake || _game.IsSoulHand;
+
         private void Refresh()
         {
             switch (_game.Phase)
@@ -174,13 +244,36 @@ namespace HellPoker.Presentation
                     break;
             }
 
+            _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
+                : _game.IsSoulAtStake ? LeaveState.Locked : LeaveState.Open);
             _view.SetFinalStretch(_game.IsRaiseForced, string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
+            AnnounceSoul();
 
             // The dealer remarks once when the player first reaches the gates (unless the run just ended).
             if (_game.IsRaiseForced && !_finalStretchAnnounced && !_game.IsGameOver)
             {
                 _finalStretchAnnounced = true;
                 _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), DealerMood.Menacing);
+            }
+        }
+
+        /// <summary>The moment the soul goes on the table — or comes back — gets its own line.</summary>
+        private void AnnounceSoul()
+        {
+            if (_game.IsGameOver) return;
+
+            if (_game.IsSoulAtStake && !_soulShown)
+            {
+                _soulShown = true;
+                _view.Dealer.Say(UiText.Pick(_dealerText.SoulTaken, _game.RoundNumber), DealerMood.Gloating);
+            }
+            else if (!_game.IsSoulAtStake && _soulShown)
+            {
+                _soulShown = false;
+                _view.SetSoul(SoulGauge.Hidden);
+                _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
+                _view.Sentence.SetYears(_game.Years, animate: true);
+                _view.Dealer.Say(UiText.Pick(_dealerText.SoulReleased, _game.RoundNumber), DealerMood.Annoyed);
             }
         }
 
@@ -195,10 +288,21 @@ namespace HellPoker.Presentation
             _view.House.SetCaption(UiText.HouseCaption, Tone.Muted);
             _view.Player.SetCaption(UiText.PlayerCaption, Tone.Muted);
             _view.SetPot(0);
-            _view.Sentence.SetYears(_game.Years, animate: true);
-            ShowStakeInfo();
-            _view.SetAnte(_game.UpcomingAnte);
-            _view.SetMessage(string.Format(UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
+
+            if (SoulMode)
+            {
+                ShowSoul(_game.UpcomingAnte);
+                _view.SetStakeInfo(UiText.SoulStakeInfo);
+                _view.SetAnte(0);
+                _view.SetMessage(UiText.SoulPromptBet, Tone.Warning);
+            }
+            else
+            {
+                _view.Sentence.SetYears(_game.Years, animate: true);
+                ShowStakeInfo();
+                _view.SetAnte(_game.UpcomingAnte);
+                _view.SetMessage(string.Format(UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
+            }
             _view.SetAction(UiText.Deal);
         }
 
@@ -218,8 +322,17 @@ namespace HellPoker.Presentation
         {
             ShowHandInPlay();
             _view.SetAction(null);
-            _view.SetMessage(string.Format(UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
-            _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount)));
+            if (SoulMode)
+            {
+                ShowSoul(_game.CurrentStake + _game.HouseReRaiseAmount);
+                _view.SetMessage(UiText.SoulPromptReRaise, Tone.Warning);
+                _view.SetBetControls(BetControls.Answer(UiText.MatchIt));
+            }
+            else
+            {
+                _view.SetMessage(string.Format(UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
+                _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount)));
+            }
         }
 
         /// <summary>Common to every decision: cards as the game shows them, the stake on the table, no ante or discards.</summary>
@@ -239,13 +352,24 @@ namespace HellPoker.Presentation
         private string RaiseLabel()
         {
             int amount = _game.RaiseAmount;
-            if (amount == 0) return _game.YearsOffTable == 0 ? UiText.AllInDone : UiText.TableFull;
-            return amount == _game.YearsOffTable ? string.Format(UiText.AllInFormat, amount) : string.Format(UiText.RaiseFormat, amount);
+            if (SoulMode)
+                return amount > 0 ? UiText.WagerMore : _game.WagerLeft == 0 ? UiText.WagerAll : UiText.TableFull;
+
+            if (amount == 0) return _game.WagerLeft == 0 ? UiText.AllInDone : UiText.TableFull;
+            return amount == _game.WagerLeft ? string.Format(UiText.AllInFormat, amount) : string.Format(UiText.RaiseFormat, amount);
         }
 
-        /// <summary>Years put on the table come straight off the sentence counter, like chips pushed forward.</summary>
+        /// <summary>Years put on the table come straight off the sentence counter — or, with the soul at stake, blink on the soul bar.</summary>
         private void ShowStakeOnTable()
         {
+            if (SoulMode)
+            {
+                _view.SetPot(0);
+                ShowSoul(_game.CurrentStake);
+                _view.SetStakeInfo(UiText.SoulStakeInfo);
+                return;
+            }
+
             _view.SetPot(_game.CurrentStake);
             _view.Sentence.SetYears(_game.YearsOffTable, animate: true);
             ShowStakeInfo();
@@ -254,6 +378,13 @@ namespace HellPoker.Presentation
         private void ShowStakeInfo()
         {
             _view.SetStakeInfo(string.Format(UiText.StakeInfoFormat, _game.LeastYearsForgiven, _game.LeastYearsAdded));
+        }
+
+        /// <summary>The soul bar: what is left, and how much of it is on the table — in shares of a soul, never in years.</summary>
+        private void ShowSoul(int atStake)
+        {
+            float worth = _game.SoulWorth;
+            _view.SetSoul(new SoulGauge(true, _game.SoulRemaining / worth, atStake / worth));
         }
 
         private void ShowDrawing()
@@ -269,6 +400,7 @@ namespace HellPoker.Presentation
 
         private void ShowResult(RoundResult round)
         {
+            bool soulHand = _game.IsSoulHand || _soulShown || _game.IsSoulAtStake;
             _view.SetBetControls(BetControls.Hidden);
             _view.SetAction(null);
             _view.SetAnte(0);
@@ -296,7 +428,16 @@ namespace HellPoker.Presentation
             }
 
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
-            _view.Sentence.SetYears(_game.Years, animate: true);
+            if (soulHand)
+            {
+                _view.SetPot(0);
+                if (_game.IsSoulAtStake || _game.Phase == GamePhase.Damned)
+                    ShowSoul(0);   // the bar fills or burns to what is left
+            }
+            else
+            {
+                _view.Sentence.SetYears(_game.Years, animate: true);
+            }
 
             switch (_game.Phase)
             {
@@ -307,12 +448,12 @@ namespace HellPoker.Presentation
                     _view.SetAction(UiText.Again);
                     break;
                 case GamePhase.Damned:
-                    _view.SetMessage(string.Format(UiText.DamnedFormat, _game.Years), Tone.Doom);
+                    _view.SetMessage(UiText.DamnedMessage, Tone.Doom);
                     _view.Dealer.Say(_dealerText.Damned, DealerMood.Gloating);
                     _view.SetAction(UiText.Again);
                     break;
                 default:
-                    _view.SetMessage(ResultMessage(round), playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
+                    _view.SetMessage(ResultMessage(round, soulHand), playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     SayRoundLine(round);
                     _view.SetAction(UiText.Next);
                     break;
@@ -333,18 +474,21 @@ namespace HellPoker.Presentation
                 _view.Dealer.Say(UiText.Pick(_dealerText.Push, counter), DealerMood.Neutral);
         }
 
-        private static string ResultMessage(RoundResult round)
+        private static string ResultMessage(RoundResult round, bool soulHand)
         {
             if (round.Folded)
-                return string.Format(UiText.FoldFormat, round.YearsChange);
+                return soulHand ? UiText.SoulFold : string.Format(UiText.FoldFormat, round.YearsChange);
 
             string player = UiText.CategoryName(round.Showdown.Player.Category);
             string house = UiText.CategoryName(round.Showdown.House.Category);
             switch (round.Showdown.Outcome)
             {
-                case ShowdownOutcome.PlayerWins: return string.Format(UiText.WinFormat, player, house, -round.YearsChange);
-                case ShowdownOutcome.HouseWins: return string.Format(UiText.LossFormat, house, player, round.YearsChange);
-                default: return string.Format(UiText.PushFormat, player, house);
+                case ShowdownOutcome.PlayerWins:
+                    return soulHand ? string.Format(UiText.SoulWinFormat, player, house) : string.Format(UiText.WinFormat, player, house, -round.YearsChange);
+                case ShowdownOutcome.HouseWins:
+                    return soulHand ? string.Format(UiText.SoulLossFormat, house, player) : string.Format(UiText.LossFormat, house, player, round.YearsChange);
+                default:
+                    return string.Format(UiText.PushFormat, player, house);
             }
         }
 

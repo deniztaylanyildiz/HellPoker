@@ -23,7 +23,10 @@ namespace HellPoker.Presentation.Animation
         ReRaise,
 
         /// <summary>The final stretch: burning, intense; replaces Idle (loops).</summary>
-        Final
+        Final,
+
+        /// <summary>The soul on the table: cold ghost fire, pale glowing eyes; replaces Idle (loops).</summary>
+        Soul
     }
 
     /// <summary>
@@ -51,7 +54,8 @@ namespace HellPoker.Presentation.Animation
 
         public static bool Loops(DealerAnimation animation)
         {
-            return animation == DealerAnimation.Idle || animation == DealerAnimation.Talk || animation == DealerAnimation.Final;
+            return animation == DealerAnimation.Idle || animation == DealerAnimation.Talk || animation == DealerAnimation.Final ||
+                   animation == DealerAnimation.Soul;
         }
 
         /// <summary>The clip for an animation, following the fallback chain. Null only when the dealer has no art at all.</summary>

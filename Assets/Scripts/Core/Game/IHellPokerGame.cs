@@ -10,8 +10,8 @@ namespace HellPoker.Core.Game
     /// → Drawing → (Draw) → DrawReveal: one decision → HouseReveal: some house cards turn, one decision → showdown
     /// → RoundOver → (NextRound) → Betting ...
     /// After the draw, a raise may be answered by a house re-raise (HouseReRaise: Call or Fold).
-    /// A fold at any decision ends the hand. The run ends when the sentence is served (Absolved)
-    /// or reaches the damnation limit (Damned).
+    /// A fold at any decision ends the hand. The run ends when the sentence is served (Absolved), or when the soul —
+    /// on the table once the sentence reaches the dealer's soul line — has burned away completely (Damned).
     /// </summary>
     public interface IHellPokerGame
     {
@@ -29,7 +29,8 @@ namespace HellPoker.Core.Game
         /// <summary>The ante the next hand will start with, at the current sentence.</summary>
         int UpcomingAnte { get; }
 
-        /// <summary>The most that may be on the table this hand (a share of the sentence at its start).</summary>
+        /// <summary>The most the player's own raises may bring the table to this hand (a share of the sentence at its start).
+        /// A called house re-raise may go past it.</summary>
         int TableCap { get; }
 
         /// <summary>Everything at risk in the current hand: ante plus raises plus called re-raises.</summary>
@@ -66,6 +67,31 @@ namespace HellPoker.Core.Game
 
         /// <summary>True in the final stretch of the sentence, where passing is forbidden while a raise is possible.</summary>
         bool IsRaiseForced { get; }
+
+        // ------------------------------------------------------------------ the soul
+
+        /// <summary>True once the sentence has reached the dealer's soul line: the player's soul is on the table.</summary>
+        bool IsSoulAtStake { get; }
+
+        /// <summary>True for a hand dealt with the soul on the table (bets measured against the soul, losses burn faster).</summary>
+        bool IsSoulHand { get; }
+
+        /// <summary>What a whole soul is worth, in years (never shown to the player).</summary>
+        int SoulWorth { get; }
+
+        /// <summary>What is left of the soul (its whole worth while it is not on the table). At 0 the player is damned.</summary>
+        int SoulRemaining { get; }
+
+        /// <summary>What may still be put on the table this hand: the rest of the sentence, or the rest of the soul.</summary>
+        int WagerLeft { get; }
+
+        // ------------------------------------------------------------------ changing tables
+
+        /// <summary>Only between hands, and never while the soul is on this table.</summary>
+        bool CanLeaveTable(out string reason);
+
+        /// <summary>Seats the player here with the sentence they carry from another table (between hands only).</summary>
+        void TakeOver(int years, int roundsPlayed);
 
         /// <summary>Puts down the ante, deals both hands face down and turns the player's opening cards.</summary>
         void PlaceBet();

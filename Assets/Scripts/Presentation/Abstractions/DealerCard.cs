@@ -13,13 +13,17 @@ namespace HellPoker.Presentation.Abstractions
         public string Description { get; }
         public IReadOnlyList<string> Traits { get; }
 
-        public DealerCard(string id, string name, string title, string description, IReadOnlyList<string> traits)
+        /// <summary>The sentence at which this demon takes the player's soul onto the table.</summary>
+        public int SoulThreshold { get; }
+
+        public DealerCard(string id, string name, string title, string description, IReadOnlyList<string> traits, int soulThreshold = 0)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Name = name ?? "";
             Title = title ?? "";
             Description = description ?? "";
             Traits = traits ?? Array.Empty<string>();
+            SoulThreshold = soulThreshold;
         }
     }
 }

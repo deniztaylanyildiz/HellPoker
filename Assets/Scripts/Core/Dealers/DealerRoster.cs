@@ -14,7 +14,7 @@ namespace HellPoker.Core.Dealers
 
         /// <summary>The Usurer: plays by the book and honestly — re-raises on strength, hardly ever bluffs.</summary>
         public static Dealer Mammon => new Dealer(MammonId, maxDiscards: 3, houseCardsShown: 2, PayoutTable.CreateDefault(),
-            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 70, bluffPercent: 5));
+            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 70, bluffPercent: 5), soulThreshold: 2000);
 
         /// <summary>The Silver Tongue: richer payouts, shows only one card, and bluffs shamelessly.</summary>
         public static Dealer Belial => new Dealer(BelialId, maxDiscards: 3, houseCardsShown: 1,
@@ -31,7 +31,7 @@ namespace HellPoker.Core.Dealers
                 { HandCategory.StraightFlush, 25 },
                 { HandCategory.RoyalFlush, 30 }
             }, HandCategory.DeadMansHand),
-            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 60, bluffPercent: 30));
+            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 60, bluffPercent: 30), soulThreshold: 1750);
 
         /// <summary>
         /// The Queen of the Night, the hardest table: four cards may be exchanged, but losses cost a quarter more,
@@ -40,7 +40,7 @@ namespace HellPoker.Core.Dealers
         public static Dealer Lilith => new Dealer(LilithId, maxDiscards: 4, houseCardsShown: 2,
             new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 125,
                 foldPercentBeforeDraw: 100, foldPercentAfterDraw: 100),
-            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 90, bluffPercent: 10));
+            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 90, bluffPercent: 10), soulThreshold: 1500);
 
         public static IReadOnlyList<Dealer> All => new[] { Mammon, Belial, Lilith };
     }

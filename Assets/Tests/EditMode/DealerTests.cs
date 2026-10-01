@@ -27,7 +27,8 @@ namespace HellPoker.Core.Tests
             GameRules rules = DealerRoster.Lilith.ApplyTo(Table);
 
             Assert.AreEqual(1000, rules.StartingYears);
-            Assert.AreEqual(2000, rules.DamnationYears);
+            Assert.AreEqual(1500, rules.SoulThreshold, "Lilith takes the soul earliest.");
+            Assert.AreEqual(2500, rules.DamnationYears, "Soul line + the soul's worth.");
             Assert.AreEqual(250, rules.ForcedRaiseYears);
             Assert.AreSame(Table.Stakes, rules.Stakes);
             Assert.AreEqual(4, rules.MaxDiscards);
@@ -74,6 +75,22 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(100, lilith.Payouts.FoldPercentBeforeDraw);
             Assert.AreEqual(100, lilith.Payouts.FoldPercentAfterDraw);
             AssertTemper(lilith, 90, 10);
+        }
+
+        [Test]
+        public void SoulLines_ComeEarlierAtHarderTables()
+        {
+            Assert.AreEqual(2000, DealerRoster.Mammon.SoulThreshold);
+            Assert.AreEqual(1750, DealerRoster.Belial.SoulThreshold);
+            Assert.AreEqual(1500, DealerRoster.Lilith.SoulThreshold);
+            Assert.IsTrue(DealerRoster.Lilith.TakesSoulAt(1500));
+            Assert.IsFalse(DealerRoster.Lilith.TakesSoulAt(1499));
+        }
+
+        [Test]
+        public void DealerCard_CarriesTheSoulLine()
+        {
+            Assert.AreEqual(1750, DealerCards.Describe(DealerRoster.Belial).SoulThreshold);
         }
 
         private static void AssertTemper(Dealer dealer, int strong, int bluff)

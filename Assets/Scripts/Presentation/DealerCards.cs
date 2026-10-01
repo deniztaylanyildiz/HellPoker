@@ -29,7 +29,7 @@ namespace HellPoker.Presentation
                     dealer.Betting.BluffPercent)
             };
 
-            return new DealerCard(dealer.Id, text.Name, text.Title, text.Description, traits);
+            return new DealerCard(dealer.Id, text.Name, text.Title, text.Description, traits, dealer.SoulThreshold);
         }
     }
 }

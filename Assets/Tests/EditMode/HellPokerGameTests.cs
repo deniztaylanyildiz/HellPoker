@@ -29,11 +29,11 @@ namespace HellPoker.Core.Tests
         private const string Nothing = "2C 5D 7H 9S JC";
         private const string HouseFullHouse = "KS KH KD 4C 4H";
 
-        private static GameRules Rules(int startingYears = 1000, int damnationYears = 2000, int forcedRaiseYears = 250, int houseCardsShown = 2,
-            int tableCapPercent = 30)
+        private static GameRules Rules(int startingYears = 1000, int soulThreshold = 2000, int forcedRaiseYears = 250, int houseCardsShown = 2,
+            int tableCapPercent = 30, int soulWorthYears = 1000, int soulLossPercent = 150)
         {
-            return new GameRules(startingYears, damnationYears, forcedRaiseYears: forcedRaiseYears, houseCardsShown: houseCardsShown,
-                stakes: new StakeScale(tableCapPercent: tableCapPercent));
+            return new GameRules(startingYears, soulThreshold, forcedRaiseYears: forcedRaiseYears, houseCardsShown: houseCardsShown,
+                stakes: new StakeScale(tableCapPercent: tableCapPercent), soulWorthYears: soulWorthYears, soulLossPercent: soulLossPercent);
         }
 
         /// <summary>A roomier table (cap 500 of 1000), so a raise after the draw still leaves room for a house re-raise.</summary>
@@ -404,14 +404,37 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void HouseCannotReRaise_PastTheCap()
+        public void HouseReRaise_MayGoPastTheCap()
         {
             var game = GameAtDrawReveal(new FixedHouseBetting(true));
 
             game.Bet(BetAction.Raise);
+            Assert.AreEqual(300, game.CurrentStake, "The player's raise stops at the cap.");
+            Assert.AreEqual(GamePhase.HouseReRaise, game.Phase);
+            Assert.AreEqual(100, game.HouseReRaiseAmount);
 
-            Assert.AreEqual(300, game.CurrentStake);
-            Assert.AreEqual(GamePhase.HouseReveal, game.Phase, "No room left under the cap, so no re-raise.");
+            game.Bet(BetAction.Call);
+
+            Assert.AreEqual(400, game.CurrentStake, "A called re-raise takes the table past the cap.");
+            Assert.Greater(game.CurrentStake, game.TableCap);
+            Assert.AreEqual(0, game.RaiseAmount, "The player still cannot raise past the cap.");
+            Assert.IsTrue(game.CanBet(BetAction.Pass, out _));
+        }
+
+        [Test]
+        public void HouseReRaise_NeverExceedsTheSentence()
+        {
+            // 15 years: unit 10, ante 10, cap 10 — after a raise nothing is left but 5.
+            var rules = new GameRules(15, 2000, forcedRaiseYears: 0, stakes: new StakeScale(tableCapPercent: 100));
+            var game = CreateGame(Nothing, HouseFullHouse, rules: rules, houseBetting: new FixedHouseBetting(true));
+            game.PlaceBet();
+            PassUntil(game, GamePhase.Drawing);
+            game.Draw(new int[0]);
+
+            game.Bet(BetAction.Raise);
+
+            Assert.AreEqual(15, game.CurrentStake, "All in.");
+            Assert.AreNotEqual(GamePhase.HouseReRaise, game.Phase, "Nothing left to re-raise with.");
         }
 
         [Test]
@@ -446,7 +469,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void HouseWin_AddsStakeTimesHousesMultiplier()
         {
-            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(damnationYears: 5000));
+            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(soulThreshold: 5000));
             game.PlaceBet();
             game.Bet(BetAction.Raise);
             PassUntil(game, GamePhase.Drawing);
@@ -476,7 +499,7 @@ namespace HellPoker.Core.Tests
         public void HouseWin_UsesTheDealersLossPercent()
         {
             var payouts = new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 150);
-            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(damnationYears: 5000), payouts: payouts);
+            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(soulThreshold: 5000), payouts: payouts);
 
             PlayPassively(game);
 
@@ -566,9 +589,10 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void ReachingDamnationLimit_EndsGame()
+        public void LosingTheWholeSoul_EndsGame()
         {
-            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(startingYears: 1000, damnationYears: 1500));
+            // Soul line 1001, soul worth 500: damned at 1501. A passive loss to a full house adds 800.
+            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(startingYears: 1000, soulThreshold: 1001, soulWorthYears: 500));
 
             PlayPassively(game);
 
@@ -593,7 +617,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void NextRound_ClearsHand_AndRestartResets()
         {
-            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(damnationYears: 5000));
+            var game = CreateGame(Nothing, HouseFullHouse, rules: Rules(soulThreshold: 5000));
             PlayPassively(game);
 
             game.NextRound();
@@ -639,8 +663,9 @@ namespace HellPoker.Core.Tests
 
                     if (game.Phase != GamePhase.RoundOver && !game.IsGameOver)
                     {
-                        Assert.LessOrEqual(game.CurrentStake + game.HouseReRaiseAmount, game.TableCap, "The table cap holds.");
-                        Assert.LessOrEqual(game.CurrentStake, sentence, "Stake never exceeds the sentence.");
+                        Assert.LessOrEqual(game.CurrentStake + game.HouseReRaiseAmount, sentence, "Stake never exceeds the sentence.");
+                        if (game.CurrentStake > game.TableCap)
+                            Assert.AreEqual(0, game.RaiseAmount, "Only a house re-raise goes past the cap; the player cannot follow.");
                     }
                 }
 

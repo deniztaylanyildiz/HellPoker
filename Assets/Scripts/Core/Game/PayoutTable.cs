@@ -81,14 +81,17 @@ namespace HellPoker.Core.Game
             return Math.Min(currentYears, Settlement(stake, ante, GetMultiplier(playerCategory)));
         }
 
-        public int GetYearsAdded(HandCategory houseCategory, int stake, int ante)
+        public int GetYearsAdded(HandCategory houseCategory, int stake, int ante, int surchargePercent = 100)
         {
-            return PercentRoundedUp(Settlement(stake, ante, GetMultiplier(houseCategory)), LossPercent);
+            return Surcharged(Settlement(stake, ante, GetMultiplier(houseCategory)), surchargePercent);
         }
 
-        public int GetFoldPenalty(int stake, bool afterDraw)
+        public int GetFoldPenalty(int stake, bool afterDraw, int surchargePercent = 100)
         {
-            return PercentRoundedUp(stake, afterDraw ? FoldPercentAfterDraw : FoldPercentBeforeDraw);
+            if (stake < 0) throw new ArgumentOutOfRangeException(nameof(stake));
+            if (surchargePercent < 0) throw new ArgumentOutOfRangeException(nameof(surchargePercent));
+            int percent = afterDraw ? FoldPercentAfterDraw : FoldPercentBeforeDraw;
+            return (int)(((long)stake * percent * surchargePercent + 9999) / 10000);
         }
 
         public int GetLeastYearsForgiven(int stake, int ante, int currentYears)
@@ -96,9 +99,16 @@ namespace HellPoker.Core.Game
             return Math.Min(currentYears, Settlement(stake, ante, LowestMultiplier()));
         }
 
-        public int GetLeastYearsAdded(int stake, int ante)
+        public int GetLeastYearsAdded(int stake, int ante, int surchargePercent = 100)
         {
-            return PercentRoundedUp(Settlement(stake, ante, LowestMultiplier()), LossPercent);
+            return Surcharged(Settlement(stake, ante, LowestMultiplier()), surchargePercent);
+        }
+
+        /// <summary>A loss: the settlement × the dealer's loss percent × any surcharge, rounded up once.</summary>
+        private int Surcharged(int settlement, int surchargePercent)
+        {
+            if (surchargePercent < 0) throw new ArgumentOutOfRangeException(nameof(surchargePercent));
+            return (int)(((long)settlement * LossPercent * surchargePercent + 9999) / 10000);
         }
 
         /// <summary>The whole table once, plus the ante once more for every step of the multiplier above one.</summary>
@@ -112,11 +122,6 @@ namespace HellPoker.Core.Game
         private int LowestMultiplier()
         {
             return _multipliers.Count > 0 ? _multipliers.Values.Min() : 1;
-        }
-
-        private static int PercentRoundedUp(int value, int percent)
-        {
-            return (int)(((long)value * percent + 99) / 100);
         }
     }
 }

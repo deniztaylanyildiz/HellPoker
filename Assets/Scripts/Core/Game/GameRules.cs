@@ -9,8 +9,20 @@ namespace HellPoker.Core.Game
     {
         public int StartingYears { get; }
 
-        /// <summary>Reaching this sentence means eternal damnation (game over).</summary>
-        public int DamnationYears { get; }
+        /// <summary>
+        /// At this sentence the player's soul goes on the table (each dealer has their own line). Past it, every year added
+        /// burns the soul; when nothing is left of it, the player is damned.
+        /// </summary>
+        public int SoulThreshold { get; }
+
+        /// <summary>What a soul is worth, in years. The player never sees this number — only a bar.</summary>
+        public int SoulWorthYears { get; }
+
+        /// <summary>Losses on a hand played with the soul on the table cost this much more (percent, on top of the dealer's).</summary>
+        public int SoulLossPercent { get; }
+
+        /// <summary>Reaching this sentence means eternal damnation (game over): the soul line plus the whole soul.</summary>
+        public int DamnationYears => SoulThreshold + SoulWorthYears;
 
         /// <summary>How many cards a player may exchange in the draw.</summary>
         public int MaxDiscards { get; }
@@ -39,12 +51,15 @@ namespace HellPoker.Core.Game
         /// <summary>Betting unit, ante and table cap.</summary>
         public StakeScale Stakes { get; }
 
-        public GameRules(int startingYears = 1000, int damnationYears = 2000, int maxDiscards = MaxDiscardPolicy.ClassicLimit,
+        public GameRules(int startingYears = 1000, int soulThreshold = 2000, int maxDiscards = MaxDiscardPolicy.ClassicLimit,
             int forcedRaiseYears = 250, int houseCardsShown = 2, StakeScale stakes = null, int openingCardsShown = 2,
-            int raiseUnitsBeforeDraw = 1, int raiseUnitsAfterDraw = 2, int houseReRaiseUnits = 1)
+            int raiseUnitsBeforeDraw = 1, int raiseUnitsAfterDraw = 2, int houseReRaiseUnits = 1,
+            int soulWorthYears = 1000, int soulLossPercent = 150)
         {
             if (startingYears <= 0) throw new ArgumentOutOfRangeException(nameof(startingYears));
-            if (damnationYears <= startingYears) throw new ArgumentOutOfRangeException(nameof(damnationYears), "Must be above the starting sentence.");
+            if (soulThreshold <= startingYears) throw new ArgumentOutOfRangeException(nameof(soulThreshold), "Must be above the starting sentence.");
+            if (soulWorthYears <= 0) throw new ArgumentOutOfRangeException(nameof(soulWorthYears));
+            if (soulLossPercent < 0) throw new ArgumentOutOfRangeException(nameof(soulLossPercent));
             if (maxDiscards < 0 || maxDiscards > Hand.Size) throw new ArgumentOutOfRangeException(nameof(maxDiscards));
             if (forcedRaiseYears < 0) throw new ArgumentOutOfRangeException(nameof(forcedRaiseYears));
             if (houseCardsShown < 0 || houseCardsShown >= Hand.Size)
@@ -56,7 +71,9 @@ namespace HellPoker.Core.Game
             if (houseReRaiseUnits <= 0) throw new ArgumentOutOfRangeException(nameof(houseReRaiseUnits));
 
             StartingYears = startingYears;
-            DamnationYears = damnationYears;
+            SoulThreshold = soulThreshold;
+            SoulWorthYears = soulWorthYears;
+            SoulLossPercent = soulLossPercent;
             MaxDiscards = maxDiscards;
             ForcedRaiseYears = forcedRaiseYears;
             HouseCardsShown = houseCardsShown;
@@ -69,11 +86,11 @@ namespace HellPoker.Core.Game
 
         public static GameRules Default => new GameRules();
 
-        /// <summary>The same rules with a dealer's house rules (discard limit, house cards shown) swapped in.</summary>
-        public GameRules WithHouseRules(int maxDiscards, int houseCardsShown)
+        /// <summary>The same rules with a dealer's house rules (discard limit, house cards shown, soul line) swapped in.</summary>
+        public GameRules WithHouseRules(int maxDiscards, int houseCardsShown, int soulThreshold)
         {
-            return new GameRules(StartingYears, DamnationYears, maxDiscards, ForcedRaiseYears, houseCardsShown, Stakes, OpeningCardsShown,
-                RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits);
+            return new GameRules(StartingYears, soulThreshold, maxDiscards, ForcedRaiseYears, houseCardsShown, Stakes, OpeningCardsShown,
+                RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits, SoulWorthYears, SoulLossPercent);
         }
     }
 }

@@ -17,7 +17,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 ART = os.path.join(ROOT, "Assets", "Resources", "Art")
 OUT = os.path.join(HERE, "preview")
 SCALE = 3
-FPS = {"idle": 5, "talk": 8, "gloat": 8, "angry": 8, "reraise": 8, "final": 8}
+FPS = {"idle": 5, "talk": 8, "gloat": 8, "angry": 8, "reraise": 8, "final": 8, "soul": 8}
 
 
 def scaled(img, scale=SCALE):
@@ -89,6 +89,24 @@ def main():
                        f"@keyframes {cls}{{to{{background-position:-{big.width}px 0}}}}")
             html.append(f"<figure style=display:inline-block><div class='strip {cls}'></div><figcaption>{state} ({frames})</figcaption></figure>")
         html.append(f"</div><img src={name}>")
+    salons = os.path.join(ART, "Backgrounds")
+    if os.path.isdir(salons):
+        html.append("<h2>salons</h2>")
+        for demon in sorted(os.listdir(salons)):
+            for variant in ("normal", "hell", "soul"):
+                src = os.path.join(salons, demon, variant + ".png")
+                if not os.path.exists(src):
+                    continue
+                strip = Image.open(src)
+                frames = max(1, strip.width // 480)
+                file = f"salon_{demon}_{variant}.png"
+                big = scaled(strip, 2)
+                big.save(os.path.join(OUT, file))
+                cls = f"salon-{demon}-{variant}"
+                css.append(f".{cls}{{width:960px;height:540px;background-image:url({file});background-repeat:no-repeat;"
+                           f"image-rendering:pixelated;animation:{cls} {frames / 4:.2f}s steps({frames}) infinite}}"
+                           f"@keyframes {cls}{{to{{background-position:-{big.width}px 0}}}}")
+                html.append(f"<figure><div class='{cls}'></div><figcaption>{demon} — {variant} ({frames} frames)</figcaption></figure>")
     if os.path.isdir(os.path.join(ART, "Ui")):
         scaled(ui_sheet(), 2).save(os.path.join(OUT, "ui_sheet.png"))
         html.append("<h2>ui</h2><img src=ui_sheet.png>")

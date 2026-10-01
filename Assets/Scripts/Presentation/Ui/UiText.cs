@@ -8,7 +8,7 @@ namespace HellPoker.Presentation.Ui
         public const string Title = "HELL POKER";
         public const string Subtitle = "Five Card Draw against the House";
         public const string YearsLabel = "YEARS LEFT IN HELL";
-        public const string DamnationFormat = "Damned forever at {0}";
+        public const string SoulLineFormat = "Soul at stake at {0}";
         public const string StakeLabel = "ANTE";
         public const string PayoutsTitle = "PAYOUTS";
         /// <summary>Payout panel footer. {0} loss surcharge (see <see cref="LossSurcharge"/>), {1} fold before the draw, {2} after (see <see cref="ShareShort"/>).</summary>
@@ -56,10 +56,11 @@ namespace HellPoker.Presentation.Ui
         public const string MenuFooter = "Esc — menu";
         public const string RulesTitle = "THE RULES OF THE HOUSE";
 
-        /// <summary>{0} starting years, {1} damnation limit, {2} forced-raise threshold, {3} table cap percent.</summary>
+        /// <summary>{0} starting years, {1} (unused), {2} forced-raise threshold, {3} table cap percent.</summary>
         public const string RulesFormat =
-            "You start with {0} years. Bring them down to 0 and you walk free; reach {1} and you are damned for eternity.\n" +
-            "Choose your dealer first — every demon keeps their own house rules, payouts and temper.\n\n" +
+            "You start with {0} years. Bring them down to 0 and you walk free.\n" +
+            "Every demon has a soul line. Reach it and your soul goes on the table — lose it all and you are damned for eternity.\n" +
+            "You may change tables between hands — never while your soul is on one.\n\n" +
             "1.  The ante is a tenth of your sentence (1000 years: 100, 500: 50, 250: 25). Deal.\n" +
             "2.  Two cards turn, then one by one: RAISE, PASS or FOLD on cards 3, 4 and 5.\n" +
             "3.  Throw back cards and draw (the dealer says how many) — then one more decision. Raises now count double.\n" +
@@ -97,7 +98,34 @@ namespace HellPoker.Presentation.Ui
         public const string FoldFormat = "You fold and slink away from the table.  +{0} years.";
         public const string AbsolvedMessage = "DEAD MAN'S HAND!  Wild Bill vouches for you. You walk free.";
         public const string ServedMessage = "Your sentence is served. The gates of Hell open — you walk free.";
-        public const string DamnedFormat = "{0} years. The House owns your soul for eternity.";
+        public const string DamnedMessage = "Your soul is ash. The House owns you for eternity.";
+
+        // ------------------------------------------------------------------ the soul (no numbers, ever)
+
+        public const string SoulLabel = "YOUR SOUL";
+        public const string SoulOnTable = "on the table";
+        public const string WagerMore = "WAGER MORE";
+        public const string WagerAll = "ALL OF IT";
+        public const string MatchIt = "MATCH IT";
+        public const string SoulPromptBet = "Your soul is on the table. Deal when you dare.";
+        public const string SoulPromptReRaise = "The House wagers more of your soul! Match it — or fold?";
+        public const string SoulStakeInfo = "Win: your soul mends   ·   Lose: it burns";
+        public const string SoulWinFormat = "{0} beats {1}.  Your soul mends.";
+        public const string SoulLossFormat = "{0} beats your {1}.  Your soul burns.";
+        public const string SoulFold = "You fold. A piece of your soul stays on the table.";
+        public const string SoulTakenMessage = "Your soul is on the table now.";
+        public const string SoulReleasedMessage = "Your soul is your own again.";
+
+        // ------------------------------------------------------------------ changing tables
+
+        public const string LeaveTable = "LEAVE TABLE";
+        public const string SoulBound = "SOUL BOUND";
+        public const string ChangeTable = "CHANGE TABLE";
+        public const string SitAnyway = "SIT ANYWAY";
+        public const string ReturnToTable = "RETURN";
+        public const string Safe = "SAFE";
+        public const string SoulAtStake = "SOUL AT STAKE";
+        public const string ChooseTableSubtitle = "Your sentence goes with you. Mind each demon's soul line.";
 
         public static string CategoryName(HandCategory category)
         {

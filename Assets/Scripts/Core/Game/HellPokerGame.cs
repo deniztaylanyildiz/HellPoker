@@ -42,9 +42,30 @@ namespace HellPoker.Core.Game
 
         public int Years => _ledger.Years;
         public int YearsOffTable => _ledger.Years - CurrentStake;
-        public int UpcomingAnte => Rules.Stakes.AnteFor(_ledger.Years);
         public bool IsGameOver => Phase == GamePhase.Absolved || Phase == GamePhase.Damned;
         public bool IsRaiseForced => _ledger.Years <= Rules.ForcedRaiseYears;
+
+        // ------------------------------------------------------------------ the soul
+
+        public int SoulWorth => Rules.SoulWorthYears;
+        public bool IsSoulAtStake => _ledger.Years >= Rules.SoulThreshold;
+        public bool IsSoulHand { get; private set; }
+
+        public int SoulRemaining => IsSoulAtStake
+            ? Math.Max(0, Math.Min(SoulWorth, SoulWorth - (_ledger.Years - Rules.SoulThreshold)))
+            : SoulWorth;
+
+        /// <summary>What may still be wagered this hand: the sentence normally, what is left of the soul when it is on the table.</summary>
+        private int Purse => IsSoulHand ? _handPurse : _ledger.Years;
+
+        public int WagerLeft => Math.Max(0, Purse - CurrentStake);
+
+        /// <summary>Bets are measured against the soul's worth once it is on the table, against the sentence otherwise.</summary>
+        private int StakeBase => IsSoulAtStake ? SoulWorth : _ledger.Years;
+
+        private int AvailableForNextHand => IsSoulAtStake ? SoulRemaining : _ledger.Years;
+
+        public int UpcomingAnte => Math.Min(Rules.Stakes.AnteFor(StakeBase), AvailableForNextHand);
 
         public int RaiseAmount
         {
@@ -57,10 +78,14 @@ namespace HellPoker.Core.Game
         }
 
         public int LeastYearsForgiven => _payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, _ledger.Years);
-        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook);
+        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake));
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
         private int AnteForOutlook => CurrentStake > 0 ? Ante : UpcomingAnte;
+
+        private int _handPurse;
+
+        private int LossSurcharge(bool soulHand) => soulHand ? Rules.SoulLossPercent : 100;
 
         /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
@@ -91,11 +116,14 @@ namespace HellPoker.Core.Game
         {
             RequirePhase(GamePhase.Betting);
 
-            int years = _ledger.Years;
+            // With the soul on the table the bets are measured against the soul's worth and limited to what is left of it.
+            IsSoulHand = IsSoulAtStake;
+            int stakeBase = StakeBase;
+            _handPurse = AvailableForNextHand;
             _deck.Reset();
-            Unit = Rules.Stakes.UnitFor(years);
-            Ante = Rules.Stakes.AnteFor(years);
-            TableCap = Rules.Stakes.CapFor(years);
+            Unit = Rules.Stakes.UnitFor(stakeBase);
+            Ante = Math.Min(Rules.Stakes.AnteFor(stakeBase), _handPurse);
+            TableCap = Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
             PlayerHand = _deck.DealHand();
             HouseHand = _deck.DealHand();
@@ -205,6 +233,39 @@ namespace HellPoker.Core.Game
             Phase = GamePhase.Betting;
         }
 
+        public bool CanLeaveTable(out string reason)
+        {
+            if (Phase != GamePhase.Betting)
+            {
+                reason = "You can only change tables between hands.";
+                return false;
+            }
+
+            if (IsSoulAtStake)
+            {
+                reason = "Your soul is on this table. You cannot leave it.";
+                return false;
+            }
+
+            reason = null;
+            return true;
+        }
+
+        public void TakeOver(int years, int roundsPlayed)
+        {
+            RequirePhase(GamePhase.Betting);
+            if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
+            if (roundsPlayed < 0) throw new ArgumentOutOfRangeException(nameof(roundsPlayed));
+
+            _ledger.Reset(years);
+            ClearHand();
+            LastRound = null;
+            RoundNumber = roundsPlayed;
+            Phase = _ledger.IsServed ? GamePhase.Absolved
+                : _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned
+                : GamePhase.Betting;
+        }
+
         /// <summary>Moves on from a decision that has been answered.</summary>
         private void Advance(GamePhase answered)
         {
@@ -233,10 +294,13 @@ namespace HellPoker.Core.Game
             }
         }
 
-        /// <summary>After a raise past the draw, the house may raise back (if the cap leaves room).</summary>
+        /// <summary>
+        /// After a raise past the draw, the house may raise back. Its re-raise may go past the table cap (only the player's own
+        /// raises are capped) but never past what the player still has.
+        /// </summary>
         private bool TryHouseReRaise()
         {
-            int amount = RoomToRaise(Rules.HouseReRaiseUnits * Unit);
+            int amount = Math.Max(0, Math.Min(Rules.HouseReRaiseUnits * Unit, WagerLeft));
             if (amount == 0 || _houseBetting == null || !_houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand)))
                 return false;
 
@@ -248,7 +312,7 @@ namespace HellPoker.Core.Game
 
         private int RoomToRaise(int wanted)
         {
-            return Math.Max(0, Math.Min(wanted, Math.Min(TableCap - CurrentStake, YearsOffTable)));
+            return Math.Max(0, Math.Min(wanted, Math.Min(TableCap - CurrentStake, WagerLeft)));
         }
 
         private static bool IsDecisionPhase(GamePhase phase)
@@ -267,11 +331,11 @@ namespace HellPoker.Core.Game
             int yearsBefore = _ledger.Years;
 
             if (showdown == null)
-                _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw));
+                _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
                 _ledger.Forgive(_payouts.GetYearsForgiven(showdown.Player.Category, CurrentStake, Ante, _ledger.Years));
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante));
+                _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)));
 
             HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;
@@ -294,6 +358,8 @@ namespace HellPoker.Core.Game
             CurrentStake = 0;
             HouseReRaiseAmount = 0;
             IsAfterDraw = false;
+            IsSoulHand = false;
+            _handPurse = 0;
             PlayerCardsRevealed = 0;
             HouseCardsRevealed = 0;
             _playerExchange = null;

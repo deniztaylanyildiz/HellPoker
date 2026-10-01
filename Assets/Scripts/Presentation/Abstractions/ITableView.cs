@@ -21,6 +21,13 @@ namespace HellPoker.Presentation.Abstractions
         event Action ActionPressed;
         event Action<BetAction> BetPressed;
         event Action MenuPressed;
+        event Action LeavePressed;
+
+        /// <summary>Shows or hides the soul bar; while it shows, the year counter is hidden and the hall turns cold.</summary>
+        void SetSoul(SoulGauge gauge);
+
+        /// <summary>The LEAVE TABLE button.</summary>
+        void SetLeave(LeaveState state);
 
         /// <summary>Shows or hides the whole table immediately (animations keep running while hidden).</summary>
         void SetVisible(bool visible);

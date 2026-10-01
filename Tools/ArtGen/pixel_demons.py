@@ -32,15 +32,21 @@ def poses(state):
         return [dict(eyes="glow", brows="sly", mouth="sly", sparkle=i in (2, 3), glow=min(i, 3), t=i) for i in range(5)]
     if state == "final":
         return [dict(dy=d, eyes="glow", fire=i, glow=2, t=i) for i, d in enumerate([0, 1, 0, 1])]
+    if state == "soul":
+        # The soul on the table: the same intensity as the final stretch, but cold — ghost fire, pale glowing eyes.
+        return [dict(dy=d, eyes="glow", fire=i, glow=3 if i % 2 else 2, cold=True, t=i) for i, d in enumerate([0, 0, 1, 1])]
     raise ValueError(state)
 
 
-STATES = ["idle", "talk", "gloat", "angry", "reraise", "final"]
+STATES = ["idle", "talk", "gloat", "angry", "reraise", "final", "soul"]
+
+RAMP_COLD = [C.DUSK, C.VIOLET, C.LILAC, C.SILVER, C.WHITE]
+COLD_EYES = {C.EMBER: C.WHITE, C.AMBER: C.LILAC_LIGHT, C.ORANGE: C.LILAC, C.HELL: C.MAUVE}
 
 
 def defaults(p):
     base = dict(dy=0, hdy=0, dx=0, eyes="open", mouth="rest", brows="calm", flash=False, fire=None, sparkle=False,
-                glow=0, steam=None, t=0)
+                glow=0, steam=None, cold=False, t=0)
     base.update(p)
     return base
 
@@ -60,26 +66,31 @@ def backdrop(img, accent, stars=None):
             img.put(int(rng.integers(2, img.w - 2)), int(rng.integers(2, 50)), C.LILAC_LIGHT)
 
 
-def fire_back(img, phase):
-    """Tall flames licking up behind the demon (final stretch)."""
+def fire_back(img, phase, ramp=RAMP_FIRE):
+    """Tall flames licking up behind the demon (final stretch; cold ghost fire when the soul is on the table)."""
     for x in range(img.w):
         h = 40 + 12 * math.sin(x * 0.31 + phase * 1.6) + 7 * math.sin(x * 0.83 - phase * 2.4) + 4 * math.sin(x * 2.1 + phase)
         top = img.h - int(h)
         for y in range(max(0, top), img.h):
             depth = (y - top) / max(1.0, h)
             idx = 0 if depth < 0.12 else 1 if depth < 0.3 else 2 if depth < 0.5 else 3 if depth < 0.7 else 4
-            img.put(x, y, RAMP_FIRE[idx])
+            img.put(x, y, ramp[idx])
 
 
-def finish(fig, p, accent, stars=None):
+def finish(fig, p, accent, stars=None, flash_map=None):
     """Outlines the figure, applies the angry flash and lays it over the backdrop (and the fire)."""
     fig.outline(C.BLACK)
     if p["flash"]:
-        red_flash(fig)
+        if flash_map:
+            fig.recolor(flash_map)
+        else:
+            red_flash(fig)
+    if p["cold"]:
+        fig.recolor(COLD_EYES)
     img = Img(SIZE, SIZE)
     backdrop(img, accent, stars)
     if p["fire"] is not None:
-        fire_back(img, p["fire"])
+        fire_back(img, p["fire"], RAMP_COLD if p["cold"] else RAMP_FIRE)
     img.blit(fig, 0, 0)
     return img
 
@@ -381,18 +392,22 @@ def lilith(p):
     t = p["t"]
     flap = [0, -1, -2, -1, 0, 1][t % 6] if p["fire"] is None else -3
 
-    # Great night-bird wings, feathers in ranks.
+    # Pale bone-lilac skin: light enough to stand out from her dark wings and the night behind her.
+    skin = [C.LILAC, C.LILAC_LIGHT, C.BONE_MID, C.BONE]
+
+    # Great night-bird wings, feathers in ranks, with a crisp lilac edge so the silhouette reads.
     for sx in (-1, 1):
         tip_y = 12 + flap
         outline = [(48 + sx * 10, 70 + oy), (48 + sx * 20, 40 + oy), (48 + sx * 34, tip_y), (48 + sx * 46, tip_y + 6),
                    (48 + sx * 47, 40), (48 + sx * 44, 62), (48 + sx * 38, 76), (48 + sx * 30, 84), (48 + sx * 18, 82)]
         wing = img.m_poly(outline)
-        img.shade(wing, [C.NIGHT, C.DUSK, C.PLUM, C.VIOLET], light=(-sx, -1), shadow=1)
+        img.shade(wing, [C.BLACK, C.NIGHT, C.DUSK, C.PLUM], light=(-sx, -1), shadow=1)
         # Feather lines and scalloped lower edge.
         for row in range(3):
             pts = bezier([(48 + sx * (16 + row * 4), 46 + row * 10 + oy), (48 + sx * 32, 40 + row * 12),
                           (48 + sx * (44 - row * 2), 30 + row * 14 + flap)], 14)
             img.paint(img.m_line(pts, 1) & wing, C.MAUVE if row == 0 else C.VIOLET)
+        img.inner_outline(wing, C.LILAC)
         for k in range(5):
             fx = 48 + sx * (20 + k * 6)
             fy = 82 - k * 5
@@ -408,9 +423,9 @@ def lilith(p):
     gown = shifted(img.m_poly([(14, 97), (20, 80), (36, 68), (60, 68), (76, 80), (82, 97)]), 0, -oy)
     img.shade(gown, [C.BLACK, C.NIGHT, C.DUSK, C.PLUM], shadow=1)
     neck = img.m_rect(45 + hx, 54 + hy, 51 + hx, 70 + oy)
-    img.shade(neck, RAMP_LILAC[:3], shadow=1, base_level=1)
+    img.shade(neck, skin[:3], shadow=1, base_level=2)
     chest = img.m_poly([(42 + ox, 68 + oy), (54 + ox, 68 + oy), (50 + ox, 78 + oy), (46 + ox, 78 + oy)])
-    img.shade(chest, RAMP_LILAC, shadow=1)
+    img.shade(chest, skin, shadow=1)
     for sx in (-1, 1):
         collar = img.m_poly([(48 + sx * 6 + ox, 70 + oy), (48 + sx * 15 + ox, 50 + oy), (48 + sx * 18 + ox, 52 + oy),
                              (48 + sx * 12 + ox, 74 + oy)])
@@ -421,7 +436,7 @@ def lilith(p):
     # An oval face with a delicate chin.
     head = img.m_ellipse(48 + hx, 40 + hy, 13, 16) | img.m_poly([(36 + hx, 44 + hy), (60 + hx, 44 + hy), (52 + hx, 56 + hy),
                                                                  (48 + hx, 58 + hy), (44 + hx, 56 + hy)])
-    img.shade(head, RAMP_LILAC, shadow=2)
+    img.shade(head, skin, shadow=2)
 
     # Small black horns curving up from the hairline.
     for sx in (-1, 1):
@@ -437,16 +452,19 @@ def lilith(p):
         img.paint(lock, C.BLACK)
         img.paint(img.m_line([(48 + sx * 14 + hx, 36 + hy), (48 + sx * 15 + hx, 64 + oy)], 1) & lock, C.PLUM)
 
-    # Silver crescent on the brow.
-    cres = img.m_ellipse(48 + hx, 29 + hy, 3.5, 3.5) & ~img.m_ellipse(49.5 + hx, 28 + hy, 3, 3)
-    img.paint(cres, C.SILVER)
-    img.put(46 + hx, 28 + hy, C.WHITE)
+    # A bright crescent crown above the brow, on a thin silver circlet.
+    img.paint(img.m_line(bezier([(37 + hx, 31 + hy), (48 + hx, 27 + hy), (59 + hx, 31 + hy)], 12), 1), C.SILVER)
+    cres = img.m_ellipse(48 + hx, 23 + hy, 5.5, 5.5) & ~img.m_ellipse(50.5 + hx, 21.5 + hy, 4.6, 4.6)
+    img.paint(cres, C.WHITE)
+    img.inner_outline(cres, C.SILVER)
+    for dx, dy in ((-6, 21), (2, 16), (-1, 29)):
+        img.put(48 + dx + hx, dy + hy, C.LILAC_LIGHT)
 
     # Face.
     brows(img, 45 + hx, 51 + hx, 37 + hy, p["brows"], C.BLACK)
     eye(img, 43 + hx, 41 + hy, p["eyes"], C.MAUVE if p["eyes"] != "glow" else C.LILAC_LIGHT, p["glow"], inner_left=False, lid=C.BLACK)
     eye(img, 53 + hx, 41 + hy, p["eyes"], C.MAUVE if p["eyes"] != "glow" else C.LILAC_LIGHT, p["glow"], inner_left=True, lid=C.BLACK)
-    img.put(48 + hx, 47 + hy, C.MAUVE)
+    img.put(48 + hx, 47 + hy, C.LILAC)
     kind = p["mouth"]
     if kind == "rest":
         # Dark lips, a knowing half smile.
@@ -462,7 +480,9 @@ def lilith(p):
         steam(img, 64 + hx, 22 + hy, (p["steam"] + 1) % 3)
     if p["sparkle"]:
         sparkle(img, 54 + hx, 39 + hy)
-    return finish(img, p, C.VIOLET, stars=5)
+    # Her pale skin needs its own angry flush.
+    flush = {C.LILAC: C.CRIMSON, C.LILAC_LIGHT: C.RED, C.BONE_MID: C.HELL, C.BONE: C.ORANGE, C.MAUVE: C.CRIMSON}
+    return finish(img, p, C.DUSK, stars=5, flash_map=flush)
 
 
 DEMONS = {"mammon": mammon, "belial": belial, "lilith": lilith}

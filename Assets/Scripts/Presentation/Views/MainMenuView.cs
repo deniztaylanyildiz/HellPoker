@@ -18,6 +18,7 @@ namespace HellPoker.Presentation.Views
 
         private Canvas _canvas;
         private GameObject _continueButton;
+        private GameObject _changeTableButton;
         private GameObject _front;
         private GameObject _rulesPanel;
         private RectTransform _logo;
@@ -25,6 +26,7 @@ namespace HellPoker.Presentation.Views
         public event Action NewGamePressed;
         public event Action ContinuePressed;
         public event Action QuitPressed;
+        public event Action ChangeTablePressed;
 
         public bool IsVisible => _canvas.enabled;
 
@@ -69,10 +71,11 @@ namespace HellPoker.Presentation.Views
 
             Transform buttons = UiFactory.CreateRect("Buttons", front).Stretch();
             int x = (PixelScreen.Width - ButtonWidth) / 2;
-            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, ButtonSkin.Ember, x, 138, () => ContinuePressed?.Invoke());
-            CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, ButtonSkin.Blood, x, 164, () => NewGamePressed?.Invoke());
-            CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, ButtonSkin.Ash, x, 190, () => ShowRules(true));
-            CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, x, 216, () => QuitPressed?.Invoke());
+            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, ButtonSkin.Ember, x, 130, () => ContinuePressed?.Invoke());
+            _changeTableButton = CreateMenuButton(buttons, "ChangeTableButton", UiText.ChangeTable, ButtonSkin.Ash, x, 152, () => ChangeTablePressed?.Invoke());
+            CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, ButtonSkin.Blood, x, 174, () => NewGamePressed?.Invoke());
+            CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, ButtonSkin.Ash, x, 196, () => ShowRules(true));
+            CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, x, 218, () => QuitPressed?.Invoke());
 
             UiFactory.CreateText("Footer", front, UiText.MenuFooter, 8, Palette.BoneDark).rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
 
@@ -117,6 +120,7 @@ namespace HellPoker.Presentation.Views
         public void Show(bool canContinue)
         {
             _continueButton.SetActive(canContinue);
+            _changeTableButton.SetActive(canContinue);
             ShowRules(false);
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;

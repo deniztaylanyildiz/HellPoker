@@ -245,6 +245,31 @@ def flames(frames=4, w=32, h=20):
     return sheet(out)
 
 
+def soul_lamp(frames=4, w=16, h=24):
+    """A glass phial holding the soul: a pale, ghostly flame that flickers."""
+    out = []
+    for f in range(frames):
+        img = Img(w, h)
+        glass = img.m_ellipse(8, 15.5, 6.5, 7.5) | img.m_rect(5, 3, 10, 9)
+        img.paint(glass, C.NIGHT)
+        img.inner_outline(glass, C.SILVER_DARK)
+        img.put(4, 12, C.SILVER)
+        img.put(4, 13, C.SILVER)
+        cork = img.m_rect(5, 0, 10, 2)
+        img.paint(cork, C.BONE_SHADE)
+        img.inner_outline(cork, C.BLACK)
+        # Flame: a teardrop that sways and breathes.
+        sway = [0, 1, 0, -1][f]
+        tall = [0, 1, 2, 1][f]
+        flame = img.m_ellipse(8 + sway * 0.5, 17, 3.2, 3.6) | img.m_poly([(5 + sway, 17), (8 + sway, 9 - tall), (11 + sway, 17)])
+        img.paint(flame & glass, C.LILAC)
+        core = img.m_ellipse(8 + sway * 0.5, 18, 1.6, 2.2) | img.m_poly([(7 + sway, 18), (8 + sway, 13 - tall), (9 + sway, 18)])
+        img.paint(core & glass, C.WHITE)
+        img.paint(flame & ~core & glass & img.m_rect(0, 18, w, h), C.SILVER)
+        out.append(img)
+    return sheet(out)
+
+
 def divider(w=48):
     img = Img(w, 3)
     img.paint(img.m_rect(2, 1, w - 3, 1), C.GOLD_MID)
@@ -278,6 +303,7 @@ def write_all(out_dir, fonts_dir):
         "title": title(os.path.join(fonts_dir, "PressStart2P-Regular.ttf")),
         "coin": coin_chip(),
         "flames": flames(),
+        "soul_lamp": soul_lamp(),
         "divider": divider(),
     }
     for name in SUITS_SMALL:

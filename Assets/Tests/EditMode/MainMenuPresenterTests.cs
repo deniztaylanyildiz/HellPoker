@@ -17,6 +17,7 @@ namespace HellPoker.Core.Tests
             public event Action NewGamePressed;
             public event Action ContinuePressed;
             public event Action QuitPressed;
+            public event Action ChangeTablePressed;
 
             public void Show(bool canContinue)
             {
@@ -29,39 +30,71 @@ namespace HellPoker.Core.Tests
             public void PressNewGame() => NewGamePressed?.Invoke();
             public void PressContinue() => ContinuePressed?.Invoke();
             public void PressQuit() => QuitPressed?.Invoke();
+            public void PressChangeTable() => ChangeTablePressed?.Invoke();
         }
 
         private sealed class FakeDealerSelectView : IDealerSelectView
         {
             public bool IsVisible { get; private set; }
-            public IReadOnlyList<DealerCard> Shown { get; private set; }
+            public IReadOnlyList<DealerChoice> Shown { get; private set; }
+            public string Warning { get; private set; }
 
             public event Action<int> DealerChosen;
             public event Action BackPressed;
+            public event Action SeatConfirmed;
+            public event Action SeatCancelled;
 
-            public void Show(IReadOnlyList<DealerCard> dealers)
+            public void Show(IReadOnlyList<DealerChoice> dealers)
             {
                 IsVisible = true;
                 Shown = dealers;
+                Warning = null;
             }
+
+            public void AskToConfirm(string warning) => Warning = warning;
 
             public void Hide() => IsVisible = false;
 
             public void Choose(int index) => DealerChosen?.Invoke(index);
             public void PressBack() => BackPressed?.Invoke();
+            public void Confirm() => SeatConfirmed?.Invoke();
+            public void Cancel() => SeatCancelled?.Invoke();
         }
 
         private sealed class FakeSession : IRunSession
         {
             public bool CanContinue { get; set; }
             public int NewRuns { get; private set; }
+            public int Switches { get; private set; }
             public Dealer Dealer { get; private set; }
+            public string CurrentDealerId => Dealer?.Id;
+
+            /// <summary>The sentence the fake player carries; compared with each dealer's soul line.</summary>
+            public int Years { get; set; } = 1000;
+
+            /// <summary>When true, the dealer refuses to let the player leave (soul bound).</summary>
+            public bool SoulBound { get; set; }
+
+            public event Action LeaveRequested;
 
             public void StartNewRun(Dealer dealer)
             {
                 NewRuns++;
                 Dealer = dealer;
                 CanContinue = true;
+            }
+
+            public void RequestLeave()
+            {
+                if (!SoulBound) LeaveRequested?.Invoke();
+            }
+
+            public bool WouldStakeSoul(Dealer dealer) => dealer.TakesSoulAt(Years);
+
+            public void SwitchTable(Dealer dealer)
+            {
+                Switches++;
+                Dealer = dealer;
             }
         }
 
@@ -117,7 +150,7 @@ namespace HellPoker.Core.Tests
             Assert.IsFalse(_menu.IsVisible);
             Assert.IsFalse(_table.Visible);
             Assert.AreEqual(0, _session.NewRuns, "Nothing starts until a dealer is chosen.");
-            CollectionAssert.AreEqual(new[] { "MAMMON", "BELIAL", "LILITH" }, new[] { _dealerSelect.Shown[0].Name, _dealerSelect.Shown[1].Name, _dealerSelect.Shown[2].Name });
+            CollectionAssert.AreEqual(new[] { "MAMMON", "BELIAL", "LILITH" }, new[] { _dealerSelect.Shown[0].Card.Name, _dealerSelect.Shown[1].Card.Name, _dealerSelect.Shown[2].Card.Name });
         }
 
         [Test]
@@ -198,6 +231,130 @@ namespace HellPoker.Core.Tests
 
             Assert.IsTrue(_presenter.IsMenuOpen);
             Assert.IsFalse(_table.Visible);
+        }
+
+        // ------------------------------------------------------------------ changing tables
+
+        [Test]
+        public void NewRunChoice_FlagsNothing()
+        {
+            _menu.PressNewGame();
+
+            foreach (DealerChoice choice in _dealerSelect.Shown)
+                Assert.IsFalse(choice.IsCurrent || choice.SoulAtStake);
+        }
+
+        [Test]
+        public void LeaveRequest_OpensTheChoice_WithTheCurrentDealerAndSoulFlags()
+        {
+            StartRunWith(0);
+            _session.Years = 1600;
+
+            _session.RequestLeave();
+
+            Assert.IsTrue(_dealerSelect.IsVisible);
+            Assert.IsFalse(_table.Visible);
+            Assert.IsTrue(_dealerSelect.Shown[0].IsCurrent);
+            Assert.IsFalse(_dealerSelect.Shown[0].SoulAtStake, "Mammon takes the soul at 2000.");
+            Assert.IsFalse(_dealerSelect.Shown[1].SoulAtStake, "Belial at 1750.");
+            Assert.IsTrue(_dealerSelect.Shown[2].SoulAtStake, "Lilith at 1500.");
+        }
+
+        [Test]
+        public void ChangingToASafeTable_SwitchesAndKeepsTheRun()
+        {
+            StartRunWith(0);
+            _session.RequestLeave();
+
+            _dealerSelect.Choose(1);
+
+            Assert.AreEqual(1, _session.NewRuns, "No new run: the sentence goes along.");
+            Assert.AreEqual(1, _session.Switches);
+            Assert.AreEqual(DealerRoster.BelialId, _session.CurrentDealerId);
+            Assert.IsTrue(_table.Visible);
+        }
+
+        [Test]
+        public void ChoosingTheCurrentDealer_ReturnsWithoutSwitching()
+        {
+            StartRunWith(0);
+            _session.RequestLeave();
+
+            _dealerSelect.Choose(0);
+
+            Assert.AreEqual(0, _session.Switches);
+            Assert.IsTrue(_table.Visible);
+        }
+
+        [Test]
+        public void SittingPastASoulLine_NeedsConfirmation()
+        {
+            StartRunWith(0);
+            _session.Years = 1600;
+            _session.RequestLeave();
+
+            _dealerSelect.Choose(2);
+
+            Assert.AreEqual(0, _session.Switches, "Not before the warning is accepted.");
+            Assert.IsNotEmpty(_dealerSelect.Warning);
+            Assert.IsTrue(_dealerSelect.IsVisible);
+
+            _dealerSelect.Confirm();
+
+            Assert.AreEqual(1, _session.Switches);
+            Assert.AreEqual(DealerRoster.LilithId, _session.CurrentDealerId);
+            Assert.IsTrue(_table.Visible);
+        }
+
+        [Test]
+        public void CancellingTheWarning_StaysOnTheChoice()
+        {
+            StartRunWith(0);
+            _session.Years = 1600;
+            _session.RequestLeave();
+            _dealerSelect.Choose(2);
+
+            _dealerSelect.Cancel();
+            _dealerSelect.Confirm();
+
+            Assert.AreEqual(0, _session.Switches, "A confirm after cancelling does nothing.");
+            Assert.IsTrue(_dealerSelect.IsVisible);
+        }
+
+        [Test]
+        public void BackWhileChangingTables_ReturnsToTheTable()
+        {
+            StartRunWith(0);
+            _session.RequestLeave();
+
+            _dealerSelect.PressBack();
+
+            Assert.IsTrue(_table.Visible);
+            Assert.IsFalse(_menu.IsVisible);
+        }
+
+        [Test]
+        public void MenuChangeTable_OpensTheChoice()
+        {
+            StartRunWith(0);
+            _table.PressMenu();
+
+            _menu.PressChangeTable();
+
+            Assert.IsTrue(_dealerSelect.IsVisible);
+        }
+
+        [Test]
+        public void MenuChangeTable_WhenSoulBound_StaysAtTheTable()
+        {
+            StartRunWith(0);
+            _session.SoulBound = true;
+            _table.PressMenu();
+
+            _menu.PressChangeTable();
+
+            Assert.IsFalse(_dealerSelect.IsVisible);
+            Assert.IsTrue(_table.Visible, "The dealer answers at the table.");
         }
 
         [Test]

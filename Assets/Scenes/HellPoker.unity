@@ -232,8 +232,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _startingYears: 1000
-  _damnationYears: 2000
   _forcedRaiseYears: 250
+  _soulWorthYears: 1000
+  _soulLossPercent: 150
   _stakeDivisor: 10
   _minimumUnit: 10
   _tableCapPercent: 30

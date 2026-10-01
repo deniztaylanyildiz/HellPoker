@@ -448,5 +448,160 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(0, _view.SentenceView.Years);
             Assert.AreEqual("PLAY AGAIN", _view.ActionLabel);
         }
+
+        // ------------------------------------------------------------------ the soul and changing tables
+
+        private const string Nothing = "2C 5D 7H 9S JC";
+        private const string HouseTwoPair = "KS KH 4D 4C 9H";
+
+        /// <summary>Moves the current run to <paramref name="dealer"/>'s table with <paramref name="years"/> on the sentence.</summary>
+        private void SitWith(int years, Dealer dealer)
+        {
+            _game.TakeOver(years, 2);
+            _presenter.SwitchTable(dealer);
+        }
+
+        private static bool HasYearNumber(string text) =>
+            text != null && System.Text.RegularExpressions.Regex.IsMatch(text, @"\d{2,}");
+
+        private void AssertNoYearsShown()
+        {
+            Assert.That(_view.NumberLog, Has.All.EqualTo(0), "Pot, ante and sentence stay blank with the soul on the table.");
+            foreach (string text in _view.TextLog)
+                Assert.IsFalse(HasYearNumber(text), $"A number reached the table: \"{text}\"");
+        }
+
+        [Test]
+        public void SoulZone_NeverShowsYearNumbers_ThroughAWholeHand()
+        {
+            Setup(player: Nothing, house: HouseTwoPair, rest: "3S 8D QD 6C", houseBetting: new HellPokerGameTests.FixedHouseBetting(true));
+            SitWith(2100, DealerRoster.Mammon);
+            _view.TextLog.Clear();
+            _view.NumberLog.Clear();
+
+            _view.PressAction();                       // deal
+            _view.PressBet(BetAction.Raise);
+            Assert.AreEqual("WAGER MORE", _view.BetControls.RaiseLabel);
+            PassUntil(GamePhase.Drawing);
+            _view.PressAction();                       // stand pat
+            _view.PressBet(BetAction.Raise);           // the house re-raises
+            Assert.AreEqual(GamePhase.HouseReRaise, _game.Phase);
+            Assert.AreEqual("MATCH IT", _view.BetControls.CallLabel);
+            _view.PressBet(BetAction.Call);
+            PassUntil(GamePhase.RoundOver);
+
+            Assert.IsTrue(_game.IsSoulAtStake, "Still bound after the loss.");
+            AssertNoYearsShown();
+            Assert.IsTrue(_view.Soul.Visible);
+            Assert.Less(_view.Soul.Remaining, 0.9f, "The bar burned down.");
+        }
+
+        [Test]
+        public void SittingPastTheLine_ShowsTheSoulBar_AndTheDealerTakesIt()
+        {
+            Setup();
+            _view.TextLog.Clear();
+            _view.NumberLog.Clear();
+
+            SitWith(1600, DealerRoster.Lilith);
+
+            Assert.IsTrue(_view.Soul.Visible);
+            Assert.AreEqual(0.9f, _view.Soul.Remaining, 0.001f);
+            Assert.AreEqual(DealerMood.Gloating, _view.DealerView.LastMood);
+            Assert.AreEqual(LeaveState.Locked, _view.Leave);
+            AssertNoYearsShown();
+        }
+
+        [Test]
+        public void SafeTable_ShowsTheSentence_AndTheLeaveButton()
+        {
+            Setup();
+
+            Assert.IsFalse(_view.Soul.Visible);
+            Assert.AreEqual(LeaveState.Open, _view.Leave);
+            Assert.AreEqual(2000, _view.SentenceView.SoulLine, "Mammon's soul line.");
+        }
+
+        [Test]
+        public void LeaveButton_IsHiddenDuringAHand()
+        {
+            Setup();
+
+            _view.PressAction();
+
+            Assert.AreEqual(LeaveState.Hidden, _view.Leave);
+        }
+
+        [Test]
+        public void Leave_BetweenHands_AsksToChangeTables()
+        {
+            Setup();
+            int asked = 0;
+            _presenter.LeaveRequested += () => asked++;
+
+            _view.PressLeave();
+
+            Assert.AreEqual(1, asked);
+        }
+
+        [Test]
+        public void Leave_WithTheSoulOnTheTable_TheDealerRefuses()
+        {
+            Setup();
+            SitWith(2100, DealerRoster.Mammon);
+            int asked = 0;
+            _presenter.LeaveRequested += () => asked++;
+            int lines = _view.DealerView.LinesSaid;
+
+            _view.PressLeave();
+
+            Assert.AreEqual(0, asked);
+            Assert.AreEqual(lines + 1, _view.DealerView.LinesSaid);
+            Assert.AreEqual(DealerMood.Menacing, _view.DealerView.LastMood);
+        }
+
+        [Test]
+        public void SwitchingTables_CarriesTheSentence()
+        {
+            Setup();
+            _game.TakeOver(1400, 5);
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+
+            Assert.AreEqual(DealerRoster.BelialId, _lastDealer.Id);
+            Assert.AreEqual(1400, _game.Years);
+            Assert.AreEqual(5, _game.RoundNumber);
+            Assert.AreEqual(1400, _view.SentenceView.Years);
+            Assert.AreEqual(1750, _view.SentenceView.SoulLine);
+            Assert.AreEqual(DealerRoster.BelialId, _presenter.CurrentDealerId);
+        }
+
+        [Test]
+        public void WouldStakeSoul_ComparesTheSentenceWithEachLine()
+        {
+            Setup();
+            _game.TakeOver(1600, 1);
+
+            Assert.IsFalse(_presenter.WouldStakeSoul(DealerRoster.Mammon));
+            Assert.IsFalse(_presenter.WouldStakeSoul(DealerRoster.Belial));
+            Assert.IsTrue(_presenter.WouldStakeSoul(DealerRoster.Lilith));
+        }
+
+        [Test]
+        public void WinningBelowTheLine_GivesTheSoulBack_Visibly()
+        {
+            // Player flush against a pair of twos; the win (500) drops 2300 under Mammon's line.
+            Setup();
+            SitWith(2300, DealerRoster.Mammon);
+            Assert.IsTrue(_view.Soul.Visible);
+
+            DealAndDraw();
+            PassUntil(GamePhase.RoundOver);
+
+            Assert.IsFalse(_view.Soul.Visible, "The bar gives way to the sentence again.");
+            Assert.AreEqual(1800, _view.SentenceView.Years);
+            Assert.AreEqual(DealerMood.Annoyed, _view.DealerView.LastMood);
+            StringAssert.Contains("soul", _view.Message.ToLowerInvariant());
+        }
     }
 }

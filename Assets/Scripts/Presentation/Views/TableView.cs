@@ -41,34 +41,39 @@ namespace HellPoker.Presentation.Views
         private FinalStretchEffect _finalStretch;
         private SentenceView _sentence;
         private DealerView _dealer;
+        private SalonView _salon;
+        private Stage _stage;
+        private SoulView _soul;
+        private Button _leaveButton;
+        private Text _leaveLabel;
 
         public IHandView House { get; private set; }
         public IHandView Player { get; private set; }
         public ISentenceView Sentence => _sentence;
         public IPayoutView Payouts { get; private set; }
-        public IDealerView Dealer => _dealer;
+        public IDealerView Dealer => _stage;
 
         public bool IsBusy => _sequencer.IsBusy;
 
         public event Action ActionPressed;
         public event Action<BetAction> BetPressed;
         public event Action MenuPressed;
+        public event Action LeavePressed;
 
-        public static TableView Create(Transform parent, DealerAnimationLibrary dealers)
+        public static TableView Create(Transform parent, DealerAnimationLibrary dealers, SalonLibrary salons)
         {
             Canvas canvas = UiFactory.CreateScreen("TableCanvas", parent, 0, out RectTransform screen);
             var view = canvas.gameObject.AddComponent<TableView>();
             view._canvas = canvas;
             view._sequencer = canvas.gameObject.AddComponent<AnimationSequencer>();
-            view.Build(screen, dealers);
+            view.Build(screen, dealers, salons);
             return view;
         }
 
-        private void Build(RectTransform screen, DealerAnimationLibrary dealers)
+        private void Build(RectTransform screen, DealerAnimationLibrary dealers, SalonLibrary salons)
         {
-            Image background = UiFactory.CreateSprite("Background", screen, UiArt.Background, Palette.Night);
-            background.rectTransform.Stretch();
-            background.raycastTarget = true;
+            // The demon's hall fills the screen behind everything.
+            _salon = SalonView.Create(screen, salons);
 
             Image logo = UiFactory.CreateSprite("Title", screen, UiArt.Title);
             if (logo.sprite != null)
@@ -89,8 +94,14 @@ namespace HellPoker.Presentation.Views
             ((RectTransform)menu.transform).PlaceTL(4, 248, 56, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
 
-            // Right column: the sentence and the dealer's payouts.
+            _leaveButton = UiFactory.CreateButton("LeaveButton", screen, UiText.LeaveTable, 8, out _leaveLabel, ButtonSkin.Ash);
+            ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
+            _leaveButton.onClick.AddListener(() => LeavePressed?.Invoke());
+            _leaveButton.gameObject.SetActive(false);
+
+            // Right column: the sentence (or the soul) and the dealer's payouts.
             _sentence = SentenceView.Create(screen, 372, 4, _sequencer);
+            _soul = SoulView.Create(screen, 372, 4, _sequencer);
             Payouts = PayoutTableView.Create(screen, 372, 62, 178, _sequencer);
 
             // Middle column: house cards, the talk of the table, player cards, the bet controls.
@@ -122,7 +133,24 @@ namespace HellPoker.Presentation.Views
             UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithShadow()
                 .rectTransform.PlaceTL(68, 253, 408, 9);
 
-            _finalStretch = FinalStretchEffect.Create(screen, background, Middle, 230, MiddleWidth);
+            _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
+            _stage = new Stage(this);
+        }
+
+        /// <summary>The dealer as the presenter sees it: the demon's portrait and talk, and the hall they sit in.</summary>
+        private sealed class Stage : IDealerView
+        {
+            private readonly TableView _table;
+
+            public Stage(TableView table) => _table = table;
+
+            public void SetDealer(DealerCard dealer)
+            {
+                _table._sequencer.Do(() => _table._salon.SetSalon(dealer.Id));
+                _table._dealer.SetDealer(dealer);
+            }
+
+            public void Say(string line, DealerMood mood) => _table._dealer.Say(line, mood);
         }
 
         /// <summary>"ANTE", a gold coin with the amount, and the years spelled out — next to the deal button.</summary>
@@ -214,6 +242,31 @@ namespace HellPoker.Presentation.Views
             {
                 _ante.SetActive(years > 0);
                 _anteAmount.text = string.Format(UiText.AnteFormat, years);
+            });
+        }
+
+        public void SetSoul(SoulGauge gauge)
+        {
+            _soul.SetGauge(gauge);
+            _sequencer.Do(() =>
+            {
+                _sentence.SetVisible(!gauge.Visible);
+                _dealer.SetSoul(gauge.Visible);
+                if (gauge.Visible)
+                    _salon.SetMode(SalonMode.Soul);
+                else if (_salon.Mode == SalonMode.Soul)
+                    _salon.SetMode(_finalStretch.IsActive ? SalonMode.Hell : SalonMode.Normal);
+            });
+        }
+
+        public void SetLeave(LeaveState state)
+        {
+            _sequencer.Do(() =>
+            {
+                _leaveButton.gameObject.SetActive(state != LeaveState.Hidden);
+                bool locked = state == LeaveState.Locked;
+                _leaveLabel.text = locked ? UiText.SoulBound : UiText.LeaveTable;
+                _leaveLabel.color = locked ? Palette.Hell : Palette.Bone;
             });
         }
 
