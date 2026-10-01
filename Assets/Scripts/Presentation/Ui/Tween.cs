@@ -7,15 +7,25 @@ namespace HellPoker.Presentation.Ui
 {
     internal static class Tween
     {
-        /// <summary>Calls <paramref name="apply"/> with an eased 0→1 value over <paramref name="duration"/> seconds.</summary>
+        /// <summary>
+        /// Calls <paramref name="apply"/> with an eased 0→1 value over <paramref name="duration"/> seconds of animation time
+        /// (<see cref="Animation.AnimationClock"/>); jumps straight to 1 when the animations are being skipped.
+        /// </summary>
         public static IEnumerator Run(float duration, Action<float> apply)
         {
-            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            for (float elapsed = 0f; elapsed < duration && !Animation.AnimationClock.IsSkipping; elapsed += Animation.AnimationClock.DeltaTime)
             {
                 apply(EaseOutCubic(elapsed / duration));
                 yield return null;
             }
             apply(1f);
+        }
+
+        /// <summary>Waits <paramref name="seconds"/> of animation time; no wait at all when skipping.</summary>
+        public static IEnumerator Wait(float seconds)
+        {
+            for (float elapsed = 0f; elapsed < seconds && !Animation.AnimationClock.IsSkipping; elapsed += Animation.AnimationClock.DeltaTime)
+                yield return null;
         }
 
         /// <summary>

@@ -517,3 +517,222 @@ yarısı geri dönüyor ve bu koşular uzun sürüyor. Belial'in fazlası da ayn
 ### Açık sorular
 - Mammon'u kısaltmak isteniyorsa asıl kaldıraç ruh dışı bahis büyüklüğü (`StakeScale` birim / tavan). Bu her şeytanı etkiler.
   Diğer seçenek Mammon'a özel bir şey (ör. ruh çizgisini 1750'ye çekmek). Karar kullanıcıda.
+
+---
+
+## 2026-10-01 — Oturum 2 (devam): Güncelleme Planı 3 (Akıcılık ve Cila) — Bölüm 1, salon hatası
+
+### İstek (kullanıcı)
+Plan 3: yeni içerik yok; oyun akıcı, anlaşılır ve hatasız olsun. Kural ve denge sayılarına dokunulmayacak.
+Bölüm 1: menüye dönünce ya da yeniden başlayınca arka plan eski şeytanda takılı kalıyor. Seçim ekranında vurgu ile arka plan
+her zaman aynı olsun; masa portreyle aynı anda doğru salonu ve modu göstersin. Önce yeniden üret, sonra düzelt, regresyon testleri yaz.
+
+### Yeniden üretme
+- `SalonView`'a ekrandaki gerçek durumu gösteren `ShownDealerId` / `ShownMode` eklendi. Plandaki dört senaryo (7–10) PlayMode
+  testi olarak yazıldı. **Dördü de düzeltmeden önce geçti**: hata batchmode'daki bu akışlarda yeniden üretilemedi.
+- Koddaki zayıf noktalar planın şüphelendiği yerlerle aynı:
+  - `SetSalon` id'yi geçiş bitmeden güncelliyor ve "aynı şeytan" kontrolüyle erken dönüyor. Geçiş coroutine'i ölürse resim eski kalır,
+    sonraki çağrılar da yutulur.
+  - Masada salon sıralayıcı kuyruğuna giriyordu. Kuyrukta takılan bir adım (exception) bütün kuyruğu kalıcı olarak kilitliyordu
+    (`_running` true kalıyordu).
+- Bunlar kalıcı olarak kapatıldı (aşağıda).
+
+### Yapılanlar
+- `AnimationClock` (yeni): tüm animasyonların tek saati. `Speed` (Bölüm 2'deki hız ayarı için) ve `IsSkipping` (atlama için).
+  `Tween.Run` ve yeni `Tween.Wait` bu saatle çalışıyor; `WaitForSeconds` kaldırıldı.
+- `AnimationSequencer`:
+  - `Complete()`: kuyruktaki her şeyi anında son durumuna götürür.
+  - Hata veren adım loglanıp atılıyor, kuyruk asla kilitlenmiyor.
+  - Pasif nesnede `Play` her şeyi hemen bitiriyor.
+  - `IsBusy` artık gerçek duruma bakıyor.
+- `SalonView`:
+  - İstenen (`DealerId`/`Mode`) ile gösterilen ayrı tutuluyor.
+  - Geçiş yokken ikisi her karede eşitleniyor (güvenlik ağı); `OnDisable` yarıda kalan geçişi tamamlıyor.
+  - `SetSalon(id, mode, wipe)` salonu ve modu birlikte ayarlıyor, geçiş doğru resmi açıyor.
+- `TableView.Stage.SetDealer`: yeni masada bekleyen animasyonlar bitiriliyor. Salon **normal modda** ve portre aynı anda,
+  doğrudan ayarlanıyor (kuyruğa girmiyor). Önceki koşudan hell / soul modu taşınmıyor; presenter doğru modu yeniden uyguluyor.
+- `DealerSelectView`:
+  - Açılışta vurgulu şeytanın salonu geçişsiz, ilk karede gösteriliyor (yeni oyunda ilk şeytan, masa değiştirirken şu anki şeytan).
+  - Portre tıklamaları geçişli.
+  - Eski kartlar `Destroy` beklerken aynı karede de pasif (yinelenen isimli buton kalmıyor).
+  - `SelectedIndex` eklendi.
+- "Şu anki salon" tek yerde: masanın salonu `TableView`'da. Seçim ekranının kendi salonu sadece önizleme, kapanınca görünmez.
+  Menünün kendi taş zemini var.
+
+### Testler
+- PlayMode `SalonRegressionTests`:
+  - Lilith'e bak → Esc → New Game: ilk şeytan vurgulu ve arka planda.
+  - Change Table → Lilith'e bak → Geri → Continue: Mammon.
+  - Son 250 yıl ve ruh bölgesinden New Game → Belial: Belial, mod Normal.
+  - Masa değişimi anında Lilith.
+  - Hızlı gezinip geçiş ortasında çıkma.
+- EditMode `AnimationSequencerTests`: Complete sırası, boşta `Do`, hata veren adım, hız alt sınırı.
+- **265 EditMode + 8 PlayMode geçiyor.**
+
+### Açık sorular
+- Hata kullanıcının gördüğü akışta tam olarak hangi adımda oluşuyordu? Yeniden görülürse adımları yazarsa yeni bir test eklenir.
+
+---
+
+## 2026-10-01 — Plan 3, Bölüm 2: akıcılık ve kontrol
+
+### Yapılanlar
+- **Atla (11):**
+  - Animasyon sürerken basılan her tuş / buton / kart tıklaması `ITableView.SkipAnimations()` çağırıyor; masanın arka planına tıklamak da öyle.
+  - Kuyruk anında son durumuna gidiyor: kartlar iniyor, sayaç ve ruh barı varıyor, şeytanın cümlesi tamamlanıyor.
+  - **Karar:** o basış atlamaya harcanıyor, aksiyon üretmiyor. Böylece oyuncu görmediği bir masada pas / artırma yapmıyor.
+    Animasyon bitince her basış normal çalışıyor; geçerli basış yutulmuyor (14).
+  - PlayMode testi: dağıtım sırasında basınca her şey yerinde, faz hâlâ ilk karar.
+- **Hız (12):** `AnimationClock.Speed` = Normal ×1 / Fast ×2 / Very Fast ×4.
+  Tween'ler, beklemeler, sayaç, ruh barı, şeytanın yazısı ve ekran geçişi bu hıza uyuyor.
+- **Esc (13):** `IMenuCommands.GoBack()`:
+  - uyarı kutusu → kapanır;
+  - kurallar / ayarlar → menü;
+  - seçim → geldiği yer (yeni oyunda menü, masa değiştirirken masa);
+  - masa → menü; menü → devam eden koşu.
+  Her alt ekranda görünür bir BACK butonu var.
+- **Kilitli butonlar (14):**
+  - RAISE / PASS kilitliyken soluk görünüyor ama tıklanabiliyor; presenter nedenini `UiText`'ten söylüyor
+    ("TABLE FULL — …", "ALL IN — …", ruh bölgesinde "ALL OF IT — …", "No passing under 250 years…", re-raise'de "call / match it — or fold").
+  - Core'daki İngilizce gerekçe metinleri artık oyuncuya gösterilmiyor.
+  - Klavye: bir karede en fazla bir aksiyon.
+- **Ekran geçişleri (15):**
+  - `ScreenTransitionView`: ekran siyah başlıyor, perde 8 px'lik satırlarla kalkıyor (salon geçişiyle aynı dil).
+  - Yeni ekran hemen yerinde; perde hareket ederken tıklamaları yutuyor, klavye `IsTransitioning` ile bekliyor.
+- **Pencere (16):**
+  - `UnityDisplayMode`: tam ekran (borderless) ya da ekrana sığan en büyük 480×270 katında pencere. Piksel ölçeği her durumda tam sayı.
+  - Alt+Enter ayarı değiştiriyor. Unity'nin kendi Alt+Enter'ı kapatıldı (`allowFullscreenSwitch: 0`); pencere boyutlandırılabilir.
+- **Ayarlar (17):**
+  - `GameSettings` (PlayerPrefs, `ISettingsStore`; bozuk değer → varsayılan).
+  - `SettingsView` + `SettingsPresenter`: Animation speed, Full screen, Hand guide (Bölüm 3), First-game tips (sıfırla).
+  - Menüye SETTINGS eklendi. Menü butonları artık iki sütunda, görünenlere göre diziliyor; QUIT altta ortada.
+- **Buton hissi:** `ButtonFeel` (hover'da altın yazı, basınca 1 px içe, kilitli görünüm). Bölüm 4'teki 25. madde de bununla karşılandı.
+- **Testler:**
+  - Ayarlar: varsayılanlar, kaydet / yükle, bozuk değer, hız döngüsü, ipucu sıfırlama, presenter uygulaması, Alt+Enter.
+  - Esc zinciri; geçişlerin her ekran değişiminde oynaması; kilitli buton mesajları; atlama.
+  - **282 EditMode + 9 PlayMode geçiyor.**
+
+---
+
+## 2026-10-01 — Plan 3, Bölüm 3: oyuncuya yol gösterme
+
+### Yapılanlar
+- **El adı (18):**
+  - Core'da `VisibleHandReader` ve `IHellPokerGame.PlayerHandNow`. Az kartla sadece aynı değerli kartlar birleşir;
+    beş kartta tam değerlendirme (Dead Man's Hand dahil).
+  - Masada oyuncu başlığı "NOW: ONE PAIR"; her açılan kartta ve kart değiştirdikten sonra güncelleniyor.
+  - Showdown'da iki el de adıyla, kazananın adı yanık ve "… WINS" ile işaretli.
+- **Kart değiştirme ipucu (19):**
+  - `IHellPokerGame.SuggestedDiscards()` kasanın kendi mantığını (`HouseDrawStrategy`) oyuncunun eline uyguluyor.
+  - Tutulacak kartların çevresinde 1 px altın çerçeve yavaşça parlıyor (`IHandView.SetHints`, karıştırma yok).
+  - Sadece öneri; Ayarlar ▸ Hand Guide ile el adıyla birlikte kapanıyor.
+- **El sıralaması (20):**
+  - `HandRanksPanel`: en güçlüden aşağı (Dead Man's Hand en üstte), örnek kartlar (♠♣♥♦ fontta var) ve şeytanın çarpanları.
+  - Masada H tuşu ya da HANDS butonu (MENU'nün yanında) açıp kapatıyor; Esc önce paneli kapatıyor.
+  - Kurallar ekranında RULES / HANDS sayfaları (standart çarpanlarla); Esc önce kurallar sayfasına dönüyor.
+  - Kısayol satırı kısaltıldı, "H hands" eklendi.
+- **İlk oyun ipuçları (21):**
+  - İlk karar, ilk draw, ilk re-raise, son 250 yıl ve ruh bölgesinde şeytan tek satırlık bir açıklama yapıyor.
+    Re-raise / son 250 / ruh anlarında o anki normal repliğin yerine geçiyor.
+  - Her biri bir kez gösteriliyor (`GameSettings.TipsSeen`, PlayerPrefs); Ayarlar'dan sıfırlanabiliyor.
+  - Ruh ipucunda sayı yok.
+- `TablePresenter(createGame, view, IGuideSettings guide = null)`: rehber ayarı yoksa el rehberi açık ve ipucu yok (eski testler aynen geçerli).
+- Batchmode'da (testler, ekran görüntüleri) ayarlar bellekte tutuluyor; testler oyuncunun kendi PlayerPrefs'ine dokunmuyor.
+- **Testler:** `GuideTests` (görünen el okuma, oyunun el adı ve önerisi, başlık, rehber kapalı, ipucu çerçevesi, showdown başlıkları,
+  el sıralaması aç / kapa, ipuçlarının bir kez ve sıfırlanınca yeniden gösterilmesi, re-raise / son 250 / ruh ipuçları).
+  **304 EditMode + 9 PlayMode geçiyor.**
+
+---
+
+## 2026-10-01 — Plan 3, Bölüm 4: his ve geri bildirim (ses hariç)
+
+### Yapılanlar
+- `TableMoment` (BigLoss / GoodHand / DeadMansHand) ve `ITableView.PlayMoment`.
+  Presenter sadece anı adlandırıyor; efekti `TableMoments` (görünüm) seçiyor.
+- **Büyük kayıp (22):**
+  - En az `TablePresenter.BigLossUnits` = 4 birimlik kayıpta (ya da çekilmede) ekran tam piksel adımlarla sarsılıyor (3 px'e kadar, ~0.35 s).
+  - Ceza sayacı 1.2 sn kırmızı yanıp sönüyor.
+- **İyi el (23):**
+  - Two Pair ve üstüyle kazanınca el adı 16 px piksel yazıyla ortada beliriyor ("FULL HOUSE!"): iki sert yanıp sönme, sonra kayboluyor.
+  - Dead Man's Hand: ekran kararıyor (sadece oyuncunun kartları aydınlık), A♠ A♣ 8♠ 8♣ sırayla parlıyor.
+    Şeytan zaten `angry` animasyonunda (Absolved repliği Annoyed).
+- **Sayaç (24):** 0.8 sn ease-out sayma korunuyor; artık hız ayarına uyuyor ve "atla"da hemen varıyor.
+- **Buton (25):** Bölüm 2'deki `ButtonFeel` (hover + 1 px basılma).
+- **Uyum (26):**
+  - Bütün efektler `AnimationClock` ile çalışıyor (hız ayarı).
+  - Sarsıntı ve Dead Man's Hand sahnesi sıralayıcıda, atlanınca son duruma geçiyor. El adı yazısı ve kırmızı sayaç atlamada kapanıyor.
+- **Testler:** `MomentTests` (büyük kayıp sarsar; küçük kayıp sarsmaz; Two Pair+ yazısı; One Pair yazısız; Dead Man's Hand kart sırası).
+  **309 EditMode geçiyor.**
+
+---
+
+## 2026-10-01 — Plan 3, Bölüm 5: kayıt ve oyun sonu
+
+### Yapılanlar
+- **Otomatik kayıt (27):**
+  - Core'da `RunSnapshot` (şeytan, ceza, el sayısı + `RunStats`). Ruh durumu ayrıca saklanmıyor; ceza ve şeytanın çizgisinden türüyor.
+  - Format "key=value" satırları, ilk satır `v=1`. Bozuk, eski / başka sürüm ya da imkânsız sayı → `TryDecode` false; kayıt silinip yok sayılıyor.
+  - Deste kaydedilmiyor: devam edilen koşu yeni karılmış desteyle başlıyor.
+  - `RunArchive` (PlayerPrefs; batchmode'da süreç boyu tek bir bellek deposu) her el bitiminde, yeni koşuda ve masa değişiminde kaydediyor.
+  - Oyun açılınca kayıt varsa `TablePresenter.Resume` aynı şeytan, ceza, el sayısı ve hikâyeyle devam ettiriyor; menüde Continue hazır.
+  - Bilinmeyen şeytanlı kayıt atılıyor. İlk oyun ipuçları zaten ayarlarda (PlayerPrefs) kalıcı.
+- **Oyun sonu (28):**
+  - Absolved / Damned ekranı (`EndScreenView`): altın "ABSOLVED" taş duvarda, kırmızı "DAMNED" yanan duvarda.
+  - Ekranda el sayısı, en düşük ceza, en yüksek ceza (ruh masaya konduysa sayı yerine "past the soul line"), en iyi el,
+    oturulan masalar, ruhun masaya konup konmadığı. NEW GAME ve MENU butonları; Esc menüye dönüyor.
+  - Masada oyun bitince buton "THE END"; basınca `IRunSession.RunEnded` ile oyun sonu ekranı açılıyor
+    (dinleyen yoksa eskisi gibi yeni koşu başlıyor).
+- **Rekorlar (29):**
+  - Core'da `RecordBook`: başlatılan koşu, aklanma, lanet, şeytan başına aklanma, en hızlı aklanma (el). Bozuk kayıt → boş defter.
+  - Menüye RECORDS eklendi (`RecordsView`).
+- Menü butonları: Continue, Change Table, New Game, Settings, How to Play, Records (iki sütun), Quit altta.
+- **Testler:**
+  - `SaveTests`:
+    - format: gidiş-dönüş; 8 bozuk / eski sürüm örneği yok sayılıyor; rekor gidiş-dönüş ve bozuk defter; istatistikler;
+    - akış: yeni koşu kaydı ve sayımı, el sonu kaydı, masa değişimi kaydı, kaldığı yerden devam (Lilith'te ruh geri masada),
+      okunamayan kayıt siliniyor, oyun sonu rekorları ve kaydı silme, `RunEnded` özeti, dinleyici yokken yeni koşu.
+  - Menü: oyun sonu ekranı, oradan yeni oyun ve menü (Continue yok), rekorlar ekranı.
+  - **PlayMode `RunJourneyTests`:** yeni oyun → 2 el → masa değiştir → menü → Continue → sahneyi yeniden yükle (kapat / aç)
+    → Continue → aynı şeytan, ceza ve salon → bir el daha. Hata logu olursa test düşüyor.
+  - **332 EditMode + 10 PlayMode geçiyor.**
+
+### Açık sorular
+- Kayıt sadece eller arasında alınıyor. El ortasında oyunu kapatan oyuncu o eli hiç oynanmamış sayıyor (kayıp da kazanç da yok).
+  Bunun bir "kaçış yolu" olarak kapatılması istenirse dağıtımda ante'yi kayıp sayan bir kayıt eklenebilir.
+
+---
+
+## 2026-10-01 — Plan 3, Bölüm 6: kontrol turu
+
+### Yapılanlar
+- **Testler (30):** 333 EditMode + 11 PlayMode geçiyor (atlananlar `[Explicit]` simülasyon ve ekran görüntüsü).
+  Yeni özelliklerin testleri: atlama (EditMode + PlayMode), kayıt / yükleme, ayarlar, el adı göstergesi, ipuçları, anlar, gezinme.
+- **Ekran görüntüleri (31):** `Screenshots/`.
+  - Menü, ayarlar, kurallar + el tablosu, şeytan seçimi, masada el tablosu, karar (el adıyla), draw ipucu, re-raise.
+  - Sonuçlar, iyi el yazısı, büyük kayıp (sarsıntı anı), her salon, son 250, ruh bölgesi (11–20).
+  - Oyun sonu (21 Absolved, 22 Damned), rekorlar (23).
+  - Not: 21–23 test kolaylığı için ceza doğrudan 0 / lanete çekilerek alındı, el oynanmadı. Bu yüzden oradaki istatistikler
+    (el sayısı, rekor sayıları) gerçek bir koşuyu yansıtmıyor.
+- **Görüntülerde bulunan ve düzeltilen hatalar:**
+  1. **Her şey siyahtı:**
+     - Neden: Bölüm 2'deki geçiş canvas'ı `UiFactory.CreateScreen`'in tam ekran siyah "Letterbox" katmanını da kuruyordu ve en üstte
+       (sıra 300) bütün oyunu örtüyordu. Gerçek oyunda da ekran siyah kalacaktı.
+     - Düzeltme: `CreateScreen(..., letterbox: false)`.
+     - Regresyon testi: `ScreenTransition_CoversOnlyWhilePlaying`. Kural CLAUDE.md'ye yazıldı.
+  2. **Oyun bir el oynanmadan bitmişken sonuç ekranı çöküyordu** (NullReference). Örnek: bitmiş bir kayıttan devam.
+     `ShowResult` artık el yoksa sadece oyun sonunu gösteriyor. Test: `ASaveOfAFinishedRun_ShowsTheEnd_WithoutCrashing`.
+  3. **Büyük el yazısı sonuç mesajıyla üst üste biniyordu.** Altın çerçeveli siyah bir şerit üzerine alındı.
+  4. **Test yardımcısı aynı isimli pasif butonu buluyordu** (yeni seçim ekranında eski kartlar artık anında pasif); aktif olan tercih ediliyor.
+- **Loglar (33):**
+  - PlayMode ve ekran görüntüsü loglarında hiç uyarı / hata yok.
+  - EditMode logundaki istisnalar bilerek hata fırlatan testlerin beklenen çıktıları ("broken step", "disk on fire").
+  - Derleyici uyarısı yok.
+- **CLAUDE.md (34):** yeni ekranlar, Esc zinciri, akıcılık, yol gösterme, his, kayıt formatı, rekorlar, ayarlar, batchmode deposu,
+  mimari ağaç, letterbox kuralı ve kısayollar güncellendi.
+
+### Sonraya (plan dışı, dokunulmadı)
+Günahkâr sınıfları, şeytan hileleri, ses / müzik, lanetli emanetler, eller arası event'ler, final şeytanı ve açılabilir içerik.
+
+### Açık sorular
+- El ortasında oyunu kapatmak o eli yok sayıyor (Bölüm 5'e bakın).
+- Bölüm 1'deki salon hatası batchmode'da yeniden üretilemedi. Sağlamlaştırıldı; tekrar görülürse adımlar yazılsın.

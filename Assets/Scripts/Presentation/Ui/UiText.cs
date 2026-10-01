@@ -41,7 +41,7 @@ namespace HellPoker.Presentation.Ui
         public const string PlayerCaption = "YOUR HAND";
         public const string FoldedCaption = "FOLDED";
         public const string DiscardTag = "TOSS";
-        public const string Hint = "Space deal · draw · pass · call    R raise    C call    F fold    1-5 pick cards    Esc menu";
+        public const string Hint = "Space deal/draw/pass   R raise   C call   F fold   1-5 cards   H hands   Esc menu";
         public const string PotFormat = "ON THE TABLE: {0}";
         public const string FinalStretchBannerFormat = "UNDER {0}: NO PASSING";
 
@@ -74,7 +74,7 @@ namespace HellPoker.Presentation.Ui
         public const string Stand = "STAND PAT";
         public const string DrawFormat = "DRAW {0}";
         public const string Next = "NEXT HAND";
-        public const string Again = "PLAY AGAIN";
+        public const string TheEnd = "THE END";
         public const string RaiseFormat = "RAISE +{0}";
         public const string AllInFormat = "ALL IN +{0}";
         public const string AllInDone = "ALL IN";
@@ -99,6 +99,119 @@ namespace HellPoker.Presentation.Ui
         public const string AbsolvedMessage = "DEAD MAN'S HAND!  Wild Bill vouches for you. You walk free.";
         public const string ServedMessage = "Your sentence is served. The gates of Hell open — you walk free.";
         public const string DamnedMessage = "Your soul is ash. The House owns you for eternity.";
+
+        // ------------------------------------------------------------------ guidance for new players
+
+        public const string HandNowFormat = "NOW: {0}";
+        public const string WinnerFormat = "{0}  WINS";
+        public const string GoodHandFormat = "{0}!";
+        public const string HandRanksTitle = "HAND RANKS";
+        public const string HandRanksSubtitle = "Strongest first. A higher hand beats a lower one.";
+        public const string HandRanksTableFooter = "H or Esc closes";
+        public const string HandsButton = "HANDS";
+        public const string RulesButton = "RULES";
+
+        /// <summary>An example of each hand, for the hand ranking panel.</summary>
+        public static string HandExample(HandCategory category)
+        {
+            switch (category)
+            {
+                case HandCategory.DeadMansHand: return "A♠ A♣ 8♠ 8♣ + any";
+                case HandCategory.RoyalFlush: return "10♥ J♥ Q♥ K♥ A♥";
+                case HandCategory.StraightFlush: return "5♣ 6♣ 7♣ 8♣ 9♣";
+                case HandCategory.FourOfAKind: return "9 9 9 9 K";
+                case HandCategory.FullHouse: return "Q Q Q 4 4";
+                case HandCategory.Flush: return "2♦ 7♦ 9♦ J♦ K♦";
+                case HandCategory.Straight: return "4 5 6 7 8";
+                case HandCategory.ThreeOfAKind: return "7 7 7 K 2";
+                case HandCategory.TwoPair: return "J J 5 5 A";
+                case HandCategory.OnePair: return "8 8 K 4 2";
+                default: return "A J 9 5 2";
+            }
+        }
+
+        // ------------------------------------------------------------------ first-game tips (one line each, in the dealer's voice)
+
+        public const string TipFirstDecision = "tip.decision";
+        public const string TipFirstDraw = "tip.draw";
+        public const string TipFirstReRaise = "tip.reraise";
+        public const string TipFinalStretch = "tip.final";
+        public const string TipSoul = "tip.soul";
+
+        public static string TipText(string tip, int forcedRaiseYears)
+        {
+            switch (tip)
+            {
+                case TipFirstDecision: return "Like your cards? RAISE. Unsure? PASS. Afraid? FOLD — and lose less.";
+                case TipFirstDraw: return "Click the cards to throw back, then DRAW. Keep your pairs, sinner.";
+                case TipFirstReRaise: return "I raise you back. CALL to stay in — or FOLD and leave the table to me.";
+                case TipFinalStretch: return string.Format("Under {0} years, no passing. Raise or fold — so close to freedom.", forcedRaiseYears);
+                case TipSoul: return "Past my line your soul is the stake. Lose all of it and you are mine forever.";
+                default: return null;
+            }
+        }
+
+        // ------------------------------------------------------------------ the end of a run, and records
+
+        public const string AbsolvedTitle = "ABSOLVED";
+        public const string DamnedTitle = "DAMNED";
+        public const string AbsolvedSubtitle = "The gates of Hell open. You walk free.";
+        public const string DamnedSubtitle = "Your soul is ash. The House keeps you for eternity.";
+        public const string EndHandsFormat = "Hands played: {0}";
+        public const string EndLowestFormat = "Lowest sentence: {0} years";
+        public const string EndHighestFormat = "Highest sentence: {0} years";
+        public const string EndHighestSoul = "Highest sentence: past the soul line";
+        public const string EndBestFormat = "Best hand: {0}";
+        public const string EndBestNone = "Best hand: none shown";
+        public const string EndDealersFormat = "Tables: {0}";
+        public const string EndSoulStaked = "Your soul went on the table.";
+        public const string EndSoulKept = "Your soul never left you.";
+        public const string ToMenu = "MENU";
+        public const string Records = "RECORDS";
+        public const string RecordsTitle = "RECORDS";
+        public const string RecordsRunsFormat = "Runs started: {0}";
+        public const string RecordsAbsolvedFormat = "Walked free: {0}";
+        public const string RecordsDamnedFormat = "Damned: {0}";
+        public const string RecordsFastestFormat = "Fastest freedom: {0} hands";
+        public const string RecordsFastestNone = "Fastest freedom: not yet";
+        public const string RecordsDealerFormat = "Freed at {0}'s table: {1}";
+
+        // ------------------------------------------------------------------ settings
+
+        public const string SettingsButton = "SETTINGS";
+        public const string SettingsTitle = "SETTINGS";
+        public const string SettingSpeed = "ANIMATION SPEED";
+        public const string SettingSpeedHint = "Any key or click also hurries an animation along.";
+        public const string SettingFullscreen = "FULL SCREEN";
+        public const string SettingFullscreenHint = "Alt+Enter switches at any time.";
+        public const string SettingHandGuide = "HAND GUIDE";
+        public const string SettingHandGuideHint = "Names your hand as it stands and hints which cards to keep.";
+        public const string SettingTips = "FIRST-GAME TIPS";
+        public const string SettingTipsHint = "The dealers explain each new moment once.";
+        public const string On = "ON";
+        public const string Off = "OFF";
+        public const string ResetTips = "SHOW AGAIN";
+        public const string TipsFresh = "ALL NEW";
+
+        public static string SpeedName(HellPoker.Presentation.Settings.AnimationSpeed speed)
+        {
+            switch (speed)
+            {
+                case HellPoker.Presentation.Settings.AnimationSpeed.Fast: return "FAST";
+                case HellPoker.Presentation.Settings.AnimationSpeed.VeryFast: return "VERY FAST";
+                default: return "NORMAL";
+            }
+        }
+
+        // ------------------------------------------------------------------ why a button is locked
+
+        public const string LockedTableFull = "TABLE FULL — the table is at its limit.";
+        public const string LockedAllIn = "ALL IN — every year you have is on the table.";
+        public const string LockedAllOfIt = "ALL OF IT — your whole soul is on the table.";
+        public const string LockedPassFormat = "No passing under {0} years: raise or fold.";
+        public const string LockedAnswer = "The House has raised: call — or fold.";
+        public const string LockedAnswerSoul = "The House wagers more: match it — or fold.";
+        public const string LockedNothingToCall = "There is nothing to call.";
 
         // ------------------------------------------------------------------ the soul (no numbers, ever)
 

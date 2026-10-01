@@ -17,24 +17,37 @@ namespace HellPoker.Presentation.Views
         private const int ButtonHeight = 20;
 
         private Canvas _canvas;
+        private const int GridTop = 132;
+        private const int GridGap = 6;
+
         private GameObject _continueButton;
         private GameObject _changeTableButton;
+        private readonly System.Collections.Generic.List<GameObject> _grid = new System.Collections.Generic.List<GameObject>();
+        private GameObject _quitButton;
         private GameObject _front;
         private GameObject _rulesPanel;
+        private GameObject _rulesBody;
+        private HandRanksPanel _handRanks;
+        private Text _pageLabel;
+        private Core.Game.IPayoutInfo _payouts;
         private RectTransform _logo;
 
         public event Action NewGamePressed;
         public event Action ContinuePressed;
         public event Action QuitPressed;
         public event Action ChangeTablePressed;
+        public event Action SettingsPressed;
+        public event Action RecordsPressed;
 
         public bool IsVisible => _canvas.enabled;
 
-        public static MainMenuView Create(Transform parent, string tagline, string rules)
+        /// <param name="payouts">What the hands pay at a standard table, for the hand ranking page of the rules.</param>
+        public static MainMenuView Create(Transform parent, string tagline, string rules, Core.Game.IPayoutInfo payouts)
         {
             Canvas canvas = UiFactory.CreateScreen("MainMenuCanvas", parent, SortingOrder, out RectTransform screen);
             var view = canvas.gameObject.AddComponent<MainMenuView>();
             view._canvas = canvas;
+            view._payouts = payouts;
             view.Build(screen, tagline, rules);
             return view;
         }
@@ -69,13 +82,17 @@ namespace HellPoker.Presentation.Views
             UiFactory.CreateText("Subtagline", front, UiText.MenuSubtagline, 8, Palette.BoneMid).WithShadow()
                 .rectTransform.PlaceTL(40, 117, PixelScreen.Width - 80, 9);
 
+            // Two columns in reading order; buttons that are hidden leave no gap (see LayOut).
             Transform buttons = UiFactory.CreateRect("Buttons", front).Stretch();
-            int x = (PixelScreen.Width - ButtonWidth) / 2;
-            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, ButtonSkin.Ember, x, 130, () => ContinuePressed?.Invoke());
-            _changeTableButton = CreateMenuButton(buttons, "ChangeTableButton", UiText.ChangeTable, ButtonSkin.Ash, x, 152, () => ChangeTablePressed?.Invoke());
-            CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, ButtonSkin.Blood, x, 174, () => NewGamePressed?.Invoke());
-            CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, ButtonSkin.Ash, x, 196, () => ShowRules(true));
-            CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, x, 218, () => QuitPressed?.Invoke());
+            _continueButton = CreateMenuButton(buttons, "ContinueButton", UiText.Continue, ButtonSkin.Ember, () => ContinuePressed?.Invoke());
+            _changeTableButton = CreateMenuButton(buttons, "ChangeTableButton", UiText.ChangeTable, ButtonSkin.Ash, () => ChangeTablePressed?.Invoke());
+            GameObject newGame = CreateMenuButton(buttons, "NewGameButton", UiText.NewGame, ButtonSkin.Blood, () => NewGamePressed?.Invoke());
+            GameObject settings = CreateMenuButton(buttons, "SettingsButton", UiText.SettingsButton, ButtonSkin.Ash, () => SettingsPressed?.Invoke());
+            GameObject howToPlay = CreateMenuButton(buttons, "HowToPlayButton", UiText.HowToPlay, ButtonSkin.Ash, () => ShowRules(true));
+            GameObject records = CreateMenuButton(buttons, "RecordsButton", UiText.Records, ButtonSkin.Ash, () => RecordsPressed?.Invoke());
+            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, settings, howToPlay, records });
+            _quitButton = CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
+            LayOut();
 
             UiFactory.CreateText("Footer", front, UiText.MenuFooter, 8, Palette.BoneDark).rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
 
@@ -96,23 +113,71 @@ namespace HellPoker.Presentation.Views
             Text body = UiFactory.CreateText("Body", panel.transform, rules, 8, Palette.Bone, TextAnchor.UpperLeft);
             body.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
             body.lineSpacing = 1f;
+            _rulesBody = body.gameObject;
+
+            _handRanks = HandRanksPanel.Create(panel.transform, (PixelScreen.Width - 16 - HandRanksPanel.Width) / 2, 30);
+
+            // RULES / HANDS page switch, then BACK.
+            int buttonsY = PixelScreen.Height - 16 - 26;
+            Button page = UiFactory.CreateButton("HandRanksPageButton", panel.transform, UiText.HandsButton, 8, out _pageLabel, ButtonSkin.Ash);
+            ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 84, buttonsY, 80, ButtonHeight);
+            page.onClick.AddListener(() => ShowHandRanks(!_handRanks.IsOpen));
 
             Button back = UiFactory.CreateButton("BackButton", panel.transform, UiText.Back, 8, out _, ButtonSkin.Blood);
-            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 16 - 80) / 2, PixelScreen.Height - 16 - 26, 80, ButtonHeight);
+            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 16) / 2 + 4, buttonsY, 80, ButtonHeight);
             back.onClick.AddListener(() => ShowRules(false));
             return panel.gameObject;
         }
 
-        private static GameObject CreateMenuButton(Transform parent, string name, string label, ButtonSkin skin, int x, int y, Action onClick)
+        private static GameObject CreateMenuButton(Transform parent, string name, string label, ButtonSkin skin, Action onClick)
         {
             Button button = UiFactory.CreateButton(name, parent, label, 8, out _, skin);
-            ((RectTransform)button.transform).PlaceTL(x, y, ButtonWidth, ButtonHeight);
+            ((RectTransform)button.transform).PlaceTL(0, 0, ButtonWidth, ButtonHeight);
             button.onClick.AddListener(() => onClick());
             return button.gameObject;
         }
 
+        /// <summary>Places the visible buttons two to a row, in order, with Quit centred on its own row below.</summary>
+        private void LayOut()
+        {
+            int left = (PixelScreen.Width - 2 * ButtonWidth - GridGap) / 2;
+            int slot = 0;
+            foreach (GameObject button in _grid)
+            {
+                if (!button.activeSelf) continue;
+                int x = left + slot % 2 * (ButtonWidth + GridGap);
+                int y = GridTop + slot / 2 * (ButtonHeight + GridGap);
+                ((RectTransform)button.transform).PlaceTL(x, y, ButtonWidth, ButtonHeight);
+                slot++;
+            }
+
+            int quitY = GridTop + (slot + 1) / 2 * (ButtonHeight + GridGap);
+            ((RectTransform)_quitButton.transform).PlaceTL((PixelScreen.Width - ButtonWidth) / 2, quitY, ButtonWidth, ButtonHeight);
+        }
+
+        public bool CloseOverlay()
+        {
+            if (!_rulesPanel.activeSelf) return false;
+            if (_handRanks.IsOpen)
+                ShowHandRanks(false);   // the hands page goes back to the rules first
+            else
+                ShowRules(false);
+            return true;
+        }
+
+        private void ShowHandRanks(bool show)
+        {
+            if (show)
+                _handRanks.Show(_payouts);
+            else
+                _handRanks.Hide();
+            _rulesBody.SetActive(!show);
+            _pageLabel.text = show ? UiText.RulesButton : UiText.HandsButton;
+        }
+
         private void ShowRules(bool show)
         {
+            ShowHandRanks(false);
             _rulesPanel.SetActive(show);
             _front.SetActive(!show);
         }
@@ -121,6 +186,7 @@ namespace HellPoker.Presentation.Views
         {
             _continueButton.SetActive(canContinue);
             _changeTableButton.SetActive(canContinue);
+            LayOut();
             ShowRules(false);
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;

@@ -15,13 +15,25 @@ namespace HellPoker.Presentation.Abstractions
         IPayoutView Payouts { get; }
         IDealerView Dealer { get; }
 
-        /// <summary>True while animations are still playing; input should wait.</summary>
+        /// <summary>True while animations are still playing; input should wait (or skip them).</summary>
         bool IsBusy { get; }
+
+        /// <summary>The player is in a hurry: everything still to be shown appears in its final state at once.</summary>
+        void SkipAnimations();
 
         event Action ActionPressed;
         event Action<BetAction> BetPressed;
         event Action MenuPressed;
         event Action LeavePressed;
+        event Action HandRanksPressed;
+
+        /// <summary>True while the hand ranking panel is open over the table.</summary>
+        bool HandRanksOpen { get; }
+
+        /// <summary>Opens the hand ranking panel with what each hand pays at this table.</summary>
+        void ShowHandRanks(IPayoutInfo payouts);
+
+        void HideHandRanks();
 
         /// <summary>Shows or hides the soul bar; while it shows, the year counter is hidden and the hall turns cold.</summary>
         void SetSoul(SoulGauge gauge);
@@ -50,6 +62,11 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Switches the hellfire look for the end of the sentence on or off.</summary>
         void SetFinalStretch(bool active, string banner);
+
+        /// <summary>Plays a moment after everything queued before it.</summary>
+        /// <param name="text">For <see cref="TableMoment.GoodHand"/>: the words that flare up.</param>
+        /// <param name="playerCards">For <see cref="TableMoment.DeadMansHand"/>: the player's cards that light up, in order.</param>
+        void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null);
 
         /// <summary>Holds the next updates back for a moment, to let a reveal sink in.</summary>
         void Pause(float seconds);

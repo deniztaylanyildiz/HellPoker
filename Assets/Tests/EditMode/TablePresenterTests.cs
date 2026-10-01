@@ -426,14 +426,73 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void InputIsIgnored_WhileViewIsAnimating()
+        public void APress_WhileAnimating_SkipsTheAnimation_AndDoesNothingElse()
         {
             Setup();
             _view.IsBusy = true;
 
             _view.PressAction();
+            _view.PressBet(BetAction.Raise);
+            _view.PlayerView.Click(0);
+            _view.PressLeave();
 
-            Assert.AreEqual(GamePhase.Betting, _game.Phase);
+            Assert.AreEqual(GamePhase.Betting, _game.Phase, "No action on a table the player has not seen yet.");
+            Assert.AreEqual(4, _view.Skips, "Every press hurries the animations instead.");
+        }
+
+        [Test]
+        public void APress_WhenIdle_Acts_WithoutSkipping()
+        {
+            Setup();
+
+            _view.PressAction();
+
+            Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase);
+            Assert.AreEqual(0, _view.Skips);
+        }
+
+        // ------------------------------------------------------------------ locked buttons say why
+
+        [Test]
+        public void LockedRaise_AtTheCap_SaysTableFull()
+        {
+            Setup();
+            _view.PressAction();
+            _view.PressBet(BetAction.Raise);   // 200 of 300
+            PassUntil(GamePhase.Drawing);
+            _view.PressAction();
+            _view.PressBet(BetAction.Raise);   // 300: the cap (no house temper here, so no re-raise)
+            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
+            Assert.AreEqual(300, _game.CurrentStake);
+
+            _view.PressBet(BetAction.Raise);
+
+            StringAssert.StartsWith("TABLE FULL", _view.Message);
+            Assert.AreEqual(Tone.Warning, _view.MessageTone);
+            Assert.IsFalse(_view.BetControls.CanRaise, "The button looks locked.");
+        }
+
+        [Test]
+        public void LockedPass_InTheFinalStretch_SaysWhy()
+        {
+            Setup(startingYears: 200);
+            _view.PressAction();
+
+            _view.PressBet(BetAction.Pass);
+
+            StringAssert.Contains("No passing", _view.Message);
+            Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase);
+        }
+
+        [Test]
+        public void LockedCall_OutsideAReRaise_SaysNothingToCall()
+        {
+            Setup();
+            _view.PressAction();
+
+            _view.PressBet(BetAction.Call);
+
+            Assert.AreEqual("There is nothing to call.", _view.Message);
         }
 
         [Test]
@@ -446,7 +505,7 @@ namespace HellPoker.Core.Tests
 
             Assert.AreEqual(Tone.Triumph, _view.MessageTone);
             Assert.AreEqual(0, _view.SentenceView.Years);
-            Assert.AreEqual("PLAY AGAIN", _view.ActionLabel);
+            Assert.AreEqual("THE END", _view.ActionLabel);
         }
 
         // ------------------------------------------------------------------ the soul and changing tables

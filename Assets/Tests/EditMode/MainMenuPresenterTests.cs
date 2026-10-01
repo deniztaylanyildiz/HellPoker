@@ -18,12 +18,28 @@ namespace HellPoker.Core.Tests
             public event Action ContinuePressed;
             public event Action QuitPressed;
             public event Action ChangeTablePressed;
+            public event Action SettingsPressed;
+            public event Action RecordsPressed;
+
+            public void PressRecords() => RecordsPressed?.Invoke();
+
+            /// <summary>The rules panel, open over the menu.</summary>
+            public bool RulesOpen { get; set; }
 
             public void Show(bool canContinue)
             {
                 IsVisible = true;
                 ContinueShown = canContinue;
             }
+
+            public bool CloseOverlay()
+            {
+                if (!RulesOpen) return false;
+                RulesOpen = false;
+                return true;
+            }
+
+            public void PressSettings() => SettingsPressed?.Invoke();
 
             public void Hide() => IsVisible = false;
 
@@ -52,13 +68,24 @@ namespace HellPoker.Core.Tests
             }
 
             public void AskToConfirm(string warning) => Warning = warning;
+            public bool IsConfirming => Warning != null;
+            public void CloseConfirm() => Warning = null;
 
             public void Hide() => IsVisible = false;
 
             public void Choose(int index) => DealerChosen?.Invoke(index);
             public void PressBack() => BackPressed?.Invoke();
-            public void Confirm() => SeatConfirmed?.Invoke();
-            public void Cancel() => SeatCancelled?.Invoke();
+            public void Confirm()
+            {
+                Warning = null;
+                SeatConfirmed?.Invoke();
+            }
+
+            public void Cancel()
+            {
+                Warning = null;
+                SeatCancelled?.Invoke();
+            }
         }
 
         private sealed class FakeSession : IRunSession
@@ -76,6 +103,15 @@ namespace HellPoker.Core.Tests
             public bool SoulBound { get; set; }
 
             public event Action LeaveRequested;
+            public event Action<RunSummary> RunEnded;
+
+            public HellPoker.Core.Game.RecordBook Records { get; } = new HellPoker.Core.Game.RecordBook();
+
+            public void EndRun(RunSummary summary)
+            {
+                CanContinue = false;
+                RunEnded?.Invoke(summary);
+            }
 
             public void StartNewRun(Dealer dealer)
             {
@@ -105,8 +141,85 @@ namespace HellPoker.Core.Tests
             public void Quit() => QuitRequested = true;
         }
 
+        internal sealed class FakeSettingsView : ISettingsView
+        {
+            public bool IsVisible { get; private set; }
+            public string Speed { get; private set; }
+            public bool Fullscreen { get; private set; }
+            public bool HandGuide { get; private set; }
+            public bool TipsLeft { get; private set; }
+
+            public event Action SpeedPressed;
+            public event Action FullscreenPressed;
+            public event Action HandGuidePressed;
+            public event Action ResetTipsPressed;
+            public event Action BackPressed;
+
+            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft)
+            {
+                Speed = speed;
+                Fullscreen = fullscreen;
+                HandGuide = handGuide;
+                TipsLeft = tipsLeft;
+            }
+
+            public void Show() => IsVisible = true;
+            public void Hide() => IsVisible = false;
+
+            public void PressSpeed() => SpeedPressed?.Invoke();
+            public void PressFullscreen() => FullscreenPressed?.Invoke();
+            public void PressHandGuide() => HandGuidePressed?.Invoke();
+            public void PressResetTips() => ResetTipsPressed?.Invoke();
+            public void PressBack() => BackPressed?.Invoke();
+        }
+
+        private sealed class FakeEndScreen : IEndScreenView
+        {
+            public bool IsVisible { get; private set; }
+            public RunSummary Summary { get; private set; }
+            public event Action NewGamePressed;
+            public event Action MenuPressed;
+
+            public void Show(RunSummary summary)
+            {
+                IsVisible = true;
+                Summary = summary;
+            }
+
+            public void Hide() => IsVisible = false;
+            public void PressNewGame() => NewGamePressed?.Invoke();
+            public void PressMenu() => MenuPressed?.Invoke();
+        }
+
+        private sealed class FakeRecords : IRecordsView
+        {
+            public bool IsVisible { get; private set; }
+            public int DealersShown { get; private set; }
+            public event Action BackPressed;
+
+            public void Show(HellPoker.Core.Game.RecordBook records, IReadOnlyList<DealerCard> dealers)
+            {
+                IsVisible = true;
+                DealersShown = dealers.Count;
+            }
+
+            public void Hide() => IsVisible = false;
+            public void PressBack() => BackPressed?.Invoke();
+        }
+
+        internal sealed class FakeTransition : IScreenTransition
+        {
+            public int Played { get; private set; }
+            public bool IsPlaying { get; set; }
+            public void Play() => Played++;
+        }
+
         private FakeMenuView _menu;
         private FakeDealerSelectView _dealerSelect;
+        private FakeSettingsView _settings;
+        private FakeTransition _transition;
+        private FakeEndScreen _end;
+        private FakeRecords _records;
         private FakeTableView _table;
         private FakeSession _session;
         private FakeQuitter _quitter;
@@ -120,7 +233,12 @@ namespace HellPoker.Core.Tests
             _table = new FakeTableView();
             _session = new FakeSession();
             _quitter = new FakeQuitter();
-            _presenter = new MainMenuPresenter(_menu, _dealerSelect, _table, _session, _quitter, DealerRoster.All);
+            _settings = new FakeSettingsView();
+            _transition = new FakeTransition();
+            _end = new FakeEndScreen();
+            _records = new FakeRecords();
+            _presenter = new MainMenuPresenter(_menu, _dealerSelect, _settings, _end, _records, _table, _session, _quitter, _transition,
+                DealerRoster.All);
         }
 
         [TearDown]
@@ -182,7 +300,7 @@ namespace HellPoker.Core.Tests
             _menu.PressNewGame();
             Assert.IsTrue(_presenter.IsMenuOpen, "The table does not take input while choosing a dealer.");
 
-            _presenter.ToggleMenu();
+            _presenter.GoBack();
 
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsFalse(_dealerSelect.IsVisible);
@@ -217,17 +335,17 @@ namespace HellPoker.Core.Tests
         {
             StartRunWith();
 
-            _presenter.ToggleMenu();
+            _presenter.GoBack();
             Assert.IsTrue(_presenter.IsMenuOpen);
 
-            _presenter.ToggleMenu();
+            _presenter.GoBack();
             Assert.IsFalse(_presenter.IsMenuOpen);
         }
 
         [Test]
         public void Escape_OnFirstMenu_StaysThere()
         {
-            _presenter.ToggleMenu();
+            _presenter.GoBack();
 
             Assert.IsTrue(_presenter.IsMenuOpen);
             Assert.IsFalse(_table.Visible);
@@ -355,6 +473,141 @@ namespace HellPoker.Core.Tests
 
             Assert.IsFalse(_dealerSelect.IsVisible);
             Assert.IsTrue(_table.Visible, "The dealer answers at the table.");
+        }
+
+        // ------------------------------------------------------------------ Esc and sub-screens
+
+        [Test]
+        public void Settings_OpensFromTheMenu_AndBackReturns()
+        {
+            _menu.PressSettings();
+            Assert.IsTrue(_settings.IsVisible);
+            Assert.IsFalse(_menu.IsVisible);
+            Assert.IsTrue(_presenter.IsMenuOpen);
+
+            _settings.PressBack();
+            Assert.IsFalse(_settings.IsVisible);
+            Assert.IsTrue(_menu.IsVisible);
+        }
+
+        [Test]
+        public void Escape_OnSettings_ReturnsToMenu()
+        {
+            _menu.PressSettings();
+
+            _presenter.GoBack();
+
+            Assert.IsFalse(_settings.IsVisible);
+            Assert.IsTrue(_menu.IsVisible);
+        }
+
+        [Test]
+        public void Escape_OnTheRules_ClosesThemFirst()
+        {
+            StartRunWith();
+            _table.PressMenu();
+            _menu.RulesOpen = true;
+
+            _presenter.GoBack();
+            Assert.IsFalse(_menu.RulesOpen);
+            Assert.IsTrue(_menu.IsVisible, "Still on the menu, not back at the table yet.");
+
+            _presenter.GoBack();
+            Assert.IsTrue(_table.Visible);
+        }
+
+        [Test]
+        public void Escape_OnTheWarning_ClosesItAndStaysOnTheChoice()
+        {
+            StartRunWith(0);
+            _session.Years = 1600;
+            _session.RequestLeave();
+            _dealerSelect.Choose(2);
+
+            _presenter.GoBack();
+
+            Assert.IsFalse(_dealerSelect.IsConfirming);
+            Assert.IsTrue(_dealerSelect.IsVisible);
+            _dealerSelect.Confirm();
+            Assert.AreEqual(0, _session.Switches, "The warning was dismissed: no late seat.");
+        }
+
+        [Test]
+        public void Escape_WhileChangingTables_ReturnsToTheTable()
+        {
+            StartRunWith(0);
+            _session.RequestLeave();
+
+            _presenter.GoBack();
+
+            Assert.IsTrue(_table.Visible);
+        }
+
+        [Test]
+        public void EveryScreenChange_PlaysTheTransition()
+        {
+            int before = _transition.Played;
+            _menu.PressNewGame();
+            _dealerSelect.Choose(0);
+            _table.PressMenu();
+            _menu.PressSettings();
+
+            Assert.AreEqual(before + 4, _transition.Played);
+        }
+
+        // ------------------------------------------------------------------ end of a run, records
+
+        private static RunSummary Summary(bool absolved) =>
+            new RunSummary(absolved, 12, 0, 1400, HellPoker.Core.Evaluation.HandCategory.Flush, new[] { "MAMMON" }, false);
+
+        [Test]
+        public void EndOfARun_ShowsTheEndScreen()
+        {
+            StartRunWith();
+
+            _session.EndRun(Summary(true));
+
+            Assert.IsTrue(_end.IsVisible);
+            Assert.IsTrue(_end.Summary.Absolved);
+            Assert.IsFalse(_table.Visible);
+            Assert.IsTrue(_presenter.IsMenuOpen);
+        }
+
+        [Test]
+        public void EndScreen_NewGame_OpensTheDealerChoice()
+        {
+            StartRunWith();
+            _session.EndRun(Summary(false));
+
+            _end.PressNewGame();
+
+            Assert.IsFalse(_end.IsVisible);
+            Assert.IsTrue(_dealerSelect.IsVisible);
+        }
+
+        [Test]
+        public void EndScreen_Menu_AndEsc_GoToTheMenu_WithoutContinue()
+        {
+            StartRunWith();
+            _session.EndRun(Summary(false));
+
+            _presenter.GoBack();
+
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsFalse(_menu.ContinueShown, "A finished run cannot be continued.");
+            Assert.IsFalse(_end.IsVisible);
+        }
+
+        [Test]
+        public void Records_OpenFromTheMenu_ForEveryDealer_AndGoBack()
+        {
+            _menu.PressRecords();
+            Assert.IsTrue(_records.IsVisible);
+            Assert.AreEqual(3, _records.DealersShown);
+
+            _records.PressBack();
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsFalse(_records.IsVisible);
         }
 
         [Test]

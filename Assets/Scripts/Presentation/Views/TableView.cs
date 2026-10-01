@@ -46,6 +46,8 @@ namespace HellPoker.Presentation.Views
         private SoulView _soul;
         private Button _leaveButton;
         private Text _leaveLabel;
+        private HandRanksPanel _handRanks;
+        private TableMoments _moments;
 
         public IHandView House { get; private set; }
         public IHandView Player { get; private set; }
@@ -59,6 +61,9 @@ namespace HellPoker.Presentation.Views
         public event Action<BetAction> BetPressed;
         public event Action MenuPressed;
         public event Action LeavePressed;
+        public event Action HandRanksPressed;
+
+        public bool HandRanksOpen => _handRanks.IsOpen;
 
         public static TableView Create(Transform parent, DealerAnimationLibrary dealers, SalonLibrary salons)
         {
@@ -72,8 +77,12 @@ namespace HellPoker.Presentation.Views
 
         private void Build(RectTransform screen, DealerAnimationLibrary dealers, SalonLibrary salons)
         {
-            // The demon's hall fills the screen behind everything.
+            // The demon's hall fills the screen behind everything; clicking it hurries any animation along.
             _salon = SalonView.Create(screen, salons);
+            ClickCatcher.Attach(_salon.gameObject, () =>
+            {
+                if (IsBusy) SkipAnimations();
+            });
 
             Image logo = UiFactory.CreateSprite("Title", screen, UiArt.Title);
             if (logo.sprite != null)
@@ -93,6 +102,10 @@ namespace HellPoker.Presentation.Views
             Button menu = UiFactory.CreateButton("MenuButton", screen, UiText.Menu, 8, out _, ButtonSkin.Ash);
             ((RectTransform)menu.transform).PlaceTL(4, 248, 56, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
+
+            Button hands = UiFactory.CreateButton("HandsButton", screen, UiText.HandsButton, 8, out _, ButtonSkin.Ash);
+            ((RectTransform)hands.transform).PlaceTL(64, 248, 56, 18);
+            hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
 
             _leaveButton = UiFactory.CreateButton("LeaveButton", screen, UiText.LeaveTable, 8, out _leaveLabel, ButtonSkin.Ash);
             ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
@@ -131,9 +144,11 @@ namespace HellPoker.Presentation.Views
             ApplyBetControls(BetControls.Hidden);
 
             UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithShadow()
-                .rectTransform.PlaceTL(68, 253, 408, 9);
+                .rectTransform.PlaceTL(126, 253, 350, 9);
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
+            _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
+            _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, UiText.HandRanksTableFooter);
             _stage = new Stage(this);
         }
 
@@ -144,9 +159,14 @@ namespace HellPoker.Presentation.Views
 
             public Stage(TableView table) => _table = table;
 
+            /// <summary>
+            /// A new table: whatever was still animating from the last one finishes at once, then the hall (in its normal
+            /// mood — the presenter re-applies the final stretch or the soul) and the portrait change together.
+            /// </summary>
             public void SetDealer(DealerCard dealer)
             {
-                _table._sequencer.Do(() => _table._salon.SetSalon(dealer.Id));
+                _table._sequencer.Complete();
+                _table._salon.SetSalon(dealer.Id, SalonMode.Normal);
                 _table._dealer.SetDealer(dealer);
             }
 
@@ -183,6 +203,7 @@ namespace HellPoker.Presentation.Views
         public void SetVisible(bool visible)
         {
             // Disable rendering and clicks but keep the GameObject alive, so queued animations still finish.
+            if (!visible) _handRanks.Hide();
             _canvas.enabled = visible;
             GetComponent<GraphicRaycaster>().enabled = visible;
         }
@@ -219,8 +240,9 @@ namespace HellPoker.Presentation.Views
             _foldButton.gameObject.SetActive(controls.Visible);
             _raiseLabel.text = controls.RaiseLabel ?? "";
             _callLabel.text = controls.CallLabel ?? "";
-            _raiseButton.interactable = controls.CanRaise;
-            _passButton.interactable = controls.CanPass;
+            // Locked buttons stay clickable: the presenter answers with the reason.
+            _raiseButton.GetComponent<ButtonFeel>().Locked = !controls.CanRaise;
+            _passButton.GetComponent<ButtonFeel>().Locked = !controls.CanPass;
 
             // Against a re-raise the fold button moves next to the call button.
             ((RectTransform)_foldButton.transform).PlaceTL(controls.IsAnswer ? Middle + 144 : Middle + 184, ControlsY, 72, ButtonHeight);
@@ -245,6 +267,10 @@ namespace HellPoker.Presentation.Views
             });
         }
 
+        public void ShowHandRanks(Core.Game.IPayoutInfo payouts) => _handRanks.Show(payouts);
+
+        public void HideHandRanks() => _handRanks.Hide();
+
         public void SetSoul(SoulGauge gauge)
         {
             _soul.SetGauge(gauge);
@@ -266,7 +292,7 @@ namespace HellPoker.Presentation.Views
                 _leaveButton.gameObject.SetActive(state != LeaveState.Hidden);
                 bool locked = state == LeaveState.Locked;
                 _leaveLabel.text = locked ? UiText.SoulBound : UiText.LeaveTable;
-                _leaveLabel.color = locked ? Palette.Hell : Palette.Bone;
+                _leaveButton.GetComponent<ButtonFeel>().LabelColor = locked ? Palette.Hell : Palette.Bone;
             });
         }
 
@@ -278,6 +304,21 @@ namespace HellPoker.Presentation.Views
                 _sentence.SetPulsing(active);
                 _dealer.SetFinalStretch(active);
             });
+        }
+
+        /// <summary>Everything queued jumps to its end: cards land, counters arrive, the dealer finishes the sentence.</summary>
+        public void SkipAnimations()
+        {
+            _sequencer.Complete();
+            _dealer.FinishLine();
+            _sentence.Snap();
+            _soul.Snap();
+            _moments.Finish();
+        }
+
+        public void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null)
+        {
+            _moments.Play(moment, text, playerCards);
         }
 
         public void Pause(float seconds)

@@ -20,6 +20,7 @@ namespace HellPoker.PlayMode.Tests
         [UnitySetUp]
         public IEnumerator LoadScene()
         {
+            HellPokerBootstrap.BatchStore.Clear();   // every test starts with no save, no records, default settings
             yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Single);
             yield return null;
         }
@@ -71,7 +72,7 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsTrue(IsActive("PassButton"), "Bet decision should follow the draw.");
             yield return PassWhileDeciding();
 
-            StringAssert.IsMatch("NEXT HAND|PLAY AGAIN", ActionLabel());
+            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
             if (ActionLabel() == "NEXT HAND")
             {
                 Press("ActionButton");
@@ -96,7 +97,43 @@ namespace HellPoker.PlayMode.Tests
             yield return WaitForTable();
 
             Assert.IsFalse(IsActive("FoldButton"));
-            StringAssert.IsMatch("NEXT HAND|PLAY AGAIN", ActionLabel());
+            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
+        }
+
+        [UnityTest]
+        public IEnumerator ScreenTransition_CoversOnlyWhilePlaying()
+        {
+            var transition = Object.FindFirstObjectByType<ScreenTransitionView>();
+            Press("NewGameButton");
+            Assert.IsTrue(transition.IsPlaying);
+            Assert.IsTrue(transition.GetComponentsInChildren<Image>().Any(i => i.enabled), "The curtain is down.");
+
+            yield return new WaitForSeconds(0.6f);
+
+            Assert.IsFalse(transition.IsPlaying);
+            Assert.IsFalse(transition.GetComponentsInChildren<Image>().Any(i => i.enabled), "Nothing of the transition is left over the screen.");
+        }
+
+        [UnityTest]
+        public IEnumerator APress_DuringTheDeal_SkipsToTheEnd()
+        {
+            StartRun();
+            yield return WaitForTable();
+            var table = Object.FindFirstObjectByType<TableView>();
+            var presenter = (TablePresenter)typeof(HellPokerBootstrap)
+                .GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .GetValue(Object.FindFirstObjectByType<HellPokerBootstrap>());
+
+            Press("ActionButton");   // deal: cards start flying
+            yield return null;
+            Assert.IsTrue(table.IsBusy, "The deal animates.");
+
+            presenter.PerformAction();   // Space while the cards fly
+
+            Assert.IsFalse(table.IsBusy, "Everything landed at once.");
+            Assert.AreEqual(HellPoker.Core.Game.GamePhase.PlayerReveal, presenter.Game.Phase, "The press was spent on the skip, not on a pass.");
+            Assert.IsTrue(IsActive("PassButton"), "The decision is on screen.");
+            Assert.AreEqual(3, Find<Transform>("PlayerHand").GetComponentsInChildren<CardView>().Count(c => c.IsFaceUp));
         }
 
         private static void StartRun(int dealer = 0)

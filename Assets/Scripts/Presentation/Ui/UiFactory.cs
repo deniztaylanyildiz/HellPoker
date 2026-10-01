@@ -29,9 +29,10 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>
         /// A screen-space canvas holding a centred, whole-number-scaled 480×270 screen with black bars around it.
-        /// Build the content inside <paramref name="screen"/>.
+        /// Build the content inside <paramref name="screen"/>. An overlay that must let what is below show through
+        /// (the transition curtain) passes <paramref name="letterbox"/> false: the bars are a full-screen black backdrop.
         /// </summary>
-        public static Canvas CreateScreen(string name, Transform parent, int sortingOrder, out RectTransform screen)
+        public static Canvas CreateScreen(string name, Transform parent, int sortingOrder, out RectTransform screen, bool letterbox = true)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -43,7 +44,8 @@ namespace HellPoker.Presentation.Ui
             go.AddComponent<GraphicRaycaster>();
             go.AddComponent<PixelScreen>();
 
-            CreateImage("Letterbox", go.transform, Color.black).rectTransform.Stretch();
+            if (letterbox)
+                CreateImage("Letterbox", go.transform, Color.black).rectTransform.Stretch();
 
             screen = CreateRect("Screen", go.transform).Place(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PixelScreen.Width, PixelScreen.Height));
             var mask = screen.gameObject.AddComponent<RectMask2D>();
@@ -195,6 +197,7 @@ namespace HellPoker.Presentation.Ui
             labelText.rectTransform.offsetMin = new Vector2(4f, 0f);
             labelText.rectTransform.offsetMax = new Vector2(-4f, 0f);
             labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            ButtonFeel.Attach(button, labelText);
             return button;
         }
 

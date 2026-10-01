@@ -44,6 +44,9 @@ namespace HellPoker.Presentation.Views
 
         public bool IsVisible => _canvas.enabled;
 
+        /// <summary>The highlighted card (its details below, its hall behind).</summary>
+        public int SelectedIndex { get; private set; }
+
         /// <summary>True while the "sit anyway?" warning is open.</summary>
         public bool IsConfirming => _confirm.activeSelf;
 
@@ -122,8 +125,12 @@ namespace HellPoker.Presentation.Views
 
         public void Show(IReadOnlyList<DealerChoice> dealers)
         {
+            // Old cards go dark at once (Destroy only happens at the end of the frame).
             foreach (Transform child in _cards)
+            {
+                child.gameObject.SetActive(false);
                 Destroy(child.gameObject);
+            }
             _built.Clear();
             _dealers = dealers;
             _confirm.SetActive(false);
@@ -143,7 +150,7 @@ namespace HellPoker.Presentation.Views
             for (int i = 0; i < dealers.Count; i++)
                 BuildCard(dealers[i], i, left + i * (CardWidth + CardSpacing), changingTables);
 
-            Select(current);
+            Select(current, wipe: false);   // the hall behind always matches the highlight from the first frame
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;
         }
@@ -153,6 +160,11 @@ namespace HellPoker.Presentation.Views
             _warning.text = warning ?? "";
             _confirm.SetActive(true);
             _confirm.transform.SetAsLastSibling();
+        }
+
+        public void CloseConfirm()
+        {
+            _confirm.SetActive(false);
         }
 
         public void Hide()
@@ -178,7 +190,7 @@ namespace HellPoker.Presentation.Views
             pick.targetGraphic = box;
             pick.transition = Selectable.Transition.None;
             UiFactory.MakeClickOnly(pick);
-            pick.onClick.AddListener(() => Select(index));
+            pick.onClick.AddListener(() => Select(index, wipe: true));
 
             // While changing tables: is the soul safe at this table?
             if (changingTables)
@@ -204,9 +216,10 @@ namespace HellPoker.Presentation.Views
             _built.Add((box, portrait));
         }
 
-        private void Select(int index)
+        private void Select(int index, bool wipe)
         {
             if (_dealers == null || index < 0 || index >= _dealers.Count) return;
+            SelectedIndex = index;
 
             for (int i = 0; i < _built.Count; i++)
             {
@@ -216,8 +229,7 @@ namespace HellPoker.Presentation.Views
             }
 
             DealerCard dealer = _dealers[index].Card;
-            _salon.SetSalon(dealer.Id, wipe: true);
-            _salon.SetMode(_dealers[index].SoulAtStake ? SalonMode.Soul : SalonMode.Normal);
+            _salon.SetSalon(dealer.Id, _dealers[index].SoulAtStake ? SalonMode.Soul : SalonMode.Normal, wipe);
             _detailTitle.text = dealer.Name;
             _description.text = dealer.Description;
 

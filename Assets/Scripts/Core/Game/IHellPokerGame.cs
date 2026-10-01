@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Draw;
+using HellPoker.Core.Evaluation;
 
 namespace HellPoker.Core.Game
 {
@@ -100,6 +101,14 @@ namespace HellPoker.Core.Game
 
         /// <summary>Answers the current bet decision; turns the next card or moves to the next phase.</summary>
         void Bet(BetAction action);
+
+        // ------------------------------------------------------------------ guidance for the player
+
+        /// <summary>What the player's face-up cards make right now; null before any card shows.</summary>
+        HandCategory? PlayerHandNow { get; }
+
+        /// <summary>While drawing: the cards the House's own logic would throw back from the player's hand (a hint only).</summary>
+        IReadOnlyCollection<int> SuggestedDiscards();
 
         bool CanDraw(IReadOnlyCollection<int> discardIndices, out string reason);
 

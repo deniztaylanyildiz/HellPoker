@@ -131,6 +131,16 @@ namespace HellPoker.Presentation.Views
                 PlayTalkOrBase();
         }
 
+        /// <summary>The line appears whole at once (skip).</summary>
+        public void FinishLine()
+        {
+            if (!IsTyping) return;
+            _typed = _fullLine.Length;
+            _line.text = _fullLine;
+            if (!_reacting)
+                PlayBase();
+        }
+
         /// <summary>Which one-shot animation a mood plays before the dealer goes back to talking; null for none.</summary>
         public static DealerAnimation? ReactionTo(DealerMood mood)
         {
@@ -173,7 +183,7 @@ namespace HellPoker.Presentation.Views
         {
             if (!IsTyping) return;
 
-            _typed = Mathf.Min(_fullLine.Length, _typed + Time.unscaledDeltaTime * CharactersPerSecond);
+            _typed = Mathf.Min(_fullLine.Length, _typed + Time.unscaledDeltaTime * CharactersPerSecond * AnimationClock.Speed);
             _line.text = _fullLine.Substring(0, Mathf.FloorToInt(_typed));
             if (!IsTyping && !_reacting)
                 PlayBase();

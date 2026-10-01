@@ -36,9 +36,14 @@ namespace HellPoker.Presentation.Views
         private GameObject _discardTag;
         private Button _button;
         private bool _selected;
+        private Image _hint;
+        private bool _bright;
 
         /// <summary>The state this card will be in once all queued animations have played.</summary>
         public CardSlot Planned { get; private set; } = CardSlot.Empty;
+
+        /// <summary>True when the face is on screen right now (not just planned).</summary>
+        public bool IsFaceUp => _content.gameObject.activeSelf && _faceGroup.activeSelf;
 
         public event Action Clicked;
 
@@ -65,6 +70,12 @@ namespace HellPoker.Presentation.Views
             _button.transition = Selectable.Transition.None;
             UiFactory.MakeClickOnly(_button);
             _button.onClick.AddListener(() => Clicked?.Invoke());
+
+            // The keep hint: a gold frame one pixel round the card, behind it, glinting slowly (no blending).
+            _hint = UiFactory.CreateImage("KeepHint", root, Palette.Gold);
+            _hint.raycastTarget = false;
+            _hint.rectTransform.PlaceTL(-1, -1, Size.x + 2, Size.y + 2);
+            _hint.enabled = false;
 
             _slot = UiFactory.CreateSprite("Slot", root, UiArt.CardSlot, new Color(0f, 0f, 0f, 0f)).gameObject;
             ((RectTransform)_slot.transform).Stretch();
@@ -231,6 +242,24 @@ namespace HellPoker.Presentation.Views
         public void SetInteractable(bool interactable)
         {
             _button.interactable = interactable;
+        }
+
+        /// <summary>Marks this card as one the House's logic would keep; <paramref name="bright"/> for a full glow.</summary>
+        public void SetHint(bool keep, bool bright = false)
+        {
+            _hint.enabled = keep;
+            _bright = bright;
+        }
+
+        public bool IsHinted => _hint.enabled;
+
+        private void Update()
+        {
+            if (!_hint.enabled) return;
+            _hint.color = _bright ? (Mathf.Repeat(Time.unscaledTime, 0.2f) < 0.1f ? Palette.Bone : Palette.GoldLight)
+                : Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.6f ? Palette.Gold : Palette.GoldLight;
+            // The frame follows the card when it is lifted for discarding.
+            _hint.rectTransform.PlaceTL(-1, -1 - Mathf.RoundToInt(_content.anchoredPosition.y), Size.x + 2, Size.y + 2);
         }
     }
 }

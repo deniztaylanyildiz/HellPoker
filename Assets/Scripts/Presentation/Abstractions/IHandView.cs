@@ -14,6 +14,9 @@ namespace HellPoker.Presentation.Abstractions
         void Show(IReadOnlyList<CardSlot> slots);
 
         void SetSelection(ICollection<int> selectedIndices);
+
+        /// <summary>Softly marks the cards worth keeping (a suggestion only); null or empty clears the marks.</summary>
+        void SetHints(ICollection<int> keepIndices);
         void SetInteractable(bool interactable);
     }
 }

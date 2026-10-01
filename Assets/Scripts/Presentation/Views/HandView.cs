@@ -96,6 +96,23 @@ namespace HellPoker.Presentation.Views
             });
         }
 
+        public void SetHints(ICollection<int> keepIndices)
+        {
+            int[] keep = keepIndices?.ToArray() ?? new int[0];
+            _sequencer.Do(() =>
+            {
+                for (int i = 0; i < _cards.Count; i++)
+                    _cards[i].SetHint(keep.Contains(i));
+            });
+        }
+
+        /// <summary>Lights one card up brightly (the Dead Man's Hand scene).</summary>
+        public void SetGlint(int index, bool on)
+        {
+            if (index >= 0 && index < _cards.Count)
+                _cards[index].SetHint(on, bright: true);
+        }
+
         public void SetInteractable(bool interactable)
         {
             _sequencer.Do(() =>

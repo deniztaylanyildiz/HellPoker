@@ -14,5 +14,11 @@ namespace HellPoker.Presentation.Abstractions
         void Bet(BetAction action);
 
         void ToggleDiscard(int index);
+
+        /// <summary>Opens or closes the hand ranking panel (H).</summary>
+        void ToggleHandRanks();
+
+        /// <summary>Closes whatever is open over the table (Esc); false when nothing was.</summary>
+        bool CloseOverlay();
     }
 }

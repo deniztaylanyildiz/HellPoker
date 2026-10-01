@@ -15,6 +15,12 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Raised when the player asks to leave the table and is allowed to (between hands, soul not at stake).</summary>
         event Action LeaveRequested;
 
+        /// <summary>Raised when the player moves on from a finished run (absolved or damned): time for the end screen.</summary>
+        event Action<RunSummary> RunEnded;
+
+        /// <summary>Records across all runs.</summary>
+        Core.Game.RecordBook Records { get; }
+
         /// <summary>Starts a fresh sentence at the table of <paramref name="dealer"/>.</summary>
         void StartNewRun(Dealer dealer);
 

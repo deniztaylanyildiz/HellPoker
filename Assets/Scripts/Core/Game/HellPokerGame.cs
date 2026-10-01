@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Draw;
@@ -199,6 +200,16 @@ namespace HellPoker.Core.Game
             }
 
             Advance(Phase);
+        }
+
+        public HandCategory? PlayerHandNow =>
+            PlayerHand == null ? (HandCategory?)null : VisibleHandReader.Read(PlayerHand.Take(PlayerCardsRevealed).ToList(), _evaluator);
+
+        public IReadOnlyCollection<int> SuggestedDiscards()
+        {
+            if (Phase != GamePhase.Drawing) return Array.Empty<int>();
+            IReadOnlyCollection<int> discards = _houseStrategy.ChooseDiscards(PlayerHand);
+            return CanDraw(discards, out _) ? discards : Array.Empty<int>();
         }
 
         public bool CanDraw(IReadOnlyCollection<int> discardIndices, out string reason)

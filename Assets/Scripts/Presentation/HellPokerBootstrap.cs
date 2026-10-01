@@ -1,5 +1,7 @@
+using System.Linq;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Game;
+using HellPoker.Presentation.Settings;
 using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
 using UnityEngine;
@@ -51,6 +53,7 @@ namespace HellPoker.Presentation
 
         private TablePresenter _tablePresenter;
         private MainMenuPresenter _menuPresenter;
+        private SettingsPresenter _settingsPresenter;
 
         private void Awake()
         {
@@ -63,22 +66,59 @@ namespace HellPoker.Presentation
                 soulWorthYears: _soulWorthYears, soulLossPercent: _soulLossPercent);
             int? seed = _useFixedSeed ? _seed : (int?)null;
 
+            ISettingsStore store = Store;
+            var settings = new GameSettings(store);
+            var archive = new RunArchive(store);
+            SettingsView settingsView = SettingsView.Create(transform);
+            _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode());
+
             TableView tableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
-            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView);
+            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, settings, archive);
+            ResumeSavedRun(archive);
 
             MainMenuView menu = MainMenuView.Create(transform,
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
-                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent));
+                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent),
+                DealerRoster.Mammon.Payouts);
             DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
-            _menuPresenter = new MainMenuPresenter(menu, dealerSelect, tableView, _tablePresenter, new UnityApplicationQuitter(), DealerRoster.All);
+            EndScreenView endScreen = EndScreenView.Create(transform);
+            RecordsView records = RecordsView.Create(transform);
+            ScreenTransitionView transition = ScreenTransitionView.Create(transform);
+            _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
+                new UnityApplicationQuitter(), transition, DealerRoster.All);
 
-            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter);
+            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter);
+        }
+
+        /// <summary>
+        /// Settings, the saved run and the records live in PlayerPrefs. Batch runs (tests, screenshots) use one store in memory
+        /// for the whole process instead: they never touch the player's own, and reloading the scene still finds the save.
+        /// </summary>
+        private static ISettingsStore Store => Application.isBatchMode ? BatchStore : (ISettingsStore)new PlayerPrefsStore();
+
+        /// <summary>The in-memory store of batch runs (tests may clear it).</summary>
+        public static readonly MemoryStore BatchStore = new MemoryStore();
+
+        /// <summary>A run saved between hands is picked up where it was left; a save for an unknown demon is dropped.</summary>
+        private void ResumeSavedRun(RunArchive archive)
+        {
+            RunSnapshot saved = archive.LoadRun();
+            if (saved == null) return;
+
+            Dealer dealer = DealerRoster.All.FirstOrDefault(d => d.Id == saved.DealerId);
+            if (dealer == null)
+            {
+                archive.ClearRun();
+                return;
+            }
+            _tablePresenter.Resume(dealer, saved);
         }
 
         private void OnDestroy()
         {
             _menuPresenter?.Dispose();
             _tablePresenter?.Dispose();
+            _settingsPresenter?.Dispose();
         }
 
         private static void EnsureEventSystem()

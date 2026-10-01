@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HellPoker.Presentation.Abstractions;
+using HellPoker.Presentation.Animation;
 using HellPoker.Presentation.Ui;
 using UnityEngine;
 using UnityEngine.UI;
@@ -36,6 +37,8 @@ namespace HellPoker.Presentation.Views
 
         private AnimationSequencer _sequencer;
         private bool _pulsing;
+        private float _lossFlash;
+        private const float LossFlashSeconds = 1.2f;
 
         public static SentenceView Create(Transform parent, int x, int y, AnimationSequencer sequencer)
         {
@@ -129,11 +132,40 @@ namespace HellPoker.Presentation.Views
                 _label.color = Mathf.Repeat(Time.unscaledTime, 0.8f) < 0.4f ? Palette.Hell : Palette.BoneMid;
             }
 
+            if (_lossFlash > 0f)
+            {
+                _lossFlash -= Time.unscaledDeltaTime * AnimationClock.Speed;
+                TintDigits(_lossFlash > 0f && Mathf.Repeat(_lossFlash, 0.2f) < 0.1f ? Palette.Hell : Color.white);
+            }
+
             if (_elapsed >= CountDuration) return;
 
-            _elapsed += Time.unscaledDeltaTime;
+            _elapsed += Time.unscaledDeltaTime * AnimationClock.Speed;
             float t = Mathf.Clamp01(_elapsed / CountDuration);
             Apply(Mathf.Lerp(_from, _target, 1f - Mathf.Pow(1f - t, 3f)));
+        }
+
+        /// <summary>The counter flashes red for a moment (a heavy loss).</summary>
+        public void FlashLoss()
+        {
+            _lossFlash = LossFlashSeconds;
+        }
+
+        /// <summary>Jumps the count to where it is heading (skip).</summary>
+        public void Snap()
+        {
+            _lossFlash = 0f;
+            TintDigits(Color.white);
+            if (_elapsed >= CountDuration) return;
+            _elapsed = CountDuration;
+            Apply(_target);
+        }
+
+        private void TintDigits(Color color)
+        {
+            foreach (Image digit in _digits)
+                digit.color = color;
+            _fallbackNumber.color = color == Color.white ? Palette.GoldLight : color;
         }
 
         private void Apply(float years)

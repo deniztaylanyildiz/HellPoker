@@ -28,12 +28,21 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest, Timeout(600000)]
         public IEnumerator CaptureScreens()
         {
+            HellPokerBootstrap.BatchStore.Clear();
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             yield return Shot("01_menu");
 
+            Press("SettingsButton");
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("01b_settings");
+            Press("SettingsBackButton");
+            yield return new WaitForSeconds(0.4f);
+
             Press("HowToPlayButton");
             yield return Shot("02_rules");
+            Press("HandRanksPageButton");
+            yield return Shot("02b_rules_hand_ranks");
             Press("BackButton");
 
             Press("NewGameButton");
@@ -51,6 +60,9 @@ namespace HellPoker.PlayMode.Tests
             yield return WaitForTable();
             yield return new WaitForSeconds(2.5f);
             yield return Shot("04_table_mammon");
+            Press("HandsButton");
+            yield return Shot("04b_table_hand_ranks");
+            Press("HandsButton");
 
             // Screenshot tool only: a 650-year sentence (unit 50, cap 195) leaves room under the cap for a house re-raise,
             // and the house re-raises every time it can, to show the Call / Fold answer.
@@ -126,6 +138,17 @@ namespace HellPoker.PlayMode.Tests
                 }
             }
 
+            // The table's moments, played on purpose: a hand name flaring up, and a heavy loss mid-shake.
+            var tableView = Object.FindFirstObjectByType<TableView>();
+            tableView.PlayMoment(HellPoker.Presentation.Abstractions.TableMoment.GoodHand, "FULL HOUSE!");
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("08c_good_hand");
+            tableView.PlayMoment(HellPoker.Presentation.Abstractions.TableMoment.BigLoss);
+            yield return null;
+            yield return null;
+            yield return Shot("08d_big_loss");
+            yield return WaitForTable();
+
             // Every hall: betting, a decision, and the final stretch (sentence cut to 200 behind the game's back).
             string[] halls = { "mammon", "belial", "lilith" };
             for (int dealer = 0; dealer < halls.Length; dealer++)
@@ -155,6 +178,38 @@ namespace HellPoker.PlayMode.Tests
             }
 
             yield return CaptureSoul(presenter);
+            yield return CaptureEnds(presenter);
+        }
+
+        /// <summary>The end screens (a run set free, a run damned) and the records.</summary>
+        private static IEnumerator CaptureEnds(TablePresenter presenter)
+        {
+            foreach (int years in new[] { 0, 9999 })
+            {
+                if (presenter.Game.Phase != HellPoker.Core.Game.GamePhase.Betting)
+                {
+                    SetSentence(presenter, 1000);
+                    yield return WaitForTable();
+                    if (ActionLabelIs("NEXT HAND")) Press("ActionButton");
+                    yield return WaitForTable();
+                }
+                presenter.Game.TakeOver(years, presenter.Game.RoundNumber);
+                typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+                yield return WaitForTable();
+                Press("ActionButton");   // THE END
+                yield return new WaitForSeconds(0.6f);
+                yield return Shot(years == 0 ? "21_end_absolved" : "22_end_damned");
+
+                Press("EndNewGameButton");
+                yield return new WaitForSeconds(0.4f);
+                Press("ChooseDealer2");
+                yield return WaitForTable();
+            }
+
+            Press("MenuButton");
+            Press("RecordsButton");
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("23_records");
         }
 
         /// <summary>The soul: going on the table, the locked exit, a soul hand with a re-raise, a loss, a rescue, and the trap seat.</summary>
@@ -190,7 +245,7 @@ namespace HellPoker.PlayMode.Tests
             }
             Press("ActionButton");   // stand pat
             yield return WaitForTable();
-            if (IsActive("RaiseButton") && Find<Button>("RaiseButton").interactable)
+            if (IsActive("RaiseButton") && !IsLocked("RaiseButton"))
             {
                 Press("RaiseButton");
                 yield return WaitForTable();
@@ -277,8 +332,8 @@ namespace HellPoker.PlayMode.Tests
         {
             for (int guard = 0; guard < 20; guard++)
             {
-                if (IsActive("PassButton") && Find<Button>("PassButton").interactable) Press("PassButton");
-                else if (IsActive("RaiseButton") && Find<Button>("RaiseButton").interactable && !IsActive("ActionButton")) Press("RaiseButton");
+                if (IsActive("PassButton") && !IsLocked("PassButton")) Press("PassButton");
+                else if (IsActive("RaiseButton") && !IsLocked("RaiseButton") && !IsActive("ActionButton")) Press("RaiseButton");
                 else if (IsActive("CallButton")) Press("CallButton");
                 else if (ActionLabelIs("STAND PAT")) Press("ActionButton");
                 else break;
@@ -364,9 +419,14 @@ namespace HellPoker.PlayMode.Tests
 
         private static bool IsActive(string name) => Find<Button>(name).gameObject.activeInHierarchy;
 
+        /// <summary>A locked button still takes clicks (it answers with the reason), so check the look, not interactable.</summary>
+        private static bool IsLocked(string name) => Find<HellPoker.Presentation.Ui.ButtonFeel>(name).Locked;
+
         private static T Find<T>(string name) where T : Component
         {
-            T found = Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault(c => c.name == name);
+            // Prefer a live object: replaced dealer cards linger (inactive) until the end of the frame.
+            T found = Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(c => c.name == name).OrderByDescending(c => c.gameObject.activeInHierarchy).FirstOrDefault();
             Assert.IsNotNull(found, $"'{name}' not found in scene.");
             return found;
         }

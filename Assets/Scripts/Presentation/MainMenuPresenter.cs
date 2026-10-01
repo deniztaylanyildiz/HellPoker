@@ -8,32 +8,42 @@ using HellPoker.Presentation.Ui;
 namespace HellPoker.Presentation
 {
     /// <summary>
-    /// Moves the player between the title menu, the dealer choice and the table.
+    /// Moves the player between the screens: the title menu, its sub-screens (settings), the dealer choice and the table.
     /// Menu → New Game → choose a demon → table. During a run the same choice screen changes tables: the sentence goes
     /// along, and sitting with a demon whose soul line is already passed needs the player to confirm a warning.
+    /// Esc always goes one screen up (<see cref="GoBack"/>), and every screen change plays the transition curtain.
     /// Knows nothing about poker rules; the run itself is reached through <see cref="IRunSession"/>.
     /// </summary>
     public sealed class MainMenuPresenter : IMenuCommands, IDisposable
     {
         private readonly IMainMenuView _menu;
         private readonly IDealerSelectView _dealerSelect;
+        private readonly ISettingsView _settings;
+        private readonly IEndScreenView _endScreen;
+        private readonly IRecordsView _records;
         private readonly ITableView _table;
         private readonly IRunSession _session;
         private readonly IApplicationQuitter _quitter;
+        private readonly IScreenTransition _transition;
         private readonly Dealer[] _dealers;
         private readonly DealerCard[] _dealerCards;
 
         private bool _changingTables;
         private int _pendingSeat = -1;
 
-        public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ITableView table, IRunSession session,
-            IApplicationQuitter quitter, IReadOnlyList<Dealer> dealers)
+        public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
+            IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
+            IReadOnlyList<Dealer> dealers)
         {
             _menu = menu ?? throw new ArgumentNullException(nameof(menu));
             _dealerSelect = dealerSelect ?? throw new ArgumentNullException(nameof(dealerSelect));
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _endScreen = endScreen ?? throw new ArgumentNullException(nameof(endScreen));
+            _records = records ?? throw new ArgumentNullException(nameof(records));
             _table = table ?? throw new ArgumentNullException(nameof(table));
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _quitter = quitter ?? throw new ArgumentNullException(nameof(quitter));
+            _transition = transition ?? throw new ArgumentNullException(nameof(transition));
             if (dealers == null || dealers.Count == 0) throw new ArgumentException("At least one dealer is needed.", nameof(dealers));
             _dealers = dealers.ToArray();
             _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
@@ -41,27 +51,55 @@ namespace HellPoker.Presentation
             _menu.NewGamePressed += OpenNewRunChoice;
             _menu.ContinuePressed += OpenTable;
             _menu.ChangeTablePressed += AskToChangeTables;
+            _menu.SettingsPressed += OpenSettings;
+            _menu.RecordsPressed += OpenRecords;
             _menu.QuitPressed += _quitter.Quit;
             _dealerSelect.DealerChosen += Choose;
             _dealerSelect.BackPressed += Back;
             _dealerSelect.SeatConfirmed += ConfirmSeat;
             _dealerSelect.SeatCancelled += CancelSeat;
+            _settings.BackPressed += OpenMenu;
+            _records.BackPressed += OpenMenu;
+            _endScreen.NewGamePressed += OpenNewRunChoice;
+            _endScreen.MenuPressed += OpenMenu;
             _table.MenuPressed += OpenMenu;
             _session.LeaveRequested += OpenTableChoice;
+            _session.RunEnded += ShowEnd;
 
             OpenMenu();
         }
 
-        /// <summary>True on any menu screen (title or dealer choice) — the table is not taking input.</summary>
-        public bool IsMenuOpen => _menu.IsVisible || _dealerSelect.IsVisible;
+        public bool IsMenuOpen => _menu.IsVisible || _dealerSelect.IsVisible || _settings.IsVisible || _endScreen.IsVisible || _records.IsVisible;
 
-        /// <summary>Esc: from the table or the dealer choice back to the title; from the title back into a run in progress.</summary>
-        public void ToggleMenu()
+        public bool IsTransitioning => _transition.IsPlaying;
+
+        public void GoBack()
         {
-            if (!_menu.IsVisible)
+            if (_dealerSelect.IsVisible)
+            {
+                if (_dealerSelect.IsConfirming)
+                {
+                    _dealerSelect.CloseConfirm();
+                    CancelSeat();
+                }
+                else
+                {
+                    Back();
+                }
+            }
+            else if (_settings.IsVisible || _records.IsVisible || _endScreen.IsVisible)
+            {
                 OpenMenu();
-            else if (_session.CanContinue)
-                OpenTable();
+            }
+            else if (_menu.IsVisible)
+            {
+                if (!_menu.CloseOverlay() && _session.CanContinue)
+                    OpenTable();
+            }
+            else
+            {
+                OpenMenu();
+            }
         }
 
         public void Dispose()
@@ -69,13 +107,20 @@ namespace HellPoker.Presentation
             _menu.NewGamePressed -= OpenNewRunChoice;
             _menu.ContinuePressed -= OpenTable;
             _menu.ChangeTablePressed -= AskToChangeTables;
+            _menu.SettingsPressed -= OpenSettings;
+            _menu.RecordsPressed -= OpenRecords;
             _menu.QuitPressed -= _quitter.Quit;
             _dealerSelect.DealerChosen -= Choose;
             _dealerSelect.BackPressed -= Back;
             _dealerSelect.SeatConfirmed -= ConfirmSeat;
             _dealerSelect.SeatCancelled -= CancelSeat;
+            _settings.BackPressed -= OpenMenu;
+            _records.BackPressed -= OpenMenu;
+            _endScreen.NewGamePressed -= OpenNewRunChoice;
+            _endScreen.MenuPressed -= OpenMenu;
             _table.MenuPressed -= OpenMenu;
             _session.LeaveRequested -= OpenTableChoice;
+            _session.RunEnded -= ShowEnd;
         }
 
         private void OpenNewRunChoice()
@@ -102,9 +147,34 @@ namespace HellPoker.Presentation
         private void ShowChoice(IEnumerable<DealerChoice> choices)
         {
             _pendingSeat = -1;
-            _menu.Hide();
-            _table.SetVisible(false);
+            HideAll();
             _dealerSelect.Show(choices.ToArray());
+            _transition.Play();
+        }
+
+        /// <summary>Every screen goes away; the caller shows the one wanted.</summary>
+        private void HideAll()
+        {
+            _menu.Hide();
+            _dealerSelect.Hide();
+            _settings.Hide();
+            _endScreen.Hide();
+            _records.Hide();
+            _table.SetVisible(false);
+        }
+
+        private void ShowEnd(RunSummary summary)
+        {
+            HideAll();
+            _endScreen.Show(summary);
+            _transition.Play();
+        }
+
+        private void OpenRecords()
+        {
+            HideAll();
+            _records.Show(_session.Records, _dealerCards);
+            _transition.Play();
         }
 
         private void Choose(int index)
@@ -162,16 +232,23 @@ namespace HellPoker.Presentation
 
         private void OpenMenu()
         {
-            _table.SetVisible(false);
-            _dealerSelect.Hide();
+            HideAll();
             _menu.Show(_session.CanContinue);
+            _transition.Play();
+        }
+
+        private void OpenSettings()
+        {
+            HideAll();
+            _settings.Show();
+            _transition.Play();
         }
 
         private void OpenTable()
         {
-            _menu.Hide();
-            _dealerSelect.Hide();
+            HideAll();
             _table.SetVisible(true);
+            _transition.Play();
         }
     }
 }

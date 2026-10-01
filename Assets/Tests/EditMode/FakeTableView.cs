@@ -23,6 +23,18 @@ namespace HellPoker.Core.Tests
         public IDealerView Dealer => DealerView;
 
         public bool IsBusy { get; set; }
+        public int Skips { get; private set; }
+
+        public void SkipAnimations() => Skips++;
+
+        public List<(TableMoment moment, string text, IReadOnlyList<int> cards)> Moments { get; } =
+            new List<(TableMoment, string, IReadOnlyList<int>)>();
+
+        public void PlayMoment(TableMoment moment, string text = null, IReadOnlyList<int> playerCards = null)
+        {
+            if (text != null) TextLog.Add(text);
+            Moments.Add((moment, text, playerCards));
+        }
         public string Message { get; private set; }
         public Tone MessageTone { get; private set; }
         public string ActionLabel { get; private set; }
@@ -46,6 +58,19 @@ namespace HellPoker.Core.Tests
         public event Action<BetAction> BetPressed;
         public event Action MenuPressed;
         public event Action LeavePressed;
+        public event Action HandRanksPressed;
+
+        public bool HandRanksOpen { get; private set; }
+        public IPayoutInfo HandRanksPayouts { get; private set; }
+
+        public void ShowHandRanks(IPayoutInfo payouts)
+        {
+            HandRanksOpen = true;
+            HandRanksPayouts = payouts;
+        }
+
+        public void HideHandRanks() => HandRanksOpen = false;
+        public void PressHandRanks() => HandRanksPressed?.Invoke();
 
         public FakeTableView()
         {
@@ -111,6 +136,7 @@ namespace HellPoker.Core.Tests
         public string Caption { get; private set; }
         public Tone CaptionTone { get; private set; }
         public HashSet<int> Selection { get; } = new HashSet<int>();
+        public HashSet<int> Hints { get; } = new HashSet<int>();
         public bool Interactable { get; private set; }
 
         public int FaceUpCount => Slots.Count(slot => slot.Kind == CardSlot.SlotKind.Face);
@@ -137,6 +163,12 @@ namespace HellPoker.Core.Tests
         }
 
         public void SetInteractable(bool interactable) => Interactable = interactable;
+
+        public void SetHints(ICollection<int> keepIndices)
+        {
+            Hints.Clear();
+            if (keepIndices != null) Hints.UnionWith(keepIndices);
+        }
     }
 
     internal sealed class FakeSentenceView : ISentenceView

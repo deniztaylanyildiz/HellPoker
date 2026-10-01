@@ -37,10 +37,16 @@ namespace HellPoker.Presentation.Abstractions
 
         bool IsVisible { get; }
 
+        /// <summary>True while the warning of <see cref="AskToConfirm"/> is open.</summary>
+        bool IsConfirming { get; }
+
         void Show(IReadOnlyList<DealerChoice> dealers);
 
         /// <summary>Shows a warning with "sit anyway" and "back".</summary>
         void AskToConfirm(string warning);
+
+        /// <summary>Closes the warning without an answer (Esc).</summary>
+        void CloseConfirm();
 
         void Hide();
     }

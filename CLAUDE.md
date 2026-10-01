@@ -48,7 +48,33 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; **tavana ya da all-in'e** ulaşınca Pas serbest.
   Ekran "cehennem ateşi" moduna geçer.
 - Masada "Win: at least −X · Lose: at least +Y" satırı (en zayıf ele göre, `LeastYearsForgiven/Added`).
-- Oyun **ana menüde** açılır (Continue / Change Table / New Game / How to Play / Quit). Masada MENU butonu ya da Esc menüye döner.
+- Oyun **ana menüde** açılır: Continue / Change Table (koşu sürerken), New Game, Settings, How to Play (RULES / HANDS sayfaları),
+  Records, Quit. Masada MENU butonu ya da Esc menüye döner.
+- **Esc** her ekranda bir üst ekrana gider (`IMenuCommands.GoBack`): uyarı kapanır; masadaki el tablosu kapanır;
+  kurallar / ayarlar / rekorlar / oyun sonu → menü; seçim → geldiği yer; masa → menü; menü → koşu. Her alt ekranda BACK butonu var.
+  Ekran geçişlerinde 8 px'lik perde kalkar (`ScreenTransitionView`); perde hareket ederken girdi beklenir.
+- **Akıcılık:**
+  - Animasyon sürerken basılan her tuş / tık animasyonları sonuna atlatır (`ITableView.SkipAnimations`). O basış aksiyon üretmez;
+    oyuncu görmediği bir masada karar vermez.
+  - Kilitli butonlar soluk ama tıklanabilir; tıklanınca nedeni söylenir.
+  - Hız ayarı Normal ×1 / Fast ×2 / Very Fast ×4 (`AnimationClock`).
+- **Yol gösterme** (Settings ▸ Hand Guide):
+  - Oyuncunun eli "NOW: ONE PAIR" diye adlandırılır (`IHellPokerGame.PlayerHandNow`).
+  - Draw'da kasa mantığına göre tutulacak kartlar altın çerçeveyle parlar (`SuggestedDiscards`).
+  - H / HANDS: el sıralaması paneli.
+  - İlk oyun ipuçları her anı bir kez şeytanın ağzından anlatır (ilk karar, ilk draw, ilk re-raise, son 250, ruh). Ayarlardan sıfırlanır.
+- **His:**
+  - En az 4 birimlik kayıpta ekran sarsılır, sayaç kırmızı yanar.
+  - Two Pair+ kazançta el adı büyük yazıyla belirir.
+  - Dead Man's Hand'de ekran kararır, dört kart tek tek parlar (`TableMoment`).
+- **Kayıt:** her el sonunda, yeni koşuda ve masa değişiminde koşu kaydedilir (`RunArchive` → PlayerPrefs `run.save`).
+  - Format: `RunSnapshot`, "key=value" satırları, `v=1`: dealer, years, rounds, hands, lowest, highest, best, dealers, soul.
+  - Bozuk ya da başka sürüm kayıt silinip yok sayılır. Deste kaydedilmez. Açılışta kayıt varsa Continue ile devam edilir.
+- **Oyun sonu:** masada "THE END" → ABSOLVED / DAMNED ekranı (el sayısı, en düşük / en yüksek ceza, en iyi el, masalar, ruh),
+  NEW GAME / MENU. **Rekorlar** (`RecordBook`, `run.records`): koşu, aklanma, lanet, şeytan başına aklanma, en hızlı aklanma.
+- **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): animasyon hızı, tam ekran (Alt+Enter; pencere 480×270'in tam katı),
+  el rehberi, ipuçları. Batchmode'da (testler) ayar / kayıt / rekor süreç boyu tek bir bellek deposunda
+  (`HellPokerBootstrap.BatchStore`); PlayMode testleri her testte onu temizler.
 - **New Game → kurpiyer şeytan seçimi** (Mammon / Belial / Lilith). Her şeytanın kendi ev kuralları var (`DealerRoster`):
   | Şeytan | Kart değiştir | Kasa gösterir | Ödeme | Çekilme (önce/sonra) | Re-raise (Two Pair+ / blöf) |
   |---|---|---|---|---|---|
@@ -75,30 +101,36 @@ Assets/Scripts/
   Core/          HellPoker.Core.asmdef  — noEngineReferences: true (UnityEngine KULLANILAMAZ)
     Cards/         Card, Rank, Suit, Hand (değişmez), IDeck/Deck
     Randomness/    IRandomSource, IShuffler, FisherYatesShuffler
-    Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule)
+    Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule), VisibleHandReader (açık kartların şu anki eli)
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
-    Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory
+    Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory,
+                   RunStats / RunSnapshot (kayıt formatı) / RecordBook (rekorlar)
     Betting/       IHouseBettingStrategy, HandStrengthBettingStrategy, HouseBettingStyle (kasanın re-raise / blöf mizacı)
     Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle, SoulThreshold), DealerRoster
                    (Game/ altında ayrıca StakeScale: bahis birimi, ante, masa tavanı)
   Presentation/  HellPoker.Presentation.asmdef — Unity katmanı (MVP)
-    Abstractions/  ITableView, IHandView, IDealerView (+ DealerMood), IDealerSelectView (+ DealerChoice), IRunSession, DealerCard,
-                   SoulGauge (+ LeaveState), ... , ITableCommands, Tone
+    Abstractions/  ITableView (+ TableMoment), IHandView, IDealerView (+ DealerMood), IDealerSelectView (+ DealerChoice), IRunSession,
+                   IMainMenuView, ISettingsView (+ IDisplayMode, IScreenTransition), IEndScreenView / IRecordsView (+ RunSummary),
+                   IGuideSettings, DealerCard, SoulGauge (+ LeaveState), ITableCommands, IMenuCommands, Tone
     Animation/     SpriteClip + SpriteSheet (yatay şeridi kare karelere böler), DealerAnimationLibrary ve SalonLibrary (yedek zincirleri),
-                   SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer)
+                   SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer), AnimationClock (hız + atlama; tüm tween'ler)
     Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, SalonView,
-                   SoulView, SentenceView, CardView...
-    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font), Palette, UiText + UiText.Dealers
-    TablePresenter (masa; IRunSession: yeni koşu, LEAVE isteği, masa değiştirme (ceza taşınır); her masada oyunu
-    Func<Dealer, IHellPokerGame> ile kurar), MainMenuPresenter (menü → şeytan seçimi → masa; masa değiştirme ve uyarı),
-    DealerCards (şeytan kurallarından özellik metni üretir), KeyboardInput,
+                   SoulView, SentenceView, CardView, HandRanksPanel, TableMoments, SettingsView, EndScreenView, RecordsView,
+                   ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
+    Settings/      GameSettings (+ IGuideSettings), ISettingsStore (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
+    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font), Palette, UiText + UiText.Dealers,
+                   ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
+    TablePresenter (masa; IRunSession: yeni koşu, devam (Resume), LEAVE isteği, masa değiştirme (ceza taşınır), kayıt / rekor, RunEnded;
+    her masada oyunu Func<Dealer, IHellPokerGame> ile kurar), MainMenuPresenter (tüm ekranlar arası gezinme, Esc, geçişler),
+    SettingsPresenter (ayar ekranı ↔ GameSettings ↔ hız / pencere), UnityDisplayMode, DealerCards, KeyboardInput,
     HellPokerBootstrap (composition root)
   Editor/        HellPokerSceneBuilder (menü: Hell Poker ▸ Build Main Scene), HellPokerMenu (Hell Poker ▸ Play, Ctrl+Shift+P),
                  HellPokerArtImporter (Resources/Art: Point filtre, PPU 100, sıkıştırmasız, 9-slice; Resources/Fonts: Hinted Raster),
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
 Assets/Tests/EditMode/  NUnit testleri (Core + Presenter, fake view'larla)
-Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla bir el oynayan uçtan uca test
+Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla oynayan testler: HellPokerSceneTests, SalonRegressionTests,
+                        RunJourneyTests (yeni oyun → eller → masa değiştir → menü → devam → sahneyi yeniden yükle → devam)
                         + HellPokerScreenshots ([Explicit]: tüm ekranların 1920×1080 görüntüsünü alır)
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
 Assets/Resources/Art/   Üretilmiş piksel görseller:
@@ -149,6 +181,8 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_salons
 - **Somut sınıflar sadece composition root'larda seçilir:** `HellPokerGameFactory` (Core) ve `HellPokerBootstrap` (Unity).
 - **Presenter sadece arayüzlere bağlıdır** (`IHellPokerGame`, `ITableView`), renk/stil bilmez; anlamsal `Tone` / `DealerMood` gönderir,
   rengi ve animasyonu view seçer.
+- Bir ekranın üstüne binen canvas (ör. geçiş perdesi) `UiFactory.CreateScreen(..., letterbox: false)` ile kurulur;
+  yoksa tam ekran siyah kenar katmanı altındaki her şeyi örter.
 - **Presenter durum tarif eder, animasyon bilmez:** her komuttan sonra masanın olması gereken halini (`CardSlot[]` vb.) gönderir.
   View'lar farkı bulup animasyonla gösterir. Tüm view güncellemeleri tek bir `AnimationSequencer` kuyruğundan geçer
   (sonuç mesajı kartlar açılmadan görünmez). Animasyon sürerken `ITableView.IsBusy` true olur ve presenter girdiyi yok sayar.
@@ -184,6 +218,7 @@ py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: tüm şeyta
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, C karşıla, F çekil, 1-5 kart seç, Esc menü.
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, C karşıla, F çekil, 1-5 kart seç, H el tablosu, Esc bir üst ekran,
+Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

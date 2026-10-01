@@ -113,9 +113,18 @@ namespace HellPoker.Presentation.Views
             });
         }
 
+        /// <summary>The bar jumps to its new level (skip); the entrance flash stops.</summary>
+        public void Snap()
+        {
+            _elapsed = FillSeconds;
+            _shown = _target;
+            _entrance = 0f;
+            if (gameObject.activeInHierarchy) Draw();
+        }
+
         private void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Time.unscaledDeltaTime * AnimationClock.Speed;
             if (_elapsed < FillSeconds)
             {
                 _elapsed += dt;

@@ -3,9 +3,23 @@ namespace HellPoker.Presentation.Abstractions
     /// <summary>Menu intents an input source can trigger.</summary>
     public interface IMenuCommands
     {
+        /// <summary>True on any screen but the table (the table is not taking input).</summary>
         bool IsMenuOpen { get; }
 
-        /// <summary>Opens the menu from the table, or returns to a run in progress.</summary>
-        void ToggleMenu();
+        /// <summary>True while a screen change plays; all input waits.</summary>
+        bool IsTransitioning { get; }
+
+        /// <summary>
+        /// Esc: one screen up. A warning closes, a sub-screen (rules, settings) returns to the menu, the dealer choice to where it
+        /// came from, the table to the menu, and the menu back into a run in progress.
+        /// </summary>
+        void GoBack();
+    }
+
+    /// <summary>Setting shortcuts an input source can trigger.</summary>
+    public interface ISettingsCommands
+    {
+        /// <summary>Alt+Enter.</summary>
+        void ToggleFullscreen();
     }
 }
