@@ -318,7 +318,7 @@ namespace HellPoker.Core.Tests
             var snapshot = new RunSnapshot("lucifer", 180, 33, new RunStats(1000, "belial"), null, true, "belial", 2);
 
             string text = snapshot.Encode();
-            Assert.IsTrue(text.StartsWith("v=2"));
+            Assert.IsTrue(text.StartsWith("v=3"));
             Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot back));
 
             Assert.AreEqual("lucifer", back.DealerId);

@@ -1070,3 +1070,256 @@ Masasında ceza 250'yi geçerse en az 500 ile gelinen şeytana düşer, tekrar i
   `LuciferArtTests.cs`, `LuciferJourneyTests.cs`, `Art/Demons/lucifer/*`, `Art/Backgrounds/lucifer/*`, `Ui/dialog_lucifer.png`,
   `Ui/fade.png` (+ .meta dosyaları).
 - Oyunda elle deneme: çağrılma sahnesinin temposu (eski şeytanın son sözü + ~2.5 sn kararma), Fast / Very Fast'ta his.
+
+---
+
+## 2026-10-02 — Plan 4 açık sorularının cevapları
+
+### İstek (kullanıcı)
+1. Sıradan masada son yılın kalması doğru, kalsın. Ama hata sanılmasın: ceza sıradan masada 1'e inince şeytan
+   "The last year is not mine to take. He is waiting." desin, sayacın altında kısa bir açıklama görünsün.
+2. Belial'e dokunma, düşüş cezası 500 kalsın. Denge şeytan hileleriyle yeniden ayarlanacak.
+3. Wild Bill'i daralt: sadece hiç çağrılmamış oyuncunun Dead Man's Hand'i "WILD BILL'S ESCAPE". Lucifer'den düşmüş oyuncununki
+   normal ABSOLVED, ekranda "The Morning Star will remember this." satırıyla. Rekorlar buna göre.
+4. Lucifer masasında adın altındaki "Waits below 250 years" boş kalsın; sadece seçim ekranındaki kilitli kartta görünsün.
+
+### Yapılanlar
+1. **Son yıl:**
+   - Sonuç ekranında, Lucifer bekliyorken sıradan masada ceza 1 ise (`TablePresenter.IsHoldingTheLastYear`) şeytan normal el
+     repliği yerine `UiText.LastYearLine`'ı söyler.
+   - Sayacın altındaki satır "The last year is his" olur (`Sentence.SetLimit`).
+   - NEXT HAND'de oyuncu 1 yılla çağrılır; satır "Cast down above 250"ye döner.
+   - Yan düzeltme: Lucifer beklerken sıradan masada "son 250" modu (cehennem ateşi + "No more cheap bets" repliği) artık hiç açılmıyor.
+     Ceza 250'ye indiğinde sonuç ekranında bir an açılıp yeni repliğin üstüne konuşuyordu; bir sonraki el zaten Lucifer'in.
+2. Değişiklik yok.
+3. **Wild Bill:**
+   - `WildBill` artık `Attempts == 0` da istiyor. Düşmüş oyuncunun Dead Man's Hand'i ABSOLVED, rekorlarda Wild Bill sayılmıyor.
+   - Oyun sonu ekranında hikâyeye "The Morning Star will remember this." ekleniyor.
+   - Başlık ve hikâye seçimi test edilebilir statik metotlara taşındı (`EndScreenView.TitleOf / StoryOf`).
+4. **Başlık:** `DealerView` son masada başlığı boş bırakıyor. `DealerText.Title` kilitli kartta görünmeye devam ediyor.
+
+### Testler
+- `LuciferPresenterTests`:
+  - düşmüş oyuncunun Dead Man's Hand'i (ABSOLVED, Wild Bill değil, rekorlar, "remember" satırı);
+  - dört sonun adları ve satırları;
+  - sıradan masada son yıl (replik, sayaç notu, sonraki elde 1 yılla çağrılma);
+  - sıradan kayıpta bu repliğin söylenmemesi.
+- `LuciferJourneyTests` (PlayMode): Lucifer masasında başlık boş.
+- **450 EditMode + 15 PlayMode geçiyor.**
+
+### Sıradaki adımlar
+- Kullanıcıdan gelecek: menü resmi ve şeytan hileleri (denge, Belial dahil, onunla yeniden ayarlanacak).
+
+---
+
+## 2026-10-02 — İş 1: ana menü arka plan resmi
+
+### İstek (kullanıcı)
+- Başka oturumdan kalan `pixel_menu.py` / `menu.png` silinsin, `generate_art.py` son commit'e dönsün.
+- Sonra Tools/ArtGen ile 480×270, 4 kare, ~4 FPS animasyonlu bir menü resmi çizilsin.
+- Konu: cehennemin dibi, Lucifer asla tam görünmez. Orta sütun sakin. Menü, kurallar, ayarlar ve rekorlarda arkada kalsın.
+
+### Yapılanlar
+- **Temizlik:**
+  - eski `pixel_menu.py`, `menu.png` (+ .meta) ve `__pycache__` kalıntısı silindi;
+  - `generate_art.py` GitHub Desktop'un git'iyle son commit'e döndürüldü;
+  - `Docs/HELLPOKER_UPDATE_5.md`'ye dokunulmadı (kullanıcının plan dosyası).
+- **`pixel_menu.py` (yeni, sıfırdan):** 4 kare, 1920 px.
+  - Gök: duman ve sönük yıldızlar; yukarıdan iki dev kanat (kaburgalı, aydınlık kenarlı, uçlarında pençe).
+    Logonun üstünde iki yanan göz, 4. karede kırpılır. Lucifer'in kendisi yok.
+  - Ufuk: ateş denizi (kenarlarda vahşi, orta sütunun altında sakin), iki yanda yanan şehir siluetleri.
+  - Kenarlar: Mammon'un altın yığını ve açık sandığı (sol alt), Lilith'in hilali (sol), Belial'in yılanlı kırık sütunu (sağ),
+    taş üstünde A♠ A♣ 8♠ 8♣ (sağ alt). Yükselen korlar, parlayan sikke ve kart.
+  - Orta sütun (x 94-386, y 30-256) iki adım koyulaştırılmış. Gözler koyulaştırmadan sonra çizilir.
+- `generate_art.py menu`. `preview.py`'de menü bölümü (orta sütun kesikli çizgiyle işaretli); tam ekran şeritler UI sayfasından çıkarıldı.
+- **Unity:**
+  - `MenuBackdropLibrary` (Animation, yükleyici enjekte edilebilir), yedek zinciri `Ui/menu` → `Ui/background` → null (düz renk).
+  - `MenuBackdrop.Create` menü, ayarlar ve rekorlar ekranlarında taş zeminin yerini aldı. Kurallar paneli menü canvas'ında, zemin arkada.
+- **Ekran görüntüleri** (01_menu, 01b_settings, 02_rules, 23_records): yazılar ve butonlar rahat okunuyor.
+  İlk denemede orta sütundaki ateş denizi butonların altında fazla parlaktı; kenarlara doğru güçlenecek şekilde yeniden çizildi.
+  Kanat kenarları görünmüyordu, aydınlık kenar eklendi.
+
+### Testler
+- `MenuBackdropTests`:
+  - şerit 4 kare / 4 FPS / döngü;
+  - taş duvar yedeği; sanat yokken null ve yükleyici hatasında çökmeme;
+  - üretilen dosyanın 4 × 480 ve 2048 sınırı içinde olması;
+  - orta sütunun her karede en az %80 koyu olması.
+- **455 EditMode + 15 PlayMode geçiyor.**
+
+---
+
+## 2026-10-02 — İş 2 (Şeytan hileleri), Bölüm 1 + 2: altyapı ve hileler (Core)
+
+### İstek (kullanıcı)
+Oyun "sıra tabanlı dövüş" gibi hissettirsin: şeytanın hamlesi önceden görünür (niyet), hilesi kartlarda görünür bir darbe olur.
+- Bölüm 1: kötülük göstergesi, hile seçimi, `ICheat` / `CheatResult` / `ICheatPolicy` / `ICheatGuard`, niyet (Belial'inki sahte olabilir).
+  Dead Man's Hand bağışıklığı, kayıt v=3.
+- Bölüm 2: 13 hile (Mammon 3, Belial 3 + sahte niyet, Lilith 3, Lucifer 4).
+(Bölüm 1 ve 2 birlikte yazıldı; altyapı hileler olmadan sınanamıyordu. Tek kayıt.)
+
+### Yapılanlar — altyapı (`Assets/Scripts/Core/Cheats/`)
+- `ICheat`:
+  - Id, `CheatTier` (Minor / Major), `CheatTiming`, CanApply, Apply.
+  - Zamanlamalar: AfterDeal, BeforeDraw (beş kart açılıp draw'a girilince), AfterDraw, HouseReveal, BeforeShowdown.
+  - `CheatIds`: kimlikler, sunum ve kayıt anahtarı.
+- `CheatResult`: hangi oyuncu / kasa kartları, kaybedilen / kazanılan kart, yıl, sonuç (Played / Blocked / Fizzled), `ShownId` (yalan).
+- `CheatTable`: hilenin üzerinde çalıştığı el.
+  - İçeriği: iki el, deste, değerlendirici, zar, birim, açık kasa kartları, draw'da gelen pozisyonlar, showdown.
+  - Yardımcılar: hedef seçimi (bağışık kartları atlar), en yüksek / en düşük, desteden belirli kartı alma, yeniden dağıtma.
+- `CheatMarks`: elde kalan işaretler.
+  - Zincirli, dikenli, oyuncuya kapalı kartlar, sahte kasa yüzü, haraç, bakış.
+  - İşaretler pozisyona değil **karta** bağlı: örtülü kart atılırsa örtü de gider.
+- `CheatRules.IsImmune`: A♠ A♣ 8♠ 8♣ hiçbir hileden etkilenmez. Hedef olursa hile başka karta geçer ya da boşa gider.
+- `ICheatPolicy` / `DemonCheatPolicy`:
+  - ceza ≤ `GameRules.MajorCheatYears` (400) iken büyük hile %50 (`MajorCheatPercent`), değilse küçük;
+  - `LiePercent` (Belial %25: duyurulan başka bir hilesi);
+  - kendi büyük-hile çizgisi ve "masada bir kez" (Lucifer: 150, deneme başına bir Düşüş).
+- `ICheatGuard` / `AllowEveryCheat`: her vuruştan önce sorulur. Engellenen hile harcanır ama hiçbir şey değiştirmez (sonraki planın kancası).
+- **`CheatSession`** (yeni; `HellPokerGame` 500 satırı geçtiği için ayrı sınıf). Kötülük göstergesi, seçim, vuruş, işaretler ve sonuçlar burada.
+  - Her el +1 (`MalicePerHand`), oyuncu kazanınca +1 (`MalicePerWin`), ceza ≤ 500 ise her el +1 daha (`MaliceLowSentence*`, Lucifer hariç).
+  - Dolunca dağıtımda hile seçilir ve niyet olarak duyurulur.
+  - Vuran ya da engellenen hile göstergeyi boşaltır. Boşa giden (üzerinde çalışacak bir şey yok) ya da anı hiç gelmeyen (oyuncu önce
+    çekildi) hile göstergeyi dolu bırakır, sonraki el yeniden seçilir.
+- `HellPokerGame`: beş anda `Strike`. Ayrıca:
+  - kasanın re-raise kararına Bakış;
+  - draw'da zincir kontrolü ve diken cezası (anında, defterde);
+  - kazançta haraç; showdown'ı değiştirebilen tek hile Düşüş.
+  - `PlayerHandNow` gizli kartları saymaz; gizli kart varken draw ipucu verilmez (sızıntı olmasın).
+- `IHellPokerGame` yeni üyeler: `Malice / MaliceMax / PendingCheat / CheatsThisHand / MajorCheatUsed / ThornYearsThisHand /
+  TitheYearsThisHand`, `IsPlayerCardHidden / Chained / Thorned`, `IsHouseCardFalse`, `HouseCardFace`, `RestoreMalice`.
+- Kart / deste: `IDeck.Remaining` / `Take(card)`, `Hand.With / IndexOf`.
+- `Dealer.MaliceMax` / `Dealer.Cheats` (politika şeytan paketinde). Somut hileler `DealerRoster`'da, oyun `HellPokerGameFactory`'de kuruluyor.
+  Hileler ayrı bir zar akışı kullanıyor (seed+2): kart sırası ve kasanın mizacı değişmiyor.
+- `GameRules`: `MalicePerHand, MalicePerWin, MaliceLowSentenceYears (500), MaliceLowSentenceBonus, MajorCheatYears (400), MajorCheatPercent (50)`.
+- **Kayıt v=3:** `malice`, `cheat.major`; yarım elde `hand.cheat / hand.shown / hand.cheat.done`. v=2 ve v=1 boş göstergeyle okunur.
+  Devam edilen koşuda gösterge geri yükleniyor (kapatıp açmak göstergeyi sıfırlamıyor).
+
+### Yapılanlar — hileler
+| Şeytan | Küçük | Büyük | Niyet |
+|---|---|---|---|
+| Mammon (4) | Rehin (BeforeDraw: en yüksek kart zincirli), Haraç (Showdown: kazançtan 1 birim) | Satın Al (BeforeDraw: en yüksek ↔ kasanın en düşüğü) | hep doğru |
+| Belial (3) | Sahte Yüz (HouseReveal: açılan kartlardan biri daha zayıf görünür), Çatal Dil (AfterDraw: bir kartın rengi değişir, yenisi desteden) | Yılan Takası (AfterDraw: çiftin kartı kasaya gider, gelen kart oyuncuya kapalı) | %25 sahte |
+| Lilith (3) | Gece Örtüsü (BeforeDraw: bir kart kapanır, kör atılabilir), Diken (BeforeDraw: atarsa anında 1 birim) | Aysız Gece (AfterDraw: çekilen kartlar kapalı kalır) | hep doğru |
+| Lucifer (1, her el) | Bakış (AfterDeal), Yeniden Yazma (AfterDraw: eli bir alt kategoriye düşürür), Yanan Kart (BeforeDraw) | Düşüş (Showdown, ≤150, denemede bir kez: kazanırsa iki elin en yüksek kartı yeniden dağıtılır) | hep doğru |
+
+### Kararlar
+- Hile anı gelmezse (oyuncu çekildi) ya da hilenin işleyecek bir şeyi yoksa gösterge dolu kalır. "Hile oynanınca sıfırlanır" kuralının
+  tersinden okunuşu: oynanmayan hile harcanmış sayılmaz. Niyeti gören oyuncu kaçınabilir: Aysız Gece'de kart çekmemek, Düşüş'te çekilmek
+  ya da Haraç'ta kaybetmek hileyi boşa çıkarır.
+- Haraç sadece kazanılan elde, Düşüş sadece oyuncu kazanırken oynar. Bu yüzden niyet görünür ama "boşa gitti" olabilir; Düşüş o zaman harcanmaz.
+- Sahte Yüz, gerçek karttan daha zayıf bir yüz seçer (oyuncuyu artırmaya çekmek için). Yüz desteden ama desteden alınmaz, kimsenin kartı değil.
+- Çatal Dil / Yeniden Yazma yeni kartı desteden alıyor; hiçbir kart iki yerde birden olmuyor.
+- Lucifer'in ≤ 500 bonusu yok (zaten her el hile).
+
+### Testler
+- `CheatTests` (39):
+  - gösterge (her el, kazanç, ≤ 500, son masa), niyetin görünmesi / harcanması;
+  - büyük hile kuralı, Belial'in yalanı (masada ortaya çıkışı);
+  - koruyucu (sorulur, engellenen hiçbir şey değiştirmez), boşa gitme, çekilmede göstergenin dolu kalması;
+  - Dead Man's Hand bağışıklığı (yanan kart beşinci karta geçer, satın alma boşa gider, haraç DMH'ye işlemez);
+  - 13 hilenin her biri;
+  - Düşüş (duyuru, kazancı kayba çevirme, denemede bir kez, 150 üstünde yok, kayıpta harcanmaz), Lucifer her el;
+  - mühürlü elde hile, ruhta diken, göstergenin geri yüklenmesi, yarım elin hile bilgisi;
+  - kayıt v=3 gidiş-dönüş, v=2 okuma; şeytan başına hile listesi.
+- Eski testlerin hepsi geçiyor (testlerin elle kurduğu oyunlarda hile yok; fabrikayla kurulanlarda var).
+- **494 EditMode + 15 PlayMode geçiyor.**
+
+---
+
+## 2026-10-02 — İŞ 2 / Bölüm 3: hilelerin sunumu
+
+**İstek:** Gösterge portrenin altında, niyet ikonu + adı portrenin üstünde, açıklama hover'da ve H panelinde; Belial'in yalanı kırılıp
+gerçeğe dönüşsün; her hilenin kartta ayrı bir efekti (1-2 px sarsıntı, reraise animasyonu, replik); sonuç ekranında hile kaydı;
+şeytan başına ilk hile ipucu; hız / atlama uyumu; ruhta sayı yok; How to Play'de "Cheats" sayfası.
+
+### Yapılanlar
+- Görseller (`pixel_ui.py`): `cheat_icons.png` (13 ikon, 16×16, `CheatIds` sırasıyla), `malice_pips.png` (8×8; sikke / terazi /
+  diken / kor, boş + dolu), `card_marks.png` (32×48 kart üstü işaretler: zincir, diken, örtü, sahte yüz parıltısı).
+- `CheatDisplay.cs` (Abstractions): `MaliceGauge`, `CheatCard` (id, ad, tek cümle açıklama), `CheatImpact`, `CardMark`.
+  `CardSlot.Mark` (`SameAs` işareti saymaz; işaret değişince kart dönmeden üstüne biner).
+- `ITableView`: `SetMalice`, `SetIntent`, `RevealLie`, `PlayCheat`; `ShowHandRanks(payouts, footnote)`.
+- `MaliceView`: portre kutusunun altında pip şeridi (dolarken yanıp söner), üstte niyet şeridi (ikon + ad), hover'da açıklama kutusu.
+  Yalan: şerit "LIAR" diye titrer, sarsılır, gerçek hileye döner.
+- `CheatEffects`: hedef kartlar `{2,-2,1,-1,2,-1,0}` piksel sarsılır, ikon üstlerinde yanıp söner. Bakış beş kartın hepsine,
+  Haraç'ta üç sikke şeytana uçar, Düşüş'te ekran sarsılır. Hepsi `AnimationClock`'tan geçiyor (hız ayarı + atlama).
+- `TablePresenter.PlayCheatStrikes`: yalansa önce `RevealLie` + yalan repliği; kart değiştiyse önce **eski hali** gösterilir, sonra
+  `PlayCheat` + şeytanın hile repliği (`DealerMood.Scheming` → reraise animasyonu). Kart durumları `PlayerSlots / HouseSlots` ile:
+  örtülü kart arkası + örtü, zincir / diken işaretleri, sahte kasa yüzü parıltılı.
+- Sonuç mesajına hile satırı (`UiText.CheatLog`, ruhta yıl yok). İlk hile ipucu her şeytan için bir kez (`tip.cheat.<id>`).
+  H panelinin altına duyurulan hilenin açıklaması. Menü ▸ How to Play: RULES → HANDS → CHEATS.
+- `CheatScreenshots` ([Explicit]): her hile yığılmış destede zorlanıp vuruş anında çekiliyor (40–57). İki düzeltme:
+  - Haraç ve Düşüş showdown'da vurduğu için betik ara kararları geçemiyordu; `BetUntil(phase)` eklendi (pas, yasaksa artır, re-raise'de karşıla).
+  - Düşüş oyuncuyu masadan attığı için Lucifer'in küçük hileleri çekilmiyordu; her çekimden önce ceza 150'ye çekilip Lucifer yeniden
+    çağrılıyor, kaybeden bir elle (kazanç koşuyu bitirirdi).
+- Hata: sonuç satırında "The Morning star" yazıyordu; şeytan adı artık kelime kelime büyük harfle başlıyor (test eklendi).
+
+### Testler
+- `CheatPresenterTests` (14): gösterge + niyet, vuruş (efekt, replik, işaret), zincirli kart seçilemez, değişen kartın eski hali,
+  örtü, sahte yüz showdown'a kadar, Belial'in yalanı, sonuç satırı, haraç, ruhta sayısız diken, ilk hile ipucu, H paneli, devamda gösterge,
+  unvanlı şeytan adı.
+- **507 EditMode (+1 explicit) + 15 PlayMode geçiyor.** (Düzeltme: bu koşu eski derlemeyle yapılmıştı, bkz. Bölüm 4; düzeltilmiş
+  hâliyle 508 geçiyor.)
+
+### Sıradaki
+- Bölüm 4: denge simülasyonu hilelerle, niyete tepki veren simülasyon oyuncusu, gösterge hızı ayarı, şeytan başına PlayMode uçtan uca test,
+  CLAUDE.md.
+
+---
+
+## 2026-10-02 — İŞ 2 / Bölüm 4: hilelerle denge, uçtan uca testler
+
+**İstek:** BalanceSimulation hilelerle çalışsın; simülasyon oyuncusu niyete tepki versin. Hedef aklanma Mammon ~%80, Belial ~%70,
+Lilith ~%55; Lucifer'i ilk denemede yenme ~%35. Sadece gösterge hızıyla (MaliceMax, kazançta +1, ≤ 500 bonusu) ayarla, hile kurallarına
+dokunma; ulaşılamıyorsa açıkla. Hile sıklığı ve dağılımı raporlansın. Şeytan başına PlayMode uçtan uca test; CLAUDE.md.
+
+### Yapılanlar
+- `BalanceSimulation`:
+  - Hileler açık (fabrikanın kurduğu oyunlar). Ortam değişkenleri: `HELLPOKER_MALICE` ("mammon,belial,lilith,lucifer"),
+    `HELLPOKER_MALICE_WIN`, `HELLPOKER_MALICE_LOW`, `HELLPOKER_CHEATS=0`.
+  - Oyuncu artık **sadece gördüğüyle** oynuyor: elinin gücü `PlayerHandNow` (örtülü kartlar sayılmaz), kasanın açık çifti
+    `HouseCardFace` ile ve sahte işaretli yüz sayılmadan. Örtülü kart varken görünen çiftleri tutup gerisini (önce örtülüleri) atıyor.
+  - Niyete tepki: zincirli ve dikenli kartı atmaz; Düşüş beklerken artırmaz ve draw'dan sonra High Card'la çekilir.
+  - Rapor: masa başına el sayısı, el başına oynanan hile, boşa giden, Belial'in yalanları, hile türü dağılımı (Lucifer masası ayrı satır).
+- `CheatJourneyTests` (PlayMode, 4 test, gerçek butonlar, yığılmış deste): Mammon rehin (zincir işareti, kart atılamaz), Belial yalanı
+  (Sahte Yüz duyurulur, Çatal Dil vurur), Lilith örtüsü (kapalı kart, ipucu sızmaz, kör atılır), Lucifer Düşüş (THE FALL AWAITS,
+  floş düşer, denemede bir kez). Ortak yardımcı `CheatRig` (CheatScreenshots da onu kullanıyor).
+- Hata: bir önceki EditMode koşusu test derlemesindeki bir hata yüzünden eski derlemeyle çalışmıştı (UiText internal). Test presenter
+  üzerinden yazıldı; artık her test koşusundan sonra log'da `error CS` de kontrol ediliyor.
+
+### Denge — sonuçlar (2000 koşu)
+| Ayar (Mammon / Belial / Lilith / Lucifer) | Mammon | Belial | Lilith | Lucifer ilk deneme (M / B / L) |
+|---|---|---|---|---|
+| Hilesiz (önceki) | %86.7 | %79.3 | %61.8 | %48 / %55 / %47.5 |
+| 4 / 3 / 3 / 1 (başlangıç) | %81.8 | %76.1 | %51.8 | %36 / %42 / %37 |
+| 4 / 2 / 4 / 1 (**seçilen**) | **%81.8** | **%75.7** | **%54.6** | %36 / %42 / %37 |
+| 4 / 1 / 4 / 1 | %81.8 | %74.9 | %54.6 | %36 / %41 / %37 |
+
+Kazançta +1 ve ≤ 500 bonusu 1'de kaldı.
+
+| Masa | El başına hile | Boşa giden | Yalan | Dağılım |
+|---|---|---|---|---|
+| Mammon | 0.27 | 4900 | – | rehin %55, haraç %31, satın al %14 |
+| Belial | 0.48 | 793 | 5076 | çatal dil %46, sahte yüz %42, yılan takası %12 |
+| Lilith | 0.35 | 37 | – | diken %44, örtü %44, aysız gece %13 |
+| Lucifer | 0.83 | 3173 | – | yanan kart %34, bakış %32, yeniden yazma %24, düşüş %10 |
+
+### Kararlar ve nedenleri
+- **Mammon 4:** hedefte (%81.8).
+- **Lilith 3 → 4:** hileleri sert (örtü + diken); yavaş gösterge onu %54.6'ya, hedefe getiriyor.
+- **Belial 3 → 2: hedef (%70) gösterge hızıyla ulaşılamıyor.** Her el hile yapsa bile (1) %74.9. Neden:
+  - Hileleri oyuncunun elini bozmaz. Sahte Yüz parıltıyla işaretli (oyuncu yüze güvenmeyebilir), Çatal Dil sadece rengi değiştirir.
+  - Yılan Takası tek gerçek darbe, ama büyük hile ve sadece ≤ 400'de.
+  - 2'yi seçtim: 1'le neredeyse aynı sonuç (%0.8 fark), ama niyet her elde değil, ritim hissi korunuyor.
+  - %70 için hile kuralı değişmeli (kullanıcı kararı): ör. büyük hile çizgisi Belial'de daha yüksek, Yılan Takası küçük hile,
+    ya da Sahte Yüz parıltısız. Gerçek bir oyuncu sahte yüze kanabilir; simülasyon kanmıyor, yani gerçekte Belial biraz daha sert.
+- **Lucifer:** gösterge zaten 1 (her el), daha sertleşemez. İlk denemede yenme şeytana göre %36 / %42 / %37, ortalama ~%38, hedefe (~%35) yakın.
+- Lucifer'i ilk denemede yenme şeytana göre farklı görünüyor; Lucifer aynı, fark düşülen masadan ve çağrılmaya kalan sürenin
+  dağılımından geliyor.
+
+### Testler
+- **508 EditMode (+1 explicit simülasyon) + 19 PlayMode (+2 explicit ekran görüntüsü) geçiyor.** CheatScreenshots 40–57 tam.
+
+### Açık sorular
+- Belial %70 isteniyorsa hile kuralı değişmeli (yukarıdaki seçenekler).
+- Sonraki iş (oyuncu sınıfları / yetenekleri) için kancalar hazır: `PendingCheat`, `ICheatGuard`, `CheatMarks`, `Malice`.

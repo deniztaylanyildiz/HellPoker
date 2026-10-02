@@ -52,6 +52,11 @@ namespace HellPoker.Core.Cards
             return new Hand(next);
         }
 
+        /// <summary>A new hand with the card at <paramref name="index"/> replaced.</summary>
+        public Hand With(int index, Card card) => Replace(new[] { index }, new[] { card });
+
+        public int IndexOf(Card card) => Array.IndexOf(_cards, card);
+
         public IEnumerator<Card> GetEnumerator()
         {
             return ((IEnumerable<Card>)_cards).GetEnumerator();

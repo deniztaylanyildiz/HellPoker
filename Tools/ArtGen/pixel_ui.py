@@ -5,7 +5,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from pixel import C, Img, RAMP_FIRE, RAMP_GOLD, bezier, sheet, shifted
+from pixel import C, Img, RAMP_FIRE, RAMP_GOLD, bezier, ribbon, sheet, shifted
 
 SCREEN_W, SCREEN_H = 480, 270
 
@@ -281,6 +281,162 @@ def divider(w=48):
     return img
 
 
+# ------------------------------------------------------------------ the demons' cheats: icons, malice pips, card marks
+
+# Order matters: the game reads these strips by position (UiArt.CheatIconIds, MalicePipOrder, CardMarkOrder).
+CHEAT_ICON_IDS = ["collateral", "tithe", "buyout", "false_face", "forked_tongue", "serpent_swap", "night_veil", "thorn",
+                  "moonless", "gaze", "rewrite", "burning_card", "the_fall"]
+ICON = 16
+
+
+def cheat_icon(cheat):
+    """A 16×16 sign for each cheat, outlined in black so it reads over cards and portraits."""
+    img = Img(ICON, ICON)
+    if cheat == "collateral":            # a gold chain link over a padlock
+        for x0 in (2, 8):
+            ring = img.m_ellipse(x0 + 3, 6, 3.4, 2.6) & ~img.m_ellipse(x0 + 3, 6, 1.6, 1.0)
+            img.paint(ring, C.GOLD)
+        lock = img.m_rect(5, 9, 11, 14)
+        img.paint(lock, C.GOLD_MID)
+        img.put(8, 11, C.BLACK)
+        img.put(8, 12, C.BLACK)
+    elif cheat == "tithe":               # three coins, one in flight
+        for cx, cy in ((5, 11), (11, 11), (8, 4)):
+            coin = img.m_ellipse(cx, cy, 3.2, 3.2)
+            img.shade(coin, RAMP_GOLD, shadow=1)
+    elif cheat == "buyout":              # two arrows trading places, a coin between
+        img.paint(img.m_line([(2, 5), (12, 5)], 1), C.GOLD_LIGHT)
+        img.paint(img.m_poly([(11, 2), (15, 5), (11, 8)]), C.GOLD_LIGHT)
+        img.paint(img.m_line([(4, 11), (14, 11)], 1), C.GOLD)
+        img.paint(img.m_poly([(5, 8), (1, 11), (5, 14)]), C.GOLD)
+    elif cheat == "false_face":          # a silver mask
+        mask = img.m_ellipse(8, 8, 6, 5)
+        img.shade(mask, [C.SILVER_DARK, C.SILVER, C.WHITE], shadow=1)
+        for ex in (5, 10):
+            img.paint(img.m_rect(ex, 6, ex + 1, 7), C.BLACK)
+        img.paint(img.m_line([(5, 11), (8, 12), (11, 11)], 1), C.BLACK)
+    elif cheat == "forked_tongue":       # a forked silver tongue
+        img.paint(img.m_line([(8, 1), (8, 9)], 2), C.SILVER)
+        img.paint(img.m_line([(8, 9), (4, 14)], 1), C.SILVER)
+        img.paint(img.m_line([(8, 9), (12, 14)], 1), C.SILVER)
+        img.put(8, 1, C.RED)
+    elif cheat == "serpent_swap":        # a serpent biting its tail, an S
+        body = img.m_poly(ribbon(bezier([(3, 3), (13, 3), (3, 13), (13, 13)], 16), 3, 2))
+        img.paint(body, C.SILVER_DARK)
+        img.put(3, 3, C.HELL)
+    elif cheat == "night_veil":          # a crescent behind a dark veil
+        moon = img.m_ellipse(8, 8, 6, 6) & ~img.m_ellipse(10, 6, 5, 5)
+        img.paint(moon, C.LILAC_LIGHT)
+        img.dither(img.m_rect(0, 8, 15, 15), C.CLEAR, C.PLUM, 0.6)
+    elif cheat == "thorn":               # a thorn with a drop of blood
+        img.paint(img.m_poly([(3, 14), (12, 2), (8, 14)]), C.BONE_SHADE)
+        img.paint(img.m_line([(4, 13), (11, 3)], 1), C.BONE_DARK)
+        img.put(12, 2, C.WHITE)
+        img.paint(img.m_ellipse(12, 12, 1.6, 2.0), C.RED)
+    elif cheat == "moonless":            # a black moon with a pale rim
+        moon = img.m_ellipse(8, 8, 6, 6)
+        img.paint(moon, C.BLACK)
+        img.inner_outline(moon, C.LILAC)
+    elif cheat == "gaze":                # one burning eye
+        eye = img.m_ellipse(8, 8, 7, 3.5)
+        img.paint(eye, C.HELL)
+        img.paint(img.m_ellipse(8, 8, 4, 2.2) & eye, C.AMBER)
+        img.paint(img.m_rect(8, 5, 8, 11) & eye, C.BLACK)
+    elif cheat == "rewrite":             # a quill crossing out a line
+        img.paint(img.m_poly(ribbon([(13, 1), (8, 7), (3, 14)], 3, 1)), C.BONE)
+        img.paint(img.m_line([(1, 9), (14, 9)], 1), C.RED)
+    elif cheat == "burning_card":        # a small card on fire
+        card_ = img.m_rect(4, 6, 11, 15)
+        img.paint(card_, C.BONE)
+        flame = img.m_poly([(3, 9), (6, 1), (8, 5), (10, 0), (13, 9)])
+        img.paint(flame, C.ORANGE)
+        img.paint(img.m_poly([(6, 9), (8, 4), (10, 9)]), C.AMBER)
+    elif cheat == "the_fall":            # a falling star
+        img.paint(img.m_line([(1, 1), (9, 9)], 1), C.ORANGE)
+        star = img.m_poly([(11, 6), (12, 9), (15, 10), (12, 11), (11, 14), (10, 11), (7, 10), (10, 9)])
+        img.paint(star, C.EMBER)
+        img.put(11, 10, C.WHITE)
+    img.outline(C.BLACK)
+    return img
+
+
+def cheat_icons():
+    return sheet([cheat_icon(c) for c in CHEAT_ICON_IDS])
+
+
+MALICE_ORDER = ["mammon", "belial", "lilith", "lucifer"]
+
+
+def malice_pip(dealer, full):
+    """An 8×8 pip of a demon's malice gauge: a coin, a serpent scale, a thorn, an ember — dark when empty."""
+    img = Img(8, 8)
+    if dealer == "mammon":
+        coin = img.m_ellipse(4, 4, 3.4, 3.4)
+        img.shade(coin, RAMP_GOLD if full else [C.NIGHT, C.DUSK, C.PLUM, C.PLUM], shadow=1)
+    elif dealer == "belial":
+        scale = img.m_poly([(1, 2), (7, 2), (4, 7)])
+        img.paint(scale, C.SILVER if full else C.DUSK)
+        img.inner_outline(scale, C.SILVER_DARK if full else C.NIGHT)
+    elif dealer == "lilith":
+        thorn = img.m_poly([(1, 7), (4, 0), (7, 7)])
+        img.paint(thorn, C.MAUVE if full else C.DUSK)
+        if full:
+            img.put(4, 2, C.LILAC_LIGHT)
+    else:
+        ember = img.m_ellipse(4, 4, 3, 3)
+        img.paint(ember, C.ORANGE if full else C.BLOOD_DARK)
+        if full:
+            img.paint(img.m_ellipse(4, 4, 1.4, 1.4), C.EMBER)
+    img.outline(C.BLACK)
+    return img
+
+
+def malice_pips():
+    return sheet([malice_pip(d, f) for d in MALICE_ORDER for f in (False, True)])
+
+
+MARK_ORDER = ["chained", "thorned", "veiled", "false_face"]
+
+
+def card_mark(mark):
+    """A 32×48 overlay laid over a card that a cheat has marked."""
+    img = Img(CARD_W, CARD_H)
+    if mark == "chained":                # a gold chain across the card, a padlock in the middle
+        for k in range(0, 40, 6):
+            ring = img.m_ellipse(2 + k * 0.7, 6 + k, 3.0, 2.2) & ~img.m_ellipse(2 + k * 0.7, 6 + k, 1.4, 0.9)
+            img.paint(ring, C.GOLD if k % 12 == 0 else C.GOLD_MID)
+        lock = img.m_rect(12, 22, 20, 30)
+        img.paint(lock, C.GOLD)
+        img.inner_outline(lock, C.GOLD_DARK)
+        img.put(16, 25, C.BLACK)
+        img.put(16, 26, C.BLACK)
+        img.paint(img.m_ellipse(16, 21, 3, 3) & ~img.m_ellipse(16, 21, 1.6, 1.6) & img.m_rect(0, 0, 31, 21), C.GOLD_MID)
+    elif mark == "thorned":              # a thorny vine along the edge, a drop of blood
+        vine = bezier([(1, 47), (6, 30), (2, 16), (8, 1)], 24)
+        img.paint(img.m_line(vine, 1), C.BONE_SHADE)
+        for k in range(2, 24, 4):
+            x, y = vine[k]
+            img.put(int(x) + 1, int(y), C.BONE_DARK)
+            img.put(int(x) + 2, int(y) - 1, C.WHITE)
+        img.paint(img.m_ellipse(5, 36, 1.6, 2.2), C.RED)
+    elif mark == "veiled":               # darkness over the card, a thin crescent
+        full = np.ones((img.h, img.w), bool)
+        img.dither(full, C.CLEAR, C.BLACK, 0.5)
+        moon = img.m_ellipse(16, 24, 7, 7) & ~img.m_ellipse(19, 21, 6, 6)
+        img.paint(moon, C.LILAC)
+    elif mark == "false_face":           # the faintest silver sheen: a broken silver frame, two glints
+        frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
+        dashes = ((img.xs.astype(int) + img.ys.astype(int)) // 3) % 3 == 0
+        img.paint(frame & dashes, C.SILVER)
+        img.put(4, 4, C.WHITE)
+        img.put(27, 43, C.WHITE)
+    return img
+
+
+def card_marks():
+    return sheet([card_mark(m) for m in MARK_ORDER])
+
+
 def fade(steps=4):
     """A slow fall into darkness without any transparency blending: black laid over the screen in growing Bayer patterns
     (¼, ½, ¾, all), one full-screen frame per step."""
@@ -307,6 +463,9 @@ def write_all(out_dir, fonts_dir):
         "dialog": box(C.DUSK, C.BONE, C.NIGHT, highlight=C.WHITE),
         "dialog_lucifer": box(C.BLACK, C.HELL, C.BLOOD_DARK, highlight=C.EMBER),
         "fade": fade(),
+        "cheat_icons": cheat_icons(),
+        "malice_pips": malice_pips(),
+        "card_marks": card_marks(),
         "button_blood": button(C.CRIMSON, C.RED, C.BLOOD),
         "button_ember": button(C.HELL, C.ORANGE, C.RED),
         "button_ash": button(C.PLUM, C.VIOLET, C.DUSK),

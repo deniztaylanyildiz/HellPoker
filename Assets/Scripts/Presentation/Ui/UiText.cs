@@ -45,6 +45,12 @@ namespace HellPoker.Presentation.Ui
         public const string PotFormat = "ON THE TABLE: {0}";
         public const string FinalStretchBannerFormat = "UNDER {0}: NO PASSING";
         public const string LastMomentsBanner = "ONE HAND FROM FREEDOM";
+
+        /// <summary>Said by an ordinary demon when a win would end the sentence at their table: the last year stays.</summary>
+        public const string LastYearLine = "The last year is not mine to take. He is waiting.";
+
+        /// <summary>Under the counter at 1 year: why it did not reach 0.</summary>
+        public const string LastYearNote = "The last year is his";
         public const string CastDownLineFormat = "Cast down above {0}";
         public const string AttemptLabelFormat = "LUCIFER: ATTEMPT {0}";
 
@@ -171,7 +177,8 @@ namespace HellPoker.Presentation.Ui
                 case TipFinalStretch: return string.Format("Under {0} years, no passing. Raise or fold — so close to freedom.", forcedRaiseYears);
                 case TipSoul: return "Past my line your soul is the stake. Lose all of it and you are mine forever.";
                 case TipLucifer: return string.Format("Only I can set you free. Fall above {0} and you will be cast down.", gateYears);
-                default: return null;
+                default:
+                    return tip != null && tip.StartsWith(TipCheatPrefix) ? CheatTipText(tip.Substring(TipCheatPrefix.Length)) : null;
             }
         }
 
@@ -197,6 +204,7 @@ namespace HellPoker.Presentation.Ui
         public const string EndBeatLuciferFormat = "The Morning Star fell on attempt {0}";
         public const string EndLuciferTriedFormat = "You faced the Morning Star {0} time(s)";
         public const string EndNeverMetLucifer = "You never met the Morning Star";
+        public const string EndMorningStarRemembers = "The Morning Star will remember this.";
         public const string RecordsLuciferReachedFormat = "Faced the Morning Star: {0}";
         public const string RecordsLuciferDefeatedFormat = "Morning Star fallen: {0}";
         public const string RecordsFewestAttemptsFormat = "Fewest attempts: {0}";

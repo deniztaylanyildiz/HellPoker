@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Cheats;
+using HellPoker.Core.Randomness;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
 
@@ -22,6 +24,10 @@ namespace HellPoker.Core.Game
 
         private ExchangeResult _playerExchange;
         private ExchangeResult _houseExchange;
+
+        private readonly CheatSession _cheats;
+        private readonly IRandomSource _cheatRandom;
+        private IReadOnlyList<int> _drawnIndices = Array.Empty<int>();
 
         /// <summary>The decision the house's re-raise interrupted; play resumes from it after a call.</summary>
         private GamePhase _interruptedPhase;
@@ -96,9 +102,14 @@ namespace HellPoker.Core.Game
         private int LossSurcharge(bool soulHand) => soulHand ? Rules.SoulLossPercent : 100;
 
         /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
+        /// <param name="cheats">The demon's cheating at this table; null for an honest table.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
-            IDrawStrategy houseStrategy, IPayoutTable payouts, IHouseBettingStrategy houseBetting = null)
+            IDrawStrategy houseStrategy, IPayoutTable payouts, IHouseBettingStrategy houseBetting = null, CheatSession cheats = null,
+            IRandomSource cheatRandom = null)
         {
+            _cheats = cheats ?? new CheatSession(null, 0, null);
+            _cheatRandom = cheatRandom;
+            if (_cheats.IsActive && cheatRandom == null) throw new ArgumentNullException(nameof(cheatRandom));
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             _deck = deck ?? throw new ArgumentNullException(nameof(deck));
             _evaluator = evaluator ?? throw new ArgumentNullException(nameof(evaluator));
@@ -142,8 +153,54 @@ namespace HellPoker.Core.Game
             DecisionsSkipped = 0;
             RoundNumber++;
             Phase = GamePhase.PlayerReveal;
+            _cheats.BeginHand(Rules, _ledger.Years);
+            Strike(CheatTiming.AfterDeal);
             NoteCommitment();
             SkipEmptyDecisions();
+        }
+
+        // ------------------------------------------------------------------ the demon's cheats
+
+        public int Malice => _cheats.Malice;
+        public int MaliceMax => _cheats.MaliceMax;
+        public ICheat PendingCheat => InPlay ? _cheats.Intent : null;
+        public IReadOnlyList<CheatResult> CheatsThisHand => _cheats.Results;
+        public bool MajorCheatUsed => _cheats.MajorUsed;
+        public int ThornYearsThisHand { get; private set; }
+        public int TitheYearsThisHand { get; private set; }
+
+        /// <summary>While the hand is played: true for a card of the player's the player cannot see (veiled, moonless, swapped in).</summary>
+        public bool IsPlayerCardHidden(int index) => InPlay && _cheats.Marks.HiddenFromPlayer.Contains(PlayerHand[index]);
+
+        public bool IsPlayerCardChained(int index) => InPlay && _cheats.Marks.Chained.Contains(PlayerHand[index]);
+
+        public bool IsPlayerCardThorned(int index) => InPlay && _cheats.Marks.Thorned.Contains(PlayerHand[index]);
+
+        /// <summary>True while a House card shows a false face (until the showdown).</summary>
+        public bool IsHouseCardFalse(int index) => InPlay && _cheats.Marks.FakeHouseIndex == index;
+
+        /// <summary>The House card as the player sees it: a false face until the showdown turns the truth.</summary>
+        public Card HouseCardFace(int index) => IsHouseCardFalse(index) ? _cheats.Marks.FakeHouseFace : HouseHand[index];
+
+        public void RestoreMalice(int malice, bool majorCheatUsed)
+        {
+            RequirePhase(GamePhase.Betting);
+            _cheats.Restore(malice, majorCheatUsed);
+        }
+
+        /// <summary>A hand is being played (the marks matter); once it is settled every card shows as it is.</summary>
+        private bool InPlay => PlayerHand != null && (IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise);
+
+        /// <summary>The moment <paramref name="timing"/> has come: the demon's cheat strikes if it is due, in plain sight.</summary>
+        /// <returns>The showdown as it stands afterwards (The Fall may change it).</returns>
+        private ShowdownResult Strike(CheatTiming timing, ShowdownResult showdown = null)
+        {
+            CheatTable after = _cheats.Strike(timing, () => new CheatTable(PlayerHand, HouseHand, _deck, _evaluator, _cheatRandom,
+                _cheats.Marks, Unit, HouseCardsRevealed, _drawnIndices, showdown));
+            if (after == null) return showdown;
+            PlayerHand = after.PlayerHand;
+            HouseHand = after.HouseHand;
+            return after.Showdown;
         }
 
         public bool CanBet(BetAction action, out string reason)
@@ -244,7 +301,8 @@ namespace HellPoker.Core.Game
 
         public HandInProgress CurrentHand =>
             IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise
-                ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed)
+                ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed, _cheats.Planned?.Id,
+                    _cheats.Results.Count > 0 ? _cheats.Results[0].ShownId : _cheats.Intent?.Id, _cheats.IsResolved)
                 : null;
 
         public RoundResult ForfeitHand(HandInProgress hand)
@@ -264,13 +322,19 @@ namespace HellPoker.Core.Game
             return LastRound;
         }
 
+        /// <summary>What the face-up cards the player can actually see make (a card hidden by a cheat does not count).</summary>
         public HandCategory? PlayerHandNow =>
-            PlayerHand == null ? (HandCategory?)null : VisibleHandReader.Read(PlayerHand.Take(PlayerCardsRevealed).ToList(), _evaluator);
+            PlayerHand == null
+                ? (HandCategory?)null
+                : VisibleHandReader.Read(Enumerable.Range(0, PlayerCardsRevealed).Where(i => !IsPlayerCardHidden(i)).Select(i => PlayerHand[i]).ToList(),
+                    _evaluator);
 
         public IReadOnlyCollection<int> SuggestedDiscards()
         {
             if (Phase != GamePhase.Drawing) return Array.Empty<int>();
-            IReadOnlyCollection<int> discards = _houseStrategy.ChooseDiscards(PlayerHand);
+            // No hint on a hand with hidden cards: it would give away what the player cannot see.
+            if (Enumerable.Range(0, Hand.Size).Any(IsPlayerCardHidden)) return Array.Empty<int>();
+            IReadOnlyCollection<int> discards = _houseStrategy.ChooseDiscards(PlayerHand).Where(i => !IsPlayerCardChained(i)).ToArray();
             return CanDraw(discards, out _) ? discards : Array.Empty<int>();
         }
 
@@ -282,19 +346,37 @@ namespace HellPoker.Core.Game
                 return false;
             }
 
+            if (discardIndices != null && discardIndices.Any(i => i >= 0 && i < Hand.Size && IsPlayerCardChained(i)))
+            {
+                reason = "That card is chained as collateral: it stays this hand.";
+                return false;
+            }
+
             return _exchanger.CanExchange(PlayerHand, discardIndices, _deck, out reason);
         }
 
         public ExchangeResult Draw(IReadOnlyCollection<int> discardIndices)
         {
             RequirePhase(GamePhase.Drawing);
+            if (!CanDraw(discardIndices, out string reason))
+                throw new InvalidOperationException(reason);
+
+            // A thorned card thrown back costs a unit, at once.
+            int thorns = discardIndices.Count(IsPlayerCardThorned);
+            if (thorns > 0)
+            {
+                ThornYearsThisHand = thorns * Unit;
+                _ledger.Add(ThornYearsThisHand);
+            }
 
             _playerExchange = _exchanger.Exchange(PlayerHand, discardIndices, _deck);
             _houseExchange = _exchanger.Exchange(HouseHand, _houseStrategy.ChooseDiscards(HouseHand), _deck);
             PlayerHand = _playerExchange.Hand;
             HouseHand = _houseExchange.Hand;
+            _drawnIndices = _playerExchange.ReplacedIndices;
             IsAfterDraw = true;
             Phase = GamePhase.DrawReveal;
+            Strike(CheatTiming.AfterDraw);
             SkipEmptyDecisions();
 
             return _playerExchange;
@@ -394,12 +476,14 @@ namespace HellPoker.Core.Game
                     else
                     {
                         Phase = GamePhase.Drawing;
+                        Strike(CheatTiming.BeforeDraw);
                     }
                     break;
 
                 case GamePhase.DrawReveal when Rules.HouseCardsShown > 0:
                     HouseCardsRevealed = Rules.HouseCardsShown;
                     Phase = GamePhase.HouseReveal;
+                    Strike(CheatTiming.HouseReveal);
                     break;
 
                 default:
@@ -415,13 +499,26 @@ namespace HellPoker.Core.Game
         private bool TryHouseReRaise()
         {
             int amount = Math.Max(0, Math.Min(Rules.HouseReRaiseUnits * Unit, WagerLeft));
-            if (amount == 0 || _houseBetting == null || !_houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand)))
+            if (amount == 0 || !HouseWantsToReRaise())
                 return false;
 
             HouseReRaiseAmount = amount;
             _interruptedPhase = Phase;
             Phase = GamePhase.HouseReRaise;
             return true;
+        }
+
+        /// <summary>The House's temper — unless Lucifer's Gaze is on the hand: then he knows (never when the player would win,
+        /// always when they would lose).</summary>
+        private bool HouseWantsToReRaise()
+        {
+            if (_cheats.Marks.Gaze)
+            {
+                ShowdownOutcome outcome = ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand)).Outcome;
+                if (outcome == ShowdownOutcome.PlayerWins) return false;
+                if (outcome == ShowdownOutcome.HouseWins) return true;
+            }
+            return _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
         }
 
         private int RoomToRaise(int wanted)
@@ -436,7 +533,9 @@ namespace HellPoker.Core.Game
 
         private void FinishShowdown()
         {
-            Finish(ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand)));
+            // The showdown stands as it is judged — the only cheat allowed to change it is Lucifer's Fall, in plain sight.
+            ShowdownResult showdown = ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand));
+            Finish(Strike(CheatTiming.BeforeShowdown, showdown));
         }
 
         /// <summary>Settles the hand. A null showdown means the player folded.</summary>
@@ -447,7 +546,16 @@ namespace HellPoker.Core.Game
             if (showdown == null)
                 _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
-                _ledger.Forgive(Forgiven(showdown.Player.Category));
+            {
+                int forgiven = Forgiven(showdown.Player.Category);
+                if (_cheats.Marks.Tithe && !_payouts.IsAbsolution(showdown.Player.Category))
+                {
+                    TitheYearsThisHand = Math.Min(Unit, forgiven);
+                    forgiven -= TitheYearsThisHand;
+                }
+                _ledger.Forgive(forgiven);
+                _cheats.PlayerWon(Rules);
+            }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
                 _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)));
 
@@ -492,6 +600,10 @@ namespace HellPoker.Core.Game
             HouseCardsRevealed = 0;
             _playerExchange = null;
             _houseExchange = null;
+            _drawnIndices = Array.Empty<int>();
+            ThornYearsThisHand = 0;
+            TitheYearsThisHand = 0;
+            _cheats.ClearHand();
         }
 
         private void RequirePhase(GamePhase expected)

@@ -45,7 +45,9 @@ def demon_sheet(demon):
 
 def ui_sheet():
     folder = os.path.join(ART, "Ui")
-    images = [(name, Image.open(os.path.join(folder, name)).convert("RGBA")) for name in sorted(os.listdir(folder)) if name.endswith(".png")]
+    # The full-screen strips (the menu, the fade) get their own sections below.
+    images = [(name, Image.open(os.path.join(folder, name)).convert("RGBA")) for name in sorted(os.listdir(folder))
+              if name.endswith(".png") and name not in ("menu.png", "fade.png")]
     width = 500
     x = y = row_h = 0
     placed = []
@@ -107,6 +109,19 @@ def main():
                            f"image-rendering:pixelated;animation:{cls} {frames / 4:.2f}s steps({frames}) infinite}}"
                            f"@keyframes {cls}{{to{{background-position:-{big.width}px 0}}}}")
                 html.append(f"<figure><div class='{cls}'></div><figcaption>{demon} — {variant} ({frames} frames)</figcaption></figure>")
+    menu = os.path.join(ART, "Ui", "menu.png")
+    if os.path.exists(menu):
+        strip = Image.open(menu)
+        frames = max(1, strip.width // 480)
+        big = scaled(strip, 2)
+        big.save(os.path.join(OUT, "menu.png"))
+        css.append(f".menu{{width:960px;height:540px;background-image:url(menu.png);background-repeat:no-repeat;"
+                   f"image-rendering:pixelated;animation:menu {frames / 4:.2f}s steps({frames}) infinite}}"
+                   f"@keyframes menu{{to{{background-position:-{big.width}px 0}}}}")
+        # The middle column the menu text and buttons sit on (x 70-410, y 25-260), outlined to check it stays quiet.
+        html.append("<h2>menu</h2><figure style='position:relative'><div class=menu></div>"
+                    "<div style='position:absolute;left:140px;top:50px;width:680px;height:470px;outline:1px dashed #ffd860'></div>"
+                    f"<figcaption>title screen ({frames} frames) — dashed: the middle column that must stay readable</figcaption></figure>")
     if os.path.isdir(os.path.join(ART, "Ui")):
         scaled(ui_sheet(), 2).save(os.path.join(OUT, "ui_sheet.png"))
         html.append("<h2>ui</h2><img src=ui_sheet.png>")

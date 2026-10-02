@@ -27,7 +27,13 @@ namespace HellPoker.Presentation.Views
         private GameObject _front;
         private GameObject _rulesPanel;
         private GameObject _rulesBody;
+        private GameObject _cheatsBody;
         private HandRanksPanel _handRanks;
+
+        /// <summary>The pages of How to Play, in the order the page button cycles them.</summary>
+        private enum Page { Rules, Hands, Cheats }
+
+        private Page _page;
         private Text _pageLabel;
         private Core.Game.IPayoutInfo _payouts;
         private RectTransform _logo;
@@ -42,22 +48,22 @@ namespace HellPoker.Presentation.Views
         public bool IsVisible => _canvas.enabled;
 
         /// <param name="payouts">What the hands pay at a standard table, for the hand ranking page of the rules.</param>
-        public static MainMenuView Create(Transform parent, string tagline, string rules, Core.Game.IPayoutInfo payouts)
+        /// <param name="cheats">The Cheats page of How to Play (every demon's cheats); null for none.</param>
+        public static MainMenuView Create(Transform parent, string tagline, string rules, Core.Game.IPayoutInfo payouts, string cheats = null)
         {
             Canvas canvas = UiFactory.CreateScreen("MainMenuCanvas", parent, SortingOrder, out RectTransform screen);
             var view = canvas.gameObject.AddComponent<MainMenuView>();
             view._canvas = canvas;
             view._payouts = payouts;
-            view.Build(screen, tagline, rules);
+            view.Build(screen, tagline, rules, cheats);
             return view;
         }
 
-        private void Build(RectTransform screen, string tagline, string rules)
+        private void Build(RectTransform screen, string tagline, string rules, string cheats)
         {
-            // Opaque background also blocks clicks from reaching the table underneath.
-            Image background = UiFactory.CreateSprite("Background", screen, UiArt.Background, Palette.Night);
-            background.rectTransform.Stretch();
-            background.raycastTarget = true;
+            // The bottom of Hell, animated; opaque, so it also blocks clicks from reaching the table underneath.
+            // It stays behind the rules panel too.
+            MenuBackdrop.Create(screen);
 
             _front = UiFactory.CreateRect("Front", screen).Stretch().gameObject;
             Transform front = _front.transform;
@@ -96,11 +102,11 @@ namespace HellPoker.Presentation.Views
 
             UiFactory.CreateText("Footer", front, UiText.MenuFooter, 8, Palette.BoneDark).rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
 
-            _rulesPanel = BuildRulesPanel(screen, rules);
+            _rulesPanel = BuildRulesPanel(screen, rules, cheats);
             ShowRules(false);
         }
 
-        private GameObject BuildRulesPanel(Transform screen, string rules)
+        private GameObject BuildRulesPanel(Transform screen, string rules, string cheats)
         {
             Image panel = UiFactory.CreatePanel("RulesPanel", screen);
             panel.raycastTarget = true;
@@ -115,13 +121,19 @@ namespace HellPoker.Presentation.Views
             body.lineSpacing = 1f;
             _rulesBody = body.gameObject;
 
+            Text cheatsText = UiFactory.CreateText("Cheats", panel.transform, cheats ?? "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            cheatsText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            cheatsText.lineSpacing = 1f;
+            _cheatsBody = cheatsText.gameObject;
+            _cheatsBody.SetActive(false);
+
             _handRanks = HandRanksPanel.Create(panel.transform, (PixelScreen.Width - 16 - HandRanksPanel.Width) / 2, 30);
 
-            // RULES / HANDS page switch, then BACK.
+            // RULES → HANDS → CHEATS page switch (the label names the next page), then BACK.
             int buttonsY = PixelScreen.Height - 16 - 26;
             Button page = UiFactory.CreateButton("HandRanksPageButton", panel.transform, UiText.HandsButton, 8, out _pageLabel, ButtonSkin.Ash);
             ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 84, buttonsY, 80, ButtonHeight);
-            page.onClick.AddListener(() => ShowHandRanks(!_handRanks.IsOpen));
+            page.onClick.AddListener(() => ShowPage(Next(_page)));
 
             Button back = UiFactory.CreateButton("BackButton", panel.transform, UiText.Back, 8, out _, ButtonSkin.Blood);
             ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 16) / 2 + 4, buttonsY, 80, ButtonHeight);
@@ -158,26 +170,36 @@ namespace HellPoker.Presentation.Views
         public bool CloseOverlay()
         {
             if (!_rulesPanel.activeSelf) return false;
-            if (_handRanks.IsOpen)
-                ShowHandRanks(false);   // the hands page goes back to the rules first
+            if (_page != Page.Rules)
+                ShowPage(Page.Rules);   // another page goes back to the rules first
             else
                 ShowRules(false);
             return true;
         }
 
-        private void ShowHandRanks(bool show)
+        private Page Next(Page page)
         {
-            if (show)
+            Page next = page == Page.Rules ? Page.Hands : page == Page.Hands ? Page.Cheats : Page.Rules;
+            bool hasCheats = _cheatsBody != null && !string.IsNullOrEmpty(_cheatsBody.GetComponent<Text>().text);
+            return next == Page.Cheats && !hasCheats ? Page.Rules : next;
+        }
+
+        private void ShowPage(Page page)
+        {
+            _page = page;
+            if (page == Page.Hands)
                 _handRanks.Show(_payouts);
             else
                 _handRanks.Hide();
-            _rulesBody.SetActive(!show);
-            _pageLabel.text = show ? UiText.RulesButton : UiText.HandsButton;
+            _rulesBody.SetActive(page == Page.Rules);
+            _cheatsBody.SetActive(page == Page.Cheats);
+            Page next = Next(page);
+            _pageLabel.text = next == Page.Hands ? UiText.HandsButton : next == Page.Cheats ? UiText.CheatsButton : UiText.RulesButton;
         }
 
         private void ShowRules(bool show)
         {
-            ShowHandRanks(false);
+            ShowPage(Page.Rules);
             _rulesPanel.SetActive(show);
             _front.SetActive(!show);
         }

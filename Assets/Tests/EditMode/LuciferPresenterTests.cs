@@ -274,6 +274,83 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void AFallenPlayer_FreedByTheDeadMansHand_IsAbsolved_NotWildBill()
+        {
+            // Summoned at 200, cast down to 500 at Mammon's, then aces and eights.
+            StartAt(200, Win, LoseTwoPair, DeadMan);
+            PlayHandAndMoveOn();
+            Assert.AreEqual("mammon", _presenter.CurrentDealerId);
+
+            PlayHandAndMoveOn();
+
+            Assert.AreEqual(GamePhase.Absolved, Game.Phase);
+            RunSummary summary = null;
+            _presenter.RunEnded += s => summary = s;
+            _view.PressAction();
+            Assert.IsFalse(summary.WildBill, "He has seen this one before.");
+            Assert.IsFalse(summary.BeatLucifer);
+            Assert.AreEqual(1, summary.LuciferAttempts);
+            RecordBook records = _archive.LoadRecords();
+            Assert.AreEqual(0, records.WildBillEscapes);
+            Assert.AreEqual(0, records.LuciferDefeated);
+            Assert.AreEqual(1, records.LuciferReached);
+            Assert.AreEqual(1, records.Absolutions);
+
+            Assert.AreEqual("ABSOLVED", HellPoker.Presentation.Views.EndScreenView.TitleOf(summary));
+            CollectionAssert.Contains(HellPoker.Presentation.Views.EndScreenView.StoryOf(summary).ToList(), "The Morning Star will remember this.");
+        }
+
+        [Test]
+        public void TheEndings_HaveTheirNames()
+        {
+            RunSummary Ending(bool absolved, bool beat, bool wildBill, int attempts) =>
+                new RunSummary(absolved, 10, 0, 1000, null, new[] { "MAMMON" }, false, beat, wildBill, attempts);
+
+            Assert.AreEqual("THE MORNING STAR FALLS", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, true, false, 2)));
+            Assert.AreEqual("WILD BILL'S ESCAPE", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, false, true, 0)));
+            Assert.AreEqual("ABSOLVED", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, false, false, 1)));
+            Assert.AreEqual("DAMNED", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(false, false, false, 3)));
+
+            CollectionAssert.DoesNotContain(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(true, false, true, 0)).ToList(),
+                "The Morning Star will remember this.");
+            CollectionAssert.DoesNotContain(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(true, true, false, 2)).ToList(),
+                "The Morning Star will remember this.");
+            CollectionAssert.Contains(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(false, false, false, 3)).ToList(),
+                "You faced the Morning Star 3 time(s)");
+        }
+
+        [Test]
+        public void AnOrdinaryTable_KeepsTheLastYear_AndSaysSo()
+        {
+            // 300 at Mammon (unit 25): a royal flush would forgive 500 — the table stops at 1 year.
+            StartAt(300, "10H JH QH KH AH  2D 2H 5S 7H 9D  3S 6C JD QC 10S 2S", Win);
+            _view.PressAction();
+            _presenter.CheckToDraw();
+            _view.PressAction();
+            while (Game.Phase != GamePhase.RoundOver) _view.PressBet(BetAction.Pass);
+
+            Assert.AreEqual(1, Game.Years);
+            Assert.AreEqual("mammon", _presenter.CurrentDealerId);
+            Assert.AreEqual("The last year is not mine to take. He is waiting.", _view.DealerView.LastLine);
+            Assert.AreEqual("The last year is his", _view.SentenceView.LimitText);
+
+            _view.PressAction();   // next hand: he is waiting
+
+            Assert.AreEqual("lucifer", _presenter.CurrentDealerId);
+            Assert.AreEqual(1, Game.Years);
+            Assert.AreEqual("Cast down above 250", _view.SentenceView.LimitText);
+        }
+
+        [Test]
+        public void AnOrdinaryLoss_SaysNothingAboutTheLastYear()
+        {
+            StartAt(900, Win);
+            PlayHandAndMoveOn();
+
+            CollectionAssert.DoesNotContain(_view.TextLog, "The last year is not mine to take. He is waiting.");
+        }
+
+        [Test]
         public void ResumingAtHisTable_ShowsTheAttemptFromTheSave()
         {
             _archive.SaveRun(new RunSnapshot("lucifer", 200, 30, new RunStats(1000, "belial"), null, true, "belial", 3));

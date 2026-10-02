@@ -90,6 +90,47 @@ namespace HellPoker.Core.Game
         /// <summary>Passes every decision until the draw, turning the rest of the player's cards.</summary>
         void CheckToDraw();
 
+        // ------------------------------------------------------------------ the demon's cheats
+
+        /// <summary>The demon's malice gauge (0..<see cref="MaliceMax"/>). Full at the deal: a cheat is chosen and announced.</summary>
+        int Malice { get; }
+
+        /// <summary>The size of the gauge; 0 at a table where nobody cheats.</summary>
+        int MaliceMax { get; }
+
+        /// <summary>The announced intent of this hand until it is played out — Belial's may be a lie; null when nothing is coming.</summary>
+        Cheats.ICheat PendingCheat { get; }
+
+        /// <summary>What this hand's cheat did (struck, blocked or fizzled), until the next deal.</summary>
+        IReadOnlyList<Cheats.CheatResult> CheatsThisHand { get; }
+
+        /// <summary>True once a major cheat struck at this table (Lucifer's Fall comes once per attempt).</summary>
+        bool MajorCheatUsed { get; }
+
+        /// <summary>Years a thorn cost the player this hand (added at the draw).</summary>
+        int ThornYearsThisHand { get; }
+
+        /// <summary>Years the tithe took off this hand's win.</summary>
+        int TitheYearsThisHand { get; }
+
+        /// <summary>While the hand is played: the player cannot see this card of theirs (veiled, moonless, swapped in).</summary>
+        bool IsPlayerCardHidden(int index);
+
+        /// <summary>While the hand is played: this card is chained as collateral and cannot be thrown back.</summary>
+        bool IsPlayerCardChained(int index);
+
+        /// <summary>While the hand is played: throwing this card back costs a betting unit.</summary>
+        bool IsPlayerCardThorned(int index);
+
+        /// <summary>While the hand is played: this House card shows a false face.</summary>
+        bool IsHouseCardFalse(int index);
+
+        /// <summary>A House card as the player sees it (a false face until the showdown).</summary>
+        Card HouseCardFace(int index);
+
+        /// <summary>Brings back a saved gauge (between hands).</summary>
+        void RestoreMalice(int malice, bool majorCheatUsed);
+
         // ------------------------------------------------------------------ a hand left behind
 
         /// <summary>The hand being played, as it would be saved (stake, draw, soul, seal); null between hands.</summary>

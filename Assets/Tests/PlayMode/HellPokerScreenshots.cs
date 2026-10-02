@@ -408,10 +408,10 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
-        private const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        internal const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
 
         /// <summary>Screenshot tool only: rewrites the sentence between hands and refreshes the table.</summary>
-        private static void SetSentence(TablePresenter presenter, int years)
+        internal static void SetSentence(TablePresenter presenter, int years)
         {
             object ledger = presenter.Game.GetType().GetField("_ledger", Flags).GetValue(presenter.Game);
             ledger.GetType().GetMethod("Reset").Invoke(ledger, new object[] { years });
@@ -421,7 +421,7 @@ namespace HellPoker.PlayMode.Tests
         }
 
         /// <summary>Passes every decision, stands pat, calls any re-raise, until the hand is settled.</summary>
-        private static IEnumerator PlayToShowdown()
+        internal static IEnumerator PlayToShowdown()
         {
             for (int guard = 0; guard < 20; guard++)
             {
@@ -434,7 +434,7 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
-        private static bool ActionLabelIs(string label)
+        internal static bool ActionLabelIs(string label)
         {
             Button action = Find<Button>("ActionButton");
             return action.gameObject.activeInHierarchy && action.GetComponentInChildren<Text>().text == label;
@@ -445,7 +445,7 @@ namespace HellPoker.PlayMode.Tests
             public bool WantsToReRaise(HellPoker.Core.Evaluation.HandEvaluation houseHand) => true;
         }
 
-        private static IEnumerator Shot(string name)
+        internal static IEnumerator Shot(string name)
         {
             // Overlay canvases do not render into cameras, so switch them to a camera that draws into a texture.
             var target = new RenderTexture(Size.x, Size.y, 24);
@@ -493,7 +493,7 @@ namespace HellPoker.PlayMode.Tests
             target.Release();
         }
 
-        private static IEnumerator WaitForTable()
+        internal static IEnumerator WaitForTable()
         {
             var table = Object.FindFirstObjectByType<TableView>();
             float started = Time.time;
@@ -502,20 +502,20 @@ namespace HellPoker.PlayMode.Tests
                 yield return null;
         }
 
-        private static void Press(string name) => Press(Find<Button>(name));
+        internal static void Press(string name) => Press(Find<Button>(name));
 
-        private static void Press(Button button)
+        internal static void Press(Button button)
         {
             Assert.IsTrue(button.gameObject.activeInHierarchy && button.interactable, $"{button.name} cannot be pressed.");
             button.onClick.Invoke();
         }
 
-        private static bool IsActive(string name) => Find<Button>(name).gameObject.activeInHierarchy;
+        internal static bool IsActive(string name) => Find<Button>(name).gameObject.activeInHierarchy;
 
         /// <summary>A locked button still takes clicks (it answers with the reason), so check the look, not interactable.</summary>
-        private static bool IsLocked(string name) => Find<HellPoker.Presentation.Ui.ButtonFeel>(name).Locked;
+        internal static bool IsLocked(string name) => Find<HellPoker.Presentation.Ui.ButtonFeel>(name).Locked;
 
-        private static T Find<T>(string name) where T : Component
+        internal static T Find<T>(string name) where T : Component
         {
             // Prefer a live object: replaced dealer cards linger (inactive) until the end of the frame.
             T found = Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None)

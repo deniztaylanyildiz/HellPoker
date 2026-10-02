@@ -64,11 +64,35 @@ namespace HellPoker.Core.Tests
         public bool HandRanksOpen { get; private set; }
         public IPayoutInfo HandRanksPayouts { get; private set; }
 
-        public void ShowHandRanks(IPayoutInfo payouts)
+        public string HandRanksFootnote { get; private set; }
+
+        public void ShowHandRanks(IPayoutInfo payouts, string footnote = null)
         {
             HandRanksOpen = true;
             HandRanksPayouts = payouts;
+            HandRanksFootnote = footnote;
         }
+
+        public MaliceGauge Malice { get; private set; } = MaliceGauge.Hidden;
+        public CheatCard Intent { get; private set; }
+        public List<CheatCard> Lies { get; } = new List<CheatCard>();
+        public List<CheatImpact> Impacts { get; } = new List<CheatImpact>();
+
+        public void SetMalice(MaliceGauge gauge) => Malice = gauge;
+
+        public void SetIntent(CheatCard intent)
+        {
+            if (intent != null) TextLog.Add(intent.Name);
+            Intent = intent;
+        }
+
+        public void RevealLie(CheatCard truth)
+        {
+            Lies.Add(truth);
+            Intent = truth;
+        }
+
+        public void PlayCheat(CheatImpact impact) => Impacts.Add(impact);
 
         public void HideHandRanks() => HandRanksOpen = false;
         public void PressHandRanks() => HandRanksPressed?.Invoke();
@@ -162,9 +186,13 @@ namespace HellPoker.Core.Tests
         /// <summary>Face-up count of every hand the view was told to show, in order.</summary>
         public List<int> ShownFaceUp { get; } = new List<int>();
 
+        /// <summary>Every row of slots the view was told to show, in order.</summary>
+        public List<CardSlot[]> History { get; } = new List<CardSlot[]>();
+
         public void Show(IReadOnlyList<CardSlot> slots)
         {
             Slots = slots.ToArray();
+            History.Add(Slots);
             ShownFaceUp.Add(FaceUpCount);
         }
 

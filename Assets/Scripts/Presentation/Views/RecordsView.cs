@@ -32,9 +32,7 @@ namespace HellPoker.Presentation.Views
 
         private void Build(RectTransform screen)
         {
-            Image background = UiFactory.CreateSprite("Background", screen, UiArt.Background, Palette.Night);
-            background.rectTransform.Stretch();
-            background.raycastTarget = true;
+            MenuBackdrop.Create(screen);   // the title screen's art stays behind its sub-screens
 
             Image panel = UiFactory.CreatePanel("RecordsPanel", screen);
             panel.rectTransform.PlaceTL(96, 24, PixelScreen.Width - 192, PixelScreen.Height - 48);

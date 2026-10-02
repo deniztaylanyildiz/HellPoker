@@ -38,6 +38,8 @@ namespace HellPoker.Presentation.Views
         private bool _selected;
         private Image _hint;
         private bool _bright;
+        private Image _mark;
+        private float _sheen;
 
         /// <summary>The state this card will be in once all queued animations have played.</summary>
         public CardSlot Planned { get; private set; } = CardSlot.Empty;
@@ -94,6 +96,12 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.Stretch();
             _discardTag = tag.gameObject;
 
+            // A cheat's mark lies over the card (chain, thorn, veil, silver sheen); it turns with the card.
+            _mark = UiFactory.CreateImage("CheatMark", _content, Color.white);
+            _mark.raycastTarget = false;
+            _mark.rectTransform.Stretch();
+            _mark.enabled = false;
+
             Apply(CardSlot.Empty);
             SetSelected(false);
         }
@@ -144,6 +152,9 @@ namespace HellPoker.Presentation.Views
             CardSlot from = Planned;
             Planned = target;
 
+            // Only the mark changed: no flip, it simply appears (or goes).
+            if (from.SameAs(target))
+                return Sequence(MarkNow(target.Mark));
             if (target.Kind == CardSlot.SlotKind.Empty)
                 return FadeOut();
             if (from.Kind == CardSlot.SlotKind.Empty)
@@ -192,6 +203,29 @@ namespace HellPoker.Presentation.Views
                 yield return step;
         }
 
+        private IEnumerator MarkNow(CardMark mark)
+        {
+            ShowMark(mark);
+            yield break;
+        }
+
+        /// <summary>The mark's overlay from the card_marks strip; nothing when the art is missing or there is no mark.</summary>
+        private void ShowMark(CardMark mark)
+        {
+            int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3 : -1;
+            Sprite[] marks = UiArt.Strip(UiArt.CardMarks, Size.x);
+            _mark.sprite = frame >= 0 && marks != null && frame < marks.Length ? marks[frame] : null;
+            _mark.enabled = _mark.sprite != null;
+            _mark.transform.SetAsLastSibling();
+            _sheen = mark == CardMark.FalseFace ? 1f : 0f;
+        }
+
+        /// <summary>Shakes the card sideways by whole pixels (a cheat's blow); 0 puts it back.</summary>
+        public void Nudge(int pixels)
+        {
+            _content.anchoredPosition = new Vector2(pixels, Lift);
+        }
+
         private float Lift => _selected ? SelectedLift : 0f;
 
         private void Apply(CardSlot slot)
@@ -206,6 +240,7 @@ namespace HellPoker.Presentation.Views
             _content.gameObject.SetActive(!empty);
             _backGroup.SetActive(slot.Kind == CardSlot.SlotKind.Back);
             _faceGroup.SetActive(slot.Kind == CardSlot.SlotKind.Face);
+            ShowMark(slot.Mark);
             if (slot.Kind != CardSlot.SlotKind.Face) return;
 
             Card card = slot.Card;
@@ -253,8 +288,14 @@ namespace HellPoker.Presentation.Views
 
         public bool IsHinted => _hint.enabled;
 
+        /// <summary>The mark the card carries (for tests and screenshots).</summary>
+        public bool HasMark => _mark != null && _mark.sprite != null;
+
         private void Update()
         {
+            // The false face's sheen comes and goes, very faintly (a glint, then nothing for a moment).
+            if (_sheen > 0f && _mark.sprite != null)
+                _mark.enabled = Mathf.Repeat(Time.unscaledTime, 1.6f) < 1.1f;
             if (!_hint.enabled) return;
             _hint.color = _bright ? (Mathf.Repeat(Time.unscaledTime, 0.2f) < 0.1f ? Palette.Bone : Palette.GoldLight)
                 : Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.6f ? Palette.Gold : Palette.GoldLight;

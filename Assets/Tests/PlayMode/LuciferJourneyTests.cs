@@ -63,6 +63,8 @@ namespace HellPoker.PlayMode.Tests
 
             Assert.AreEqual("lucifer", Presenter.CurrentDealerId);
             Assert.AreEqual("THE MORNING STAR", Find<DealerView>("Dealer").transform.Find("Name").GetComponent<Text>().text);
+            Assert.AreEqual("", Find<DealerView>("Dealer").transform.Find("Title").GetComponent<Text>().text,
+                "'Waits below 250 years' is for the locked card only.");
             Assert.AreEqual("lucifer", Table.GetComponentInChildren<SalonView>(true).ShownDealerId);
             Assert.AreEqual("NO ESCAPE", Find<Button>("LeaveButton").GetComponentInChildren<Text>().text);
             Assert.AreEqual(Vector2.zero, ScreenOffset(), "The scene left nothing behind.");

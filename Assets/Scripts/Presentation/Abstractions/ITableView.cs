@@ -35,7 +35,22 @@ namespace HellPoker.Presentation.Abstractions
         bool HandRanksOpen { get; }
 
         /// <summary>Opens the hand ranking panel with what each hand pays at this table.</summary>
-        void ShowHandRanks(IPayoutInfo payouts);
+        /// <param name="footnote">A line under the ranks (the demon's announced cheat and what it does); null for none.</param>
+        void ShowHandRanks(IPayoutInfo payouts, string footnote = null);
+
+        // ------------------------------------------------------------------ the demon's cheats
+
+        /// <summary>The malice gauge under the demon's portrait.</summary>
+        void SetMalice(MaliceGauge gauge);
+
+        /// <summary>The cheat the demon announces above the portrait; null takes it down.</summary>
+        void SetIntent(CheatCard intent);
+
+        /// <summary>The announced intent was a lie: the sign shatters and shows the truth.</summary>
+        void RevealLie(CheatCard truth);
+
+        /// <summary>A cheat strikes on the cards (after everything queued before it).</summary>
+        void PlayCheat(CheatImpact impact);
 
         void HideHandRanks();
 

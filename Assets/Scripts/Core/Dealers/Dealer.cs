@@ -1,6 +1,7 @@
 using System;
 using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Cheats;
 using HellPoker.Core.Game;
 
 namespace HellPoker.Core.Dealers
@@ -39,9 +40,20 @@ namespace HellPoker.Core.Dealers
         /// </summary>
         public bool IsFinalTable { get; }
 
+        /// <summary>
+        /// The demon's malice gauge: when it is full a cheat is chosen and announced for the hand (0: a demon who never cheats).
+        /// </summary>
+        public int MaliceMax { get; }
+
+        /// <summary>The demon's cheats and how they choose one; null for a demon who never cheats.</summary>
+        public ICheatPolicy Cheats { get; }
+
         public Dealer(string id, int maxDiscards, int houseCardsShown, PayoutTable payouts, HouseBettingStyle betting = null,
-            int soulThreshold = 2000, StakeScale stakes = null, bool isFinalTable = false)
+            int soulThreshold = 2000, StakeScale stakes = null, bool isFinalTable = false, int maliceMax = 0, ICheatPolicy cheats = null)
         {
+            if (maliceMax < 0) throw new ArgumentOutOfRangeException(nameof(maliceMax));
+            MaliceMax = cheats == null ? 0 : maliceMax;
+            Cheats = cheats;
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A dealer needs an id.", nameof(id));
             if (maxDiscards < 0 || maxDiscards > Hand.Size) throw new ArgumentOutOfRangeException(nameof(maxDiscards));
             if (houseCardsShown < 0 || houseCardsShown >= Hand.Size) throw new ArgumentOutOfRangeException(nameof(houseCardsShown));
@@ -59,6 +71,14 @@ namespace HellPoker.Core.Dealers
 
         /// <summary>True when a player with this sentence would have their soul on this demon's table.</summary>
         public bool TakesSoulAt(int years) => years >= SoulThreshold;
+
+        /// <summary>The same demon with another malice gauge (tuning, the balance simulation).</summary>
+        public Dealer WithMaliceMax(int maliceMax) =>
+            new Dealer(Id, MaxDiscards, HouseCardsShown, Payouts, Betting, SoulThreshold, Stakes, IsFinalTable, maliceMax, Cheats);
+
+        /// <summary>The same demon without any cheats (for comparison, and for tests of the plain rules).</summary>
+        public Dealer WithoutCheats() =>
+            new Dealer(Id, MaxDiscards, HouseCardsShown, Payouts, Betting, SoulThreshold, Stakes, IsFinalTable);
 
         /// <summary>The table's rules with this dealer's house rules laid over them.</summary>
         public GameRules ApplyTo(GameRules table)

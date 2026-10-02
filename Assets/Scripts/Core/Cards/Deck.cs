@@ -52,6 +52,10 @@ namespace HellPoker.Core.Cards
             return drawn;
         }
 
+        public IReadOnlyList<Card> Remaining => _cards;
+
+        public bool Take(Card card) => _cards.Remove(card);
+
         public void Reset()
         {
             _cards.Clear();

@@ -50,6 +50,8 @@ namespace HellPoker.Presentation.Views
         private HandRanksPanel _handRanks;
         private TableMoments _moments;
         private TableScenes _scenes;
+        private MaliceView _malice;
+        private CheatEffects _cheatEffects;
 
         public IHandView House { get; private set; }
         public IHandView Player { get; private set; }
@@ -156,6 +158,9 @@ namespace HellPoker.Presentation.Views
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
+            // The malice gauge and the announced cheat ride on the portrait box (4, 4, 104 × 104).
+            _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
+            _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56));
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, UiText.HandRanksTableFooter);
             _stage = new Stage(this);
@@ -326,7 +331,15 @@ namespace HellPoker.Presentation.Views
             });
         }
 
-        public void ShowHandRanks(Core.Game.IPayoutInfo payouts) => _handRanks.Show(payouts);
+        public void ShowHandRanks(Core.Game.IPayoutInfo payouts, string footnote = null) => _handRanks.Show(payouts, footnote);
+
+        public void SetMalice(MaliceGauge gauge) => _malice.SetGauge(gauge);
+
+        public void SetIntent(CheatCard intent) => _malice.SetIntent(intent);
+
+        public void RevealLie(CheatCard truth) => _malice.RevealLie(truth);
+
+        public void PlayCheat(CheatImpact impact) => _cheatEffects.Play(impact);
 
         public void HideHandRanks() => _handRanks.Hide();
 
@@ -374,6 +387,8 @@ namespace HellPoker.Presentation.Views
             _sentence.Snap();
             _soul.Snap();
             _moments.Finish();
+            _cheatEffects.Finish();
+            _malice.Finish();
             _scenes.Finish();
         }
 

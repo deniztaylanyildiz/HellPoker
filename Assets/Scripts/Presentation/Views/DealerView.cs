@@ -90,7 +90,8 @@ namespace HellPoker.Presentation.Views
         {
             _dealerId = dealer.Id;
             _name.text = dealer.Name;
-            _title.text = dealer.Title;
+            // His title ("Waits below 250 years") belongs to the locked card on the choice screen, not to his table.
+            _title.text = dealer.IsFinalTable ? "" : dealer.Title;
             _fullLine = "";
             _line.text = "";
             _dialog.SetActive(false);

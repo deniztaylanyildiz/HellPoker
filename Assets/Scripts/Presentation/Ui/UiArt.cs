@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HellPoker.Presentation.Animation;
 using UnityEngine;
@@ -31,6 +32,41 @@ namespace HellPoker.Presentation.Ui
         public const string SoulLamp = "Ui/soul_lamp";
         public const int SoulLampWidth = 16;
 
+        /// <summary>Overlays for cards a cheat marked (32×48 frames: chained, thorned, veiled, false face).</summary>
+        public const string CardMarks = "Ui/card_marks";
+        public const string CheatIcons = "Ui/cheat_icons";
+        public const string MalicePips = "Ui/malice_pips";
+        public const int CheatIconSize = 16;
+        public const int MalicePipSize = 8;
+
+        /// <summary>The order of the icons in cheat_icons.png (Tools/ArtGen/pixel_ui.py CHEAT_ICON_IDS).</summary>
+        private static readonly string[] CheatIconIds =
+        {
+            "collateral", "tithe", "buyout", "false_face", "forked_tongue", "serpent_swap", "night_veil", "thorn", "moonless", "gaze",
+            "rewrite", "burning_card", "the_fall"
+        };
+
+        /// <summary>The order of the demons in malice_pips.png (empty, full each).</summary>
+        private static readonly string[] MalicePipOrder = { "mammon", "belial", "lilith", "lucifer" };
+
+        /// <summary>A cheat's 16×16 icon; null when the art (or the id) is missing.</summary>
+        public static Sprite CheatIcon(string cheatId)
+        {
+            int index = Array.IndexOf(CheatIconIds, cheatId);
+            Sprite[] icons = Strip(CheatIcons, CheatIconSize);
+            return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
+        }
+
+        /// <summary>One pip of a demon's malice gauge (a coin, a scale, a thorn, an ember); null when missing.</summary>
+        public static Sprite MalicePip(string dealerId, bool full)
+        {
+            int index = Array.IndexOf(MalicePipOrder, dealerId);
+            if (index < 0) index = 0;
+            Sprite[] pips = Strip(MalicePips, MalicePipSize);
+            int frame = index * 2 + (full ? 1 : 0);
+            return pips != null && frame < pips.Length ? pips[frame] : null;
+        }
+
         public const int FlameFrameWidth = 32;
         public const int DigitWidth = 12;
 
@@ -40,6 +76,9 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Animations of the demon dealers, loaded from Resources/Art.</summary>
         public static readonly DealerAnimationLibrary Dealers = new DealerAnimationLibrary(path => Resources.Load<Texture2D>("Art/" + path));
+
+        /// <summary>The title screen's animated backdrop (also behind the rules, settings and records), loaded from Resources/Art.</summary>
+        public static readonly MenuBackdropLibrary MenuBackdrop = new MenuBackdropLibrary(path => Resources.Load<Texture2D>("Art/" + path));
 
         /// <summary>The demons' halls, loaded from Resources/Art.</summary>
         public static readonly SalonLibrary Salons = new SalonLibrary(path => Resources.Load<Texture2D>("Art/" + path));

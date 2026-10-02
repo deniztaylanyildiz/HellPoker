@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Cheats;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
@@ -116,6 +117,8 @@ namespace HellPoker.Presentation
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
+            if (_game.Phase == GamePhase.Betting)
+                _game.RestoreMalice(snapshot.Malice, snapshot.MajorCheatUsed);   // the demon has not forgotten
             GameRules rules = _game.Rules;
             _gate = _finalDealer == null
                 ? new LuciferGate(0, 0)
@@ -171,8 +174,16 @@ namespace HellPoker.Presentation
         /// <summary>Freed at Lucifer's table.</summary>
         private bool BeatLucifer => _game.Phase == GamePhase.Absolved && _dealer.IsFinalTable;
 
-        /// <summary>Freed by Wild Bill's hand at an ordinary table, while Lucifer waited below.</summary>
-        private bool WildBill => _game.Phase == GamePhase.Absolved && !_dealer.IsFinalTable && _finalDealer != null;
+        /// <summary>Freed by Wild Bill's hand at an ordinary table, never having been summoned. (A player who has met Lucifer
+        /// and fallen, freed the same way, gets the plain absolution — he will remember it.)</summary>
+        private bool WildBill => _game.Phase == GamePhase.Absolved && !_dealer.IsFinalTable && _finalDealer != null && _gate.Attempts == 0;
+
+        /// <summary>
+        /// An ordinary table has brought the sentence down to its last year, which it may not take: that year is Lucifer's,
+        /// and the next hand summons the player.
+        /// </summary>
+        private bool IsHoldingTheLastYear => _finalDealer != null && _game.Rules.KeepsTheLastYear && _game.Years == 1 &&
+                                            _game.Phase == GamePhase.RoundOver;
 
         private void EndRunRecords()
         {
@@ -207,7 +218,7 @@ namespace HellPoker.Presentation
         private RunSnapshot Snapshot(HandInProgress hand = null)
         {
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
-                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts);
+                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed);
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -412,7 +423,12 @@ namespace HellPoker.Presentation
                     _game.PlaceBet();
                     _discards.Clear();
                     PlayOutSealedHand(before);
-                    break;
+                    // A cheat at the deal lands once the cards are on the table.
+                    Refresh();
+                    PlayCheatStrikes(before);
+                    TipFirstCheat();
+                    ShowMalice();
+                    return;
                 case GamePhase.PlayerReveal:
                 case GamePhase.DrawReveal:
                 case GamePhase.HouseReveal:
@@ -425,6 +441,7 @@ namespace HellPoker.Presentation
                     _game.Draw(_discards.ToArray());
                     _discards.Clear();
                     PlayOutSealedHand(before);
+                    PlayCheatStrikes(before);
                     break;
                 case GamePhase.RoundOver:
                     _game.NextRound();
@@ -473,6 +490,7 @@ namespace HellPoker.Presentation
             if (_game.Phase == GamePhase.HouseReRaise && !Tip(UiText.TipFirstReRaise))
                 _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), DealerMood.Scheming);
             PlayOutSealedHand(before);
+            PlayCheatStrikes(before);
             Refresh();
         }
 
@@ -488,7 +506,9 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            TableState before = CaptureState();
             _game.CheckToDraw();
+            PlayCheatStrikes(before);
             Refresh();
         }
 
@@ -500,12 +520,16 @@ namespace HellPoker.Presentation
             public readonly bool Sealed;
             public readonly int Skipped;
 
-            public TableState(int playerCards, int houseCards, bool @sealed, int skipped)
+            /// <summary>The demon's cheat results already shown this hand.</summary>
+            public readonly int Cheats;
+
+            public TableState(int playerCards, int houseCards, bool @sealed, int skipped, int cheats)
             {
                 PlayerCards = playerCards;
                 HouseCards = houseCards;
                 Sealed = @sealed;
                 Skipped = skipped;
+                Cheats = cheats;
             }
         }
 
@@ -513,7 +537,74 @@ namespace HellPoker.Presentation
         {
             bool inHand = _game.Phase != GamePhase.Betting;
             return new TableState(inHand ? _game.PlayerCardsRevealed : 0, inHand ? _game.HouseCardsRevealed : 0,
-                inHand && _game.IsCommitted, inHand ? _game.DecisionsSkipped : 0);
+                inHand && _game.IsCommitted, inHand ? _game.DecisionsSkipped : 0, inHand ? _game.CheatsThisHand.Count : 0);
+        }
+
+        // ------------------------------------------------------------------ the demon's cheats
+
+        private static CheatCard CardOf(string cheatId) =>
+            new CheatCard(cheatId, UiText.CheatName(cheatId), UiText.CheatDescription(cheatId));
+
+        /// <summary>
+        /// Every cheat that struck during the last command, in plain sight: a lie comes out first ("LIAR"), the card as it was
+        /// shows for a moment, the blow lands on the cards, and the demon says their line (with the sly re-raise look).
+        /// What changed then shows with the next table update (a card turning, a mark appearing).
+        /// A blocked or fizzled cheat just takes its sign down.
+        /// </summary>
+        private void PlayCheatStrikes(TableState before)
+        {
+            IReadOnlyList<CheatResult> results = _game.CheatsThisHand;
+            for (int k = before.Cheats; k < results.Count; k++)
+            {
+                CheatResult result = results[k];
+                if (result.Outcome != CheatOutcome.Played) continue;
+
+                if (result.WasLie)
+                {
+                    _view.RevealLie(CardOf(result.CheatId));
+                    _view.Dealer.Say(UiText.LiarLine, DealerMood.Gloating);
+                }
+
+                int at = result.PlayerCards.Count > 0 ? result.PlayerCards[0] : -1;
+                if (result.Lost.HasValue && at >= 0 && _game.PlayerHand != null)
+                {
+                    int faceUp = _game.Phase == GamePhase.RoundOver || _game.IsGameOver ? Hand.Size : _game.PlayerCardsRevealed;
+                    _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value));
+                }
+
+                _view.PlayCheat(new CheatImpact(result.CheatId, result.PlayerCards, result.HouseCards));
+                _view.Dealer.Say(UiText.CheatLine(result.CheatId), DealerMood.Scheming);
+            }
+        }
+
+        /// <summary>The gauge under the portrait and the announced cheat over it, as they stand.</summary>
+        private void ShowMalice()
+        {
+            _view.SetMalice(new MaliceGauge(_dealer.Id, _game.Malice, _game.MaliceMax));
+            _view.SetIntent(_game.PendingCheat == null ? null : CardOf(_game.PendingCheat.Id));
+        }
+
+        /// <summary>The first time a demon shows a cheat, they explain the gauge and the sign, once.</summary>
+        private void TipFirstCheat()
+        {
+            if (_game.PendingCheat != null || _game.CheatsThisHand.Count > 0)
+                Tip(UiText.TipCheatFor(_dealer.Id));
+        }
+
+        /// <summary>The result line, with the hand's cheat told on a second line ("Mammon took your K♠ for a 3♦.").</summary>
+        private string WithCheatLog(string message, bool soul)
+        {
+            CheatResult played = _game.CheatsThisHand.FirstOrDefault(r => r.Outcome == CheatOutcome.Played);
+            string log = UiText.CheatLog(_dealerText.Name, played, soul, _game.ThornYearsThisHand, _game.TitheYearsThisHand);
+            return log == null ? message : message + "\n" + log;
+        }
+
+        /// <summary>The H panel's line about the announced cheat; null when nothing is coming.</summary>
+        private string IntentFootnote()
+        {
+            if (_game?.PendingCheat == null) return null;
+            string id = _game.PendingCheat.Id;
+            return UiText.CheatName(id) + ": " + UiText.CheatDescription(id);
         }
 
         /// <summary>
@@ -544,15 +635,15 @@ namespace HellPoker.Presentation
             {
                 // Before the draw: the player's remaining cards, one at a time (a sealed deal starts from the opening cards).
                 int from = Math.Max(before.PlayerCards, Math.Min(Hand.Size, _game.Rules.OpeningCardsShown));
-                _view.House.Show(Slots(_game.HouseHand, 0));
-                _view.Player.Show(Slots(_game.PlayerHand, from));
+                _view.House.Show(HouseSlots(0));
+                _view.Player.Show(PlayerSlots(from));
                 ShowStakeOnTable();
                 if (justSealed)
                     AnnounceSeal();
                 for (int shown = from + 1; shown <= _game.PlayerCardsRevealed; shown++)
                 {
                     _view.Pause(SealedRevealPause);
-                    _view.Player.Show(Slots(_game.PlayerHand, shown));
+                    _view.Player.Show(PlayerSlots(shown));
                 }
                 return;
             }
@@ -568,13 +659,13 @@ namespace HellPoker.Presentation
                 _view.Sentence.SetYears(_game.LastRound.YearsBefore - _game.LastRound.Stake, animate: true);
                 _view.SetStakeInfo(null);
             }
-            _view.Player.Show(Slots(_game.PlayerHand, Hand.Size));
-            _view.House.Show(Slots(_game.HouseHand, before.HouseCards));
+            _view.Player.Show(PlayerSlots(Hand.Size));
+            _view.House.Show(HouseSlots(before.HouseCards));
             ShowPlayerCaption();
             for (int shown = before.HouseCards + 1; shown <= Hand.Size; shown++)
             {
                 _view.Pause(SealedRevealPause);
-                _view.House.Show(Slots(_game.HouseHand, shown));
+                _view.House.Show(HouseSlots(shown));
             }
         }
 
@@ -627,7 +718,7 @@ namespace HellPoker.Presentation
             if (_view.HandRanksOpen)
                 _view.HideHandRanks();
             else
-                _view.ShowHandRanks(_dealer.Payouts);
+                _view.ShowHandRanks(_dealer.Payouts, IntentFootnote());
         }
 
         public bool CloseOverlay()
@@ -717,11 +808,14 @@ namespace HellPoker.Presentation
 
             SettleHand();
             SaveRun();
+            ShowMalice();
             _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
                 : _game.Rules.IsFinalTable ? LeaveState.Summoned
                 : _game.IsSoulAtStake ? LeaveState.Locked : LeaveState.Open);
             bool finalTable = _game.Rules.IsFinalTable;
-            bool finalStretch = finalTable ? IsLastMoments : _game.IsRaiseForced;
+            // While Lucifer waits below, an ordinary table never plays its final stretch: at the gate the next hand is his.
+            bool luciferWaits = _finalDealer != null && _game.Rules.LuciferGateYears > 0;
+            bool finalStretch = finalTable ? IsLastMoments : _game.IsRaiseForced && !luciferWaits;
             _view.SetFinalStretch(finalStretch, finalTable
                 ? UiText.LastMomentsBanner
                 : string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
@@ -837,8 +931,8 @@ namespace HellPoker.Presentation
             _view.Player.SetHints(null);
 
             // House cards first, so on the deal the table fills up before the player's cards turn.
-            _view.House.Show(Slots(_game.HouseHand, _game.HouseCardsRevealed));
-            _view.Player.Show(Slots(_game.PlayerHand, _game.PlayerCardsRevealed));
+            _view.House.Show(HouseSlots(_game.HouseCardsRevealed));
+            _view.Player.Show(PlayerSlots(_game.PlayerCardsRevealed));
             ShowPlayerCaption();
             ShowStakeOnTable();
         }
@@ -884,7 +978,7 @@ namespace HellPoker.Presentation
         private void ShowDrawing()
         {
             _view.SetBetControls(BetControls.Hidden);
-            _view.Player.Show(Slots(_game.PlayerHand, Hand.Size));
+            _view.Player.Show(PlayerSlots(Hand.Size));
             _view.Player.SetInteractable(true);
             _view.Player.SetSelection(_discards);
             ShowPlayerCaption();
@@ -916,8 +1010,8 @@ namespace HellPoker.Presentation
             _view.Player.SetInteractable(false);
             _view.Player.SetSelection(null);
             _view.Player.SetHints(null);
-            _view.Player.Show(Slots(_game.PlayerHand, Hand.Size));
-            _view.House.Show(Slots(_game.HouseHand, Hand.Size));
+            _view.Player.Show(PlayerSlots(Hand.Size));
+            _view.House.Show(HouseSlots(Hand.Size));
             _view.Pause(ShowdownPause);
 
             // A run can be over with no hand behind it here (a finished save, a sentence carried in): nothing to name.
@@ -974,8 +1068,18 @@ namespace HellPoker.Presentation
                     break;
                 default:
                     if (round == null) break;   // only a finished run can come here without a hand
-                    _view.SetMessage(ResultMessage(round, soulHand), playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
-                    SayRoundLine(round);
+                    _view.SetMessage(WithCheatLog(ResultMessage(round, soulHand), soulHand),
+                        playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
+                    if (IsHoldingTheLastYear)
+                    {
+                        // Not a bug: an ordinary table keeps the last year for Lucifer — and says so.
+                        _view.Dealer.Say(UiText.LastYearLine, DealerMood.Menacing);
+                        _view.Sentence.SetLimit(_game.Rules.SoulThreshold, UiText.LastYearNote);
+                    }
+                    else
+                    {
+                        SayRoundLine(round);
+                    }
                     _view.SetAction(UiText.Next);
                     break;
             }
@@ -1050,6 +1154,45 @@ namespace HellPoker.Presentation
             var slots = new CardSlot[Hand.Size];
             for (int i = 0; i < Hand.Size; i++)
                 slots[i] = hand == null ? CardSlot.Empty : i < faceUp ? CardSlot.Face(hand[i]) : CardSlot.Back;
+            return slots;
+        }
+
+        /// <summary>
+        /// The player's cards as the player may see them: a card a cheat hid stays face down under its veil, a chained or
+        /// thorned card carries its mark.
+        /// </summary>
+        /// <param name="lostAt">Show <paramref name="lost"/> at this position instead (the moment before a cheat changes it).</param>
+        private CardSlot[] PlayerSlots(int faceUp, int lostAt = -1, Core.Cards.Card lost = default)
+        {
+            CardSlot[] slots = Slots(_game.PlayerHand, faceUp);
+            if (_game.PlayerHand == null) return slots;
+            for (int i = 0; i < Hand.Size; i++)
+            {
+                if (i == lostAt && i < faceUp)
+                {
+                    slots[i] = CardSlot.Face(lost);
+                    continue;
+                }
+                if (_game.IsPlayerCardHidden(i))
+                    slots[i] = CardSlot.Back.WithMark(CardMark.Veiled);
+                else if (_game.IsPlayerCardChained(i) && i < faceUp)
+                    slots[i] = slots[i].WithMark(CardMark.Chained);
+                else if (_game.IsPlayerCardThorned(i) && i < faceUp)
+                    slots[i] = slots[i].WithMark(CardMark.Thorned);
+            }
+            return slots;
+        }
+
+        /// <summary>The House's cards as the player sees them: a false face (with its faint sheen) until the showdown.</summary>
+        private CardSlot[] HouseSlots(int faceUp)
+        {
+            CardSlot[] slots = Slots(_game.HouseHand, faceUp);
+            if (_game.HouseHand == null) return slots;
+            for (int i = 0; i < faceUp && i < Hand.Size; i++)
+            {
+                if (_game.IsHouseCardFalse(i))
+                    slots[i] = CardSlot.Face(_game.HouseCardFace(i)).WithMark(CardMark.FalseFace);
+            }
             return slots;
         }
     }

@@ -81,7 +81,7 @@ namespace HellPoker.Presentation
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
                 string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent,
                     table.LuciferGateYears, table.LuciferCastDownYears, DealerRoster.LuciferUnit, DealerRoster.LuciferCap),
-                DealerRoster.Mammon.Payouts);
+                DealerRoster.Mammon.Payouts, UiText.CheatsPage());
             DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
             EndScreenView endScreen = EndScreenView.Create(transform, UiArt.Dealers);
             RecordsView records = RecordsView.Create(transform);

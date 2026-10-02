@@ -81,10 +81,13 @@ namespace HellPoker.Presentation.Views
 
             for (int i = 0; i < _cards.Count; i++)
             {
-                if (!slots[i].SameAs(_cards[i].Planned))
+                if (!slots[i].SameAs(_cards[i].Planned) || slots[i].Mark != _cards[i].Planned.Mark)
                     _sequencer.Play(_cards[i].AnimateTo(slots[i]));
             }
         }
+
+        /// <summary>A card of the row (for the cheats' effects: where it is, a shake).</summary>
+        public CardView Card(int index) => index >= 0 && index < _cards.Count ? _cards[index] : null;
 
         public void SetSelection(ICollection<int> selectedIndices)
         {

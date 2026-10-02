@@ -22,8 +22,21 @@ namespace HellPoker.Core.Game
         /// <summary>True when the pact was sealed (the table full or all in): there was no folding any more.</summary>
         public bool IsSealed { get; }
 
-        public HandInProgress(int stake, int ante, bool isAfterDraw, bool isSoulHand, bool isSealed)
+        /// <summary>The cheat the demon had planned for the hand; null when none.</summary>
+        public string CheatId { get; }
+
+        /// <summary>The intent the demon announced (Belial may have lied); null when none.</summary>
+        public string ShownCheatId { get; }
+
+        /// <summary>True once the hand's cheat had struck (or failed).</summary>
+        public bool CheatResolved { get; }
+
+        public HandInProgress(int stake, int ante, bool isAfterDraw, bool isSoulHand, bool isSealed, string cheatId = null,
+            string shownCheatId = null, bool cheatResolved = false)
         {
+            CheatId = string.IsNullOrEmpty(cheatId) ? null : cheatId;
+            ShownCheatId = string.IsNullOrEmpty(shownCheatId) ? CheatId : shownCheatId;
+            CheatResolved = CheatId != null && cheatResolved;
             if (stake <= 0) throw new ArgumentOutOfRangeException(nameof(stake));
             if (ante <= 0 || ante > stake) throw new ArgumentOutOfRangeException(nameof(ante), "The ante is part of the stake.");
             Stake = stake;

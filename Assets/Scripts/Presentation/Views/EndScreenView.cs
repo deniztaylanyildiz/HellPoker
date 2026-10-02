@@ -95,9 +95,7 @@ namespace HellPoker.Presentation.Views
             bool fallen = free && summary.BeatLucifer;
             if (_burning != null)
                 _background.sprite = free ? _calm : _burning;
-            _title.text = fallen ? UiText.MorningStarFallsTitle
-                : free && summary.WildBill ? UiText.WildBillTitle
-                : free ? UiText.AbsolvedTitle : UiText.DamnedTitle;
+            _title.text = TitleOf(summary);
             _title.fontSize = _title.text.Length > 12 ? 16 : 32;   // long titles drop to the 16 px grid to fit the screen
             _title.color = free ? Palette.GoldLight : Palette.Hell;
             _subtitle.text = fallen ? UiText.MorningStarFallsSubtitle
@@ -118,6 +116,26 @@ namespace HellPoker.Presentation.Views
             _story.alignment = fallen ? TextAnchor.UpperLeft : TextAnchor.UpperCenter;
             _story.rectTransform.PlaceTL(fallen ? 196 : 88, 100, fallen ? PixelScreen.Width - 196 - 80 : PixelScreen.Width - 176, 100);
 
+            _story.text = string.Join("\n", StoryOf(summary));
+
+            _canvas.enabled = true;
+            GetComponent<GraphicRaycaster>().enabled = true;
+        }
+
+        /// <summary>
+        /// The ending's name: the Morning Star falls (beaten at his table), Wild Bill's escape (the Dead Man's Hand without ever
+        /// being summoned), absolved (any other way out — e.g. the Dead Man's Hand after a fall), or damned.
+        /// </summary>
+        public static string TitleOf(RunSummary summary)
+        {
+            if (!summary.Absolved) return UiText.DamnedTitle;
+            if (summary.BeatLucifer) return UiText.MorningStarFallsTitle;
+            return summary.WildBill ? UiText.WildBillTitle : UiText.AbsolvedTitle;
+        }
+
+        /// <summary>The run's story, line by line, as the end screen tells it.</summary>
+        public static IReadOnlyList<string> StoryOf(RunSummary summary)
+        {
             var lines = new List<string>
             {
                 string.Format(UiText.EndHandsFormat, summary.HandsPlayed),
@@ -126,14 +144,15 @@ namespace HellPoker.Presentation.Views
                 summary.BestHand.HasValue ? string.Format(UiText.EndBestFormat, UiText.CategoryName(summary.BestHand.Value)) : UiText.EndBestNone,
                 string.Format(UiText.EndDealersFormat, string.Join(", ", summary.DealerNames)),
                 summary.SoulStaked ? UiText.EndSoulStaked : UiText.EndSoulKept,
-                fallen ? string.Format(UiText.EndBeatLuciferFormat, summary.LuciferAttempts)
+                summary.Absolved && summary.BeatLucifer ? string.Format(UiText.EndBeatLuciferFormat, summary.LuciferAttempts)
                     : summary.LuciferAttempts > 0 ? string.Format(UiText.EndLuciferTriedFormat, summary.LuciferAttempts)
                     : UiText.EndNeverMetLucifer
             };
-            _story.text = string.Join("\n", lines);
 
-            _canvas.enabled = true;
-            GetComponent<GraphicRaycaster>().enabled = true;
+            // Freed past him without beating him (the Dead Man's Hand after a fall): he will not forget it.
+            if (summary.Absolved && !summary.BeatLucifer && summary.LuciferAttempts > 0)
+                lines.Add(UiText.EndMorningStarRemembers);
+            return lines;
         }
 
         private void Update()
