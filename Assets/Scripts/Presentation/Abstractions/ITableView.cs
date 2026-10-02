@@ -23,6 +23,10 @@ namespace HellPoker.Presentation.Abstractions
 
         event Action ActionPressed;
         event Action<BetAction> BetPressed;
+
+        /// <summary>The CHECK TO DRAW button.</summary>
+        event Action CheckToDrawPressed;
+
         event Action MenuPressed;
         event Action LeavePressed;
         event Action HandRanksPressed;

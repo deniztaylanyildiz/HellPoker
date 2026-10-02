@@ -7,7 +7,7 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keyboard shortcuts: Esc one screen up, Alt+Enter full screen; at the table Space/Enter main action, pass or call,
-    /// R raise, C call, F fold, 1-5 pick cards, H hand ranks. While the table animates any of them hurries the animation instead.
+    /// R raise, D check to draw, C call, F fold, 1-5 pick cards, H hand ranks. While the table animates any of them hurries the animation instead.
     /// Nothing is read while a screen change plays.
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
@@ -58,6 +58,7 @@ namespace HellPoker.Presentation
             if (keyboard.spaceKey.wasPressedThisFrame || enter)
                 _table.PerformAction();
             else if (keyboard.rKey.wasPressedThisFrame) _table.Bet(BetAction.Raise);
+            else if (keyboard.dKey.wasPressedThisFrame) _table.CheckToDraw();
             else if (keyboard.cKey.wasPressedThisFrame) _table.Bet(BetAction.Call);
             else if (keyboard.fKey.wasPressedThisFrame) _table.Bet(BetAction.Fold);
             else if (keyboard.digit1Key.wasPressedThisFrame) _table.ToggleDiscard(0);

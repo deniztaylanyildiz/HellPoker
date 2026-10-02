@@ -20,6 +20,12 @@ namespace HellPoker.Presentation.Ui
         public string[] SoulReleased;
         public string[] SoulLocked;
 
+        /// <summary>The table is full and the pact sealed: the rest of the hand plays out on its own.</summary>
+        public string[] Sealed;
+
+        /// <summary>The player closed the game mid-hand and came back: the hand was forfeited.</summary>
+        public string[] Fled;
+
         /// <summary>The warning before sitting at this demon's table with the soul already past their line.</summary>
         public string SoulWarning;
         public string Absolved;
@@ -100,6 +106,17 @@ namespace HellPoker.Presentation.Ui
             SoulTaken = new[] { "The account is overdrawn. I'll take your soul as collateral." },
             SoulReleased = new[] { "Paid back? Hmph. The collateral is returned. For now." },
             SoulLocked = new[] { "Leave? With my collateral? Sit down and pay." },
+            Sealed = new[]
+            {
+                "Signed and witnessed. No backing out of this contract.",
+                "The terms are final. Let the cards settle the account.",
+                "Sealed in wax and ink. Now we see who pays."
+            },
+            Fled = new[]
+            {
+                "You walked out mid-hand? The ledger noticed. Debited, with interest.",
+                "Skipping out on an open account? I charged it as forfeit."
+            },
             SoulWarning = "Your soul will be on his table — and he never lets collateral walk.",
             Absolved = "Paid in full?! Impossible... Get out before I find an error in the books.",
             Damned = "Your account is closed. Forever. Next!"
@@ -135,6 +152,17 @@ namespace HellPoker.Presentation.Ui
             SoulTaken = new[] { "At last, the real stakes. Your soul, darling, on my table." },
             SoulReleased = new[] { "You slipped the hook. How... unexpectedly entertaining." },
             SoulLocked = new[] { "Leaving mid-performance? Not with your soul in my hands." },
+            Sealed = new[]
+            {
+                "No exits now, darling. The curtain stays up.",
+                "Sealed! Now we find out which of us was lying.",
+                "Everything on the table. How deliciously final."
+            },
+            Fled = new[]
+            {
+                "Vanishing mid-act? I kept your ticket. And your wager.",
+                "You left before the final scene, darling. The stakes stayed with me."
+            },
             SoulWarning = "Your soul will be on his table — and he does not let an audience leave.",
             Absolved = "Well played. Do come back — I always win in the end.",
             Damned = "Welcome home. I saved you a seat. Forever."
@@ -170,6 +198,17 @@ namespace HellPoker.Presentation.Ui
             SoulTaken = new[] { "There it is. Your soul, cold and lovely, in my hands." },
             SoulReleased = new[] { "You took it back. I will remember how it felt." },
             SoulLocked = new[] { "Go? Your soul stays with me, and so do you." },
+            Sealed = new[]
+            {
+                "Bound now. Sit still and let the night decide.",
+                "No running from this one, little soul.",
+                "Sealed with a kiss. You cannot take it back."
+            },
+            Fled = new[]
+            {
+                "You slipped away in the dark. I kept what you left on my table.",
+                "Running mid-hand? Nothing leaves me. That wager is mine."
+            },
             SoulWarning = "Your soul will be on her table. She does not give back what she holds.",
             Absolved = "Go, then. The dawn will find you dull. You will miss me.",
             Damned = "Mine. All mine. For every night that ever was."
@@ -190,6 +229,8 @@ namespace HellPoker.Presentation.Ui
             SoulTaken = new[] { "Your soul is mine to play for." },
             SoulReleased = new[] { "Your soul is yours again." },
             SoulLocked = new[] { "Not with your soul on the table." },
+            Sealed = new[] { "Sealed." },
+            Fled = new[] { "You left mid-hand. It is forfeit." },
             SoulWarning = "Your soul will be on this table.",
             Absolved = "You are free.",
             Damned = "Damned."

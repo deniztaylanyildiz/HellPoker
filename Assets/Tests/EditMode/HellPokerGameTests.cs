@@ -269,10 +269,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(0, game.RaiseAmount);
             Assert.IsFalse(game.CanBet(BetAction.Raise, out string reason));
             Assert.IsNotNull(reason);
-
-            game.Bet(BetAction.Pass);
-            game.Draw(new int[0]);
-            Assert.AreEqual(0, game.RaiseAmount, "The cap holds after the draw too.");
+            Assert.IsTrue(game.IsCommitted, "A full table seals the pact.");
         }
 
         [Test]
@@ -320,7 +317,8 @@ namespace HellPoker.Core.Tests
             game.Bet(BetAction.Raise);
 
             Assert.AreEqual(75, game.CurrentStake);
-            Assert.IsTrue(game.CanBet(BetAction.Pass, out _), "At the cap there is nothing left to raise, so passing is allowed.");
+            Assert.IsTrue(game.IsCommitted, "At the cap there is nothing left to raise: the pact is sealed, nothing more is asked.");
+            Assert.AreEqual(GamePhase.Drawing, game.Phase, "The last card turned by itself; the draw is still the player's.");
         }
 
         [Test]
@@ -415,10 +413,10 @@ namespace HellPoker.Core.Tests
 
             game.Bet(BetAction.Call);
 
-            Assert.AreEqual(400, game.CurrentStake, "A called re-raise takes the table past the cap.");
-            Assert.Greater(game.CurrentStake, game.TableCap);
-            Assert.AreEqual(0, game.RaiseAmount, "The player still cannot raise past the cap.");
-            Assert.IsTrue(game.CanBet(BetAction.Pass, out _));
+            Assert.AreEqual(400, game.LastRound.Stake, "A called re-raise takes the table past the cap.");
+            Assert.Greater(game.LastRound.Stake, game.TableCap);
+            Assert.IsTrue(game.IsCommitted, "Past the cap the pact is sealed: the last decision was passed for the player.");
+            Assert.AreEqual(GamePhase.RoundOver, game.Phase);
         }
 
         [Test]

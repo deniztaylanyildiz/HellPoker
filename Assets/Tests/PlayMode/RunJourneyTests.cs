@@ -70,6 +70,42 @@ namespace HellPoker.PlayMode.Tests
             StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
         }
 
+        [UnityTest]
+        public IEnumerator ClosingMidHand_AndReopening_ForfeitsTheHand()
+        {
+            HellPokerBootstrap.BatchStore.Clear();
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return null;
+
+            Press("NewGameButton");
+            Press("ChooseDealer0");   // Mammon, 1000 years
+            yield return WaitForTable();
+            Press("ActionButton");    // deal: 100 on the table
+            yield return WaitForTable();
+            Press("RaiseButton");     // 200
+            yield return WaitForTable();
+
+            // "Close" the game in the middle of the hand and open it again.
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return null;
+            Assert.IsTrue(IsActive("ContinueButton"));
+
+            Press("ContinueButton");
+            yield return WaitForTable();
+
+            Assert.AreEqual(1100, Presenter.Game.Years, "The hand counts as a fold before the draw: half of 200.");
+            Assert.AreEqual(1, Presenter.Game.RoundNumber);
+            Assert.AreEqual("DEAL", ActionLabel(), "Back between hands — the old cards are gone.");
+            StringAssert.Contains("+100", Find<Text>("Message").text);
+
+            // Reopening once more does not charge the hand again.
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return null;
+            Press("ContinueButton");
+            yield return WaitForTable();
+            Assert.AreEqual(1100, Presenter.Game.Years);
+        }
+
         /// <summary>Deals and plays one hand to its end: passes (or raises when passing is locked), stands pat, calls.</summary>
         private static IEnumerator PlayHand()
         {

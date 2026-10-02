@@ -7,30 +7,42 @@ using HellPoker.Core.Evaluation;
 namespace HellPoker.Core.Game
 {
     /// <summary>
-    /// A run between hands, as saved: the demon, the sentence, the hands played and the run's stats. The soul needs no
-    /// field of its own — it follows from the sentence and the demon's soul line. The deck is not saved: a resumed run
-    /// gets a fresh shuffle.
-    /// Text format, one "key=value" per line, starting with "v=1". Anything unreadable — a garbled file, another version,
-    /// impossible numbers — decodes to nothing, so a bad save is simply ignored.
+    /// A run as saved: the demon, the sentence, the hands played and the run's stats — and, while a hand is being played,
+    /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
+    /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
+    /// fresh shuffle, and a hand left behind is forfeited, never played on.
+    /// Text format, one "key=value" per line, starting with "v=1". The hand lines ("hand.*") are optional, so saves made
+    /// between hands read as before. Anything unreadable — a garbled file, another version, impossible numbers — decodes
+    /// to nothing, so a bad save is simply ignored.
     /// </summary>
     public sealed class RunSnapshot
     {
         public const int Version = 1;
 
         public string DealerId { get; }
+
+        /// <summary>The sentence; with a hand in progress, the sentence it was dealt at (nothing settled yet).</summary>
         public int Years { get; }
+
+        /// <summary>Hands dealt so far, the one in progress included.</summary>
         public int RoundsPlayed { get; }
+
         public RunStats Stats { get; }
 
-        public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats)
+        /// <summary>The hand that was being played when the save was made; null between hands.</summary>
+        public HandInProgress Hand { get; }
+
+        public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null)
         {
             if (string.IsNullOrEmpty(dealerId)) throw new ArgumentException("A dealer id is needed.", nameof(dealerId));
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
             if (roundsPlayed < 0) throw new ArgumentOutOfRangeException(nameof(roundsPlayed));
+            if (hand != null && roundsPlayed == 0) throw new ArgumentOutOfRangeException(nameof(roundsPlayed), "A hand in progress was dealt.");
             DealerId = dealerId;
             Years = years;
             RoundsPlayed = roundsPlayed;
             Stats = stats ?? throw new ArgumentNullException(nameof(stats));
+            Hand = hand;
         }
 
         public string Encode()
@@ -48,7 +60,25 @@ namespace HellPoker.Core.Game
                 "dealers=" + string.Join(",", Stats.Dealers),
                 "soul=" + (Stats.SoulStaked ? "1" : "0")
             };
+            if (Hand != null)
+            {
+                lines.Add("hand.stake=" + Hand.Stake.ToString(CultureInfo.InvariantCulture));
+                lines.Add("hand.ante=" + Hand.Ante.ToString(CultureInfo.InvariantCulture));
+                lines.Add("hand.drawn=" + Flag(Hand.IsAfterDraw));
+                lines.Add("hand.soul=" + Flag(Hand.IsSoulHand));
+                lines.Add("hand.sealed=" + Flag(Hand.IsSealed));
+            }
             return string.Join("\n", lines);
+        }
+
+        private static string Flag(bool value) => value ? "1" : "0";
+
+        /// <returns>Null when the save has no hand lines; throws <see cref="FormatException"/> when they are broken.</returns>
+        private static HandInProgress DecodeHand(Dictionary<string, string> values)
+        {
+            if (!values.ContainsKey("hand.stake")) return null;
+            return new HandInProgress(KeyValues.Int(values, "hand.stake"), KeyValues.Int(values, "hand.ante"),
+                KeyValues.Flag(values, "hand.drawn"), KeyValues.Flag(values, "hand.soul"), KeyValues.Flag(values, "hand.sealed"));
         }
 
         /// <returns>False (and null) for anything that is not a readable save of this version.</returns>
@@ -80,7 +110,7 @@ namespace HellPoker.Core.Game
                 var stats = new RunStats(KeyValues.Int(values, "hands"), KeyValues.Int(values, "lowest"), KeyValues.Int(values, "highest"),
                     best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1");
 
-                snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats);
+                snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values));
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException
@@ -112,6 +142,17 @@ namespace HellPoker.Core.Game
         public static int Int(Dictionary<string, string> values, string key)
         {
             return int.Parse(values[key], NumberStyles.Integer, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>"1" or "0"; anything else is a broken save.</summary>
+        public static bool Flag(Dictionary<string, string> values, string key)
+        {
+            switch (values[key])
+            {
+                case "1": return true;
+                case "0": return false;
+                default: throw new FormatException($"{key} is not 0 or 1.");
+            }
         }
     }
 }

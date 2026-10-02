@@ -22,6 +22,9 @@ namespace HellPoker.Presentation
     {
         private const float ShowdownPause = 0.6f;
 
+        /// <summary>Once the pact is sealed the remaining cards turn on their own, one by one, this far apart.</summary>
+        public const float SealedRevealPause = 0.6f;
+
         /// <summary>A loss of this many betting units or more is felt (<see cref="TableMoment.BigLoss"/>).</summary>
         public const int BigLossUnits = 4;
 
@@ -56,6 +59,7 @@ namespace HellPoker.Presentation
 
             _view.ActionPressed += PerformAction;
             _view.BetPressed += Bet;
+            _view.CheckToDrawPressed += CheckToDraw;
             _view.LeavePressed += RequestLeave;
             _view.HandRanksPressed += ToggleHandRanks;
             _view.Player.CardClicked += ToggleDiscard;
@@ -83,7 +87,10 @@ namespace HellPoker.Presentation
             Refresh();
         }
 
-        /// <summary>Picks up a saved run between hands: the same demon, sentence, hands and story.</summary>
+        /// <summary>
+        /// Picks up a saved run: the same demon, sentence, hands and story. A hand that was still being played when the game
+        /// closed is not played on — it is forfeited (a fold at the state it was left in; a sealed hand is lost whole).
+        /// </summary>
         public void Resume(Dealer dealer, RunSnapshot snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
@@ -91,6 +98,13 @@ namespace HellPoker.Presentation
             _stats = snapshot.Stats;
             _stats.SatWith(dealer.Id);
             _settledRound = _game.RoundNumber;
+
+            if (snapshot.Hand != null && !_game.IsGameOver)
+            {
+                ForfeitLeftHand(snapshot.Hand);
+                return;
+            }
+
             if (_game.IsGameOver)
             {
                 _archive?.ClearRun();   // a finished run is not continued
@@ -102,6 +116,32 @@ namespace HellPoker.Presentation
             Refresh();
         }
 
+        /// <summary>The game was closed mid-hand: the hand is settled as forfeit, and the dealer has a word about it.</summary>
+        private void ForfeitLeftHand(HandInProgress hand)
+        {
+            RoundResult round = _game.ForfeitHand(hand);
+            bool soul = hand.IsSoulHand || _game.IsSoulAtStake || _game.Phase == GamePhase.Damned;
+            _stats.RecordHand(_game.Years, null, soul);
+            if (_game.IsGameOver)
+                EndRunRecords();
+
+            Refresh();
+            if (_game.IsGameOver) return;   // the end of the run speaks for itself
+
+            string message = soul
+                ? hand.IsSealed ? UiText.FledSealedSoul : UiText.FledSoul
+                : string.Format(hand.IsSealed ? UiText.FledSealedFormat : UiText.FledFormat, round.YearsChange);
+            _view.SetMessage(message, Tone.Bad);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Fled, _game.RoundNumber), DealerMood.Gloating);
+        }
+
+        private void EndRunRecords()
+        {
+            _records.RunEnded(_game.Phase == GamePhase.Absolved, _dealer.Id, _stats.HandsPlayed);
+            _archive?.SaveRecords(_records);
+            _archive?.ClearRun();
+        }
+
         private void BeginRun()
         {
             _stats = new RunStats(_game.Years, _dealer.Id);
@@ -111,10 +151,16 @@ namespace HellPoker.Presentation
             SaveRun();
         }
 
+        /// <summary>
+        /// Saves the run between hands — and while a hand is played, with that hand (stake, draw, soul, seal), from the deal
+        /// on, so closing the game mid-hand cannot undo it. A settled hand is saved by <see cref="SettleHand"/>.
+        /// </summary>
         private void SaveRun()
         {
-            if (_archive == null || _stats == null || _game.IsGameOver || _game.Phase != GamePhase.Betting) return;
-            _archive.SaveRun(new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats));
+            if (_archive == null || _stats == null || _game.IsGameOver) return;
+            HandInProgress hand = _game.CurrentHand;
+            if (_game.Phase != GamePhase.Betting && hand == null) return;
+            _archive.SaveRun(new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand));
         }
 
         /// <summary>Once per finished hand: the story grows, and the run is saved — or, when it is over, the records are.</summary>
@@ -131,9 +177,7 @@ namespace HellPoker.Presentation
 
             if (_game.IsGameOver)
             {
-                _records.RunEnded(_game.Phase == GamePhase.Absolved, _dealer.Id, _stats.HandsPlayed);
-                _archive?.SaveRecords(_records);
-                _archive?.ClearRun();
+                EndRunRecords();
             }
             else if (_archive != null)
             {
@@ -224,6 +268,7 @@ namespace HellPoker.Presentation
         {
             _view.ActionPressed -= PerformAction;
             _view.BetPressed -= Bet;
+            _view.CheckToDrawPressed -= CheckToDraw;
             _view.LeavePressed -= RequestLeave;
             _view.HandRanksPressed -= ToggleHandRanks;
             _view.Player.CardClicked -= ToggleDiscard;
@@ -233,11 +278,13 @@ namespace HellPoker.Presentation
         {
             if (_game == null || Hurry()) return;
 
+            TableState before = CaptureState();
             switch (_game.Phase)
             {
                 case GamePhase.Betting:
                     _game.PlaceBet();
                     _discards.Clear();
+                    PlayOutSealedHand(before);
                     break;
                 case GamePhase.PlayerReveal:
                 case GamePhase.DrawReveal:
@@ -250,6 +297,7 @@ namespace HellPoker.Presentation
                 case GamePhase.Drawing:
                     _game.Draw(_discards.ToArray());
                     _discards.Clear();
+                    PlayOutSealedHand(before);
                     break;
                 case GamePhase.RoundOver:
                     _game.NextRound();
@@ -287,10 +335,122 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            TableState before = CaptureState();
             _game.Bet(action);
             if (_game.Phase == GamePhase.HouseReRaise && !Tip(UiText.TipFirstReRaise))
                 _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), DealerMood.Scheming);
+            PlayOutSealedHand(before);
             Refresh();
+        }
+
+        public void CheckToDraw()
+        {
+            if (_game == null || Hurry()) return;
+
+            if (!_game.CanCheckToDraw(out _))
+            {
+                // Only worth explaining where the button shows: before the draw, under the final stretch.
+                if (_game.Phase == GamePhase.PlayerReveal && _game.IsRaiseForced)
+                    _view.SetMessage(string.Format(UiText.LockedCheckToDrawFormat, _game.Rules.ForcedRaiseYears), Tone.Warning);
+                return;
+            }
+
+            _game.CheckToDraw();
+            Refresh();
+        }
+
+        /// <summary>What the table showed before a command, to tell what the game did on its own after it.</summary>
+        private readonly struct TableState
+        {
+            public readonly int PlayerCards;
+            public readonly int HouseCards;
+            public readonly bool Sealed;
+            public readonly int Skipped;
+
+            public TableState(int playerCards, int houseCards, bool @sealed, int skipped)
+            {
+                PlayerCards = playerCards;
+                HouseCards = houseCards;
+                Sealed = @sealed;
+                Skipped = skipped;
+            }
+        }
+
+        private TableState CaptureState()
+        {
+            bool inHand = _game.Phase != GamePhase.Betting;
+            return new TableState(inHand ? _game.PlayerCardsRevealed : 0, inHand ? _game.HouseCardsRevealed : 0,
+                inHand && _game.IsCommitted, inHand ? _game.DecisionsSkipped : 0);
+        }
+
+        /// <summary>
+        /// The pact was sealed (the table is full): the moment is marked once, and the decisions the game passed by itself
+        /// are played out slowly — the bet buttons gone, each remaining card turning on its own with a beat in between.
+        /// Any key or click hurries it along (the queue is skipped like any other animation).
+        /// </summary>
+        private void PlayOutSealedHand(TableState before)
+        {
+            if (!_game.IsCommitted) return;
+
+            bool skipped = _game.DecisionsSkipped > before.Skipped;
+            bool justSealed = !before.Sealed;
+            bool handGoesOn = _game.Phase == GamePhase.Drawing;
+            if (!skipped)
+            {
+                // Sealed by the last raise before the draw: nothing to play out yet, but the moment is marked.
+                if (justSealed && handGoesOn)
+                    AnnounceSeal();
+                return;
+            }
+
+            _view.SetBetControls(BetControls.Hidden);
+            _view.SetAction(null);
+            _view.SetAnte(0);
+
+            if (!_game.IsAfterDraw)
+            {
+                // Before the draw: the player's remaining cards, one at a time (a sealed deal starts from the opening cards).
+                int from = Math.Max(before.PlayerCards, Math.Min(Hand.Size, _game.Rules.OpeningCardsShown));
+                _view.House.Show(Slots(_game.HouseHand, 0));
+                _view.Player.Show(Slots(_game.PlayerHand, from));
+                ShowStakeOnTable();
+                if (justSealed)
+                    AnnounceSeal();
+                for (int shown = from + 1; shown <= _game.PlayerCardsRevealed; shown++)
+                {
+                    _view.Pause(SealedRevealPause);
+                    _view.Player.Show(Slots(_game.PlayerHand, shown));
+                }
+                return;
+            }
+
+            // After the draw: the player's new cards land, then the House's cards turn one by one into the showdown.
+            if (justSealed)
+                AnnounceSeal();
+            if (!SoulMode && _game.LastRound != null)
+            {
+                // A called re-raise is on the table now. The hand is already settled in the game, so the counter shows
+                // the sentence as it stood before it, minus the table, until the result comes in.
+                _view.SetPot(_game.LastRound.Stake);
+                _view.Sentence.SetYears(_game.LastRound.YearsBefore - _game.LastRound.Stake, animate: true);
+                _view.SetStakeInfo(null);
+            }
+            _view.Player.Show(Slots(_game.PlayerHand, Hand.Size));
+            _view.House.Show(Slots(_game.HouseHand, before.HouseCards));
+            ShowPlayerCaption();
+            for (int shown = before.HouseCards + 1; shown <= Hand.Size; shown++)
+            {
+                _view.Pause(SealedRevealPause);
+                _view.House.Show(Slots(_game.HouseHand, shown));
+            }
+        }
+
+        private void AnnounceSeal()
+        {
+            _view.SetBetControls(BetControls.Hidden);
+            _view.PlayMoment(TableMoment.PactSealed, UiText.PactSealed);
+            _view.SetMessage(UiText.SealedMessage, Tone.Warning);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Sealed, _game.RoundNumber), DealerMood.Gloating);
         }
 
         public void ToggleDiscard(int index)
@@ -421,6 +581,7 @@ namespace HellPoker.Presentation
             }
 
             SettleHand();
+            SaveRun();
             _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
                 : _game.IsSoulAtStake ? LeaveState.Locked : LeaveState.Open);
             _view.SetFinalStretch(_game.IsRaiseForced, string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
@@ -493,8 +654,10 @@ namespace HellPoker.Presentation
             _view.SetAction(null);
 
             bool mustRaise = !_game.CanBet(BetAction.Pass, out _);
+            bool beforeDraw = _game.Phase == GamePhase.PlayerReveal;
             _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice), mustRaise ? Tone.Warning : Tone.Neutral);
-            _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise));
+            _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise,
+                showCheckToDraw: beforeDraw, canCheckToDraw: beforeDraw && _game.CanCheckToDraw(out _)));
             if (_game.Phase == GamePhase.PlayerReveal)
                 Tip(UiText.TipFirstDecision);
         }
@@ -589,7 +752,10 @@ namespace HellPoker.Presentation
                 _view.Player.SetHints(null);
             }
             ShowStakeOnTable();
-            _view.SetMessage(string.Format(UiText.PromptDrawFormat, _game.Rules.MaxDiscards), Tone.Neutral);
+            if (_game.IsCommitted)
+                _view.SetMessage(string.Format(UiText.SealedDrawPrompt, _game.Rules.MaxDiscards), Tone.Warning);
+            else
+                _view.SetMessage(string.Format(UiText.PromptDrawFormat, _game.Rules.MaxDiscards), Tone.Neutral);
             _view.SetAction(_discards.Count == 0 ? UiText.Stand : string.Format(UiText.DrawFormat, _discards.Count));
             Tip(UiText.TipFirstDraw);
         }

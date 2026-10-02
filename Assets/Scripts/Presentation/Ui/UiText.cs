@@ -41,7 +41,7 @@ namespace HellPoker.Presentation.Ui
         public const string PlayerCaption = "YOUR HAND";
         public const string FoldedCaption = "FOLDED";
         public const string DiscardTag = "TOSS";
-        public const string Hint = "Space deal/draw/pass   R raise   C call   F fold   1-5 cards   H hands   Esc menu";
+        public const string Hint = "Space deal/draw/pass  R raise  D check to draw  C call  F fold  1-5 cards  H hands  Esc menu";
         public const string PotFormat = "ON THE TABLE: {0}";
         public const string FinalStretchBannerFormat = "UNDER {0}: NO PASSING";
 
@@ -67,7 +67,7 @@ namespace HellPoker.Presentation.Ui
             "4.  The House shows some of its cards — a last decision — then the showdown.\n" +
             "    Raise after the draw and the House may raise back: CALL or FOLD.\n\n" +
             "Win: forgiven = the table + the ante × (your multiplier − 1).   Lose: the same on the House's hand.\n" +
-            "At most {3}% of your sentence may ever be on the table.\n" +
+            "At most {3}% of your sentence may be on the table. Fill it and the pact is sealed: no folding, the cards play out.\n" +
             "Under {2} years passing is forbidden until the table is full.   A♠ A♣ 8♠ 8♣ — the Dead Man's Hand — sets you free.";
 
         public const string Deal = "DEAL";
@@ -80,6 +80,7 @@ namespace HellPoker.Presentation.Ui
         public const string AllInDone = "ALL IN";
         public const string TableFull = "TABLE FULL";
         public const string Pass = "PASS";
+        public const string CheckToDrawButton = "CHECK\nTO DRAW";
         public const string Fold = "FOLD";
         public const string CallFormat = "CALL +{0}";
 
@@ -99,6 +100,19 @@ namespace HellPoker.Presentation.Ui
         public const string AbsolvedMessage = "DEAD MAN'S HAND!  Wild Bill vouches for you. You walk free.";
         public const string ServedMessage = "Your sentence is served. The gates of Hell open — you walk free.";
         public const string DamnedMessage = "Your soul is ash. The House owns you for eternity.";
+
+        // ------------------------------------------------------------------ the pact (table full: the hand plays out on its own)
+
+        public const string PactSealed = "THE PACT IS SEALED";
+        public const string SealedMessage = "The pact is sealed. No folding now — the cards decide.";
+        public const string SealedDrawPrompt = "The pact is sealed. Pick up to {0} cards to throw back — the rest plays out.";
+
+        // ------------------------------------------------------------------ a hand left behind (the game was closed mid-hand)
+
+        public const string FledFormat = "You left mid-hand. It counts as a fold.  +{0} years.";
+        public const string FledSealedFormat = "You left a sealed hand. The whole wager is lost.  +{0} years.";
+        public const string FledSoul = "You left mid-hand. A piece of your soul stays on the table.";
+        public const string FledSealedSoul = "You left a sealed hand. The whole wager burns your soul.";
 
         // ------------------------------------------------------------------ guidance for new players
 
@@ -209,6 +223,7 @@ namespace HellPoker.Presentation.Ui
         public const string LockedAllIn = "ALL IN — every year you have is on the table.";
         public const string LockedAllOfIt = "ALL OF IT — your whole soul is on the table.";
         public const string LockedPassFormat = "No passing under {0} years: raise or fold.";
+        public const string LockedCheckToDrawFormat = "No checking under {0} years: raise or fold.";
         public const string LockedAnswer = "The House has raised: call — or fold.";
         public const string LockedAnswerSoul = "The House wagers more: match it — or fold.";
         public const string LockedNothingToCall = "There is nothing to call.";

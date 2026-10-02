@@ -10,6 +10,9 @@ namespace HellPoker.Presentation.Abstractions
         GoodHand,
 
         /// <summary>The Dead Man's Hand wins: the screen goes dark and its four cards light up one by one.</summary>
-        DeadMansHand
+        DeadMansHand,
+
+        /// <summary>The table is full: "THE PACT IS SEALED" flares up, and the rest of the hand plays out on its own.</summary>
+        PactSealed
     }
 }

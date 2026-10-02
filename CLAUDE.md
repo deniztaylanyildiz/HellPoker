@@ -34,18 +34,29 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Bahis birimi** (`StakeScale`): elin başındaki cezanın 1/10'u, okunaklı adıma **aşağı** yuvarlanır:
   ceza ≥1000 → 100'ün katı, ≥500 → 50, ≥250 → 25, altı → 10 (en az 10; ceza daha azsa all-in).
   Örnek: 1000 → 100, 650 → 50, 340 → 25, 180 → 10. **Ante = 1 birim** (seçici yok; "ANTE X YEARS" + DEAL).
-- **Masa tavanı:** masadaki toplam bahis elin başındaki cezanın en fazla **%30**'u (ante'den az olamaz). Tavanda artırma kilitlenir ("TABLE FULL").
+- **Masa tavanı:** masadaki toplam bahis elin başındaki cezanın en fazla **%30**'u (ante'den az olamaz). Tavanda artırma kilitlenir.
   Masaya konan yıllar sayaçtan anında düşer (`YearsOffTable`).
 - Her elin akışı (en fazla **5** karar):
   1. DEAL: ante masaya konur, oyuncunun ilk **2** kartı birlikte açılır (karar yok).
-  2. **3., 4. ve 5.** kartta Artır / Pas / Çekil. Artırma = **1 birim**.
+  2. **3., 4. ve 5.** kartta Artır / Pas / Çekil / **CHECK TO DRAW**. Artırma = **1 birim**.
   3. Kart değiştirme (şeytana göre 3 ya da 4); kasa `HouseDrawStrategy` ile değiştirir. Yeni elde **1 karar**; artırma artık **2 birim**.
   4. Kasa `HouseCardsShown` kadar kart açar (Mammon 2, Belial 1, Lilith 2) → **1 karar** → kalanlar showdown'a.
   5. Kart değiştirdikten sonra oyuncu artırırsa kasa **re-raise** yapabilir (1 birim; **tavanı aşabilir**, cezayı / kalan ruhu aşamaz)
      → oyuncu **Karşıla (Call) / Çekil**.
      Karar `IHouseBettingStrategy` (`HandStrengthBettingStrategy` + şeytanın `HouseBettingStyle`'ı, zar `IRandomSource`'tan).
 - **Pas** = artırmadan devam. **Çekil** = eli bırak; draw'dan önce `FoldPercentBeforeDraw`, sonra `FoldPercentAfterDraw` (yukarı yuvarlanır).
-- **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; **tavana ya da all-in'e** ulaşınca Pas serbest.
+- **Mühür** (`IHellPokerGame.IsCommitted`): masadaki bahis tavana ulaşınca ya da oyuncu all-in olunca (ruhta: kalan ruhun tamamı) el
+  mühürlenir. O elde Pas / Çekil / Artır sorulmaz ve reddedilir; Core kalan kararları kendisi geçer (`DecisionsSkipped`).
+  - **Kart değiştirme yine sorulur.** Çekilmek artık mümkün değil (all-in oyuncu gibi).
+  - Re-raise yeni bir bahistir: tavana çıkan artırmaya kasa yine re-raise yapabilir, oyuncu Call / Fold der.
+    Karşıladığı re-raise tavanı geçirirse el mühürlenir.
+  - Genel kural: Pas dışında anlamlı seçenek kalmayan karar atlanır (`SkipEmptyDecisions`).
+  - Sunum: "THE PACT IS SEALED" yazısı (`TableMoment.PactSealed`) + şeytanın `Sealed` repliği; butonlar gizlenir, kalan kartlar
+    tek tek, aralarında `SealedRevealPause` (0.6 sn) ile açılır. Space / tık animasyonu sona atlatır.
+    Son karardaki artırmayla dolan masa (açılacak bir şey kalmamışsa) duyurulmaz.
+- **CHECK TO DRAW** (D, `CheckToDraw`): draw'dan önceki kalan kararları tek seferde Pas'la geçer. Sadece draw'dan önce görünür;
+  Pas yasakken (son 250 yıl) kilitli.
+- **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; tavana ya da all-in'e ulaşınca el mühürlenir (Pas'a gerek kalmaz).
   Ekran "cehennem ateşi" moduna geçer.
 - Masada "Win: at least −X · Lose: at least +Y" satırı (en zayıf ele göre, `LeastYearsForgiven/Added`).
 - Oyun **ana menüde** açılır: Continue / Change Table (koşu sürerken), New Game, Settings, How to Play (RULES / HANDS sayfaları),
@@ -67,9 +78,15 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - En az 4 birimlik kayıpta ekran sarsılır, sayaç kırmızı yanar.
   - Two Pair+ kazançta el adı büyük yazıyla belirir.
   - Dead Man's Hand'de ekran kararır, dört kart tek tek parlar (`TableMoment`).
-- **Kayıt:** her el sonunda, yeni koşuda ve masa değişiminde koşu kaydedilir (`RunArchive` → PlayerPrefs `run.save`).
-  - Format: `RunSnapshot`, "key=value" satırları, `v=1`: dealer, years, rounds, hands, lowest, highest, best, dealers, soul.
-  - Bozuk ya da başka sürüm kayıt silinip yok sayılır. Deste kaydedilmez. Açılışta kayıt varsa Continue ile devam edilir.
+- **Kayıt:** her el sonunda, yeni koşuda, masa değişiminde ve **el sürerken her adımda** (DEAL'dan itibaren) koşu kaydedilir
+  (`RunArchive` → PlayerPrefs `run.save`).
+  - Format: `RunSnapshot`, "key=value" satırları, `v=1`: dealer, years, rounds, hands, lowest, highest, best, dealers, soul;
+    el sürüyorsa ayrıca `hand.stake`, `hand.ante`, `hand.drawn`, `hand.soul`, `hand.sealed` (`HandInProgress`; isteğe bağlı,
+    eski kayıtlar geçerli).
+  - Bozuk ya da başka sürüm kayıt silinip yok sayılır. Deste ve kartlar kaydedilmez. Açılışta kayıt varsa Continue ile devam edilir.
+  - **El ortasında kapatma:** açılışta yarım el `IHellPokerGame.ForfeitHand` ile kapanır. O anki bahis ve draw durumuna göre
+    çekilmiş sayılır (ruh elinde ×1.5). Mühürlü el çekilemeyeceği için kaybedilmiş sayılır: en zayıf ele kayıp
+    (bahis × şeytanın `LossPercent`'i × ruh çarpanı). Şeytan `Fled` repliğini söyler. Ceza lanete götürebilir.
 - **Oyun sonu:** masada "THE END" → ABSOLVED / DAMNED ekranı (el sayısı, en düşük / en yüksek ceza, en iyi el, masalar, ruh),
   NEW GAME / MENU. **Rekorlar** (`RecordBook`, `run.records`): koşu, aklanma, lanet, şeytan başına aklanma, en hızlı aklanma.
 - **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): animasyon hızı, tam ekran (Alt+Enter; pencere 480×270'in tam katı),
@@ -86,8 +103,8 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - Kazanç: `toplam bahis + ante × (oyuncunun çarpanı − 1)` yıl silinir (cezayı geçemez).
   - Kayıp: `(toplam bahis + ante × (kasanın çarpanı − 1)) × LossPercent` yıl eklenir, yukarı yuvarlanır.
   - Örnek: ante 100, toplam 300, Full House (×8) → 300 + 700 = 1000. Beraberlik: değişiklik yok.
-- **Denge** (`BalanceSimulation`, 2000 koşu, akıllı oyuncu, ruh mekaniğiyle): Mammon ~%88 aklanma / ~55 el, Belial ~%81 / ~25,
-  Lilith ~%64 / ~38. Ruhu masaya koyan koşular: %21 / %31 / %52. Ruh değerini düşürmek el sayısını neredeyse değiştirmiyor
+- **Denge** (`BalanceSimulation`, 2000 koşu, akıllı oyuncu, ruh ve mühür mekaniğiyle): Mammon ~%88 aklanma / ~49 el,
+  Belial ~%81 / ~24, Lilith ~%64 / ~39. Ruhu masaya koyan koşular: %21 / %31 / %52. Ruh değerini düşürmek el sayısını neredeyse değiştirmiyor
   (bahis birimi ruhla birlikte küçülüyor), sadece Lilith'i zorlaştırıyor — bkz. DEVLOG.
 - **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) **yenilmez**: Royal Flush dahil her eli yener (testlerle sabit)
   ve oyuncu kazanırsa **tüm cezayı siler**. Kasa onunla kazanırsa en yüksek çarpan sayılır.
@@ -104,7 +121,7 @@ Assets/Scripts/
     Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule), VisibleHandReader (açık kartların şu anki eli)
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory,
-                   RunStats / RunSnapshot (kayıt formatı) / RecordBook (rekorlar)
+                   RunStats / RunSnapshot (kayıt formatı) / HandInProgress (yarım el) / RecordBook (rekorlar)
     Betting/       IHouseBettingStrategy, HandStrengthBettingStrategy, HouseBettingStyle (kasanın re-raise / blöf mizacı)
     Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle, SoulThreshold), DealerRoster
                    (Game/ altında ayrıca StakeScale: bahis birimi, ante, masa tavanı)
@@ -218,7 +235,7 @@ py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: tüm şeyta
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, C karşıla, F çekil, 1-5 kart seç, H el tablosu, Esc bir üst ekran,
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, C karşıla, F çekil, 1-5 kart seç, H el tablosu, Esc bir üst ekran,
 Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

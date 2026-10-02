@@ -56,6 +56,7 @@ namespace HellPoker.Core.Tests
 
         public event Action ActionPressed;
         public event Action<BetAction> BetPressed;
+        public event Action CheckToDrawPressed;
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
@@ -122,12 +123,16 @@ namespace HellPoker.Core.Tests
         public void SetLeave(LeaveState state) => Leave = state;
         public void PressLeave() => LeavePressed?.Invoke();
         public void SetFinalStretch(bool active, string banner) => FinalStretch = active;
-        public void Pause(float seconds) { }
+        /// <summary>Every pause the table was asked for, in order.</summary>
+        public List<float> Pauses { get; } = new List<float>();
+
+        public void Pause(float seconds) => Pauses.Add(seconds);
         public void SetVisible(bool visible) => Visible = visible;
         public void PressMenu() => MenuPressed?.Invoke();
 
         public void PressAction() => ActionPressed?.Invoke();
         public void PressBet(BetAction action) => BetPressed?.Invoke(action);
+        public void PressCheckToDraw() => CheckToDrawPressed?.Invoke();
     }
 
     internal sealed class FakeHandView : IHandView
@@ -154,7 +159,14 @@ namespace HellPoker.Core.Tests
             CaptionTone = tone;
         }
 
-        public void Show(IReadOnlyList<CardSlot> slots) => Slots = slots.ToArray();
+        /// <summary>Face-up count of every hand the view was told to show, in order.</summary>
+        public List<int> ShownFaceUp { get; } = new List<int>();
+
+        public void Show(IReadOnlyList<CardSlot> slots)
+        {
+            Slots = slots.ToArray();
+            ShownFaceUp.Add(FaceUpCount);
+        }
 
         public void SetSelection(ICollection<int> selectedIndices)
         {

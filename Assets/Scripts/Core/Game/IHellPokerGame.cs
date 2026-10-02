@@ -11,7 +11,9 @@ namespace HellPoker.Core.Game
     /// → Drawing → (Draw) → DrawReveal: one decision → HouseReveal: some house cards turn, one decision → showdown
     /// → RoundOver → (NextRound) → Betting ...
     /// After the draw, a raise may be answered by a house re-raise (HouseReRaise: Call or Fold).
-    /// A fold at any decision ends the hand. The run ends when the sentence is served (Absolved), or when the soul —
+    /// A fold at any decision ends the hand — until the table is full: then the pact is sealed (<see cref="IsCommitted"/>)
+    /// and the remaining bet decisions pass by themselves, only the draw is still asked.
+    /// The run ends when the sentence is served (Absolved), or when the soul —
     /// on the table once the sentence reaches the dealer's soul line — has burned away completely (Damned).
     /// </summary>
     public interface IHellPokerGame
@@ -68,6 +70,37 @@ namespace HellPoker.Core.Game
 
         /// <summary>True in the final stretch of the sentence, where passing is forbidden while a raise is possible.</summary>
         bool IsRaiseForced { get; }
+
+        // ------------------------------------------------------------------ the pact
+
+        /// <summary>
+        /// The pact is sealed: the table is full (or the player all in), so for the rest of the hand there is nothing to
+        /// raise and no folding — like an all-in player at a real table. The remaining bet decisions are passed by the game
+        /// itself; the draw is still the player's. A house re-raise may still come (it may go past the cap) and is answered
+        /// with Call or Fold; calling it seals the hand again. Stays true until the next deal.
+        /// </summary>
+        bool IsCommitted { get; }
+
+        /// <summary>Bet decisions this hand that the game passed by itself, because passing was the only real choice.</summary>
+        int DecisionsSkipped { get; }
+
+        /// <summary>CHECK TO DRAW: passing every card still to come before the draw is allowed right now.</summary>
+        bool CanCheckToDraw(out string reason);
+
+        /// <summary>Passes every decision until the draw, turning the rest of the player's cards.</summary>
+        void CheckToDraw();
+
+        // ------------------------------------------------------------------ a hand left behind
+
+        /// <summary>The hand being played, as it would be saved (stake, draw, soul, seal); null between hands.</summary>
+        HandInProgress CurrentHand { get; }
+
+        /// <summary>
+        /// Settles a hand that was left unfinished (the game was closed mid-hand). Between hands only. It counts as a fold
+        /// at the state it was left in — the soul surcharge included; a sealed hand cannot be folded, so it counts as lost
+        /// (the whole stake, the dealer's loss percent and the soul surcharge, as a loss to the weakest hand).
+        /// </summary>
+        RoundResult ForfeitHand(HandInProgress hand);
 
         // ------------------------------------------------------------------ the soul
 

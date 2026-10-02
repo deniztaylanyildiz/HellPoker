@@ -13,6 +13,9 @@ namespace HellPoker.Presentation.Abstractions
 
         void Bet(BetAction action);
 
+        /// <summary>Passes every card still to come before the draw in one go (D).</summary>
+        void CheckToDraw();
+
         void ToggleDiscard(int index);
 
         /// <summary>Opens or closes the hand ranking panel (H).</summary>

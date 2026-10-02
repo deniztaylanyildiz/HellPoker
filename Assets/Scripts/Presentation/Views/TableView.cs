@@ -33,6 +33,7 @@ namespace HellPoker.Presentation.Views
         private Button _raiseButton;
         private Text _raiseLabel;
         private Button _passButton;
+        private Button _checkToDrawButton;
         private Button _foldButton;
         private Button _callButton;
         private Text _callLabel;
@@ -59,6 +60,7 @@ namespace HellPoker.Presentation.Views
 
         public event Action ActionPressed;
         public event Action<BetAction> BetPressed;
+        public event Action CheckToDrawPressed;
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
@@ -141,6 +143,11 @@ namespace HellPoker.Presentation.Views
             _passButton = CreateBetButton(screen, "PassButton", UiText.Pass, BetAction.Pass, Middle + 104, 72, ButtonSkin.Blood, out _);
             _foldButton = CreateBetButton(screen, "FoldButton", UiText.Fold, BetAction.Fold, Middle + 184, 72, ButtonSkin.Ash, out _);
             _callButton = CreateBetButton(screen, "CallButton", "", BetAction.Call, Middle + 24, 112, ButtonSkin.Ember, out _callLabel);
+            // Two short lines, so four buttons fit the row in the 8 px title font.
+            _checkToDrawButton = UiFactory.CreateButton("CheckToDrawButton", screen, UiText.CheckToDrawButton, 8, out Text checkLabel, ButtonSkin.Blood);
+            checkLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            checkLabel.lineSpacing = 1f;
+            _checkToDrawButton.onClick.AddListener(() => CheckToDrawPressed?.Invoke());
             ApplyBetControls(BetControls.Hidden);
 
             UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithShadow()
@@ -234,8 +241,10 @@ namespace HellPoker.Presentation.Views
         private void ApplyBetControls(BetControls controls)
         {
             bool decide = controls.Visible && !controls.IsAnswer;
+            bool checkToDraw = decide && controls.ShowCheckToDraw;
             _raiseButton.gameObject.SetActive(decide);
             _passButton.gameObject.SetActive(decide);
+            _checkToDrawButton.gameObject.SetActive(checkToDraw);
             _callButton.gameObject.SetActive(controls.Visible && controls.IsAnswer);
             _foldButton.gameObject.SetActive(controls.Visible);
             _raiseLabel.text = controls.RaiseLabel ?? "";
@@ -243,9 +252,28 @@ namespace HellPoker.Presentation.Views
             // Locked buttons stay clickable: the presenter answers with the reason.
             _raiseButton.GetComponent<ButtonFeel>().Locked = !controls.CanRaise;
             _passButton.GetComponent<ButtonFeel>().Locked = !controls.CanPass;
+            _checkToDrawButton.GetComponent<ButtonFeel>().Locked = !controls.CanCheckToDraw;
 
-            // Against a re-raise the fold button moves next to the call button.
-            ((RectTransform)_foldButton.transform).PlaceTL(controls.IsAnswer ? Middle + 144 : Middle + 184, ControlsY, 72, ButtonHeight);
+            if (checkToDraw)
+            {
+                // Four buttons share the row: RAISE · PASS · CHECK TO DRAW · FOLD.
+                PlaceControl(_raiseButton, 0, 88);
+                PlaceControl(_passButton, 96, 40);
+                PlaceControl(_checkToDrawButton, 144, 64);
+                PlaceControl(_foldButton, 216, 40);
+            }
+            else
+            {
+                PlaceControl(_raiseButton, 0, 96);
+                PlaceControl(_passButton, 104, 72);
+                // Against a re-raise the fold button moves next to the call button.
+                PlaceControl(_foldButton, controls.IsAnswer ? 144 : 184, 72);
+            }
+        }
+
+        private static void PlaceControl(Button button, int x, int width)
+        {
+            ((RectTransform)button.transform).PlaceTL(Middle + x, ControlsY, width, ButtonHeight);
         }
 
         public void SetPot(int years)

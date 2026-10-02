@@ -46,6 +46,13 @@ namespace HellPoker.Core.Game
         public bool IsGameOver => Phase == GamePhase.Absolved || Phase == GamePhase.Damned;
         public bool IsRaiseForced => _ledger.Years <= Rules.ForcedRaiseYears;
 
+        /// <summary>Set once the table is full or the player is all in; stays set until the next deal.</summary>
+        private bool _sealed;
+
+        public bool IsCommitted => _sealed && Phase != GamePhase.HouseReRaise;
+
+        public int DecisionsSkipped { get; private set; }
+
         // ------------------------------------------------------------------ the soul
 
         public int SoulWorth => Rules.SoulWorthYears;
@@ -131,17 +138,28 @@ namespace HellPoker.Core.Game
             PlayerCardsRevealed = Math.Min(Hand.Size, Rules.OpeningCardsShown + 1);
             HouseCardsRevealed = 0;
             IsAfterDraw = false;
+            _sealed = false;
+            DecisionsSkipped = 0;
             RoundNumber++;
             Phase = GamePhase.PlayerReveal;
+            NoteCommitment();
+            SkipEmptyDecisions();
         }
 
         public bool CanBet(BetAction action, out string reason)
         {
+            // A house re-raise is a new bet: it is answered even when the player's own betting is sealed.
             if (Phase == GamePhase.HouseReRaise)
             {
                 bool answer = action == BetAction.Call || action == BetAction.Fold;
                 reason = answer ? null : "The House has raised. Call or fold.";
                 return answer;
+            }
+
+            if (_sealed && (IsDecisionPhase(Phase) || Phase == GamePhase.Drawing))
+            {
+                reason = "The pact is sealed: the cards play out on their own.";
+                return false;
             }
 
             if (!IsDecisionPhase(Phase))
@@ -188,7 +206,8 @@ namespace HellPoker.Core.Game
             {
                 CurrentStake += HouseReRaiseAmount;
                 HouseReRaiseAmount = 0;
-                Advance(_interruptedPhase);
+                NoteCommitment();
+                Continue(_interruptedPhase);
                 return;
             }
 
@@ -197,9 +216,52 @@ namespace HellPoker.Core.Game
                 CurrentStake += RaiseAmount;
                 if (IsAfterDraw && TryHouseReRaise())
                     return;
+                NoteCommitment();
             }
 
-            Advance(Phase);
+            Continue(Phase);
+        }
+
+        public bool CanCheckToDraw(out string reason)
+        {
+            if (Phase != GamePhase.PlayerReveal)
+            {
+                reason = "There are no cards left to check through.";
+                return false;
+            }
+
+            return CanBet(BetAction.Pass, out reason);
+        }
+
+        public void CheckToDraw()
+        {
+            if (!CanCheckToDraw(out string reason))
+                throw new InvalidOperationException(reason);
+
+            while (Phase == GamePhase.PlayerReveal)
+                Bet(BetAction.Pass);
+        }
+
+        public HandInProgress CurrentHand =>
+            IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise
+                ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed)
+                : null;
+
+        public RoundResult ForfeitHand(HandInProgress hand)
+        {
+            if (hand == null) throw new ArgumentNullException(nameof(hand));
+            RequirePhase(GamePhase.Betting);
+
+            int surcharge = LossSurcharge(hand.IsSoulHand);
+            int penalty = hand.IsSealed
+                ? _payouts.GetLeastYearsAdded(hand.Stake, hand.Ante, surcharge)
+                : _payouts.GetFoldPenalty(hand.Stake, hand.IsAfterDraw, surcharge);
+
+            int yearsBefore = _ledger.Years;
+            _ledger.Add(penalty);
+            Phase = _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned : GamePhase.Betting;
+            LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
+            return LastRound;
         }
 
         public HandCategory? PlayerHandNow =>
@@ -233,6 +295,7 @@ namespace HellPoker.Core.Game
             HouseHand = _houseExchange.Hand;
             IsAfterDraw = true;
             Phase = GamePhase.DrawReveal;
+            SkipEmptyDecisions();
 
             return _playerExchange;
         }
@@ -275,6 +338,40 @@ namespace HellPoker.Core.Game
             Phase = _ledger.IsServed ? GamePhase.Absolved
                 : _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned
                 : GamePhase.Betting;
+        }
+
+        /// <summary>Moves on from an answered decision, past any decision that is no real choice.</summary>
+        private void Continue(GamePhase answered)
+        {
+            Advance(answered);
+            SkipEmptyDecisions();
+        }
+
+        /// <summary>
+        /// A decision where passing is the only thing the player could do is not asked: the game passes for them.
+        /// That is every decision once the pact is sealed — nothing left to raise, and no folding.
+        /// The draw is never skipped: it is a choice of cards, not a bet.
+        /// </summary>
+        private void SkipEmptyDecisions()
+        {
+            while (IsDecisionPhase(Phase) && !HasRealChoice())
+            {
+                DecisionsSkipped++;
+                Advance(Phase);
+            }
+        }
+
+        private bool HasRealChoice()
+        {
+            if (_sealed) return false;
+            return RaiseAmount > 0 || CanBet(BetAction.Fold, out _);
+        }
+
+        /// <summary>The table is full or every year (or the whole soul) is on it: the pact is sealed for the rest of the hand.</summary>
+        private void NoteCommitment()
+        {
+            if (CurrentStake >= TableCap || WagerLeft == 0)
+                _sealed = true;
         }
 
         /// <summary>Moves on from a decision that has been answered.</summary>
@@ -370,6 +467,8 @@ namespace HellPoker.Core.Game
             HouseReRaiseAmount = 0;
             IsAfterDraw = false;
             IsSoulHand = false;
+            _sealed = false;
+            DecisionsSkipped = 0;
             _handPurse = 0;
             PlayerCardsRevealed = 0;
             HouseCardsRevealed = 0;

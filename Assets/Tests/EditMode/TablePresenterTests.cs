@@ -130,7 +130,7 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void RaiseButton_ShowsTableFull_AtTheCap()
+        public void AtTheCap_ThePactIsSealed_AndNoBetButtonsAreLeft()
         {
             Setup();
             _view.PressAction();
@@ -140,19 +140,20 @@ namespace HellPoker.Core.Tests
             _view.PressBet(BetAction.Raise);
 
             Assert.AreEqual(300, _view.Pot, "30% of 1000.");
-            Assert.AreEqual("TABLE FULL", _view.BetControls.RaiseLabel);
-            Assert.IsFalse(_view.BetControls.CanRaise);
-            Assert.IsTrue(_view.BetControls.CanPass);
+            Assert.AreEqual(GamePhase.Drawing, _game.Phase, "The fifth card turned without a question.");
+            Assert.IsFalse(_view.BetControls.Visible);
+            Assert.AreEqual("STAND PAT", _view.ActionLabel, "The draw is still the player's.");
         }
 
         [Test]
-        public void TinySentence_IsAllIn()
+        public void TinySentence_IsAllIn_AndGoesStraightToTheDraw()
         {
             Setup(startingYears: 6);
             _view.PressAction();
 
-            Assert.AreEqual("ALL IN", _view.BetControls.RaiseLabel);
-            Assert.IsFalse(_view.BetControls.CanRaise);
+            Assert.AreEqual(GamePhase.Drawing, _game.Phase);
+            Assert.IsFalse(_view.BetControls.Visible);
+            Assert.AreEqual(5, _view.PlayerView.FaceUpCount);
             Assert.AreEqual(0, _view.SentenceView.Years);
         }
 
@@ -454,22 +455,19 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ locked buttons say why
 
         [Test]
-        public void LockedRaise_AtTheCap_SaysTableFull()
+        public void RaisingToTheCap_AfterTheDraw_PlaysTheHandOut()
         {
             Setup();
             _view.PressAction();
             _view.PressBet(BetAction.Raise);   // 200 of 300
             PassUntil(GamePhase.Drawing);
             _view.PressAction();
+
             _view.PressBet(BetAction.Raise);   // 300: the cap (no house temper here, so no re-raise)
-            Assert.AreEqual(GamePhase.HouseReveal, _game.Phase);
-            Assert.AreEqual(300, _game.CurrentStake);
 
-            _view.PressBet(BetAction.Raise);
-
-            StringAssert.StartsWith("TABLE FULL", _view.Message);
-            Assert.AreEqual(Tone.Warning, _view.MessageTone);
-            Assert.IsFalse(_view.BetControls.CanRaise, "The button looks locked.");
+            Assert.AreEqual(GamePhase.RoundOver, _game.Phase, "No last decision on the House's cards.");
+            Assert.AreEqual(300, _game.LastRound.Stake);
+            Assert.AreEqual("NEXT HAND", _view.ActionLabel);
         }
 
         [Test]

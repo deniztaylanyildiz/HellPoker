@@ -94,9 +94,10 @@ namespace HellPoker.PlayMode.Tests
             yield return WaitForTable();
             yield return new WaitForSeconds(0.4f);
             yield return Shot("07b_house_reraise");
-            Press("CallButton");
+            Press("CallButton");   // 200 of a 195 cap: the pact is sealed, the House's cards turn on their own
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("07c_pact_sealed");
             yield return WaitForTable();
-            yield return Shot("07c_house_reveal");
             for (int guard = 0; guard < 10 && IsActive("PassButton"); guard++)
             {
                 Press("PassButton");

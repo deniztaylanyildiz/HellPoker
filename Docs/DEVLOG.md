@@ -736,3 +736,108 @@ Günahkâr sınıfları, şeytan hileleri, ses / müzik, lanetli emanetler, elle
 ### Açık sorular
 - El ortasında oyunu kapatmak o eli yok sayıyor (Bölüm 5'e bakın).
 - Bölüm 1'deki salon hatası batchmode'da yeniden üretilemedi. Sağlamlaştırıldı; tekrar görülürse adımlar yazılsın.
+
+---
+
+## 2026-10-02 — Oturum 3: mühür (sealed pact), CHECK TO DRAW, el ortasında kapatma açığı
+
+### İstek (kullanıcı)
+"Bahis akışında gereksiz tıklamaları kaldıralım", kural ve denge sayıları değişmeden:
+1. Tavana ulaşınca (ya da all-in) el mühürlensin; kalan Pas / Çekil kararları sorulmasın, Core geçsin. Draw yine sorulsun.
+   Re-raise karşılanıp tavan geçilirse de mühür. Son 250 ve ruh bölgesiyle uyumlu.
+2. "THE PACT IS SEALED" + şeytan repliği, butonlar gizli, kalan kartlar tek tek (~0.6 sn) açılsın, Space / tık hızlandırsın.
+3. Pas dışında anlamlı seçenek yoksa karar atlansın (genel kural).
+4. Pas'ın yanına CHECK TO DRAW (D); son 250'de kilitli.
+5. Simülasyon tekrar, sonuç DEVLOG'a. 6. Testler, CLAUDE.md el akışı.
+Sonra: el ortasında oyunu kapatma açığı kapansın. DEAL'da "el sürüyor" kayda yazılsın; açılışta o el o anki bahis / draw durumuna göre
+çekilmiş sayılsın (ruhta ×1.5), şeytan özel replik söylesin; mühürlü elde bahsin tamamı kaybedilsin.
+
+Not: Önceki sohbet bu işte hata vererek kesilmişti. Kodda ve DEVLOG'da o denemeden hiçbir iz yoktu, iş sıfırdan yapıldı.
+
+### Yapılanlar — Core
+- `HellPokerGame`:
+  - `IsCommitted` (mühür). `NoteCommitment()` deal, artırma (re-raise gelmediyse) ve Call'dan sonra bakar:
+    `CurrentStake >= TableCap || WagerLeft == 0`. Bayrak sonraki dağıtıma kadar kalır (sonuç ekranında da true).
+  - `SkipEmptyDecisions()`: karar fazında Pas dışında gerçek seçenek yoksa (`HasRealChoice`) Core geçer, `DecisionsSkipped` sayar.
+    Deal, karar sonrası (`Continue`) ve `Draw` sonrası çalışır. Draw hiç atlanmaz.
+  - Mühürlüyken `CanBet` Pas / Çekil / Artır / Call'u "The pact is sealed" ile reddeder (draw fazında da).
+  - `HouseReRaise` fazında `IsCommitted` false: re-raise yeni bir bahis, Call / Fold sorulur.
+  - `CanCheckToDraw` / `CheckToDraw()`: sadece `PlayerReveal`'da ve Pas serbestken; draw'a kadar Pas'lar.
+  - `CurrentHand` (`HandInProgress`: stake, ante, draw, soul, sealed; el yokken null) ve `ForfeitHand(hand)` (sadece eller arasında).
+- `RunSnapshot`: isteğe bağlı `hand.*` satırları. `v=1` korundu: eski kayıtlar el yokmuş gibi okunur.
+  Bozuk el satırı tüm kaydı geçersiz yapar (silinir).
+
+### Yapılanlar — sunum
+- `TablePresenter`:
+  - Her komuttan önce masanın durumu alınır (`TableState`). Sonra `PlayOutSealedHand`:
+    - mühür anında `AnnounceSeal` (flare + `SealedMessage` + şeytanın `Sealed` repliği, Gloating);
+    - draw'dan önce oyuncunun kalan kartları, sonra kasanın kartları tek tek, aralarında `SealedRevealPause` = 0.6 sn.
+  - Hepsi sıralayıcı kuyruğunda, bu yüzden her basış / tık mevcut atlama ile sona götürür.
+  - Mühürlü draw ekranı "The pact is sealed. Pick up to N cards…" der.
+  - `CheckToDraw()` (+ son 250'de "No checking under 250 years" uyarısı); `BetControls.ShowCheckToDraw / CanCheckToDraw`.
+  - `SaveRun()` artık her `Refresh`'te: eller arasında ya da el sürerken (`CurrentHand` ile). Sonuçlanan eli `SettleHand` kaydeder (el yok).
+  - `Resume`: kayıtta el varsa `ForfeitLeftHand`: ceza, istatistik (el sayılır, round zaten dağıtımda sayılmıştı), rekor (lanetse),
+    mesaj (`FledFormat` / `FledSealedFormat`; ruhta sayısız `FledSoul` / `FledSealedSoul`), şeytanın `Fled` repliği.
+    Ardından kayıt el olmadan yazılır: tekrar kapatıp açmak ikinci kez ceza kesmez.
+- `TableView`: CHECK TO DRAW butonu. Görünürken dört buton yan yana (RAISE 88 · PASS 40 · CHECK/TO DRAW 64 · FOLD 40 px).
+  Başlık fontunda tek satır sığmadığı için etiket iki satır.
+- `TableMoment.PactSealed` (GoodHand'in yazı efektini kullanır), `KeyboardInput` D tuşu, `ITableCommands.CheckToDraw`, `ITableView.CheckToDrawPressed`.
+- `UiText`: mühür, check-to-draw, kaçış metinleri; kurallar sayfasına mühür cümlesi; kısayol satırına "D check to draw".
+  `UiText.Dealers`: her şeytana 3 `Sealed` ve 2 `Fled` repliği.
+
+### Kararlar ve nedenleri
+- **Tavana çıkan artırmaya re-raise hâlâ gelebilir** (oyuncu Call / Fold der). Mühür oyuncunun kendi bahis kararlarını kapatır.
+  Re-raise kasanın yeni bahsi ve kural gereği tavanı aşabilir; bunu kaldırmak dengeyi değiştirirdi. Karşılanınca el mühürlenir.
+- **Son karardaki artırmayla dolan masa duyurulmaz:** açılacak kart / atlanacak karar yoksa "PACT IS SEALED" anlamsız.
+  Draw'dan önceki son kartta dolarsa duyurulur, çünkü draw sonrası kararlar atlanacak.
+- **Mühürlü elde kapatma = en zayıf ele kayıp:** `bahis × LossPercent × ruh çarpanı`, yukarı yuvarlanır
+  (`GetLeastYearsAdded`, çarpan ×1). "Bahsin tamamı kaybedilmiş sayılsın" isteğini kayıp kuralıyla okudum, o yüzden Lilith'in ×1.25'i dahil.
+  Mühürsüz elde ceza normal çekilme cezası (`GetFoldPenalty`): draw öncesi / sonrası yüzdesi, ruhta ×1.5.
+- Kayıtta ceza, elin dağıtıldığı cezadan hesaplanır; `rounds` o eli zaten içerir.
+- `LockedTableFull` / "TABLE FULL" etiketi artık normal akışta görünmüyor (tavan = mühür = buton yok). Metinler zarar vermediği için duruyor.
+
+### Testler
+- Yeni `PactTests` (Core, 23):
+  - mühür: tavanda ve all-in'de mühür, mühürlüyken her bahis reddi, draw'un sorulup elin showdown'a gitmesi, mühürün sonraki dağıtıma kadar sürmesi;
+  - re-raise: tavana çıkan artırmaya re-raise cevabı, tavanı geçen Call'da mühür, tavan altındaki Call'da son kararın kalması;
+  - son 250 ve ruh all-in;
+  - CHECK TO DRAW: geçiş, artırmadan sonra, sadece draw öncesi, son 250'de kilit;
+  - `CurrentHand`; `ForfeitHand` (önce / sonra, ruh ×1.5, mühürlü × LossPercent, mühürlü ruh, lanet, sadece eller arasında).
+- Yeni `PactPresenterTests` (24 test case):
+  - duyuru ve replik; kartların tek tek ve beklemeli açılması; kasanın 0→5 açılışı; son kararda duyuru olmaması; ruhta sayı yok;
+  - CHECK TO DRAW butonu (görünür / draw sonrası yok / son 250 kilidi + mesaj / animasyon sırasında sadece atlatma);
+  - kayıt: DEAL'da, bahis ve draw ile güncelleme, sonuçlanınca el yok;
+  - devam: çekilme (önce / sonra), mühürlü (Lilith ×1.25), ruh (sayısız), kayıt temizlenmesi, lanet + rekor;
+  - format: gidiş-dönüş, bozuk el satırları, el satırı olmayan kayıt.
+- Güncellenen: tavan / son 250 / re-raise Core testleri ve üç presenter testi. Eski "TABLE FULL kilitli mesajı" testi
+  "artırmayla dolan masa eli oynatır" testine dönüştü.
+- PlayMode:
+  - `ASealedHand_PlaysOutOnItsOwn_WithoutBetButtons` (her karede Pas / Fold gizli, kasa açılışı >2 sn);
+  - `ASealedReveal_CanBeHurried`;
+  - `RunJourneyTests.ClosingMidHand_AndReopening_ForfeitsTheHand` (deal + raise → sahne yeniden yüklenir → 1100 yıl;
+    tekrar açınca yine 1100).
+- **380 EditMode + 14 PlayMode geçiyor**; derleyici uyarısı yok.
+- Ekran görüntüleri: `05_decision` (dört buton), `07c_pact_sealed` (eski `07c_house_reveal` yerine).
+  İlk görüntüde etiketler üst üste biniyordu, iki satırlı etiketle düzeltildi. Mühürlü açılışta sayaç re-raise öncesi değerde
+  kalıyordu, düzeltildi.
+
+### Simülasyon (2000 koşu, aynı seed'ler; baz çizgi aynı kodda mühür geçici kapatılarak ölçüldü, önceki DEVLOG değerleriyle birebir aynı)
+| Şeytan | Aklanma (önce → sonra) | Ort. el (önce → sonra) | Lanet | Ruhu masaya koyan |
+|---|---|---|---|---|
+| Mammon | %88.0 → **%88.0** | 55.1 → **49.4** | %12.1 → %12.1 | %21.1 → %20.9 |
+| Belial | %80.5 → **%80.5** | 25.4 → **24.3** | %19.6 → %19.5 | %31.0 → %31.0 |
+| Lilith | %64.4 → **%64.2** | 38.0 → **39.2** | %35.6 → %35.9 | %51.9 → %52.4 |
+
+- **Aklanma oranları değişmedi** (Lilith −0.2 puan, gürültü düzeyinde). Kullanıcının kendi simülasyonuyla uyumlu.
+- Değişen el sayısı: Mammon ~6 el kısaldı. Sim oyuncusu eskiden tavandayken bazen çekiliyordu (draw sonrası kasa çift gösterince
+  high card). Artık bu eller showdown'a gidiyor; tavandaki eller daha büyük sonuçlanıyor, koşu daha çabuk bitiyor.
+  Bu, önceki oturumdaki "Mammon uzun (55 el, hedef ~43)" açık sorusunu kendiliğinden kısmen yaklaştırıyor.
+
+### Açık sorular
+- Mühürlü elde kapatma cezasında Lilith'in ×1.25'i uygulanıyor (kayıp kuralı). Sadece düz bahis (×1) isteniyorsa `ForfeitHand`'de tek satırlık değişiklik.
+- Mammon'un el sayısı 49'a indi. Hedef ~43 hâlâ isteniyor mu?
+
+### Sıradaki adımlar
+- Kullanıcı GitHub Desktop'tan commit / push yapmalı. Yeni dosyalar: `HandInProgress.cs`, `PactTests.cs`, `PactPresenterTests.cs`
+  (+ Unity'nin ürettiği .meta dosyaları).
+- Oyunda elle deneme: tavana çıkıp draw → kasanın kartlarının temposu; Fast / Very Fast hızlarında his.

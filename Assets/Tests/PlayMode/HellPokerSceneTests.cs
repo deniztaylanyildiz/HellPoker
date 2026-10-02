@@ -136,6 +136,76 @@ namespace HellPoker.PlayMode.Tests
             Assert.AreEqual(3, Find<Transform>("PlayerHand").GetComponentsInChildren<CardView>().Count(c => c.IsFaceUp));
         }
 
+        [UnityTest]
+        public IEnumerator ASealedHand_PlaysOutOnItsOwn_WithoutBetButtons()
+        {
+            StartRun();   // Mammon, 1000 years: ante 100, the table full at 300
+            Press("ActionButton");
+            yield return WaitForTable();
+            Assert.IsTrue(IsActive("CheckToDrawButton"), "CHECK TO DRAW sits next to PASS before the draw.");
+            Press("RaiseButton");
+            yield return WaitForTable();
+
+            Press("RaiseButton");   // 300: the pact is sealed, the fifth card turns by itself
+            yield return PlayOutWithoutBetButtons();
+
+            Assert.AreEqual("STAND PAT", ActionLabel(), "The draw is still the player's.");
+            Assert.AreEqual(5, FaceUp("PlayerHand"));
+            Assert.IsFalse(IsActive("PassButton"));
+
+            Press("ActionButton");   // stand pat: the House's cards turn one by one into the showdown
+            float started = Time.time;
+            yield return PlayOutWithoutBetButtons();
+
+            Assert.Greater(Time.time - started, 2f, "Each of the House's cards waits its beat.");
+            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
+            Assert.AreEqual(5, FaceUp("HouseHand"));
+        }
+
+        [UnityTest]
+        public IEnumerator ASealedReveal_CanBeHurried()
+        {
+            StartRun();
+            Press("ActionButton");
+            yield return WaitForTable();
+            Press("RaiseButton");
+            yield return WaitForTable();
+            Press("RaiseButton");
+            yield return WaitForTable();
+            var table = Object.FindFirstObjectByType<TableView>();
+            TablePresenter presenter = Presenter();
+
+            Press("ActionButton");   // the House starts turning its cards
+            yield return null;
+            Assert.IsTrue(table.IsBusy);
+
+            presenter.PerformAction();   // Space
+
+            Assert.IsFalse(table.IsBusy, "A press brings the whole reveal to its end.");
+            Assert.AreEqual(5, FaceUp("HouseHand"));
+            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
+        }
+
+        private static TablePresenter Presenter() => (TablePresenter)typeof(HellPokerBootstrap)
+            .GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetValue(Object.FindFirstObjectByType<HellPokerBootstrap>());
+
+        private static int FaceUp(string hand) => Find<Transform>(hand).GetComponentsInChildren<CardView>().Count(c => c.IsFaceUp);
+
+        /// <summary>Waits out the table's animations, checking at every frame that no bet button ever shows.</summary>
+        private static IEnumerator PlayOutWithoutBetButtons()
+        {
+            var table = Object.FindFirstObjectByType<TableView>();
+            float started = Time.time;
+            do
+            {
+                yield return null;
+                Assert.IsFalse(IsActive("PassButton"), "PASS showed while the sealed hand played out.");
+                Assert.IsFalse(IsActive("FoldButton"), "FOLD showed while the sealed hand played out.");
+                Assert.Less(Time.time - started, AnimationTimeout, "Table animations never finished.");
+            } while (table.IsBusy);
+        }
+
         private static void StartRun(int dealer = 0)
         {
             Press("NewGameButton");
