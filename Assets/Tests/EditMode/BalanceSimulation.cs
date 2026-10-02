@@ -27,29 +27,60 @@ namespace HellPoker.Core.Tests
         [Test]
         public void EveryDealer()
         {
-            // HELLPOKER_SOUL_WORTH / HELLPOKER_SOUL_LOSS try other soul numbers without touching the code.
+            // HELLPOKER_SOUL_WORTH / HELLPOKER_SOUL_LOSS try other soul numbers without touching the code;
+            // HELLPOKER_LUCIFER_GATE (0: no Lucifer) / HELLPOKER_CAST_DOWN the final table.
             GameRules table = new GameRules(
                 soulWorthYears: EnvInt("HELLPOKER_SOUL_WORTH", GameRules.Default.SoulWorthYears),
-                soulLossPercent: EnvInt("HELLPOKER_SOUL_LOSS", GameRules.Default.SoulLossPercent));
+                soulLossPercent: EnvInt("HELLPOKER_SOUL_LOSS", GameRules.Default.SoulLossPercent),
+                luciferGateYears: EnvInt("HELLPOKER_LUCIFER_GATE", GameRules.Default.LuciferGateYears),
+                luciferCastDownYears: EnvInt("HELLPOKER_CAST_DOWN", GameRules.Default.LuciferCastDownYears));
 
             var report = new StringBuilder();
             report.AppendLine($"{Runs} runs per dealer, at most {MaxHandsPerRun} hands each. " +
-                              $"Soul worth {table.SoulWorthYears}, soul losses {table.SoulLossPercent}%.");
-            report.AppendLine("dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved");
+                              $"Soul worth {table.SoulWorthYears}, soul losses {table.SoulLossPercent}%. " +
+                              (table.LuciferGateYears > 0
+                                  ? $"Lucifer below {table.LuciferGateYears}, cast down to {table.LuciferCastDownYears}."
+                                  : "No Lucifer."));
+            report.AppendLine("dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved" +
+                              "  | reached lucifer  beat him 1st try  avg attempts  cast downs  wild bill");
 
             foreach (Dealer dealer in DealerRoster.All)
             {
                 int absolved = 0, damned = 0, hands = 0, deadMan = 0, reRaised = 0, soulStaked = 0, soulSaved = 0;
+                int reached = 0, firstTry = 0, attempts = 0, castDowns = 0, wildBill = 0;
                 for (int run = 0; run < Runs; run++)
                 {
-                    HellPokerGame game = HellPokerGameFactory.Create(table, dealer, seed: run * 7919 + 13);
-                    var player = new HouseDrawStrategy(game.Rules.MaxDiscards);
+                    int seed = run * 7919 + 13;
+                    int sittings = 0;
+                    Dealer seat = dealer;
+                    HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed);
+                    var gate = new LuciferGate(table);
                     int played = 0;
                     bool staked = false;
 
                     while (!game.IsGameOver && played < MaxHandsPerRun)
                     {
-                        if (PlayHand(game, player, dealer.Payouts))
+                        // Between hands the gate may move the player: summoned below it, cast down above it at Lucifer's table.
+                        GateCall call = gate.Check(game.Years, game.Phase);
+                        if (call != GateCall.Stay)
+                        {
+                            int years = game.Years;
+                            if (call == GateCall.Summoned)
+                            {
+                                gate.Summon(seat.Id);
+                                seat = DealerRoster.Lucifer;
+                            }
+                            else
+                            {
+                                years = gate.CastDown(years);
+                                seat = dealer;
+                            }
+                            game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings);
+                            game.TakeOver(years, played);
+                            if (game.IsGameOver) break;
+                        }
+
+                        if (PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), seat.Payouts))
                             reRaised++;
                         played++;
                         if (game.LastRound.Showdown?.Player.Category == HandCategory.DeadMansHand &&
@@ -64,11 +95,19 @@ namespace HellPoker.Core.Tests
                     else if (game.Phase == GamePhase.Damned) damned++;
                     if (staked) soulStaked++;
                     if (staked && game.Phase == GamePhase.Absolved) soulSaved++;
+                    if (gate.ReachedLucifer) reached++;
+                    attempts += gate.Attempts;
+                    castDowns += gate.CastDowns;
+                    if (game.Phase == GamePhase.Absolved && gate.IsAtLucifer && gate.Attempts == 1) firstTry++;
+                    if (game.Phase == GamePhase.Absolved && !gate.IsAtLucifer) wildBill++;
                 }
 
                 string reRaiseShare = (100.0 * reRaised / Math.Max(1, hands)).ToString("0.0") + "%";
+                string firstTryShare = (100.0 * firstTry / Math.Max(1, reached)).ToString("0.0") + "%";
                 report.AppendLine($"{dealer.Id,-8} {Percent(absolved),7}  {Percent(damned),6}  {Percent(Runs - absolved - damned),10}  " +
-                                  $"{hands / (double)Runs,9:0.0}  {reRaiseShare,15}  {deadMan,6}  {Percent(soulStaked),11}  {Percent(soulSaved),10}");
+                                  $"{hands / (double)Runs,9:0.0}  {reRaiseShare,15}  {deadMan,6}  {Percent(soulStaked),11}  {Percent(soulSaved),10}" +
+                                  $"  | {Percent(reached),15}  {firstTryShare,16}  {attempts / (double)Math.Max(1, reached),12:0.00}" +
+                                  $"  {castDowns,10}  {wildBill,9}");
             }
 
             TestContext.WriteLine(report.ToString());

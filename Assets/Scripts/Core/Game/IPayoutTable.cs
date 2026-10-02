@@ -8,6 +8,9 @@ namespace HellPoker.Core.Game
     /// </summary>
     public interface IPayoutTable
     {
+        /// <summary>True for the hand that wipes the whole sentence (the Dead Man's Hand).</summary>
+        bool IsAbsolution(HandCategory category);
+
         /// <summary>stake + ante × (multiplier − 1), at most the sentence; the absolution hand forgives everything.</summary>
         int GetYearsForgiven(HandCategory playerCategory, int stake, int ante, int currentYears);
 

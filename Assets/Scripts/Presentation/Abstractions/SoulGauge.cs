@@ -25,11 +25,12 @@ namespace HellPoker.Presentation.Abstractions
         private static float Clamp(float value) => value < 0f ? 0f : value > 1f ? 1f : value;
     }
 
-    /// <summary>The LEAVE TABLE button: not offered, offered, or bound by the soul on the table.</summary>
+    /// <summary>The LEAVE TABLE button: not offered, offered, bound by the soul on the table, or held at Lucifer's table.</summary>
     public enum LeaveState
     {
         Hidden,
         Open,
-        Locked
+        Locked,
+        Summoned
     }
 }

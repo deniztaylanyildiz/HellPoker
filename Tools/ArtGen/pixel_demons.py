@@ -485,10 +485,134 @@ def lilith(p):
     return finish(img, p, C.DUSK, stars=5, flash_map=flush)
 
 
-DEMONS = {"mammon": mammon, "belial": belial, "lilith": lilith}
+# ================================================================== LUCIFER — the Morning Star: never seen, only his eyes in the dark
+#
+# He is too vast for the box. Pitch dark; two burning slit eyes; the tips of two claws dealing at the bottom edge and the
+# edge of one wing crossing the top corner. No face, no body, no silhouette — ever.
+
+EYE_Y = 42
+EYE_X = (36, 60)
+
+
+def lucifer_eye(img, cx, cy, kind="open", glow=1, size=1.0, cold=False):
+    """An almond eye with a slit pupil. kind: open, half, shut, squint; glow 0..3; size scales it (angry, blinding)."""
+    rim, mid, core = (C.HELL, C.ORANGE, C.AMBER) if glow < 2 else (C.ORANGE, C.AMBER, C.EMBER)
+    if cold:
+        rim, mid, core = C.MAUVE, C.LILAC, C.LILAC_LIGHT
+    if kind == "shut":
+        for k in range(-3, 4):
+            img.put(cx + k, cy + 1, C.BLOOD_DARK)
+        return
+    if kind == "squint":
+        # A thin, smiling slit: lower in the middle, up at both corners.
+        for k in range(-4, 5):
+            img.put(cx + k, cy + (1 if abs(k) < 3 else 0), mid if abs(k) < 4 else rim)
+        img.put(cx, cy + 1, core)
+        return
+    rx = 4.6 * size
+    ry = (2.1 if kind == "open" else 1.0) * size
+    almond = img.m_ellipse(cx + 0.5, cy + 0.5, rx, ry)
+    img.paint(almond, rim)
+    img.paint(img.m_ellipse(cx + 0.5, cy + 0.5, rx - 1.2, max(0.6, ry - 0.8)) & almond, mid)
+    img.paint(img.m_ellipse(cx + 0.5, cy + 0.5, max(1.2, rx - 2.6), max(0.5, ry - 1.3)) & almond, core)
+    if glow >= 3:
+        img.paint(img.m_ellipse(cx + 0.5, cy + 0.5, max(1.0, rx - 3.2), max(0.5, ry - 1.5)) & almond, C.WHITE)
+    # The slit: a vertical line of black through the middle (gone in a blinding flare).
+    if glow < 3:
+        for dy in range(-int(ry), int(ry) + 1):
+            if almond[min(max(cy + dy, 0), img.h - 1), cx]:
+                img.put(cx, cy + dy, C.BLACK)
+
+
+def lucifer_halo(img, cx, cy, radius, amount, color=C.BLOOD_DARK):
+    """A faint dithered glow around an eye — light in the dark, never a shape."""
+    dist = np.hypot(img.xs - cx - 0.5, img.ys - cy - 0.5) / radius
+    field = np.clip(amount * (1 - dist), 0, 1)
+    img.dither(dist < 1, C.BLACK, color, field)
+
+
+def lucifer_claws(img, dy=0):
+    """Two claw tips curling up from the bottom edge, as if dealing — bone dark, lit only at the points."""
+    for x0, sx in ((24, 1), (72, -1)):
+        spine = bezier([(x0 - sx * 4, 97 + dy), (x0, 88 + dy), (x0 + sx * 5, 83 + dy)], 10)
+        claw = img.m_poly(ribbon(spine, 4, 1))
+        img.paint(claw, C.BONE_SHADE)
+        img.inner_outline(claw, C.BLACK)
+        tx, ty = spine[-1]
+        img.put(int(tx), int(ty), C.BONE_DARK)
+        img.put(int(tx) - sx, int(ty) + 1, C.BONE_DARK)
+
+
+def lucifer_wing(img, sway=0):
+    """The edge of one vast wing crossing the top-right corner: a dark membrane, a rib, a hooked tip."""
+    edge = [(96, 0), (60 + sway, 0), (70 + sway, 6), (78 + sway, 8), (86, 16), (96, 30)]
+    wing = img.m_poly(edge)
+    img.paint(wing, C.NIGHT)
+    img.inner_outline(wing, C.DUSK)
+    img.paint(img.m_line([(64 + sway, 0), (90, 20)], 1) & wing, C.PLUM)
+    img.put(60 + sway, 0, C.BONE_SHADE)
+    img.put(61 + sway, 1, C.BONE_SHADE)
+
+
+def lucifer_frame(eyes="open", glow=1, size=1.25, dx=0, halo=0.3, grin=0.0, box_red=0, drops=None, flare=False, cold=False, sway=0):
+    img = Img(SIZE, SIZE, C.BLACK)
+    if box_red:
+        # The box itself burns: dithered blood rising from the bottom.
+        full = np.ones((img.h, img.w), bool)
+        img.dither(full, C.BLACK, C.BLOOD_DARK if box_red == 1 else C.BLOOD, np.clip((img.ys - 20) / 90.0, 0, 0.9))
+    lucifer_wing(img, sway)
+    for ex in EYE_X:
+        lucifer_halo(img, ex + dx, EYE_Y, 12 * (1.6 if flare else 1.0), halo,
+                     C.HELL if flare else (C.VIOLET if cold else C.BLOOD_DARK))
+    for i, ex in enumerate(EYE_X):
+        lucifer_eye(img, ex + dx, EYE_Y, eyes, glow, size, cold)
+    if grin > 0:
+        # A grin line in the dark: a long thin arc, teeth as gaps — there and gone.
+        arc = bezier([(26 + dx, 60), (48 + dx, 70), (70 + dx, 60)], 30)
+        color = C.ORANGE if grin >= 1 else C.BLOOD
+        for k, (x, y) in enumerate(arc):
+            if k % 4 != 3:
+                img.put(int(x), int(y), color)
+    if drops is not None:
+        # Fire dripping from the eyes.
+        for ex in EYE_X:
+            for k in range(3):
+                y = EYE_Y + 3 + (drops * 4 + k * 9) % 30
+                x = ex + dx + (k - 1)
+                color = C.AMBER if y < EYE_Y + 12 else C.HELL if y < EYE_Y + 22 else C.BLOOD
+                img.put(x, y, color)
+                img.put(x, y + 1, C.RED)
+    lucifer_claws(img)
+    return img
+
+
+def lucifer_frames(state):
+    if state == "idle":
+        lids = ["open", "open", "open", "open", "half", "shut", "half", "open", "open", "open"]
+        drift = [0, 0, 0, 0, 0, 0, 0, 1, 2, 1]
+        return [lucifer_frame(eyes=lid, dx=d, sway=1 if i % 5 < 2 else 0) for i, (lid, d) in enumerate(zip(lids, drift))]
+    if state == "talk":
+        return [lucifer_frame(glow=g, halo=h) for g, h in ((1, 0.3), (2, 0.5), (2, 0.7), (1, 0.45))]
+    if state == "gloat":
+        return [lucifer_frame(eyes="squint", grin=g, halo=0.4) for g in (0.0, 0.5, 1.0, 1.0, 1.0, 0.5, 0.0)]
+    if state == "angry":
+        return [lucifer_frame(size=1.6, glow=2, halo=0.6, box_red=2 if i in (0, 2) else 1) for i in range(5)]
+    if state == "reraise":
+        return [lucifer_frame(glow=g, halo=h, flare=f, size=s)
+                for g, h, f, s in ((1, 0.3, False, 1.25), (2, 0.6, False, 1.4), (3, 0.8, True, 1.7), (2, 0.6, False, 1.4), (1, 0.4, False, 1.25))]
+    if state == "final":
+        return [lucifer_frame(glow=2, halo=0.6, drops=i, sway=i % 2) for i in range(6)]
+    if state == "soul":
+        return [lucifer_frame(glow=1, halo=0.4, cold=True, sway=i % 2) for i in range(4)]
+    raise ValueError(state)
+
+
+DEMONS = {"mammon": mammon, "belial": belial, "lilith": lilith, "lucifer": None}
 
 
 def frames(demon, state):
+    if demon == "lucifer":
+        return lucifer_frames(state)
     return [DEMONS[demon](pose) for pose in poses(state)]
 
 

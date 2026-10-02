@@ -73,19 +73,21 @@ namespace HellPoker.Presentation
             _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode());
 
             TableView tableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
-            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, settings, archive);
+            _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, settings, archive,
+                DealerRoster.Lucifer);
             ResumeSavedRun(archive);
 
             MainMenuView menu = MainMenuView.Create(transform,
                 string.Format(UiText.MenuTaglineFormat, table.StartingYears),
-                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent),
+                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent,
+                    table.LuciferGateYears, table.LuciferCastDownYears, DealerRoster.LuciferUnit, DealerRoster.LuciferCap),
                 DealerRoster.Mammon.Payouts);
             DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
-            EndScreenView endScreen = EndScreenView.Create(transform);
+            EndScreenView endScreen = EndScreenView.Create(transform, UiArt.Dealers);
             RecordsView records = RecordsView.Create(transform);
             ScreenTransitionView transition = ScreenTransitionView.Create(transform);
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
-                new UnityApplicationQuitter(), transition, DealerRoster.All);
+                new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer);
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter);
         }
@@ -105,13 +107,16 @@ namespace HellPoker.Presentation
             RunSnapshot saved = archive.LoadRun();
             if (saved == null) return;
 
-            Dealer dealer = DealerRoster.All.FirstOrDefault(d => d.Id == saved.DealerId);
-            if (dealer == null)
+            Dealer dealer = DealerRoster.Find(saved.DealerId);
+            Dealer origin = saved.OriginDealerId == null ? null : DealerRoster.Find(saved.OriginDealerId);
+            // At Lucifer's table the save must know where a fall would land.
+            bool lost = dealer == null || (dealer.IsFinalTable && (origin == null || origin.IsFinalTable));
+            if (lost)
             {
                 archive.ClearRun();
                 return;
             }
-            _tablePresenter.Resume(dealer, saved);
+            _tablePresenter.Resume(dealer, saved, origin);
         }
 
         private void OnDestroy()

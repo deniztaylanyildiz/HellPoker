@@ -49,6 +49,7 @@ namespace HellPoker.Presentation.Views
         private Text _leaveLabel;
         private HandRanksPanel _handRanks;
         private TableMoments _moments;
+        private TableScenes _scenes;
 
         public IHandView House { get; private set; }
         public IHandView Player { get; private set; }
@@ -155,6 +156,7 @@ namespace HellPoker.Presentation.Views
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
+            _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, UiText.HandRanksTableFooter);
             _stage = new Stage(this);
         }
@@ -170,14 +172,42 @@ namespace HellPoker.Presentation.Views
             /// A new table: whatever was still animating from the last one finishes at once, then the hall (in its normal
             /// mood — the presenter re-applies the final stretch or the soul) and the portrait change together.
             /// </summary>
-            public void SetDealer(DealerCard dealer)
+            public void SetDealer(DealerCard dealer, SeatChange change = SeatChange.Instant)
             {
-                _table._sequencer.Complete();
-                _table._salon.SetSalon(dealer.Id, SalonMode.Normal);
-                _table._dealer.SetDealer(dealer);
+                _finalTable = dealer.IsFinalTable;
+                if (change == SeatChange.Instant)
+                {
+                    _table._sequencer.Complete();
+                    _table._scenes.Abort();
+                    _table._salon.SetSalon(dealer.Id, SalonMode.Normal);
+                    _table._dealer.SetDealer(dealer);
+                    return;
+                }
+
+                // Summoned or cast down: the change happens inside its scene, after the last word of the old demon.
+                _table._scenes.Begin(change, () =>
+                {
+                    // Nothing of the old table's mood comes along (its last moments, its way out); the presenter re-applies
+                    // whatever holds at the new one.
+                    _table._finalStretch.SetActive(false, "");
+                    _table._sentence.SetPulsing(false);
+                    _table._dealer.SetFinalStretch(false);
+                    _table._leaveButton.gameObject.SetActive(false);
+                    _table._salon.SetSalon(dealer.Id, SalonMode.Normal);
+                    _table._dealer.ShowDealer(dealer);
+                });
             }
 
-            public void Say(string line, DealerMood mood) => _table._dealer.Say(line, mood);
+            /// <summary>True for the Morning Star: every line he speaks makes the screen shudder.</summary>
+            private bool _finalTable;
+
+            public void Say(string line, DealerMood mood)
+            {
+                _table._scenes.End();
+                _table._dealer.Say(line, mood);
+                if (_finalTable && !string.IsNullOrEmpty(line))
+                    _table._scenes.Tremor();
+            }
         }
 
         /// <summary>"ANTE", a gold coin with the amount, and the years spelled out — next to the deal button.</summary>
@@ -226,6 +256,7 @@ namespace HellPoker.Presentation.Views
 
         public void SetAction(string label)
         {
+            _scenes.End();   // a scene in progress lifts before the table is ready to play
             _sequencer.Do(() =>
             {
                 _actionButton.gameObject.SetActive(label != null);
@@ -318,8 +349,8 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _leaveButton.gameObject.SetActive(state != LeaveState.Hidden);
-                bool locked = state == LeaveState.Locked;
-                _leaveLabel.text = locked ? UiText.SoulBound : UiText.LeaveTable;
+                bool locked = state == LeaveState.Locked || state == LeaveState.Summoned;
+                _leaveLabel.text = state == LeaveState.Summoned ? UiText.NoEscape : locked ? UiText.SoulBound : UiText.LeaveTable;
                 _leaveButton.GetComponent<ButtonFeel>().LabelColor = locked ? Palette.Hell : Palette.Bone;
             });
         }
@@ -337,11 +368,13 @@ namespace HellPoker.Presentation.Views
         /// <summary>Everything queued jumps to its end: cards land, counters arrive, the dealer finishes the sentence.</summary>
         public void SkipAnimations()
         {
+            _scenes.End();
             _sequencer.Complete();
             _dealer.FinishLine();
             _sentence.Snap();
             _soul.Snap();
             _moments.Finish();
+            _scenes.Finish();
         }
 
         public void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null)

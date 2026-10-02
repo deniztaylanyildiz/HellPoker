@@ -24,6 +24,8 @@ namespace HellPoker.Presentation.Views
         private Text _title;
         private Text _line;
         private GameObject _dialog;
+        private Image _dialogBox;
+        private Sprite _plainDialog;
 
         private string _dealerId;
         private string _fullLine = "";
@@ -69,26 +71,53 @@ namespace HellPoker.Presentation.Views
             Image dialog = UiFactory.CreateDialog("Speech", root);
             dialog.rectTransform.PlaceTL(0, 128, PortraitSize + 8, 72);
             _dialog = dialog.gameObject;
+            _dialogBox = dialog;
+            _plainDialog = dialog.sprite;
             _line = UiFactory.CreateText("Line", dialog.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _line.rectTransform.PlaceTL(6, 5, PortraitSize - 4, 62);
             _line.lineSpacing = 1f;
             _dialog.SetActive(false);
         }
 
-        public void SetDealer(DealerCard dealer)
+        /// <summary>Takes the new demon's portrait, name and title in turn (the table's stage plays any scene around it).</summary>
+        public void SetDealer(DealerCard dealer, SeatChange change = SeatChange.Instant)
         {
-            _sequencer.Do(() =>
-            {
-                _dealerId = dealer.Id;
-                _name.text = dealer.Name;
-                _title.text = dealer.Title;
-                _fullLine = "";
-                _line.text = "";
-                _dialog.SetActive(false);
-                _reacting = false;
-                PlayBase();
-            });
+            _sequencer.Do(() => ShowDealer(dealer));
         }
+
+        /// <summary>The new demon, right now (a scene calls this at its darkest moment).</summary>
+        public void ShowDealer(DealerCard dealer)
+        {
+            _dealerId = dealer.Id;
+            _name.text = dealer.Name;
+            _title.text = dealer.Title;
+            _fullLine = "";
+            _line.text = "";
+            _dialog.SetActive(false);
+            _reacting = false;
+            SpeakLike(dealer.IsFinalTable);
+            PlayBase();
+        }
+
+        /// <summary>True while the demon at the table is the Morning Star (his own dialogue colours).</summary>
+        public bool IsFinalTable { get; private set; }
+
+        /// <summary>The Morning Star speaks from a black, hellfire-edged box in ember letters; the others from the bone one.</summary>
+        private void SpeakLike(bool finalTable)
+        {
+            IsFinalTable = finalTable;
+            Sprite hot = finalTable ? UiArt.Sprite(UiArt.DialogLucifer) : null;
+            if (_plainDialog != null)
+                _dialogBox.sprite = hot != null ? hot : _plainDialog;
+            _line.color = finalTable ? Palette.Ember : Palette.Bone;
+            _name.color = finalTable ? Palette.Hell : Palette.GoldLight;
+            // "THE MORNING STAR" is too long for the blocky capitals on one line: his name plate uses the small pixel font.
+            Font font = finalTable ? UiArt.Body : UiArt.Display;
+            if (font != null) _name.font = font;
+        }
+
+        /// <summary>True while a line is still typing out.</summary>
+        public bool IsSpeaking => IsTyping;
 
         public void Say(string line, DealerMood mood)
         {

@@ -17,8 +17,9 @@ namespace HellPoker.Presentation.Views
     public sealed class DealerSelectView : MonoBehaviour, IDealerSelectView
     {
         private const int SortingOrder = 110;
-        private const int CardWidth = 148;
+        private const int MaxCardWidth = 148;
         private const int CardSpacing = 8;
+        private int _cardWidth = MaxCardWidth;
         private const int CardsY = 30;
         private const int ConfirmWidth = 248;
         private const int ConfirmHeight = 88;
@@ -74,7 +75,7 @@ namespace HellPoker.Presentation.Views
             _cards = UiFactory.CreateRect("Cards", screen).Stretch();
 
             Image details = UiFactory.CreatePanel("Details", screen);
-            details.rectTransform.PlaceTL(8, 186, PixelScreen.Width - 16, 78);
+            details.rectTransform.PlaceTL(8, 190, PixelScreen.Width - 16, 76);
             _detailTitle = UiFactory.CreateText("Name", details.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithShadow();
             _detailTitle.rectTransform.PlaceTL(8, 6, 300, 8);
             _description = UiFactory.CreateText("Description", details.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
@@ -145,10 +146,13 @@ namespace HellPoker.Presentation.Views
             }
             _subtitle.text = changingTables ? UiText.ChooseTableSubtitle : UiText.ChooseDealerSubtitle;
 
-            int total = dealers.Count * CardWidth + (dealers.Count - 1) * CardSpacing;
+            // As wide as the row allows (four demons fit in 110 px cards), never narrower than a portrait box.
+            _cardWidth = Mathf.Clamp((PixelScreen.Width - 16 - (dealers.Count - 1) * CardSpacing) / Mathf.Max(1, dealers.Count),
+                DealerView.PortraitSize + 8, MaxCardWidth);
+            int total = dealers.Count * _cardWidth + (dealers.Count - 1) * CardSpacing;
             int left = (PixelScreen.Width - total) / 2;
             for (int i = 0; i < dealers.Count; i++)
-                BuildCard(dealers[i], i, left + i * (CardWidth + CardSpacing), changingTables);
+                BuildCard(dealers[i], i, left + i * (_cardWidth + CardSpacing), changingTables);
 
             Select(current, wipe: false);   // the hall behind always matches the highlight from the first frame
             _canvas.enabled = true;
@@ -167,6 +171,18 @@ namespace HellPoker.Presentation.Views
             _confirm.SetActive(false);
         }
 
+        /// <summary>The locked demon is brought forward and answers from the dark, in the details panel.</summary>
+        public void ShowLockedLine(int index, string line)
+        {
+            Select(index, wipe: true);
+            _description.text = line ?? "";
+            _description.color = Palette.Ember;
+            LastLockedLine = line;
+        }
+
+        /// <summary>What the locked demon said last (for tests).</summary>
+        public string LastLockedLine { get; private set; }
+
         public void Hide()
         {
             _confirm.SetActive(false);
@@ -177,9 +193,10 @@ namespace HellPoker.Presentation.Views
         private void BuildCard(DealerChoice choice, int index, int x, bool changingTables)
         {
             DealerCard dealer = choice.Card;
-            RectTransform card = UiFactory.CreateRect($"Dealer_{dealer.Id}", _cards).PlaceTL(x, CardsY, CardWidth, 152);
+            int width = _cardWidth;
+            RectTransform card = UiFactory.CreateRect($"Dealer_{dealer.Id}", _cards).PlaceTL(x, CardsY, width, 152);
 
-            int boxX = (CardWidth - (DealerView.PortraitSize + 8)) / 2;
+            int boxX = (width - (DealerView.PortraitSize + 8)) / 2;
             SpriteFrameAnimator portrait = DealerView.CreatePortrait(card, boxX, 0);
             portrait.Play(_library.Get(dealer.Id, choice.SoulAtStake ? DealerAnimation.Soul : DealerAnimation.Idle));
             Image box = portrait.transform.parent.GetComponent<Image>();
@@ -192,8 +209,8 @@ namespace HellPoker.Presentation.Views
             UiFactory.MakeClickOnly(pick);
             pick.onClick.AddListener(() => Select(index, wipe: true));
 
-            // While changing tables: is the soul safe at this table?
-            if (changingTables)
+            // While changing tables: is the soul safe at this table? (Not asked of the locked one.)
+            if (changingTables && !choice.IsLocked)
             {
                 Text status = UiFactory.CreateText("SoulStatus", box.transform, choice.SoulAtStake ? UiText.SoulAtStake : UiText.Safe, 8,
                     choice.SoulAtStake ? Palette.Hell : Palette.GreenLight, TextAnchor.MiddleCenter).WithShadow();
@@ -201,17 +218,25 @@ namespace HellPoker.Presentation.Views
                 status.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
 
-            UiFactory.CreateText("Name", card, dealer.Name, 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
-                .rectTransform.PlaceTL(0, 106, CardWidth, 8);
-            UiFactory.CreateText("Title", card, dealer.Title, 8, Palette.BoneMid).rectTransform.PlaceTL(0, 115, CardWidth, 9);
-            if (dealer.SoulThreshold > 0)
+            // The locked one's long name ("THE MORNING STAR") takes the small pixel font, so it fits a narrow card.
+            Text name = UiFactory.CreateText("Name", card, dealer.Name, 8, choice.IsLocked ? Palette.Hell : Palette.GoldLight,
+                style: choice.IsLocked ? FontStyle.Normal : FontStyle.Bold).WithShadow();
+            name.rectTransform.PlaceTL(-8, 106, width + 16, 8);
+            name.horizontalOverflow = HorizontalWrapMode.Overflow;
+            // Narrow cards give the title two lines.
+            Text title = UiFactory.CreateText("Title", card, dealer.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter);
+            title.rectTransform.PlaceTL(0, 115, width, 17);
+            if (dealer.SoulThreshold > 0 && !choice.IsLocked)
                 UiFactory.CreateText("SoulLine", card, string.Format(UiText.SoulLineCardFormat, dealer.SoulThreshold), 8, Palette.LilacLight)
-                    .rectTransform.PlaceTL(0, 124, CardWidth, 9);
+                    .rectTransform.PlaceTL(0, 131, width, 9);
 
-            string label = choice.IsCurrent ? UiText.ReturnToTable : UiText.Challenge;
-            Button choose = UiFactory.CreateButton($"ChooseDealer{index}", card, label, 8, out _, choice.SoulAtStake ? ButtonSkin.Blood : ButtonSkin.Ember);
-            ((RectTransform)choose.transform).PlaceTL((CardWidth - 88) / 2, 134, 88, 18);
+            string label = choice.IsLocked ? UiText.Locked : choice.IsCurrent ? UiText.ReturnToTable : UiText.Challenge;
+            ButtonSkin skin = choice.IsLocked ? ButtonSkin.Ash : choice.SoulAtStake ? ButtonSkin.Blood : ButtonSkin.Ember;
+            Button choose = UiFactory.CreateButton($"ChooseDealer{index}", card, label, 8, out _, skin);
+            ((RectTransform)choose.transform).PlaceTL((width - 88) / 2, 141, 88, 18);
             choose.onClick.AddListener(() => DealerChosen?.Invoke(index));
+            if (choice.IsLocked)
+                choose.GetComponent<ButtonFeel>().Locked = true;   // looks locked; a click still gets his answer
 
             _built.Add((box, portrait));
         }
@@ -231,7 +256,9 @@ namespace HellPoker.Presentation.Views
             DealerCard dealer = _dealers[index].Card;
             _salon.SetSalon(dealer.Id, _dealers[index].SoulAtStake ? SalonMode.Soul : SalonMode.Normal, wipe);
             _detailTitle.text = dealer.Name;
+            _detailTitle.color = _dealers[index].IsLocked ? Palette.Hell : Palette.GoldLight;
             _description.text = dealer.Description;
+            _description.color = Palette.Bone;
 
             int half = (dealer.Traits.Count + 1) / 2;
             var left = new List<string>();

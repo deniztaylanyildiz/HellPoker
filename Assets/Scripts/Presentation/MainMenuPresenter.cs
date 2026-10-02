@@ -28,13 +28,19 @@ namespace HellPoker.Presentation
         private readonly Dealer[] _dealers;
         private readonly DealerCard[] _dealerCards;
 
+        /// <summary>Lucifer's card: last on the choice screen, locked; null when there is no Lucifer.</summary>
+        private readonly DealerCard _finalCard;
+
         private bool _changingTables;
         private int _pendingSeat = -1;
 
+        /// <param name="dealers">The demons the player may choose.</param>
+        /// <param name="finalDealer">Lucifer, shown locked after them; he is never chosen, only met below the gate.</param>
         public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
-            IReadOnlyList<Dealer> dealers)
+            IReadOnlyList<Dealer> dealers, Dealer finalDealer = null)
         {
+            _finalCard = finalDealer == null ? null : DealerCards.Describe(finalDealer);
             _menu = menu ?? throw new ArgumentNullException(nameof(menu));
             _dealerSelect = dealerSelect ?? throw new ArgumentNullException(nameof(dealerSelect));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -148,6 +154,8 @@ namespace HellPoker.Presentation
         {
             _pendingSeat = -1;
             HideAll();
+            if (_finalCard != null)
+                choices = choices.Concat(new[] { new DealerChoice(_finalCard, soulAtStake: false, isCurrent: false, isLocked: true) });
             _dealerSelect.Show(choices.ToArray());
             _transition.Play();
         }
@@ -179,6 +187,13 @@ namespace HellPoker.Presentation
 
         private void Choose(int index)
         {
+            if (_finalCard != null && index == _dealers.Length)
+            {
+                // Nobody sits with him by choice: he answers from the dark.
+                _dealerSelect.ShowLockedLine(index, UiText.Dealer(_finalCard.Id).NotYet);
+                return;
+            }
+
             if (index < 0 || index >= _dealers.Length) return;
             Dealer dealer = _dealers[index];
 

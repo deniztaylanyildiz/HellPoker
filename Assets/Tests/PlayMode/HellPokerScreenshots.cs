@@ -168,18 +168,90 @@ namespace HellPoker.PlayMode.Tests
 
                 Press("FoldButton");
                 yield return WaitForTable();
-                SetSentence(presenter, 200);
-                yield return WaitForTable();
-                Press("ActionButton");   // next hand
-                yield return WaitForTable();
-                Press("ActionButton");   // deal
-                yield return WaitForTable();
-                yield return new WaitForSeconds(1.5f);
-                yield return Shot($"10_{halls[dealer]}_final_stretch");
+                // (No final stretch at the ordinary tables any more: at 250 years Lucifer summons the player — see 24-33.)
             }
 
             yield return CaptureSoul(presenter);
             yield return CaptureEnds(presenter);
+            yield return CaptureLucifer(presenter);
+        }
+
+        /// <summary>
+        /// The Morning Star: his locked card, the summons in the dark, his table (and its last moments), his re-raise, the fall,
+        /// and the end where his eyes go out. He must never be fully seen in any of them.
+        /// </summary>
+        private static IEnumerator CaptureLucifer(TablePresenter presenter)
+        {
+            Press("RecordsBackButton");
+            yield return new WaitForSeconds(0.4f);
+            Press("NewGameButton");
+            yield return new WaitForSeconds(0.6f);
+            Press("ChooseDealer3");   // locked: he answers from the dark
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot("24_lucifer_locked_card");
+
+            Press("ChooseDealer1");   // Belial
+            yield return WaitForTable();
+            yield return new WaitForSeconds(1f);
+
+            // Down to the gate: the old demon's farewell, then darkness creeps in.
+            SetSentence(presenter, 240);
+            yield return new WaitForSeconds(3.0f);
+            yield return Shot("25_summoned_darkness");
+            yield return WaitForTable();
+            yield return new WaitForSeconds(1.2f);
+            yield return Shot("26_lucifer_table");
+
+            presenter.Game.GetType().GetField("_houseBetting", Flags).SetValue(presenter.Game, new AlwaysReRaise());
+            Press("ActionButton");   // deal
+            yield return WaitForTable();
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("27_lucifer_decision");
+            Press("CheckToDrawButton");
+            yield return WaitForTable();
+            Press("ActionButton");   // stand pat
+            yield return WaitForTable();
+            Press("RaiseButton");    // he raises back
+            yield return new WaitForSeconds(0.3f);
+            yield return Shot("28_lucifer_reraise");
+            yield return WaitForTable();
+            yield return PlayToShowdown();
+            yield return WaitForTable();
+
+            // His last moments: one hand could end it.
+            if (!presenter.Game.IsGameOver)
+            {
+                SetSentence(presenter, 120);
+                yield return WaitForTable();
+                if (ActionLabelIs("NEXT HAND")) Press("ActionButton");
+                yield return WaitForTable();
+                yield return new WaitForSeconds(1.5f);
+                yield return Shot("29_lucifer_last_moments");
+            }
+
+            // Cast down: back above the gate, the screen falls into Belial's hall.
+            yield return BetweenHands(presenter);
+            SetSentence(presenter, 400);
+            yield return new WaitForSeconds(2.1f);
+            yield return Shot("30_cast_down_falling");
+            yield return WaitForTable();
+            yield return new WaitForSeconds(1f);
+            yield return Shot("31_cast_down_landed");
+
+            // Summoned once more, and beaten: the Morning Star falls.
+            yield return BetweenHands(presenter);
+            SetSentence(presenter, 200);
+            yield return WaitForTable();
+            yield return new WaitForSeconds(1f);
+            yield return BetweenHands(presenter);
+            presenter.Game.TakeOver(0, presenter.Game.RoundNumber);
+            typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+            yield return WaitForTable();
+            Press("ActionButton");   // THE END
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot("32_end_morning_star");
+            yield return new WaitForSeconds(2f);
+            yield return Shot("33_end_morning_star_dark");
         }
 
         /// <summary>The end screens (a run set free, a run damned) and the records.</summary>
@@ -199,7 +271,8 @@ namespace HellPoker.PlayMode.Tests
                 yield return WaitForTable();
                 Press("ActionButton");   // THE END
                 yield return new WaitForSeconds(0.6f);
-                yield return Shot(years == 0 ? "21_end_absolved" : "22_end_damned");
+                // Freed at an ordinary table: that is Wild Bill's escape now (Lucifer waits below).
+                yield return Shot(years == 0 ? "21_end_wild_bill" : "22_end_damned");
 
                 Press("EndNewGameButton");
                 yield return new WaitForSeconds(0.4f);
@@ -314,6 +387,25 @@ namespace HellPoker.PlayMode.Tests
             yield return WaitForTable();
             yield return new WaitForSeconds(2f);
             yield return Shot("20_lilith_soul");
+        }
+
+        /// <summary>Screenshot tool only: plays out whatever hand is on and moves on, so the table waits between hands.</summary>
+        private static IEnumerator BetweenHands(TablePresenter presenter)
+        {
+            for (int guard = 0; guard < 5 && presenter.Game.Phase != HellPoker.Core.Game.GamePhase.Betting && !presenter.Game.IsGameOver; guard++)
+            {
+                if (presenter.Game.Phase == HellPoker.Core.Game.GamePhase.RoundOver)
+                    Press("ActionButton");
+                else
+                    yield return PlayToShowdown();
+                yield return WaitForTable();
+            }
+            if (presenter.Game.IsGameOver)
+            {
+                SetSentence(presenter, 300);
+                yield return WaitForTable();
+                yield return BetweenHands(presenter);
+            }
         }
 
         private const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;

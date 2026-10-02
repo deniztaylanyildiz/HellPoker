@@ -315,6 +315,12 @@ namespace HellPoker.Core.Game
                 return false;
             }
 
+            if (Rules.IsFinalTable)
+            {
+                reason = "Nobody leaves the Morning Star's table.";
+                return false;
+            }
+
             if (IsSoulAtStake)
             {
                 reason = "Your soul is on this table. You cannot leave it.";
@@ -441,7 +447,7 @@ namespace HellPoker.Core.Game
             if (showdown == null)
                 _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
-                _ledger.Forgive(_payouts.GetYearsForgiven(showdown.Player.Category, CurrentStake, Ante, _ledger.Years));
+                _ledger.Forgive(Forgiven(showdown.Player.Category));
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
                 _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)));
 
@@ -454,6 +460,18 @@ namespace HellPoker.Core.Game
 
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
                 yearsBefore, _ledger.Years, Phase);
+        }
+
+        /// <summary>
+        /// What a win forgives. While Lucifer waits below, an ordinary table never ends the sentence: the last year stays,
+        /// and only the absolution hand (which forgives everything) walks out from here.
+        /// </summary>
+        private int Forgiven(HandCategory playerCategory)
+        {
+            int forgiven = _payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, _ledger.Years);
+            if (Rules.KeepsTheLastYear && !_payouts.IsAbsolution(playerCategory))
+                forgiven = Math.Min(forgiven, _ledger.Years - 1);
+            return forgiven;
         }
 
         private void ClearHand()

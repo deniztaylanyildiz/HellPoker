@@ -90,7 +90,8 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest]
         public IEnumerator NewGame_AfterTheFinalStretchOrTheSoul_StartsInANormalHall()
         {
-            foreach (int years in new[] { 200, 2100 })
+            // 140: summoned to Lucifer, in his last moments (his hall burning); 2100: the soul at Mammon's.
+            foreach (int years in new[] { 140, 2100 })
             {
                 Press(Menu.IsMenuOpen ? "NewGameButton" : "MenuButton");
                 if (!Object.FindFirstObjectByType<DealerSelectView>().IsVisible) Press("NewGameButton");
@@ -99,7 +100,7 @@ namespace HellPoker.PlayMode.Tests
                 Table.Game.TakeOver(years, 3);
                 Table.SwitchTable(HellPoker.Core.Dealers.DealerRoster.Mammon);
                 yield return WaitForTable();
-                AssertShows<TableView>("mammon", years > 1000 ? SalonMode.Soul : SalonMode.Hell);
+                AssertShows<TableView>(years > 1000 ? "mammon" : "lucifer", years > 1000 ? SalonMode.Soul : SalonMode.Hell);
 
                 Press("MenuButton");
                 Press("NewGameButton");

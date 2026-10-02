@@ -19,10 +19,24 @@ namespace HellPoker.Presentation.Abstractions
         Menacing
     }
 
+    /// <summary>How a new demon takes the table.</summary>
+    public enum SeatChange
+    {
+        /// <summary>At once (a new run, a chosen table, a resumed save).</summary>
+        Instant,
+
+        /// <summary>The player is summoned to Lucifer: the hall slowly goes dark, then his eyes open.</summary>
+        Summoned,
+
+        /// <summary>Lucifer casts the player down: the screen falls into the old demon's hall.</summary>
+        CastDown
+    }
+
     /// <summary>The demon at the table: portrait, name and what they say.</summary>
     public interface IDealerView
     {
-        void SetDealer(DealerCard dealer);
+        /// <param name="change">Instant changes happen at once; the others play their scene after what is already queued.</param>
+        void SetDealer(DealerCard dealer, SeatChange change = SeatChange.Instant);
 
         /// <summary>The dealer speaks a line in a mood.</summary>
         void Say(string line, DealerMood mood);

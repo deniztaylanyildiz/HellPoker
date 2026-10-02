@@ -16,8 +16,13 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The sentence at which this demon takes the player's soul onto the table.</summary>
         public int SoulThreshold { get; }
 
-        public DealerCard(string id, string name, string title, string description, IReadOnlyList<string> traits, int soulThreshold = 0)
+        /// <summary>Lucifer's: never chosen, shown locked; at the table he speaks in his own colours.</summary>
+        public bool IsFinalTable { get; }
+
+        public DealerCard(string id, string name, string title, string description, IReadOnlyList<string> traits, int soulThreshold = 0,
+            bool isFinalTable = false)
         {
+            IsFinalTable = isFinalTable;
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Name = name ?? "";
             Title = title ?? "";

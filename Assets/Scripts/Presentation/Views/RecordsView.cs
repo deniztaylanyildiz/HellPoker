@@ -43,8 +43,8 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.PlaceTL(0, 36, PixelScreen.Width, 16);
 
             _body = UiFactory.CreateText("Body", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter);
-            _body.rectTransform.PlaceTL(104, 64, PixelScreen.Width - 208, 140);
-            _body.lineSpacing = 1.25f;
+            _body.rectTransform.PlaceTL(104, 58, PixelScreen.Width - 208, 152);
+            _body.lineSpacing = 1.1f;
 
             Button back = UiFactory.CreateButton("RecordsBackButton", screen, UiText.Back, 8, out _, ButtonSkin.Blood);
             ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 56, 80, 20);
@@ -59,6 +59,13 @@ namespace HellPoker.Presentation.Views
                 string.Format(UiText.RecordsAbsolvedFormat, records.Absolutions),
                 string.Format(UiText.RecordsDamnedFormat, records.Damnations),
                 records.FastestAbsolution.HasValue ? string.Format(UiText.RecordsFastestFormat, records.FastestAbsolution.Value) : UiText.RecordsFastestNone,
+                "",
+                string.Format(UiText.RecordsLuciferReachedFormat, records.LuciferReached),
+                string.Format(UiText.RecordsLuciferDefeatedFormat, records.LuciferDefeated),
+                records.FewestLuciferAttempts.HasValue
+                    ? string.Format(UiText.RecordsFewestAttemptsFormat, records.FewestLuciferAttempts.Value)
+                    : UiText.RecordsFewestAttemptsNone,
+                string.Format(UiText.RecordsWildBillFormat, records.WildBillEscapes),
                 ""
             };
             foreach (DealerCard dealer in dealers)

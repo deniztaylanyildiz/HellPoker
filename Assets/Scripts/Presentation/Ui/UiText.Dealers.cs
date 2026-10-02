@@ -26,6 +26,21 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The player closed the game mid-hand and came back: the hand was forfeited.</summary>
         public string[] Fled;
 
+        /// <summary>The player is summoned to Lucifer from this demon's table: the demon's last word.</summary>
+        public string[] Farewell;
+
+        /// <summary>Lucifer cast the player down and they land back at this demon's table.</summary>
+        public string[] Returned;
+
+        /// <summary>Lucifer only: the player climbed back above the gate and is cast down.</summary>
+        public string[] CastDown;
+
+        /// <summary>Lucifer only: the greeting of the second summons, then of every later one (he remembers).</summary>
+        public string[] Remembers;
+
+        /// <summary>Lucifer only: what he says when the locked card on the choice screen is clicked.</summary>
+        public string NotYet;
+
         /// <summary>The warning before sitting at this demon's table with the soul already past their line.</summary>
         public string SoulWarning;
         public string Absolved;
@@ -42,6 +57,8 @@ namespace HellPoker.Presentation.Ui
         public const string TraitDrawFormat = "Exchange up to {0} cards";
         public const string TraitRevealFormat = "Shows {0} House cards before your last bet";
         public const string TraitRevealOne = "Shows only 1 House card before your last bet";
+        public const string TraitRevealNone = "Shows none of his cards before the showdown";
+        public const string TraitFixedStakesFormat = "Fixed stakes: ante {0}, at most {1} on the table";
         public const string TraitPayoutFormat = "Pair ×{0} · Flush ×{1} · Full ×{2} · Royal ×{3}";
         /// <summary>{0} loss surcharge (see <see cref="UiText.LossSurcharge"/>).</summary>
         public const string TraitLossFormat = "Lose: same, on the House's hand{0}";
@@ -72,6 +89,7 @@ namespace HellPoker.Presentation.Ui
                 case DealerRoster.MammonId: return Mammon;
                 case DealerRoster.BelialId: return Belial;
                 case DealerRoster.LilithId: return Lilith;
+                case DealerRoster.LuciferId: return Lucifer;
                 default: return Unknown;
             }
         }
@@ -116,6 +134,16 @@ namespace HellPoker.Presentation.Ui
             {
                 "You walked out mid-hand? The ledger noticed. Debited, with interest.",
                 "Skipping out on an open account? I charged it as forfeit."
+            },
+            Farewell = new[]
+            {
+                "Your debt is nearly paid... and someone else has noticed you. My condolences.",
+                "Ah. The account is being transferred. Downstairs."
+            },
+            Returned = new[]
+            {
+                "Back already? The ledger reopens. With interest.",
+                "Thrown down like an old coin. Sit. We have accounts to settle."
             },
             SoulWarning = "Your soul will be on his table — and he never lets collateral walk.",
             Absolved = "Paid in full?! Impossible... Get out before I find an error in the books.",
@@ -163,6 +191,16 @@ namespace HellPoker.Presentation.Ui
                 "Vanishing mid-act? I kept your ticket. And your wager.",
                 "You left before the final scene, darling. The stakes stayed with me."
             },
+            Farewell = new[]
+            {
+                "Oh dear. He has noticed you. Do try to be entertaining, darling.",
+                "The curtain falls for me. Yours is about to rise... below."
+            },
+            Returned = new[]
+            {
+                "An encore! I knew you could not stay away.",
+                "Fell all the way back to me? How touching."
+            },
             SoulWarning = "Your soul will be on his table — and he does not let an audience leave.",
             Absolved = "Well played. Do come back — I always win in the end.",
             Damned = "Welcome home. I saved you a seat. Forever."
@@ -209,13 +247,82 @@ namespace HellPoker.Presentation.Ui
                 "You slipped away in the dark. I kept what you left on my table.",
                 "Running mid-hand? Nothing leaves me. That wager is mine."
             },
+            Farewell = new[]
+            {
+                "Shh. Someone older than the night is calling you. Go.",
+                "He has noticed you, little soul. Even I do not keep him waiting."
+            },
+            Returned = new[]
+            {
+                "You fell back into my dark. I kept your place warm.",
+                "Cast down? Come here. The night forgives what he does not."
+            },
             SoulWarning = "Your soul will be on her table. She does not give back what she holds.",
             Absolved = "Go, then. The dawn will find you dull. You will miss me.",
             Damned = "Mine. All mine. For every night that ever was."
         };
 
+        /// <summary>The Morning Star. Calm, proud, never raises his voice; short sentences. His name is never spoken at the table.</summary>
+        private static readonly DealerText Lucifer = new DealerText
+        {
+            Name = "THE MORNING STAR",
+            Title = "Waits below 250 years",
+            Description = "Every sentence ends at his table. Nobody has seen more of him than his eyes.",
+            Greeting = new[] { "You climbed down far. Sit. Only I can let you go." },
+            Remembers = new[]
+            {
+                "Again. I remember your hands. Sit.",
+                "Once more. I have watched you fall every time. Sit."
+            },
+            PlayerWins = new[]
+            {
+                "Take it. It changes nothing.",
+                "A small mercy. I can afford many.",
+                "Good. Hope burns brighter before it goes out."
+            },
+            HouseWins = new[]
+            {
+                "As expected.",
+                "You were never going to win that one.",
+                "Climb. I will wait."
+            },
+            PlayerFolds = new[] { "Fear. At last, something honest.", "Folding at my table costs everything. You knew." },
+            Push = new[] { "Nothing. For now." },
+            FinalStretch = new[] { "So close. I can hear you hoping." },
+            ReRaise = new[]
+            {
+                "Higher.",
+                "Do you see me? Then pay to see more.",
+                "I raise. You tremble. That is the order of things."
+            },
+            Sealed = new[]
+            {
+                "Bound. As every soul is, in the end.",
+                "No more choices. Only cards.",
+                "Sealed. Watch them turn."
+            },
+            Fled = new[] { "You closed your eyes. I did not. The wager is mine.", "There is no leaving in the middle. Not from me." },
+            CastDown = new[]
+            {
+                "Too heavy. Fall back where you came from.",
+                "Not yet worthy. Down you go.",
+                "Climb back to me. If you can."
+            },
+            SoulTaken = new[] { "Your soul. I have held finer ones." },
+            SoulReleased = new[] { "Keep it. It was never worth much." },
+            SoulLocked = new[] { "Leave? Nothing leaves my table.", "Sit down." },
+            SoulWarning = "",
+            Farewell = new[] { "" },
+            Returned = new[] { "" },
+            NotYet = "Not yet. Come down to me.",
+            Absolved = "...Go. The morning will come without me.",
+            Damned = "Forever, then. You will learn to like the dark."
+        };
+
         private static readonly DealerText Unknown = new DealerText
         {
+            Farewell = new[] { "Someone below wants you." },
+            Returned = new[] { "Back again." },
             Name = "THE HOUSE",
             Title = "",
             Description = "",

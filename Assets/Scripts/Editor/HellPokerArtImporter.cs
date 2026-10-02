@@ -21,6 +21,7 @@ namespace HellPoker.Editor
             { "panel", new Vector4(4, 4, 4, 4) },
             { "panel_hot", new Vector4(4, 4, 4, 4) },
             { "dialog", new Vector4(4, 4, 4, 4) },
+            { "dialog_lucifer", new Vector4(4, 4, 4, 4) },
             { "button_blood", new Vector4(4, 4, 4, 4) },
             { "button_ember", new Vector4(4, 4, 4, 4) },
             { "button_ash", new Vector4(4, 4, 4, 4) },

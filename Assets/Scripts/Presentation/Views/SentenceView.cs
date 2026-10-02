@@ -94,14 +94,21 @@ namespace HellPoker.Presentation.Views
             _damnation.rectTransform.PlaceTL(0, 41, Width, 9);
         }
 
-        public void SetSoulLine(int years)
+        public void SetSoulLine(int years) => SetLimit(years, string.Format(UiText.SoulLineFormat, years));
+
+        public void SetLimit(int years, string text)
         {
             _sequencer.Do(() =>
             {
                 _damnationYears = Mathf.Max(1, years);
-                _damnation.text = string.Format(UiText.SoulLineFormat, years);
+                _damnation.text = text ?? "";
                 Apply(_shown < 0f ? _target : _shown);
             });
+        }
+
+        public void SetLabel(string text)
+        {
+            _sequencer.Do(() => _label.text = text ?? "");
         }
 
         public void SetVisible(bool visible)

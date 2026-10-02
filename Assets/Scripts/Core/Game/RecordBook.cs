@@ -24,17 +24,46 @@ namespace HellPoker.Core.Game
 
         public IReadOnlyDictionary<string, int> AbsolutionsByDealer => _absolutionsByDealer;
 
+        /// <summary>Runs that were summoned to Lucifer at least once.</summary>
+        public int LuciferReached { get; private set; }
+
+        /// <summary>Runs that ended free at Lucifer's table.</summary>
+        public int LuciferDefeated { get; private set; }
+
+        /// <summary>Fewest summons it took to beat Lucifer; null until he is first beaten.</summary>
+        public int? FewestLuciferAttempts { get; private set; }
+
+        /// <summary>Runs set free by the Dead Man's Hand without ever meeting Lucifer.</summary>
+        public int WildBillEscapes { get; private set; }
+
         public int AbsolutionsAt(string dealerId) => _absolutionsByDealer.TryGetValue(dealerId ?? "", out int count) ? count : 0;
 
         public void RunStarted() => RunsStarted++;
 
-        /// <param name="dealerId">The demon at whose table the run ended.</param>
-        public void RunEnded(bool absolved, string dealerId, int handsPlayed)
+        /// <param name="dealerId">The demon the run is credited to: where it ended, or — at Lucifer's table — where the player came from.</param>
+        /// <param name="luciferAttempts">How many times the run was summoned to Lucifer.</param>
+        /// <param name="beatLucifer">True when the run ended free at Lucifer's table.</param>
+        /// <param name="wildBill">True when the Dead Man's Hand set the run free without Lucifer.</param>
+        public void RunEnded(bool absolved, string dealerId, int handsPlayed, int luciferAttempts = 0, bool beatLucifer = false,
+            bool wildBill = false)
         {
+            if (luciferAttempts > 0) LuciferReached++;
+
             if (!absolved)
             {
                 Damnations++;
                 return;
+            }
+
+            if (beatLucifer)
+            {
+                LuciferDefeated++;
+                if (!FewestLuciferAttempts.HasValue || luciferAttempts < FewestLuciferAttempts.Value)
+                    FewestLuciferAttempts = luciferAttempts;
+            }
+            else if (wildBill)
+            {
+                WildBillEscapes++;
             }
 
             Absolutions++;
@@ -52,7 +81,11 @@ namespace HellPoker.Core.Game
                 "runs=" + RunsStarted.ToString(CultureInfo.InvariantCulture),
                 "absolved=" + Absolutions.ToString(CultureInfo.InvariantCulture),
                 "damned=" + Damnations.ToString(CultureInfo.InvariantCulture),
-                "fastest=" + (FastestAbsolution.HasValue ? FastestAbsolution.Value.ToString(CultureInfo.InvariantCulture) : "")
+                "fastest=" + (FastestAbsolution.HasValue ? FastestAbsolution.Value.ToString(CultureInfo.InvariantCulture) : ""),
+                "lucifer.reached=" + LuciferReached.ToString(CultureInfo.InvariantCulture),
+                "lucifer.defeated=" + LuciferDefeated.ToString(CultureInfo.InvariantCulture),
+                "lucifer.fewest=" + (FewestLuciferAttempts.HasValue ? FewestLuciferAttempts.Value.ToString(CultureInfo.InvariantCulture) : ""),
+                "wildbill=" + WildBillEscapes.ToString(CultureInfo.InvariantCulture)
             };
             lines.AddRange(_absolutionsByDealer.OrderBy(pair => pair.Key)
                 .Select(pair => "free." + pair.Key + "=" + pair.Value.ToString(CultureInfo.InvariantCulture)));
@@ -76,6 +109,12 @@ namespace HellPoker.Core.Game
                 book.Damnations = NonNegative(KeyValues.Int(values, "damned"));
                 string fastest = values.TryGetValue("fastest", out string f) ? f : "";
                 book.FastestAbsolution = fastest.Length > 0 ? NonNegative(KeyValues.Int(values, "fastest")) : (int?)null;
+                // Lucifer's records came later: a book without them simply has none yet.
+                book.LuciferReached = OptionalCount(values, "lucifer.reached");
+                book.LuciferDefeated = OptionalCount(values, "lucifer.defeated");
+                book.WildBillEscapes = OptionalCount(values, "wildbill");
+                string fewest = values.TryGetValue("lucifer.fewest", out string l) ? l : "";
+                book.FewestLuciferAttempts = fewest.Length > 0 ? NonNegative(KeyValues.Int(values, "lucifer.fewest")) : (int?)null;
                 foreach (var pair in values.Where(pair => pair.Key.StartsWith("free.", StringComparison.Ordinal)))
                     book._absolutionsByDealer[pair.Key.Substring("free.".Length)] = NonNegative(KeyValues.Int(values, pair.Key));
                 return book;
@@ -85,6 +124,11 @@ namespace HellPoker.Core.Game
             {
                 return new RecordBook();
             }
+        }
+
+        private static int OptionalCount(Dictionary<string, string> values, string key)
+        {
+            return values.ContainsKey(key) ? NonNegative(KeyValues.Int(values, key)) : 0;
         }
 
         private static int NonNegative(int value)

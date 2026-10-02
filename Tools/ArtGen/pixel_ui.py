@@ -281,6 +281,18 @@ def divider(w=48):
     return img
 
 
+def fade(steps=4):
+    """A slow fall into darkness without any transparency blending: black laid over the screen in growing Bayer patterns
+    (¼, ½, ¾, all), one full-screen frame per step."""
+    out = []
+    for k in range(1, steps + 1):
+        img = Img(SCREEN_W, SCREEN_H)
+        full = np.ones((img.h, img.w), bool)
+        img.dither(full, C.CLEAR, C.BLACK, k / steps - 0.01 if k < steps else 1.0)
+        out.append(img)
+    return sheet(out)
+
+
 def write_all(out_dir, fonts_dir):
     os.makedirs(out_dir, exist_ok=True)
     stone = background()
@@ -293,6 +305,8 @@ def write_all(out_dir, fonts_dir):
         "panel": box(C.NIGHT, C.GOLD_MID, C.DUSK, highlight=C.GOLD),
         "panel_hot": box(C.NIGHT, C.ORANGE, C.BLOOD, highlight=C.EMBER),
         "dialog": box(C.DUSK, C.BONE, C.NIGHT, highlight=C.WHITE),
+        "dialog_lucifer": box(C.BLACK, C.HELL, C.BLOOD_DARK, highlight=C.EMBER),
+        "fade": fade(),
         "button_blood": button(C.CRIMSON, C.RED, C.BLOOD),
         "button_ember": button(C.HELL, C.ORANGE, C.RED),
         "button_ash": button(C.PLUM, C.VIOLET, C.DUSK),

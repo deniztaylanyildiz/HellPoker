@@ -42,6 +42,33 @@ namespace HellPoker.Core.Dealers
                 foldPercentBeforeDraw: 100, foldPercentAfterDraw: 100),
             new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 90, bluffPercent: 10), soulThreshold: 1500);
 
+        /// <summary>
+        /// The Morning Star, the final table. Nobody chooses him: below the gate (250 years) the player is summoned, and only
+        /// at his table can the sentence end. Fixed stakes (50, at most 150), no house cards shown, losses ×1.25, folding
+        /// always costs the whole stake, re-raises with Two Pair+ 80% and bluffs 25%.
+        /// </summary>
+        public static Dealer Lucifer => new Dealer(LuciferId, maxDiscards: 3, houseCardsShown: 0,
+            new PayoutTable(PayoutTable.DefaultMultipliers, HandCategory.DeadMansHand, lossPercent: 125,
+                foldPercentBeforeDraw: 100, foldPercentAfterDraw: 100),
+            new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 80, bluffPercent: 25), soulThreshold: 2000,
+            stakes: StakeScale.Fixed(LuciferUnit, LuciferCap), isFinalTable: true);
+
+        public const string LuciferId = "lucifer";
+        public const int LuciferUnit = 50;
+        public const int LuciferCap = 150;
+
+        /// <summary>The demons a player may choose to sit with (Lucifer is not among them).</summary>
         public static IReadOnlyList<Dealer> All => new[] { Mammon, Belial, Lilith };
+
+        /// <summary>Any demon by id, Lucifer included; null for an unknown id.</summary>
+        public static Dealer Find(string id)
+        {
+            if (id == LuciferId) return Lucifer;
+            foreach (Dealer dealer in All)
+            {
+                if (dealer.Id == id) return dealer;
+            }
+            return null;
+        }
     }
 }

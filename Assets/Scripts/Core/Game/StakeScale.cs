@@ -51,9 +51,25 @@ namespace HellPoker.Core.Game
 
         public static StakeScale Default => new StakeScale();
 
+        /// <summary>A table with its own fixed stakes, whatever the sentence: one unit of <paramref name="unit"/> years and at
+        /// most <paramref name="cap"/> on the table (Lucifer's: 50 and 150). Less left than that is all in.</summary>
+        public static StakeScale Fixed(int unit, int cap)
+        {
+            if (unit <= 0) throw new ArgumentOutOfRangeException(nameof(unit));
+            if (cap < unit) throw new ArgumentOutOfRangeException(nameof(cap), "The cap holds at least the ante.");
+            return new StakeScale(minimumUnit: unit) { FixedUnit = unit, FixedCap = cap };
+        }
+
+        /// <summary>The unit of a fixed table; null when the unit follows the sentence.</summary>
+        public int? FixedUnit { get; private set; }
+
+        /// <summary>The cap of a fixed table; null when the cap is a share of the sentence.</summary>
+        public int? FixedCap { get; private set; }
+
         /// <summary>The betting unit for a hand started with this sentence: 1000 → 100, 650 → 50, 340 → 25, 180 → 10.</summary>
         public int UnitFor(int years)
         {
+            if (FixedUnit.HasValue) return FixedUnit.Value;
             int step = StepFor(years);
             int unit = years / Divisor / step * step;
             return Math.Max(MinimumUnit, unit);
@@ -68,7 +84,7 @@ namespace HellPoker.Core.Game
         /// <summary>The most that may be on the table in a hand started with this sentence. Never below the ante, never above the sentence.</summary>
         public int CapFor(int years)
         {
-            int cap = years * TableCapPercent / 100;
+            int cap = FixedCap ?? years * TableCapPercent / 100;
             return Math.Min(years, Math.Max(cap, AnteFor(years)));
         }
 

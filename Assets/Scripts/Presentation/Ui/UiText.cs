@@ -44,6 +44,9 @@ namespace HellPoker.Presentation.Ui
         public const string Hint = "Space deal/draw/pass  R raise  D check to draw  C call  F fold  1-5 cards  H hands  Esc menu";
         public const string PotFormat = "ON THE TABLE: {0}";
         public const string FinalStretchBannerFormat = "UNDER {0}: NO PASSING";
+        public const string LastMomentsBanner = "ONE HAND FROM FREEDOM";
+        public const string CastDownLineFormat = "Cast down above {0}";
+        public const string AttemptLabelFormat = "LUCIFER: ATTEMPT {0}";
 
         public const string Menu = "MENU";
         public const string MenuTaglineFormat = "You have been sentenced to {0} years in Hell.\nThe House offers you a game.";
@@ -56,9 +59,10 @@ namespace HellPoker.Presentation.Ui
         public const string MenuFooter = "Esc — menu";
         public const string RulesTitle = "THE RULES OF THE HOUSE";
 
-        /// <summary>{0} starting years, {1} (unused), {2} forced-raise threshold, {3} table cap percent.</summary>
+        /// <summary>{0} starting years, {1} (unused), {2} forced-raise threshold, {3} table cap percent, {4} Lucifer's gate,
+        /// {5} where a fall from his table lands, {6} his ante, {7} his table cap.</summary>
         public const string RulesFormat =
-            "You start with {0} years. Bring them down to 0 and you walk free.\n" +
+            "You start with {0} years. Bring them down to 0 and you walk free — but only at the last table.\n" +
             "Every demon has a soul line. Reach it and your soul goes on the table — lose it all and you are damned for eternity.\n" +
             "You may change tables between hands — never while your soul is on one.\n\n" +
             "1.  The ante is a tenth of your sentence (1000 years: 100, 500: 50, 250: 25). Deal.\n" +
@@ -68,7 +72,10 @@ namespace HellPoker.Presentation.Ui
             "    Raise after the draw and the House may raise back: CALL or FOLD.\n\n" +
             "Win: forgiven = the table + the ante × (your multiplier − 1).   Lose: the same on the House's hand.\n" +
             "At most {3}% of your sentence may be on the table. Fill it and the pact is sealed: no folding, the cards play out.\n" +
-            "Under {2} years passing is forbidden until the table is full.   A♠ A♣ 8♠ 8♣ — the Dead Man's Hand — sets you free.";
+            "A♠ A♣ 8♠ 8♣ — the Dead Man's Hand — sets you free at once, wherever you sit.\n\n" +
+            "THE MORNING STAR.  At {4} years or less, Lucifer summons you to his table, wherever you sit. Only there can a sentence end.\n" +
+            "His stakes are his own: ante {6}, at most {7} on the table. He shows no cards. You cannot leave.\n" +
+            "Climb back above {4} at his table and he casts you down: to the demon you came from, with at least {5} years.";
 
         public const string Deal = "DEAL";
         public const string Stand = "STAND PAT";
@@ -100,6 +107,7 @@ namespace HellPoker.Presentation.Ui
         public const string AbsolvedMessage = "DEAD MAN'S HAND!  Wild Bill vouches for you. You walk free.";
         public const string ServedMessage = "Your sentence is served. The gates of Hell open — you walk free.";
         public const string DamnedMessage = "Your soul is ash. The House owns you for eternity.";
+        public const string MorningStarFallsMessage = "His eyes go dark. The gates of Hell open — you walk free.";
 
         // ------------------------------------------------------------------ the pact (table full: the hand plays out on its own)
 
@@ -151,8 +159,9 @@ namespace HellPoker.Presentation.Ui
         public const string TipFirstReRaise = "tip.reraise";
         public const string TipFinalStretch = "tip.final";
         public const string TipSoul = "tip.soul";
+        public const string TipLucifer = "tip.lucifer";
 
-        public static string TipText(string tip, int forcedRaiseYears)
+        public static string TipText(string tip, int forcedRaiseYears, int gateYears = 250)
         {
             switch (tip)
             {
@@ -161,6 +170,7 @@ namespace HellPoker.Presentation.Ui
                 case TipFirstReRaise: return "I raise you back. CALL to stay in — or FOLD and leave the table to me.";
                 case TipFinalStretch: return string.Format("Under {0} years, no passing. Raise or fold — so close to freedom.", forcedRaiseYears);
                 case TipSoul: return "Past my line your soul is the stake. Lose all of it and you are mine forever.";
+                case TipLucifer: return string.Format("Only I can set you free. Fall above {0} and you will be cast down.", gateYears);
                 default: return null;
             }
         }
@@ -180,6 +190,18 @@ namespace HellPoker.Presentation.Ui
         public const string EndDealersFormat = "Tables: {0}";
         public const string EndSoulStaked = "Your soul went on the table.";
         public const string EndSoulKept = "Your soul never left you.";
+        public const string MorningStarFallsTitle = "THE MORNING STAR FALLS";
+        public const string MorningStarFallsSubtitle = "His eyes go dark. Nothing stands between you and the morning.";
+        public const string WildBillTitle = "WILD BILL'S ESCAPE";
+        public const string WildBillSubtitle = "Aces and eights. You walked out before he ever looked up.";
+        public const string EndBeatLuciferFormat = "The Morning Star fell on attempt {0}";
+        public const string EndLuciferTriedFormat = "You faced the Morning Star {0} time(s)";
+        public const string EndNeverMetLucifer = "You never met the Morning Star";
+        public const string RecordsLuciferReachedFormat = "Faced the Morning Star: {0}";
+        public const string RecordsLuciferDefeatedFormat = "Morning Star fallen: {0}";
+        public const string RecordsFewestAttemptsFormat = "Fewest attempts: {0}";
+        public const string RecordsFewestAttemptsNone = "Fewest attempts: not yet";
+        public const string RecordsWildBillFormat = "Wild Bill's escapes: {0}";
         public const string ToMenu = "MENU";
         public const string Records = "RECORDS";
         public const string RecordsTitle = "RECORDS";
@@ -248,8 +270,10 @@ namespace HellPoker.Presentation.Ui
 
         public const string LeaveTable = "LEAVE TABLE";
         public const string SoulBound = "SOUL BOUND";
+        public const string NoEscape = "NO ESCAPE";
         public const string ChangeTable = "CHANGE TABLE";
         public const string SitAnyway = "SIT ANYWAY";
+        public const string Locked = "LOCKED";
         public const string ReturnToTable = "RETURN";
         public const string Safe = "SAFE";
         public const string SoulAtStake = "SOUL AT STAKE";

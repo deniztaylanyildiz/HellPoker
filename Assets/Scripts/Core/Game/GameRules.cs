@@ -51,11 +51,33 @@ namespace HellPoker.Core.Game
         /// <summary>Betting unit, ante and table cap.</summary>
         public StakeScale Stakes { get; }
 
+        /// <summary>
+        /// Between hands, a sentence at or below this summons the player to Lucifer's table — the only place a sentence can
+        /// end (bar the Dead Man's Hand). 0 means there is no Lucifer: every table can set the player free.
+        /// </summary>
+        public int LuciferGateYears { get; }
+
+        /// <summary>Climbing back above the gate at Lucifer's table casts the player down: the sentence becomes at least this.</summary>
+        public int LuciferCastDownYears { get; }
+
+        /// <summary>True for the rules of Lucifer's own table.</summary>
+        public bool IsFinalTable { get; }
+
+        /// <summary>
+        /// True at an ordinary table while Lucifer waits below: a win there never ends the sentence (it keeps at least one
+        /// year) unless it is the absolution hand. The end belongs to Lucifer's table.
+        /// </summary>
+        public bool KeepsTheLastYear => LuciferGateYears > 0 && !IsFinalTable;
+
         public GameRules(int startingYears = 1000, int soulThreshold = 2000, int maxDiscards = MaxDiscardPolicy.ClassicLimit,
             int forcedRaiseYears = 250, int houseCardsShown = 2, StakeScale stakes = null, int openingCardsShown = 2,
             int raiseUnitsBeforeDraw = 1, int raiseUnitsAfterDraw = 2, int houseReRaiseUnits = 1,
-            int soulWorthYears = 1000, int soulLossPercent = 150)
+            int soulWorthYears = 1000, int soulLossPercent = 150, int luciferGateYears = 250, int luciferCastDownYears = 500,
+            bool isFinalTable = false)
         {
+            if (luciferGateYears < 0) throw new ArgumentOutOfRangeException(nameof(luciferGateYears));
+            if (luciferGateYears > 0 && luciferCastDownYears <= luciferGateYears)
+                throw new ArgumentOutOfRangeException(nameof(luciferCastDownYears), "Being cast down must put the player above the gate.");
             if (startingYears <= 0) throw new ArgumentOutOfRangeException(nameof(startingYears));
             if (soulThreshold <= startingYears) throw new ArgumentOutOfRangeException(nameof(soulThreshold), "Must be above the starting sentence.");
             if (soulWorthYears <= 0) throw new ArgumentOutOfRangeException(nameof(soulWorthYears));
@@ -82,15 +104,23 @@ namespace HellPoker.Core.Game
             RaiseUnitsBeforeDraw = raiseUnitsBeforeDraw;
             RaiseUnitsAfterDraw = raiseUnitsAfterDraw;
             HouseReRaiseUnits = houseReRaiseUnits;
+            LuciferGateYears = luciferGateYears;
+            LuciferCastDownYears = luciferCastDownYears;
+            IsFinalTable = isFinalTable;
         }
 
         public static GameRules Default => new GameRules();
 
-        /// <summary>The same rules with a dealer's house rules (discard limit, house cards shown, soul line) swapped in.</summary>
-        public GameRules WithHouseRules(int maxDiscards, int houseCardsShown, int soulThreshold)
+        /// <summary>
+        /// The same rules with a dealer's house rules (discard limit, house cards shown, soul line) swapped in. A dealer with
+        /// stakes of their own brings them along; the final table also drops the final stretch (it has its own scale).
+        /// </summary>
+        public GameRules WithHouseRules(int maxDiscards, int houseCardsShown, int soulThreshold, StakeScale stakes = null,
+            bool finalTable = false)
         {
-            return new GameRules(StartingYears, soulThreshold, maxDiscards, ForcedRaiseYears, houseCardsShown, Stakes, OpeningCardsShown,
-                RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits, SoulWorthYears, SoulLossPercent);
+            return new GameRules(StartingYears, soulThreshold, maxDiscards, finalTable ? 0 : ForcedRaiseYears, houseCardsShown,
+                stakes ?? Stakes, OpeningCardsShown, RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits, SoulWorthYears,
+                SoulLossPercent, LuciferGateYears, LuciferCastDownYears, finalTable);
         }
     }
 }

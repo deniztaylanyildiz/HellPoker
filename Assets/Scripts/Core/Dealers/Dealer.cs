@@ -30,8 +30,17 @@ namespace HellPoker.Core.Dealers
         /// <summary>At this sentence the demon takes the player's soul onto the table; see <see cref="GameRules.SoulThreshold"/>.</summary>
         public int SoulThreshold { get; }
 
+        /// <summary>Stakes of the dealer's own, whatever the sentence (Lucifer's fixed 50 / 150); null for the table's scale.</summary>
+        public StakeScale Stakes { get; }
+
+        /// <summary>
+        /// The final table (Lucifer): nobody sits there by choice — the player is summoned to it at the gate, cannot leave it,
+        /// and only here can the sentence end. The final stretch rule does not apply (the table has its own stakes).
+        /// </summary>
+        public bool IsFinalTable { get; }
+
         public Dealer(string id, int maxDiscards, int houseCardsShown, PayoutTable payouts, HouseBettingStyle betting = null,
-            int soulThreshold = 2000)
+            int soulThreshold = 2000, StakeScale stakes = null, bool isFinalTable = false)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A dealer needs an id.", nameof(id));
             if (maxDiscards < 0 || maxDiscards > Hand.Size) throw new ArgumentOutOfRangeException(nameof(maxDiscards));
@@ -44,6 +53,8 @@ namespace HellPoker.Core.Dealers
             Payouts = payouts ?? throw new ArgumentNullException(nameof(payouts));
             Betting = betting ?? HouseBettingStyle.Silent;
             SoulThreshold = soulThreshold;
+            Stakes = stakes;
+            IsFinalTable = isFinalTable;
         }
 
         /// <summary>True when a player with this sentence would have their soul on this demon's table.</summary>
@@ -53,7 +64,7 @@ namespace HellPoker.Core.Dealers
         public GameRules ApplyTo(GameRules table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            return table.WithHouseRules(MaxDiscards, HouseCardsShown, SoulThreshold);
+            return table.WithHouseRules(MaxDiscards, HouseCardsShown, SoulThreshold, Stakes, IsFinalTable);
         }
     }
 }

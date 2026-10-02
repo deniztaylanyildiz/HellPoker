@@ -313,17 +313,97 @@ def lilith(frame):
     return img
 
 
-SALONS = {"mammon": mammon, "belial": belial, "lilith": lilith}
+# ================================================================== LUCIFER — the foot of a throne too high to see
+#
+# Only the lowest steps of a colossal throne; chains run up into the dark beyond the top of the frame. Red by default,
+# embers rising. Nothing of him, nor of the throne's seat, is ever in the picture.
+
+LUCIFER_FRAMES = 4   # 4 × 480 px stays within the importer's 2048 px texture limit
+
+# His final moments: the red runs hotter still.
+HOTTER = {
+    C.BLACK: C.BLOOD_DARK, C.NIGHT: C.BLOOD_DARK, C.DUSK: C.BLOOD, C.PLUM: C.CRIMSON,
+    C.BLOOD_DARK: C.BLOOD, C.BLOOD: C.CRIMSON, C.CRIMSON: C.RED, C.RED: C.HELL, C.HELL: C.ORANGE,
+    C.BONE_SHADE: C.CRIMSON, C.SILVER_DARK: C.RED, C.ORANGE: C.AMBER,
+}
+
+
+def chain(img, x0, y0, x1, y1, sway):
+    """A hanging chain of alternating links, from (x0, y0) down to (x1, y1)."""
+    n = int(math.hypot(x1 - x0, y1 - y0) // 5)
+    for k in range(n):
+        t = k / max(1, n - 1)
+        x = x0 + (x1 - x0) * t + math.sin(t * math.pi) * sway
+        y = y0 + (y1 - y0) * t
+        if k % 2 == 0:
+            link = img.m_ellipse(x + 0.5, y + 0.5, 2.0, 3.2) & ~img.m_ellipse(x + 0.5, y + 0.5, 0.9, 2.0)
+            img.paint(link, C.BONE_SHADE)
+            img.put(int(x) - 1, int(y) - 2, C.SILVER_DARK)
+        else:
+            img.paint(img.m_rect(int(x) - 1, int(y) - 1, int(x) + 1, int(y) + 1), C.BLACK)
+            img.put(int(x), int(y), C.BONE_SHADE)
+
+
+def lucifer(frame):
+    img = Img(W, H, C.BLACK)
+    # Darkness above, a red glow pooling down toward the steps.
+    full = np.ones((H, W), bool)
+    img.dither(full, C.BLACK, C.BLOOD_DARK, np.clip((img.ys - 40) / 140.0, 0, 1))
+    img.dither(img.m_rect(0, 150, W, H), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - 150) / 120.0, 0, 0.85))
+
+    # The steps: each wider and lower than the one above; the throne itself is somewhere far above the frame.
+    for i, (top, half) in enumerate(((176, 150), (196, 190), (218, 230), (242, 260))):
+        step = img.m_rect(240 - half, top, 240 + half, H)
+        img.paint(step, C.BLOOD_DARK)
+        img.paint(img.m_rect(240 - half, top, 240 + half, top + 1), C.CRIMSON)        # lit tread edge
+        img.paint(img.m_rect(240 - half, top + 2, 240 + half, top + 2), C.BLOOD)
+        for x in range(240 - half + 17 * (i % 2), 240 + half, 34):                   # joints between the blocks
+            img.paint(img.m_rect(x, top + 3, x, top + 20), C.BLACK)
+    # Two colossal feet of the throne, cut off by the top of the frame.
+    for x0 in (96, 352):
+        leg = img.m_rect(x0, 0, x0 + 32, 176)
+        img.paint(leg, C.NIGHT)
+        img.paint(img.m_rect(x0, 0, x0 + 2, 176), C.DUSK)
+        img.paint(img.m_rect(x0 - 6, 166, x0 + 38, 176), C.BLOOD_DARK)
+        img.paint(img.m_rect(x0 - 6, 166, x0 + 38, 166), C.CRIMSON)
+        img.inner_outline(leg, C.BLACK)
+
+    # Chains running up into the dark.
+    sway = [0, 1, 0, -1][frame]
+    for (x0, x1, y1) in ((20, 70, 200), (60, 110, 168), (430, 380, 190), (470, 446, 220), (190, 214, 172), (300, 270, 174)):
+        chain(img, x0, -4, x1, y1, sway)
+
+    readable_middle(img)
+
+    # Embers rising through everything (after the vignette, so they stay bright).
+    rng = np.random.default_rng(66)
+    for _ in range(46):
+        x = int(rng.integers(0, W))
+        y0 = int(rng.integers(0, H))
+        speed = int(rng.integers(5, 11))
+        y = (y0 - frame * speed) % H
+        x += int(round(math.sin((y + x) * 0.07) * 2))
+        color = [C.AMBER, C.ORANGE, C.HELL, C.EMBER][int(rng.integers(0, 4))]
+        img.put(x, y, color)
+        if speed > 8:
+            img.put(x, y + 1, C.RED)
+    return img
+
+
+SALONS = {"mammon": mammon, "belial": belial, "lilith": lilith, "lucifer": lucifer}
 VARIANTS = {"normal": None, "hell": HELL, "soul": SOUL}
+# Lucifer's hall has no soul variant (the soul never goes on his table) and its own, hotter final moments.
+SALON_VARIANTS = {"lucifer": {"normal": None, "hell": HOTTER}}
+SALON_FRAMES = {"lucifer": LUCIFER_FRAMES}
 
 
 def write_all(out_dir):
     written = []
     for dealer, draw in SALONS.items():
-        frames = [draw(f) for f in range(FRAMES)]
+        frames = [draw(f) for f in range(SALON_FRAMES.get(dealer, FRAMES))]
         folder = os.path.join(out_dir, dealer)
         os.makedirs(folder, exist_ok=True)
-        for variant, mapping in VARIANTS.items():
+        for variant, mapping in SALON_VARIANTS.get(dealer, VARIANTS).items():
             strip = sheet(frames)
             if mapping:
                 strip.px = lut(mapping)[strip.px]

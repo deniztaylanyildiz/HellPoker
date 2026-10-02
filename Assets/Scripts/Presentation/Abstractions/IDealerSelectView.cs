@@ -14,11 +14,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>True for the demon the player already sits with.</summary>
         public bool IsCurrent { get; }
 
-        public DealerChoice(DealerCard card, bool soulAtStake, bool isCurrent)
+        /// <summary>True for a demon nobody may choose (Lucifer): the card shows, darkened, but cannot be sat at.</summary>
+        public bool IsLocked { get; }
+
+        public DealerChoice(DealerCard card, bool soulAtStake, bool isCurrent, bool isLocked = false)
         {
             Card = card ?? throw new ArgumentNullException(nameof(card));
             SoulAtStake = soulAtStake;
             IsCurrent = isCurrent;
+            IsLocked = isLocked;
         }
     }
 
@@ -47,6 +51,9 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Closes the warning without an answer (Esc).</summary>
         void CloseConfirm();
+
+        /// <summary>A locked demon answers from the dark (the line shows in the details panel).</summary>
+        void ShowLockedLine(int index, string line);
 
         void Hide();
     }

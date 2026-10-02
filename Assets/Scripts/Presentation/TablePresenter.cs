@@ -43,18 +43,31 @@ namespace HellPoker.Presentation
         private RunStats _stats;
         private int _settledRound = -1;
 
+        /// <summary>Lucifer's table, where the player is summoned below the gate; null for a run without him.</summary>
+        private readonly Dealer _finalDealer;
+
+        /// <summary>The run's dealings with Lucifer (summons, attempts, where the player came from).</summary>
+        private LuciferGate _gate = new LuciferGate(0, 0);
+
+        /// <summary>The demon the player was summoned from — and is cast down to.</summary>
+        private Dealer _origin;
+
         public event Action LeaveRequested;
         public event Action<RunSummary> RunEnded;
 
         /// <param name="createGame">Builds a fresh game for a run at this dealer's table.</param>
         /// <param name="guide">The player's guide settings; without them the hand guide is on and no first-game tips are told.</param>
         /// <param name="archive">Where the run is saved after every hand and the records are kept; without it nothing is saved.</param>
-        public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null, RunArchive archive = null)
+        /// <param name="finalDealer">Lucifer: below the gate the player is summoned to his table. Without him every table can
+        /// set the player free.</param>
+        public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null, RunArchive archive = null,
+            Dealer finalDealer = null)
         {
             _createGame = createGame ?? throw new ArgumentNullException(nameof(createGame));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _guide = guide;
             _archive = archive;
+            _finalDealer = finalDealer;
             _records = archive?.LoadRecords() ?? new RecordBook();
 
             _view.ActionPressed += PerformAction;
@@ -79,9 +92,16 @@ namespace HellPoker.Presentation
         /// <summary>This run's story so far; null before the first run.</summary>
         public RunStats Stats => _stats;
 
+        /// <summary>The run's dealings with Lucifer.</summary>
+        public LuciferGate Gate => _gate;
+
+        public bool IsAtFinalTable => _dealer != null && _dealer.IsFinalTable;
+
         public void StartNewRun(Dealer dealer)
         {
             SeatAt(dealer, carriedYears: null, roundsPlayed: 0);
+            _gate = NewGate();
+            _origin = null;
             BeginRun();
             _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
             Refresh();
@@ -91,10 +111,19 @@ namespace HellPoker.Presentation
         /// Picks up a saved run: the same demon, sentence, hands and story. A hand that was still being played when the game
         /// closed is not played on — it is forfeited (a fold at the state it was left in; a sealed hand is lost whole).
         /// </summary>
-        public void Resume(Dealer dealer, RunSnapshot snapshot)
+        /// <param name="origin">At Lucifer's table: the demon the player was summoned from (where a fall lands).</param>
+        public void Resume(Dealer dealer, RunSnapshot snapshot, Dealer origin = null)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
+            GameRules rules = _game.Rules;
+            _gate = _finalDealer == null
+                ? new LuciferGate(0, 0)
+                : new LuciferGate(rules.LuciferGateYears, rules.LuciferCastDownYears, snapshot.AtLucifer, snapshot.OriginDealerId,
+                    snapshot.LuciferAttempts);
+            _origin = origin;
+            if (!_game.IsSoulAtStake)
+                ShowSentenceLine();   // the attempt is only known now
             _stats = snapshot.Stats;
             _stats.SatWith(dealer.Id);
             _settledRound = _game.RoundNumber;
@@ -123,21 +152,33 @@ namespace HellPoker.Presentation
             bool soul = hand.IsSoulHand || _game.IsSoulAtStake || _game.Phase == GamePhase.Damned;
             _stats.RecordHand(_game.Years, null, soul);
             if (_game.IsGameOver)
+            {
                 EndRunRecords();
+                Refresh();   // the end of the run speaks for itself
+                return;
+            }
 
+            // The demon whose hand was left speaks first — the forfeit may still move the player (Lucifer's gate).
+            _view.Dealer.Say(UiText.Pick(_dealerText.Fled, _game.RoundNumber), DealerMood.Gloating);
             Refresh();
-            if (_game.IsGameOver) return;   // the end of the run speaks for itself
 
             string message = soul
                 ? hand.IsSealed ? UiText.FledSealedSoul : UiText.FledSoul
                 : string.Format(hand.IsSealed ? UiText.FledSealedFormat : UiText.FledFormat, round.YearsChange);
             _view.SetMessage(message, Tone.Bad);
-            _view.Dealer.Say(UiText.Pick(_dealerText.Fled, _game.RoundNumber), DealerMood.Gloating);
         }
+
+        /// <summary>Freed at Lucifer's table.</summary>
+        private bool BeatLucifer => _game.Phase == GamePhase.Absolved && _dealer.IsFinalTable;
+
+        /// <summary>Freed by Wild Bill's hand at an ordinary table, while Lucifer waited below.</summary>
+        private bool WildBill => _game.Phase == GamePhase.Absolved && !_dealer.IsFinalTable && _finalDealer != null;
 
         private void EndRunRecords()
         {
-            _records.RunEnded(_game.Phase == GamePhase.Absolved, _dealer.Id, _stats.HandsPlayed);
+            // A run that ends at Lucifer's table is credited to the demon it came from.
+            string credited = _dealer.IsFinalTable && _origin != null ? _origin.Id : _dealer.Id;
+            _records.RunEnded(_game.Phase == GamePhase.Absolved, credited, _stats.HandsPlayed, _gate.Attempts, BeatLucifer, WildBill);
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
         }
@@ -160,8 +201,16 @@ namespace HellPoker.Presentation
             if (_archive == null || _stats == null || _game.IsGameOver) return;
             HandInProgress hand = _game.CurrentHand;
             if (_game.Phase != GamePhase.Betting && hand == null) return;
-            _archive.SaveRun(new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand));
+            _archive.SaveRun(Snapshot(hand));
         }
+
+        private RunSnapshot Snapshot(HandInProgress hand = null)
+        {
+            return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
+                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts);
+        }
+
+        private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
 
         /// <summary>Once per finished hand: the story grows, and the run is saved — or, when it is over, the records are.</summary>
         private void SettleHand()
@@ -182,14 +231,15 @@ namespace HellPoker.Presentation
             else if (_archive != null)
             {
                 // Saved as it will be at the next deal, so a quit between hands loses nothing and gains nothing.
-                _archive.SaveRun(new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats));
+                _archive.SaveRun(Snapshot());
             }
         }
 
         private RunSummary Summary()
         {
             return new RunSummary(_game.Phase == GamePhase.Absolved, _stats.HandsPlayed, _stats.LowestYears, _stats.HighestYears,
-                _stats.BestHand, _stats.Dealers.Select(id => UiText.Dealer(id).Name).ToArray(), _stats.SoulStaked);
+                _stats.BestHand, _stats.Dealers.Select(id => UiText.Dealer(id).Name).ToArray(), _stats.SoulStaked,
+                BeatLucifer, WildBill, _gate.Attempts);
         }
 
         public bool WouldStakeSoul(Dealer dealer)
@@ -232,14 +282,73 @@ namespace HellPoker.Presentation
 
             if (_game.CanLeaveTable(out string reason))
                 LeaveRequested?.Invoke();
-            else if (_game.IsSoulAtStake && _game.Phase == GamePhase.Betting)
+            else if ((_game.IsSoulAtStake || _game.Rules.IsFinalTable) && _game.Phase == GamePhase.Betting)
                 _view.Dealer.Say(UiText.Pick(_dealerText.SoulLocked, _game.RoundNumber), DealerMood.Menacing);
             else
                 _view.SetMessage(reason, Tone.Warning);
         }
 
+        // ------------------------------------------------------------------ Lucifer's gate
+
+        /// <summary>
+        /// Between hands the gate may move the player: down to the gate, Lucifer summons them (wherever they sit); back above
+        /// it at his table, he casts them down to the demon they came from. True when the table changed.
+        /// </summary>
+        private bool PassThroughGate()
+        {
+            if (_finalDealer == null || _game.IsGameOver || _stats == null) return false;
+
+            switch (_gate.Check(_game.Years, _game.Phase))
+            {
+                case GateCall.Summoned:
+                    BeSummoned();
+                    return true;
+                case GateCall.CastDown:
+                    BeCastDown();
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private void BeSummoned()
+        {
+            // The old demon's last word, then the hall goes dark and the eyes open.
+            _view.Dealer.Say(UiText.Pick(_dealerText.Farewell, _gate.Attempts), DealerMood.Menacing);
+            _origin = _dealer;
+            _gate.Summon(_dealer.Id);
+            SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
+            _settledRound = _game.RoundNumber;
+            _stats.SatWith(_finalDealer.Id);
+
+            if (_gate.Attempts > 1 || !Tip(UiText.TipLucifer))
+                _view.Dealer.Say(LuciferGreeting(), DealerMood.Menacing);
+        }
+
+        /// <summary>He remembers: the first summons is a welcome, the later ones are not.</summary>
+        private string LuciferGreeting()
+        {
+            if (_gate.Attempts <= 1) return UiText.Pick(_dealerText.Greeting, 0);
+            string[] lines = _dealerText.Remembers;
+            return lines == null || lines.Length == 0 ? UiText.Pick(_dealerText.Greeting, 0) : lines[Math.Min(_gate.Attempts - 2, lines.Length - 1)];
+        }
+
+        private void BeCastDown()
+        {
+            if (_origin == null) throw new InvalidOperationException("Cast down — but nobody knows where the player came from.");
+
+            _view.Dealer.Say(UiText.Pick(_dealerText.CastDown, _gate.Attempts), DealerMood.Gloating);
+            int years = _gate.CastDown(_game.Years);
+            Dealer origin = _origin;
+            SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
+            _settledRound = _game.RoundNumber;
+            _stats.SatWith(origin.Id);
+            _stats.Note(_game.Years, _game.IsSoulAtStake);
+            _view.Dealer.Say(UiText.Pick(_dealerText.Returned, _gate.Attempts), DealerMood.Gloating);
+        }
+
         /// <summary>Builds the dealer's game, carries the sentence over if moving from another table, and dresses the table.</summary>
-        private void SeatAt(Dealer dealer, int? carriedYears, int roundsPlayed)
+        private void SeatAt(Dealer dealer, int? carriedYears, int roundsPlayed, SeatChange change = SeatChange.Instant)
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
@@ -254,14 +363,32 @@ namespace HellPoker.Presentation
             _soulShown = false;
             _dealerText = UiText.Dealer(dealer.Id);
 
-            _view.Dealer.SetDealer(DealerCards.Describe(dealer));
+            _view.Dealer.SetDealer(DealerCards.Describe(dealer), change);
             _view.Payouts.SetTable(dealer.Payouts);
             _view.SetSoul(SoulGauge.Hidden);
             if (!_game.IsSoulAtStake)
             {
-                _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
+                ShowSentenceLine();
                 _view.Sentence.SetYears(_game.Years, animate: false);
             }
+        }
+
+        /// <summary>
+        /// What the counter measures against: the demon's soul line — or at Lucifer's table the gate (climb above it and you
+        /// are cast down), with the attempt in place of "YEARS LEFT IN HELL".
+        /// </summary>
+        private void ShowSentenceLine()
+        {
+            if (_game.Rules.IsFinalTable)
+            {
+                int gate = _game.Rules.LuciferGateYears;
+                _view.Sentence.SetLimit(gate, string.Format(UiText.CastDownLineFormat, gate));
+                _view.Sentence.SetLabel(string.Format(UiText.AttemptLabelFormat, Math.Max(1, _gate.Attempts)));
+                return;
+            }
+
+            _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
+            _view.Sentence.SetLabel(UiText.YearsLabel);
         }
 
         public void Dispose()
@@ -310,7 +437,13 @@ namespace HellPoker.Presentation
                         return;
                     }
 
-                    _game.Restart();
+                    // A fresh run starts where the player last chose to sit, never at Lucifer's table.
+                    if (_dealer.IsFinalTable && _origin != null)
+                        SeatAt(_origin, carriedYears: null, roundsPlayed: 0);
+                    else
+                        _game.Restart();
+                    _gate = NewGate();
+                    _origin = null;
                     _finalStretchAnnounced = false;
                     _soulShown = false;
                     _view.SetSoul(SoulGauge.Hidden);
@@ -511,7 +644,7 @@ namespace HellPoker.Presentation
         private bool Tip(string tip)
         {
             if (_guide == null || _guide.HasSeenTip(tip)) return false;
-            string text = UiText.TipText(tip, _game.Rules.ForcedRaiseYears);
+            string text = UiText.TipText(tip, _game.Rules.ForcedRaiseYears, _game.Rules.LuciferGateYears);
             if (text == null) return false;
             _guide.MarkTipSeen(tip);
             _view.Dealer.Say(text, DealerMood.Neutral);
@@ -555,6 +688,8 @@ namespace HellPoker.Presentation
 
         private void Refresh()
         {
+            PassThroughGate();
+
             switch (_game.Phase)
             {
                 case GamePhase.Betting:
@@ -583,18 +718,29 @@ namespace HellPoker.Presentation
             SettleHand();
             SaveRun();
             _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
+                : _game.Rules.IsFinalTable ? LeaveState.Summoned
                 : _game.IsSoulAtStake ? LeaveState.Locked : LeaveState.Open);
-            _view.SetFinalStretch(_game.IsRaiseForced, string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
+            bool finalTable = _game.Rules.IsFinalTable;
+            bool finalStretch = finalTable ? IsLastMoments : _game.IsRaiseForced;
+            _view.SetFinalStretch(finalStretch, finalTable
+                ? UiText.LastMomentsBanner
+                : string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
             AnnounceSoul();
 
             // The dealer remarks once when the player first reaches the gates (unless the run just ended).
-            if (_game.IsRaiseForced && !_finalStretchAnnounced && !_game.IsGameOver)
+            if (finalStretch && !_finalStretchAnnounced && !_game.IsGameOver)
             {
                 _finalStretchAnnounced = true;
-                if (!Tip(UiText.TipFinalStretch))
+                if (finalTable || !Tip(UiText.TipFinalStretch))
                     _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), DealerMood.Menacing);
             }
         }
+
+        /// <summary>
+        /// The last moments at Lucifer's table: the whole sentence would fit on his table, so one hand could end it.
+        /// His hall runs hotter and fire drips from his eyes.
+        /// </summary>
+        private bool IsLastMoments => !_game.IsGameOver && _game.Years > 0 && _game.Rules.Stakes.CapFor(_game.Years) >= _game.Years;
 
         /// <summary>The moment the soul goes on the table — or comes back — gets its own line.</summary>
         private void AnnounceSoul()
@@ -816,7 +962,8 @@ namespace HellPoker.Presentation
             {
                 case GamePhase.Absolved:
                     bool deadMansHand = showdown != null && showdown.Player.Category == HandCategory.DeadMansHand;
-                    _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : UiText.ServedMessage, Tone.Triumph);
+                    _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : BeatLucifer ? UiText.MorningStarFallsMessage : UiText.ServedMessage,
+                        Tone.Triumph);
                     _view.Dealer.Say(_dealerText.Absolved, DealerMood.Annoyed);
                     _view.SetAction(UiText.TheEnd);
                     break;

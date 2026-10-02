@@ -18,7 +18,8 @@ namespace HellPoker.Presentation
             var traits = new List<string>
             {
                 string.Format(UiText.TraitDrawFormat, dealer.MaxDiscards),
-                dealer.HouseCardsShown == 1 ? UiText.TraitRevealOne : string.Format(UiText.TraitRevealFormat, dealer.HouseCardsShown),
+                dealer.HouseCardsShown == 0 ? UiText.TraitRevealNone
+                    : dealer.HouseCardsShown == 1 ? UiText.TraitRevealOne : string.Format(UiText.TraitRevealFormat, dealer.HouseCardsShown),
                 string.Format(UiText.TraitPayoutFormat, payouts.GetMultiplier(HandCategory.OnePair), payouts.GetMultiplier(HandCategory.Flush),
                     payouts.GetMultiplier(HandCategory.FullHouse), payouts.GetMultiplier(HandCategory.RoyalFlush)),
                 string.Format(UiText.TraitLossFormat, UiText.LossSurcharge(payouts.LossPercent)),
@@ -29,7 +30,10 @@ namespace HellPoker.Presentation
                     dealer.Betting.BluffPercent)
             };
 
-            return new DealerCard(dealer.Id, text.Name, text.Title, text.Description, traits, dealer.SoulThreshold);
+            if (dealer.Stakes?.FixedUnit != null)
+                traits.Insert(0, string.Format(UiText.TraitFixedStakesFormat, dealer.Stakes.FixedUnit, dealer.Stakes.FixedCap));
+
+            return new DealerCard(dealer.Id, text.Name, text.Title, text.Description, traits, dealer.SoulThreshold, dealer.IsFinalTable);
         }
     }
 }

@@ -71,6 +71,9 @@ namespace HellPoker.Core.Tests
             public bool IsConfirming => Warning != null;
             public void CloseConfirm() => Warning = null;
 
+            public string LockedLine { get; private set; }
+            public void ShowLockedLine(int index, string line) => LockedLine = line;
+
             public void Hide() => IsVisible = false;
 
             public void Choose(int index) => DealerChosen?.Invoke(index);
@@ -248,6 +251,57 @@ namespace HellPoker.Core.Tests
         {
             _menu.PressNewGame();
             _dealerSelect.Choose(dealerIndex);
+        }
+
+        /// <summary>The same menu with Lucifer waiting below.</summary>
+        private void WithLucifer()
+        {
+            _presenter.Dispose();
+            _presenter = new MainMenuPresenter(_menu, _dealerSelect, _settings, _end, _records, _table, _session, _quitter, _transition,
+                DealerRoster.All, DealerRoster.Lucifer);
+        }
+
+        [Test]
+        public void Lucifer_IsTheFourthCard_Locked()
+        {
+            WithLucifer();
+
+            _menu.PressNewGame();
+
+            Assert.AreEqual(4, _dealerSelect.Shown.Count);
+            DealerChoice lucifer = _dealerSelect.Shown[3];
+            Assert.AreEqual("lucifer", lucifer.Card.Id);
+            Assert.IsTrue(lucifer.IsLocked);
+            Assert.AreEqual("THE MORNING STAR", lucifer.Card.Name);
+            Assert.AreEqual("Waits below 250 years", lucifer.Card.Title);
+            Assert.IsFalse(_dealerSelect.Shown[0].IsLocked);
+        }
+
+        [Test]
+        public void ChoosingLucifer_SeatsNobody_HeAnswersFromTheDark()
+        {
+            WithLucifer();
+            _menu.PressNewGame();
+
+            _dealerSelect.Choose(3);
+
+            Assert.AreEqual(0, _session.NewRuns);
+            Assert.IsTrue(_dealerSelect.IsVisible, "Still choosing.");
+            Assert.AreEqual("Not yet. Come down to me.", _dealerSelect.LockedLine);
+        }
+
+        [Test]
+        public void ChangingTables_StillShowsHimLocked()
+        {
+            WithLucifer();
+            StartRunWith(0);
+
+            _session.RequestLeave();
+
+            Assert.AreEqual(4, _dealerSelect.Shown.Count);
+            Assert.IsTrue(_dealerSelect.Shown[3].IsLocked);
+            _dealerSelect.Choose(3);
+            Assert.AreEqual(0, _session.Switches);
         }
 
         [Test]

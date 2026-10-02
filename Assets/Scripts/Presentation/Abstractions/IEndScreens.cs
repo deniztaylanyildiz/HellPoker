@@ -16,9 +16,21 @@ namespace HellPoker.Presentation.Abstractions
         public IReadOnlyList<string> DealerNames { get; }
         public bool SoulStaked { get; }
 
+        /// <summary>Set free at Lucifer's table: the Morning Star falls.</summary>
+        public bool BeatLucifer { get; }
+
+        /// <summary>Set free by the Dead Man's Hand at an ordinary table: Wild Bill's escape.</summary>
+        public bool WildBill { get; }
+
+        /// <summary>How many times the run was summoned to Lucifer (0: never met him).</summary>
+        public int LuciferAttempts { get; }
+
         public RunSummary(bool absolved, int handsPlayed, int lowestYears, int highestYears, HandCategory? bestHand,
-            IReadOnlyList<string> dealerNames, bool soulStaked)
+            IReadOnlyList<string> dealerNames, bool soulStaked, bool beatLucifer = false, bool wildBill = false, int luciferAttempts = 0)
         {
+            BeatLucifer = beatLucifer;
+            WildBill = wildBill;
+            LuciferAttempts = luciferAttempts;
             Absolved = absolved;
             HandsPlayed = handsPlayed;
             LowestYears = lowestYears;

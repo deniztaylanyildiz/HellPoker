@@ -193,7 +193,20 @@ namespace HellPoker.Core.Tests
         {
             Log?.Add(years);
             SoulLine = years;
+            LimitText = null;
         }
+
+        public string LimitText { get; private set; }
+        public string Label { get; private set; } = "YEARS LEFT IN HELL";
+
+        public void SetLimit(int years, string text)
+        {
+            Log?.Add(years);
+            SoulLine = years;
+            LimitText = text;
+        }
+
+        public void SetLabel(string text) => Label = text;
 
         public void SetYears(int years, bool animate)
         {
@@ -219,7 +232,14 @@ namespace HellPoker.Core.Tests
         public int LinesSaid { get; private set; }
         public List<string> Log { get; set; }
 
-        public void SetDealer(DealerCard dealer) => Dealer = dealer;
+        /// <summary>Every seat change, in order.</summary>
+        public List<(string id, SeatChange change)> Seats { get; } = new List<(string, SeatChange)>();
+
+        public void SetDealer(DealerCard dealer, SeatChange change = SeatChange.Instant)
+        {
+            Dealer = dealer;
+            Seats.Add((dealer.Id, change));
+        }
 
         public void Say(string line, DealerMood mood)
         {

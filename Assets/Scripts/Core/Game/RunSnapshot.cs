@@ -11,13 +11,26 @@ namespace HellPoker.Core.Game
     /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
-    /// Text format, one "key=value" per line, starting with "v=1". The hand lines ("hand.*") are optional, so saves made
-    /// between hands read as before. Anything unreadable — a garbled file, another version, impossible numbers — decodes
+    /// Text format, one "key=value" per line, starting with "v=2". The hand lines ("hand.*") are optional, so saves made
+    /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
+    /// as a run that never met him. Anything unreadable — a garbled file, another version, impossible numbers — decodes
     /// to nothing, so a bad save is simply ignored.
     /// </summary>
     public sealed class RunSnapshot
     {
-        public const int Version = 1;
+        public const int Version = 2;
+
+        /// <summary>The oldest version still read.</summary>
+        public const int OldestVersion = 1;
+
+        /// <summary>True when the run sits at Lucifer's table (<see cref="DealerId"/> is his).</summary>
+        public bool AtLucifer { get; }
+
+        /// <summary>The demon the player was last summoned from; null if never summoned.</summary>
+        public string OriginDealerId { get; }
+
+        /// <summary>How many times the player has been summoned to Lucifer's table.</summary>
+        public int LuciferAttempts { get; }
 
         public string DealerId { get; }
 
@@ -32,17 +45,24 @@ namespace HellPoker.Core.Game
         /// <summary>The hand that was being played when the save was made; null between hands.</summary>
         public HandInProgress Hand { get; }
 
-        public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null)
+        public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
+            bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0)
         {
             if (string.IsNullOrEmpty(dealerId)) throw new ArgumentException("A dealer id is needed.", nameof(dealerId));
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
             if (roundsPlayed < 0) throw new ArgumentOutOfRangeException(nameof(roundsPlayed));
             if (hand != null && roundsPlayed == 0) throw new ArgumentOutOfRangeException(nameof(roundsPlayed), "A hand in progress was dealt.");
+            if (luciferAttempts < 0) throw new ArgumentOutOfRangeException(nameof(luciferAttempts));
+            if (atLucifer && (luciferAttempts == 0 || string.IsNullOrEmpty(originDealerId)))
+                throw new ArgumentException("A player at Lucifer's table was summoned from somewhere.", nameof(originDealerId));
             DealerId = dealerId;
             Years = years;
             RoundsPlayed = roundsPlayed;
             Stats = stats ?? throw new ArgumentNullException(nameof(stats));
             Hand = hand;
+            AtLucifer = atLucifer;
+            OriginDealerId = string.IsNullOrEmpty(originDealerId) ? null : originDealerId;
+            LuciferAttempts = luciferAttempts;
         }
 
         public string Encode()
@@ -58,7 +78,10 @@ namespace HellPoker.Core.Game
                 "highest=" + Stats.HighestYears.ToString(CultureInfo.InvariantCulture),
                 "best=" + (Stats.BestHand.HasValue ? ((int)Stats.BestHand.Value).ToString(CultureInfo.InvariantCulture) : ""),
                 "dealers=" + string.Join(",", Stats.Dealers),
-                "soul=" + (Stats.SoulStaked ? "1" : "0")
+                "soul=" + (Stats.SoulStaked ? "1" : "0"),
+                "lucifer=" + Flag(AtLucifer),
+                "origin=" + (OriginDealerId ?? ""),
+                "attempts=" + LuciferAttempts.ToString(CultureInfo.InvariantCulture)
             };
             if (Hand != null)
             {
@@ -90,7 +113,9 @@ namespace HellPoker.Core.Game
             try
             {
                 Dictionary<string, string> values = KeyValues.Parse(text);
-                if (!values.TryGetValue("v", out string version) || version != Version.ToString(CultureInfo.InvariantCulture))
+                if (!values.TryGetValue("v", out string versionText)
+                    || !int.TryParse(versionText, NumberStyles.None, CultureInfo.InvariantCulture, out int version)
+                    || version < OldestVersion || version > Version)
                     return false;
 
                 string dealer = values.TryGetValue("dealer", out string id) ? id : null;
@@ -110,7 +135,13 @@ namespace HellPoker.Core.Game
                 var stats = new RunStats(KeyValues.Int(values, "hands"), KeyValues.Int(values, "lowest"), KeyValues.Int(values, "highest"),
                     best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1");
 
-                snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values));
+                // v=1 knew nothing of Lucifer: such a run never met him.
+                bool atLucifer = version >= 2 && KeyValues.Flag(values, "lucifer");
+                string origin = version >= 2 && values.TryGetValue("origin", out string o) ? o : null;
+                int attempts = version >= 2 ? KeyValues.Int(values, "attempts") : 0;
+
+                snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
+                    atLucifer, origin, attempts);
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException

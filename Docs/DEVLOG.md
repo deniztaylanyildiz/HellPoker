@@ -841,3 +841,232 @@ Not: Önceki sohbet bu işte hata vererek kesilmişti. Kodda ve DEVLOG'da o dene
 - Kullanıcı GitHub Desktop'tan commit / push yapmalı. Yeni dosyalar: `HandInProgress.cs`, `PactTests.cs`, `PactPresenterTests.cs`
   (+ Unity'nin ürettiği .meta dosyaları).
 - Oyunda elle deneme: tavana çıkıp draw → kasanın kartlarının temposu; Fast / Very Fast hızlarında his.
+
+---
+
+## 2026-10-02 — Güncelleme Planı 4 (Final Boss: Lucifer), Bölüm 1: kurallar (Core)
+
+### İstek (kullanıcı)
+Ceza 250'nin altına inince oyuncu nerede olursa olsun Lucifer'in masasına çağrılsın. Aklanmanın tek yolu onu yenmek
+(Dead Man's Hand istisna: "Wild Bill" sonu). Masadan kalkılamaz. Kendi ev kuralları ve sabit ölçeği (50 / 150) var.
+Masasında ceza 250'yi geçerse en az 500 ile gelinen şeytana düşer, tekrar inince yeniden çağrılır. Bölüm 1: kurallar ve testleri.
+
+### Yapılanlar
+- `DealerRoster.Lucifer` (id `lucifer`):
+  - 3 kart değiştirir, 0 kart gösterir, standart çarpanlar, kayıp ×1.25, çekilme %100 / %100, re-raise Two Pair+ %80 / blöf %25.
+  - `DealerRoster.All` hâlâ seçilebilen üç şeytan. `DealerRoster.Find(id)` Lucifer dahil hepsini bulur.
+- `Dealer`: isteğe bağlı `Stakes` (`StakeScale.Fixed(50, 150)`: birim 50, tavan 150, daha azı all-in) ve `IsFinalTable`.
+  `ApplyTo` bunları `GameRules.WithHouseRules`'a taşır. Son masada `ForcedRaiseYears` = 0: son 250 kuralı yok.
+- `GameRules`:
+  - `LuciferGateYears` = 250 (0 = Lucifer yok), `LuciferCastDownYears` = 500 ve `IsFinalTable`.
+  - `KeepsTheLastYear`: Lucifer varken sıradan masa.
+- `HellPokerGame`:
+  - Sıradan masada kazanç cezayı bitiremez, son yıl kalır. Dead Man's Hand (`IPayoutTable.IsAbsolution`) hariç.
+  - Lucifer'in masasından kalkılamaz (`CanLeaveTable`).
+- `LuciferGate` (yeni, Core): koşunun Lucifer'le ilişkisi.
+  - `Check(years, phase)` sadece Betting'de ses verir: Stay / Summoned / CastDown.
+  - `Summon(origin)` denemeyi sayar; `CastDown(years)` → max(years, 500).
+  - `IsAtLucifer`, `OriginDealerId`, `Attempts`, `CastDowns`.
+- `RunSnapshot` **v=2**: `lucifer`, `origin`, `attempts`. v=1 kayıtlar Lucifer'i hiç görmemiş koşu olarak okunuyor.
+- `TablePresenter` (oturum; görseller Bölüm 2'de):
+  - İsteğe bağlı `finalDealer`; bootstrap `DealerRoster.Lucifer` verir, vermeyen testlerde Lucifer yok.
+  - Her `Refresh` başında `PassThroughGate()`:
+    - çağrılma: eski şeytanın `Farewell`'i, `SeatChange.Summoned`, Lucifer'in karşılaması (2. ve sonraki denemede `Remembers`), ilk seferde ipucu;
+    - düşüş: Lucifer'in `CastDown`'u, `SeatChange.CastDown`, eski şeytanın `Returned`'ı.
+  - Masadan kalkma isteğine Lucifer kendi sesiyle hayır der; buton "NO ESCAPE" (`LeaveState.Summoned`).
+  - Kayıtlar Lucifer durumunu taşır. `Resume(dealer, snapshot, origin)`.
+  - El ortasında kapatma cezası da kapıdan geçer: Lucifer masasında düşürebilir.
+  - Ölüm / aklanma sonrası yeni koşu (dinleyici yoksa) Lucifer'de değil, gelinen şeytanda başlar.
+  - Bootstrap: Lucifer masasında olup nereden geldiği bilinmeyen kayıt silinir.
+- `IDealerView.SetDealer(card, SeatChange)`: masa değişiminin türü görünüme gider (sahneler Bölüm 2'de).
+- `BalanceSimulation`: kapıyı oynatır (çağrılma / düşüş, her masa yeni seed). Yeni sütunlar: Lucifer'e ulaşan, ilk denemede yenme
+  (ulaşanların), ortalama deneme (ulaşanların), toplam düşüş, Wild Bill. `HELLPOKER_LUCIFER_GATE` / `HELLPOKER_CAST_DOWN` ortam değişkenleri.
+
+### Kararlar
+- **Sıradan masada son yıl kalır.** "Aklanmanın tek yolu Lucifer" kuralı, 250'nin üstünden tek elde 0'a inen büyük bir kazancı
+  (Royal vb.) da kapsamalıydı. Plan bunu söylemiyordu. Kazanç en fazla cezayı 1 yıla indirir, oyuncu sonra çağrılır.
+  Dead Man's Hand bunun dışında (Wild Bill). Çok az yılla gelen oyuncu Lucifer'de çok avantajlı (1 yılla all-in, kayıp çok küçük).
+  Simülasyonda nadir.
+- Son 250 kuralı ve "cehennem ateşi" modu artık sıradan masalarda pratikte hiç görülmüyor: 250'de zaten çağrılıyor.
+  Lucifer'in masasında da yok. Kod duruyor (`luciferGateYears: 0` ile Lucifer'siz oynanınca çalışır). Lucifer masasının
+  "son anlar"ı Bölüm 2'de ayrıca tanımlanacak.
+- Çağrılma kontrolü `Refresh`'te ve sadece Betting'de: sonuç ekranında değil, NEXT HAND'e basınca (ya da masaya oturunca /
+  devam edince) olur.
+
+### Testler
+- `LuciferTests` (Core, 32 case):
+  - kadro, ev kuralları, sabit birim / tavan / all-in / kalanla sınırlı tavan, 0 kart gösterme, son 250 yok, kalkma kilidi, ×1.25 kayıp;
+  - masasında zafer, sıradan masada son yıl, Dead Man's Hand'in her yerde aklaması, Lucifer'siz kural;
+  - kapı (eşik, eşik üstü, sadece eller arasında, 0), deneme, düşüş (260 / 499 / 500 / 735), yeniden çağrılma, hatalı kullanım;
+  - kayıt (Lucifer'de, düşüşten sonra, v=1 uyumu, bozuk Lucifer satırları).
+- `LuciferPresenterTests` (12):
+  - 260'ta kazanıp NEXT HAND'de çağrılma (sonuç ekranında değil), kalkma reddi;
+  - 500'ün üstünden ve altından düşüş, yeniden çağrılma ("Again. I remember…"), masasında zafer + rekor, Wild Bill;
+  - 250 altında masaya oturmanın çağırması;
+  - kayıt (Lucifer'de / düşüşten sonra), Lucifer'de devam ve düşüş, el ortasında kapatmanın Lucifer'de düşürmesi.
+- **424 EditMode geçiyor.** Eski testlerin hiçbiri değişmedi.
+
+### Simülasyon (2000 koşu, akıllı oyuncu)
+| Gelinen şeytan | Aklanma (Lucifer'siz → Lucifer'le) | Plan | Ort. el | Plan | Lucifer'e ulaşan | İlk denemede yenme | Plan | Ort. deneme | Plan | Düşüş (toplam) | Wild Bill |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Mammon | %88.0 → **%86.7** | ~%87 | 31.2 | ~30 | %88.8 | %48.0 | ~%44 | 2.10 | ~2.2 | 1992 | 2 |
+| Belial | %80.5 → **%79.3** | ~%74 | 18.2 | ~16 | %81.6 | %55.0 | ~%49 | 1.83 | ~1.9 | 1406 | 2 |
+| Lilith | %64.2 → **%61.8** | ~%63 | 22.2 | ~24 | %68.8 | %47.5 | ~%46 | 1.94 | ~2.0 | 1441 | 3 |
+
+- Mammon ve Lilith plana çok yakın.
+- **Belial +5 puan sapıyor.** Neden: bizim Belial baz çizgimiz Lucifer'siz zaten %80.5; planın Python kopyasında "şimdi ~%77".
+  Fark Lucifer'den önce de vardı. Lucifer'in Belial'e etkisi bizde −1.2, Python'da −3 puan.
+  İlk denemede yenmenin de yüksek çıkması (%55): Belial'in yüksek ödemeleri oyuncuyu 250'nin epey altına indirip öyle çağırıyor.
+  Lucifer az yılla daha kolay. **Kural değiştirilmedi.**
+- Ortalama el sayısı çok düştü (Mammon 49 → 31): 250'nin altındaki uzun "son 250 yıl" süreci artık yok, oyuncu Lucifer'le bitiriyor.
+
+### Açık sorular
+- Sıradan masada son yılın kalması (yukarıdaki karar) uygun mu?
+- Belial'in Lucifer'le aklanma oranı planın 5 puan üstünde. İstenirse düşüş cezası 750 denenebilir (plan: aklanma %72).
+
+---
+
+## 2026-10-02 — Plan 4, Bölüm 2: görünmeyen Lucifer (görsel)
+
+### Yapılanlar
+- **Portre** (`pixel_demons.py`, `lucifer_frames`), 96×96. Zifiri karanlık; içinde sadece:
+  - iki yanan, yarık göz bebekli göz;
+  - kutunun altından kıvrılan iki pençe ucu;
+  - sağ üst köşeden taşan bir kanat kenarı.
+  - Yüz, beden ya da siluet yok.
+- **Durumlar:**
+
+  | Durum | Kare | Ne oluyor |
+  |---|---|---|
+  | idle | 10 | yavaş kırpma, karanlıkta kayma |
+  | talk | 4 | nabız gibi parlama |
+  | gloat | 7 | kısılan gözler + beliren / kaybolan sırıtış çizgisi (dişler boşluk) |
+  | angry | 5 | büyüyen gözler, kutu kan kırmızısı yanar |
+  | reraise | 5 | tek karede kör edici beyaz parlama |
+  | final | 6 | gözlerden damlayan ateş |
+  | soul | 4 | soğuk gözler; ruh onun masasına hiç gelmiyor, yedek olarak duruyor |
+
+- **Salon** (`pixel_salons.py`, `lucifer`):
+  - Görünmeyen dev bir tahtın sadece alt basamakları ve kadrajdan çıkan iki ayağı; karanlığa uzanan zincirler.
+  - Kızıl ışık, 4 karede yükselen korlar, koyu orta sütun.
+  - `normal` ve daha sıcak `hell` (`HOTTER` haritası). `soul` yok, yedek zinciri normal'e düşüyor.
+  - 4 kare, çünkü importer 2048 px üstündeki dokuyu küçültüyor.
+- **UI** (`pixel_ui.py`):
+  - `dialog_lucifer`: siyah kutu, cehennem turuncusu kenar.
+  - `fade`: tam ekran Bayer desenleriyle ¼ / ½ / ¾ / tam siyah. Saydam karıştırma olmadan yavaş kararma.
+- **Konuşması** (`DealerView`):
+  - Lucifer masadayken isim "THE MORNING STAR" (kızıl), yazı kor turuncusu, kutu `dialog_lucifer`.
+  - Her repliğinde ekran 1 px titrer (`TableScenes.Tremor`).
+  - `DealerCard.IsFinalTable` taşınıyor. Kartta yeni özellik satırları: "Fixed stakes: ante 50, at most 150 on the table",
+    "Shows none of his cards before the showdown".
+- **Sahneler** (`TableScenes`, yeni). Her sahne iki kuyruk adımı:
+  - içeri: eski şeytanın son sözü bitene kadar bekler, sonra değişim;
+  - dışarı: yeni şeytan konuşmadan önce ya da masa hazır olunca (`End`).
+  - Arada masanın diğer güncellemeleri (ödeme tablosu, sayaç, ruh) ekran karanlıkken / dışarıdayken oluyor.
+  - **Çağrılma:** perde yok; dört Bayer adımıyla yavaş kararma, karanlıkta salon ve portre değişir, karanlık kalkar,
+    gözler açılır ve Lucifer konuşur.
+  - **Düşüş:** ekran yukarı kayarak (6 px'lik adımlar) düşer. Eski şeytanın salonu aşağıdan gelir, 3-2-1 px'lik sarsıntıyla iner.
+  - Atlama (Space / tık) sahneyi sona götürür. Anında masa değişimi (yeni oyun vb.) yarım kalan sahneyi iptal eder (`Abort`).
+- **Lucifer'in son anları:** ceza onun masasına sığacak kadar azsa (≤ 150, tek el bitirebilir):
+  - salon `hell`, portre `final` (gözlerden ateş damlar);
+  - "ONE HAND FROM FREEDOM" bandı ve bir kez "So close. I can hear you hoping.".
+  - (Son 250 kuralının yerini tutan sahne. Kural yok, sadece his.)
+- **Replikler:** Bölüm 1'de eklendi.
+  - Lucifer: karşılama, `Remembers` (2. / 3.+ deneme), kazanç, kayıp, çekilme, re-raise, mühür, kaçış, düşüş, son anlar,
+    kalkma reddi, zafer, lanet.
+  - Diğer üç şeytan: `Farewell` ve `Returned`.
+
+### Testler
+- `LuciferArtTests`:
+  - her durumun karelerinin en az %85'i paletin en koyu üç renginde ("hiç görünmez" kuralının otomatik kontrolü; angry hariç, o kutu kızıl);
+  - salon varyantları ve 2048 px sınırı; soul yedeği; diyalog kutusu ve kararma şeridi.
+- `LuciferPresenterTests`: eski şeytan kararmadan önce konuşur; son anlar 150'de başlar (200 / 151 / 150 / 40).
+- PlayMode `SalonRegressionTests`: 200 yılda sıradan masada "hell" modu artık olmadığı için senaryo 140 yıl (Lucifer'in sıcak salonu)
+  → yeni oyun → normal salon oldu.
+- **439 EditMode + 14 PlayMode geçiyor.**
+- Sahnelerin ekran görüntüsüyle kontrolü Bölüm 4'te (madde 26).
+
+---
+
+## 2026-10-02 — Plan 4, Bölüm 3: akış ve arayüz
+
+### Yapılanlar
+- **Seçim ekranı (18):**
+  - `MainMenuPresenter(..., finalDealer)` Lucifer'i dördüncü, **kilitli** kart olarak ekler (`DealerChoice.IsLocked`).
+  - Kartta karanlık portre (gözler), kızıl "THE MORNING STAR", "Waits below 250 years" ve soluk "LOCKED" butonu.
+    Ruh çizgisi ve SAFE / SOUL AT STAKE yok.
+  - Tıklanınca kimse oturmaz, ayrıntı panelinde onun repliği belirir: "Not yet. Come down to me." (`ShowLockedLine`).
+  - Kart genişliği artık kart sayısına göre (dörtte 110 px). Başlık iki satıra sığıyor, ayrıntı paneli 4 px aşağı indi.
+- **Masa (19):** Lucifer masasında sayacın altı "LUCIFER: ATTEMPT N", bar 250'ye doğru dolar ve altında "Cast down above 250" yazar.
+  `ISentenceView.SetLimit / SetLabel`. Devam edilen kayıtta deneme sayısı kayıttan gelir.
+- **Oyun sonu (20), `RunSummary.BeatLucifer / WildBill / LuciferAttempts`:**
+  - Lucifer'i yenince "THE MORNING STAR FALLS".
+    Solda kutuda gözleri bir an kör edici parlar (reraise animasyonu), 1.6 sn sonra söner; hikâyede "fell on attempt N".
+  - Dead Man's Hand ile sıradan masada aklanma: "WILD BILL'S ESCAPE".
+  - Lanet ekranında (ve diğerlerinde) "You faced the Morning Star N time(s)" ya da "You never met the Morning Star".
+  - Uzun başlıklar 16 px'e iner.
+  - Masadaki son mesaj da Lucifer'de "His eyes go dark. The gates of Hell open — you walk free.".
+- **Rekorlar (21), `RecordBook`:**
+  - Yeni alanlar: Lucifer'e ulaşma, Lucifer'i yenme, en az denemede yenme, Wild Bill kaçışları.
+  - Satırlar isteğe bağlı: eski defter okunmaya devam eder.
+  - Lucifer'de biten koşu, gelinen şeytana yazılır. Böylece "Freed at X's table" anlamlı kalır.
+- **Kayıt (22):** Bölüm 1'de yapıldı (v=2, v=1 uyumu, testler).
+- **İpucu (23):** ilk çağrılmada Lucifer kendi ağzından söyler: "Only I can set you free. Fall above 250 and you will be cast down."
+  Sonraki çağrılmalarda `Remembers` repliği gelir.
+- **How to Play (24):**
+  - Kurallar sayfasına "THE MORNING STAR" bölümü (çağrılma, kendi ölçeği 50 / 150, kart göstermez, kalkılamaz, düşüş).
+  - Artık geçerli olmayan "Under 250 years passing is forbidden" cümlesi çıkarıldı.
+  - Dead Man's Hand'in her yerde anında aklattığı yazıldı.
+
+### Kararlar
+- **Wild Bill = sıradan masada Dead Man's Hand ile aklanma.** Daha önce Lucifer'e çıkıp düşmüş oyuncu da sayılır.
+  Plan "Lucifer'i hiç görmeden" diyordu. Bu dar tanım yerine kaçışın kendisi sayıldı. Ekrandaki deneme satırı yine gösteriliyor.
+
+### Testler
+- `MainMenuPresenterTests`: dördüncü kilitli kart, seçilince kimse oturmaz + replik, masa değiştirirken de kilitli.
+- `LuciferPresenterTests`:
+  - zaferde özet ve rekorlar (gelinen şeytana yazılır);
+  - Wild Bill özeti ve rekoru;
+  - sayaç etiketi / çizgisi (1. deneme → düşüş → 2. deneme), kayıttan devamda deneme.
+- `LuciferTests`: rekorların gidiş-dönüşü, Lucifer'den önceki defterin okunması.
+- **446 EditMode geçiyor.**
+
+---
+
+## 2026-10-02 — Plan 4, Bölüm 4: kontrol
+
+### Yapılanlar
+- **PlayMode (25), `LuciferJourneyTests`:**
+  - Gerçek sahne ve butonlar, yığılmış desteler (oyun fabrikası yansımayla değiştiriliyor).
+  - Akış: 260'ta kazan → NEXT HAND'de çağrılma → Lucifer'de kayıp (260) → düşüş (500, Mammon) → kazan (250) → yeniden çağrılma
+    ("ATTEMPT 2") → zafer → "THE MORNING STAR FALLS".
+  - Her adımda sahnenin ekranda iz bırakmadığı (kararma kalktı, ekran yerinde) ve doğru salon kontrol ediliyor.
+- **Ekran görüntüleri (26):**
+  - Yeni kareler: 24 kilitli kart, 25 çağrılma (Bayer kararması), 26 Lucifer masası, 27 karar, 28 re-raise (kör edici gözler),
+    29 son anlar, 30 düşüş anı, 31 iniş, 32 / 33 "Morning Star falls" (gözler yanık / sönmüş).
+  - 21 artık "WILD BILL'S ESCAPE" (sıradan masada aklanma).
+  - Eski `10_*_final_stretch` kareleri kaldırıldı: sıradan masada son 250 artık görülmüyor.
+  - **Lucifer hiçbir görüntüde tam görünmüyor:** sadece gözler, pençe uçları, kanat kenarı.
+- **Görüntülerde bulunan ve düzeltilen hatalar:**
+  1. "THE MORNING STAR" başlık fontunda dar kartta ekranın sağından taşıyordu, masada iki satıra bölünüp başlığın üstüne biniyordu.
+     Lucifer'in adı artık metin fontunda (kart ve masa).
+  2. Düşüşte iniş sırasında Lucifer'in son anları (alevler, ateşli portre) ve "NO ESCAPE" eski şeytanın masasına taşınıyordu.
+     Sahnenin değişim anında bunlar sıfırlanıyor.
+  3. "THE MORNING STAR FALLS" başlığı oyun sonu panelinden 8 px taşıyordu; panel genişledi.
+  4. Ekran görüntüsü aracı rastgele bir elde takılıyordu (`TakeOver` el ortasında). Kapı adımlarından önce masa eller arasına getiriliyor.
+- **Simülasyon (27):** Bölüm 1'deki tabloyla birebir aynı (Core kuralları o günden beri değişmedi). Bkz. Bölüm 1.
+- **CLAUDE.md:** oyun kuralları (Lucifer, son yıl, Wild Bill), şeytan tablosu (Lucifer satırı), denge tablosu, kayıt formatı v=2,
+  oyun sonu / rekorlar, görsel kurallar (görünmeyen Lucifer, sahneler, 2048 px sınırı), mimari ağaç, testler.
+- **Testler:** **446 EditMode + 15 PlayMode geçiyor.** Atlananlar `[Explicit]` simülasyon ve ekran görüntüsü. Derleyici uyarısı yok.
+
+### Açık sorular (Plan 4'ün tamamı)
+- Sıradan masada son yılın kalması (Bölüm 1 kararı) uygun mu?
+- Belial'in aklanması planın 5 puan üstünde (%79 / plan %74). Düşüş cezası 750 denenebilir.
+- Wild Bill tanımı: Lucifer'e çıkıp düşmüş oyuncunun Dead Man's Hand'i de "Wild Bill's escape" sayılıyor.
+- Lucifer masasının adı altında "Waits below 250 years" de görünüyor (kartın başlığı). İstenirse masada boş bırakılabilir.
+
+### Sıradaki adımlar
+- GitHub Desktop'tan commit / push. Yeni dosyalar: `LuciferGate.cs`, `TableScenes.cs`, `LuciferTests.cs`, `LuciferPresenterTests.cs`,
+  `LuciferArtTests.cs`, `LuciferJourneyTests.cs`, `Art/Demons/lucifer/*`, `Art/Backgrounds/lucifer/*`, `Ui/dialog_lucifer.png`,
+  `Ui/fade.png` (+ .meta dosyaları).
+- Oyunda elle deneme: çağrılma sahnesinin temposu (eski şeytanın son sözü + ~2.5 sn kararma), Fast / Very Fast'ta his.

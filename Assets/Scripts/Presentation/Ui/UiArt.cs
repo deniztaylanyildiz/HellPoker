@@ -15,6 +15,11 @@ namespace HellPoker.Presentation.Ui
         public const string Panel = "Ui/panel";
         public const string PanelHot = "Ui/panel_hot";
         public const string Dialog = "Ui/dialog";
+        public const string DialogLucifer = "Ui/dialog_lucifer";
+
+        /// <summary>Full-screen black in growing Bayer patterns (¼ … all), for a slow fall into darkness.</summary>
+        public const string Fade = "Ui/fade";
+        public const int FadeWidth = 480;
         public const string CardFace = "Ui/card_face";
         public const string CardBack = "Ui/card_back";
         public const string CardSlot = "Ui/card_slot";
