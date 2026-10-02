@@ -1322,4 +1322,35 @@ Kazançta +1 ve ≤ 500 bonusu 1'de kaldı.
 
 ### Açık sorular
 - Belial %70 isteniyorsa hile kuralı değişmeli (yukarıdaki seçenekler).
+  **Kullanıcı (2026-10-02): şimdi dokunma, gösterge 2 kalsın.** Gerçek oyuncu Sahte Yüz'e kanabilir; önce oyun testinde görecek
+  (`Docs/PLAYTEST.md` ▸ Hileler), karar ondan sonra.
 - Sonraki iş (oyuncu sınıfları / yetenekleri) için kancalar hazır: `PendingCheat`, `ICheatGuard`, `CheatMarks`, `Malice`.
+
+---
+
+## 2026-10-02 — Temizlik, Belial notu, oynanabilir Windows build
+
+**İstek:** Repoya yanlışlıkla girmiş `cshots.xml`'i sil, .gitignore'da tek tek xml satırları yerine kökteki tüm test çıktıları için
+`/*.xml` (projenin ihtiyaç duyduğu xml varsa hariç). Belial'e dokunma, oyun testinden sonra karar. Windows x64 build (batchmode,
+script, komut CLAUDE.md'de, Builds/ ignore), çalıştırıp Player.log'u kontrol et, oyun testi için `Docs/PLAYTEST.md`.
+
+### Yapılanlar
+- `cshots.xml` silindi (GitHub Desktop'ta silme olarak commit edilmeli). .gitignore: `/results.xml`, `/play.xml`, `/shots.xml`,
+  `/sim.xml` yerine `/*.xml`. Kökte projenin ihtiyaç duyduğu bir xml yok (sadece test çıktıları); gerekirse `!/<ad>.xml` ile açılır.
+  Kural sadece kökü kapsıyor, Assets / ProjectSettings etkilenmiyor. `/[Bb]uilds/` zaten vardı.
+- Belial: gösterge 2 kaldı; açık soruya kullanıcının notu düşüldü (Bölüm 4).
+- `Editor/HellPokerBuild.cs`: `HellPokerBuild.Windows` (menü Hell Poker ▸ Build Windows). Sahne yoksa önce kurar,
+  `Builds/Windows/HellPoker.exe` (StandaloneWindows64) üretir, batchmode'da başarısızlıkta çıkış kodu 1.
+- Build: başarılı, 117 MB, ~3 dk. Pencereli (960×540) açılıp 15 sn çalıştı. Player.log'da exception / error yok.
+  Tek dikkat çeken satır "XInput1_3.dll not found. Trying XInput9_1_0.dll", Unity'nin normal yedek mesajı.
+- `Docs/PLAYTEST.md`: doldurulacak kontrol listesi. Bölümler: ilk izlenim, tempo, zorluk (şeytan tablosu, ruh, Lucifer),
+  hileler (şeytan başına adillik / niyet anlaşılırlığı, en sinir bozucu hile, Sahte Yüz'e kanma), anlaşılırlık,
+  hatalar (adım / olan / beklenen), en sevdiğim / en sıkıcı an.
+- CLAUDE.md: build komutu, Player.log yeri, mimaride `HellPokerBuild`.
+
+### Kararlar
+- Build `BuildPlayerOptions` ile sadece `HellPoker.unity` sahnesini alıyor (EditorBuildSettings'e bağlı değil). Ayarlar (şirket adı
+  "DefaultCompany", ürün "Hellpoker") değişmedi; Player.log ve PlayerPrefs yolu bunlara bağlı.
+
+### Sıradaki
+- Kullanıcı build'i oynayıp `Docs/PLAYTEST.md`'yi dolduracak. Belial kararı ve diğer ayarlar ondan sonra.

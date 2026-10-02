@@ -54,14 +54,13 @@ crashlytics-build.properties
 Thumbs.db
 
 # Hell Poker: batchmode test output, screenshots, art tool cache
-/results.xml
-/play.xml
-/shots.xml
+# Every test result in the root (results.xml, play.xml, shots.xml, sim.xml, ...). No project file lives there as xml;
+# if one ever must, un-ignore it by name below with !/<name>.xml
+/*.xml
 /*.log
 /Screenshots/
 Tools/ArtGen/__pycache__/
 # Temporary scenes the Unity Test Runner leaves behind
 /Assets/InitTestScene*.unity*
-/sim.xml
 # Art preview pages (py Tools/ArtGen/preview.py)
 /Tools/ArtGen/preview/

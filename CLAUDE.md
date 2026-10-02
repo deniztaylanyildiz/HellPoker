@@ -200,6 +200,7 @@ Assets/Scripts/
     SettingsPresenter (ayar ekranı ↔ GameSettings ↔ hız / pencere), UnityDisplayMode, DealerCards, KeyboardInput,
     HellPokerBootstrap (composition root)
   Editor/        HellPokerSceneBuilder (menü: Hell Poker ▸ Build Main Scene), HellPokerMenu (Hell Poker ▸ Play, Ctrl+Shift+P),
+                 HellPokerBuild (Hell Poker ▸ Build Windows: Builds/Windows/HellPoker.exe, x64),
                  HellPokerArtImporter (Resources/Art: Point filtre, PPU 100, sıkıştırmasız, 9-slice; Resources/Fonts: Hinted Raster),
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
@@ -314,6 +315,11 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu]
 py Tools/ArtGen/fonts.py
 py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: tüm şeytan karelerinin animasyonlu önizlemesi
+
+# Oynanabilir Windows x64 build → Builds/Windows/HellPoker.exe (Builds/ git'e girmez; editörde: Hell Poker ▸ Build Windows).
+# Start-Process -Wait ile çalıştır ki çıkış kodu (hata = 1) görülsün. Oyun testi kontrol listesi: Docs/PLAYTEST.md
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.Windows -logFile build.log
+# Player log: %USERPROFILE%\AppData\LocalLow\DefaultCompany\Hellpoker\Player.log
 
 # Ana sahneyi yeniden oluştur
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerSceneBuilder.Build -logFile build.log
