@@ -53,6 +53,9 @@ namespace HellPoker.Presentation
         /// <summary>The demon the player was summoned from — and is cast down to.</summary>
         private Dealer _origin;
 
+        /// <summary>That demon's gauge (and the grudge) as it stood at the summons, given back on a fall; null when unknown.</summary>
+        private (int malice, int max, int grudge)? _originMalice;
+
         public event Action LeaveRequested;
         public event Action<RunSummary> RunEnded;
 
@@ -77,6 +80,7 @@ namespace HellPoker.Presentation
             _view.LeavePressed += RequestLeave;
             _view.HandRanksPressed += ToggleHandRanks;
             _view.Player.CardClicked += ToggleDiscard;
+            Lang.Changed += OnLanguageChanged;
         }
 
         public IReadOnlyCollection<int> SelectedDiscards => _discards;
@@ -146,8 +150,9 @@ namespace HellPoker.Presentation
             SeatAt(dealer, carriedYears: null, roundsPlayed: 0);
             _gate = NewGate();
             _origin = null;
+            _originMalice = null;
             BeginRun();
-            _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+            Say(d => d.Greeting, 0, DealerMood.Neutral);
             Refresh();
         }
 
@@ -168,6 +173,7 @@ namespace HellPoker.Presentation
                 : new LuciferGate(rules.LuciferGateYears, rules.LuciferCastDownYears, snapshot.AtLucifer, snapshot.OriginDealerId,
                     snapshot.LuciferAttempts);
             _origin = origin;
+            _originMalice = null;
             if (!_game.IsSoulAtStake)
                 ShowSentenceLine();   // the attempt is only known now
             _stats = snapshot.Stats;
@@ -186,7 +192,7 @@ namespace HellPoker.Presentation
             }
             else if (!_game.IsSoulAtStake)
             {
-                _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+                Say(d => d.Greeting, 0, DealerMood.Neutral);
             }
             Refresh();
         }
@@ -206,8 +212,7 @@ namespace HellPoker.Presentation
 
             // The demon whose hand was left speaks first — the forfeit may still move the player (Lucifer's gate).
             // Walking out on a cheat earns scorn, and a grudge: the demon's cheats come sooner for a while.
-            string[] lines = hand.FledACheat ? (_dealerText.Hunted ?? _dealerText.Fled) : _dealerText.Fled;
-            _view.Dealer.Say(UiText.Pick(lines, _game.RoundNumber), DealerMood.Gloating);
+            Say(d => hand.FledACheat ? d.Hunted ?? d.Fled : d.Fled, _game.RoundNumber, DealerMood.Gloating);
             Refresh();
 
             string message = soul
@@ -256,7 +261,7 @@ namespace HellPoker.Presentation
         /// </summary>
         private void SaveRun()
         {
-            if (_archive == null || _stats == null || _game.IsGameOver) return;
+            if (_archive == null || _stats == null || _abandoned || _game.IsGameOver) return;
             HandInProgress hand = _game.CurrentHand;
             if (_game.Phase != GamePhase.Betting && hand == null) return;
             _archive.SaveRun(Snapshot(hand));
@@ -331,7 +336,7 @@ namespace HellPoker.Presentation
             _stats.Note(_game.Years, _game.IsSoulAtStake);
             SaveRun();
             if (!_game.IsSoulAtStake)
-                _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+                Say(d => d.Greeting, 0, DealerMood.Neutral);
             Refresh();
         }
 
@@ -346,12 +351,12 @@ namespace HellPoker.Presentation
                 Refresh();
             }
 
-            if (_game.CanLeaveTable(out string reason))
+            if (_game.CanLeaveTable(out _))
                 LeaveRequested?.Invoke();
             else if ((_game.IsSoulAtStake || _game.Rules.IsFinalTable) && _game.Phase == GamePhase.Betting)
-                _view.Dealer.Say(UiText.Pick(_dealerText.SoulLocked, _game.RoundNumber), DealerMood.Menacing);
+                Say(d => d.SoulLocked, _game.RoundNumber, DealerMood.Menacing);
             else
-                _view.SetMessage(reason, Tone.Warning);
+                _view.SetMessage(UiText.LockedLeaveMidHand, Tone.Warning);
         }
 
         // ------------------------------------------------------------------ Lucifer's gate
@@ -380,37 +385,48 @@ namespace HellPoker.Presentation
         private void BeSummoned()
         {
             // The old demon's last word, then the hall goes dark and the eyes open.
-            _view.Dealer.Say(UiText.Pick(_dealerText.Farewell, _gate.Attempts), DealerMood.Menacing);
+            Say(d => d.Farewell, _gate.Attempts, DealerMood.Menacing);
             _origin = _dealer;
+            // Lucifer's gauge is tiny; the demon below keeps theirs for when the player falls back.
+            _originMalice = (_game.Malice, _game.MaliceMax, _game.Grudge);
             _gate.Summon(_dealer.Id);
             SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
             _settledRound = _game.RoundNumber;
             _stats.SatWith(_finalDealer.Id);
 
             if (_gate.Attempts > 1 || !Tip(UiText.TipLucifer))
-                _view.Dealer.Say(LuciferGreeting(), DealerMood.Menacing);
+            {
+                int attempts = _gate.Attempts;
+                Say(d => LuciferGreeting(d, attempts), DealerMood.Menacing);
+            }
         }
 
         /// <summary>He remembers: the first summons is a welcome, the later ones are not.</summary>
-        private string LuciferGreeting()
+        private static string LuciferGreeting(DealerText lucifer, int attempts)
         {
-            if (_gate.Attempts <= 1) return UiText.Pick(_dealerText.Greeting, 0);
-            string[] lines = _dealerText.Remembers;
-            return lines == null || lines.Length == 0 ? UiText.Pick(_dealerText.Greeting, 0) : lines[Math.Min(_gate.Attempts - 2, lines.Length - 1)];
+            if (attempts <= 1) return UiText.Pick(lucifer.Greeting, 0);
+            string[] lines = lucifer.Remembers;
+            return lines == null || lines.Length == 0 ? UiText.Pick(lucifer.Greeting, 0) : lines[Math.Min(attempts - 2, lines.Length - 1)];
         }
 
         private void BeCastDown()
         {
             if (_origin == null) throw new InvalidOperationException("Cast down — but nobody knows where the player came from.");
 
-            _view.Dealer.Say(UiText.Pick(_dealerText.CastDown, _gate.Attempts), DealerMood.Gloating);
+            Say(d => d.CastDown, _gate.Attempts, DealerMood.Gloating);
             int years = _gate.CastDown(_game.Years);
             Dealer origin = _origin;
             SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
+            if (_originMalice.HasValue && _game.Phase == GamePhase.Betting)
+            {
+                var (malice, max, grudge) = _originMalice.Value;
+                _game.RestoreMalice(CheatSession.Carry(malice, max, _game.MaliceMax), false, grudge);
+            }
+            _originMalice = null;
             _settledRound = _game.RoundNumber;
             _stats.SatWith(origin.Id);
             _stats.Note(_game.Years, _game.IsSoulAtStake);
-            _view.Dealer.Say(UiText.Pick(_dealerText.Returned, _gate.Attempts), DealerMood.Gloating);
+            Say(d => d.Returned, _gate.Attempts, DealerMood.Gloating);
         }
 
         /// <summary>Builds the dealer's game, carries the sentence over if moving from another table, and dresses the table.</summary>
@@ -423,12 +439,14 @@ namespace HellPoker.Presentation
             {
                 game.TakeOver(carriedYears.Value, roundsPlayed);
                 // The demons' malice belongs to the run, not to one table: moving on never empties the gauge (or the grudge).
+                // It goes along as a share of the gauge, rounded up, so a small gauge cannot be used to drain a big one.
                 if (_game != null && !_abandoned && game.Phase == GamePhase.Betting)
-                    game.RestoreMalice(_game.Malice, majorCheatUsed: false, _game.Grudge);
+                    game.RestoreMalice(CheatSession.Carry(_game.Malice, _game.MaliceMax, game.MaliceMax), majorCheatUsed: false, _game.Grudge);
             }
 
             _game = game;
             _abandoned = false;
+            _lastLine = null;
             _dealer = dealer;
             _discards.Clear();
             _finalStretchAnnounced = false;
@@ -471,6 +489,7 @@ namespace HellPoker.Presentation
             _view.LeavePressed -= RequestLeave;
             _view.HandRanksPressed -= ToggleHandRanks;
             _view.Player.CardClicked -= ToggleDiscard;
+            Lang.Changed -= OnLanguageChanged;
         }
 
         public void PerformAction()
@@ -522,12 +541,14 @@ namespace HellPoker.Presentation
                         _game.Restart();
                     _gate = NewGate();
                     _origin = null;
+                    _originMalice = null;
+            _originMalice = null;
                     _finalStretchAnnounced = false;
                     _soulShown = false;
                     _view.SetSoul(SoulGauge.Hidden);
                     _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
                     BeginRun();
-                    _view.Dealer.Say(UiText.Pick(_dealerText.Greeting, 0), DealerMood.Neutral);
+                    Say(d => d.Greeting, 0, DealerMood.Neutral);
                     break;
             }
 
@@ -549,7 +570,7 @@ namespace HellPoker.Presentation
             TableState before = CaptureState();
             _game.Bet(action);
             if (_game.Phase == GamePhase.HouseReRaise && !Tip(UiText.TipFirstReRaise))
-                _view.Dealer.Say(UiText.Pick(_dealerText.ReRaise, _game.RoundNumber), DealerMood.Scheming);
+                Say(d => d.ReRaise, _game.RoundNumber, DealerMood.Scheming);
             PlayOutSealedHand(before);
             PlayCheatStrikes(before);
             Refresh();
@@ -625,7 +646,7 @@ namespace HellPoker.Presentation
                 if (result.WasLie)
                 {
                     _view.RevealLie(CardOf(result.CheatId));
-                    _view.Dealer.Say(UiText.LiarLine, DealerMood.Gloating);
+                    Say(_ => UiText.LiarLine, DealerMood.Gloating);
                 }
 
                 int faceUp = _game.Phase == GamePhase.RoundOver || _game.IsGameOver ? Hand.Size : _game.PlayerCardsRevealed;
@@ -634,13 +655,14 @@ namespace HellPoker.Presentation
                     _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value, keepHidden: true));
 
                 _view.PlayCheat(new CheatImpact(result.CheatId, result.PlayerCards, result.HouseCards));
-                _view.Dealer.Say(UiText.CheatLine(result.CheatId), DealerMood.Scheming);
+                string cheatId = result.CheatId;
+                Say(_ => UiText.CheatLine(cheatId), DealerMood.Scheming);
 
                 if (result.Backfired && _game.PlayerHand != null)
                 {
                     _view.Player.Show(PlayerSlots(faceUp, keepHidden: true));
                     _view.PlayMoment(TableMoment.Backfire, UiText.BackfireFlash, result.PlayerCards);
-                    _view.Dealer.Say(UiText.Pick(_dealerText.Backfire, _game.RoundNumber), DealerMood.Annoyed);
+                    Say(d => d.Backfire, _game.RoundNumber, DealerMood.Annoyed);
                 }
             }
         }
@@ -743,7 +765,7 @@ namespace HellPoker.Presentation
             _view.SetBetControls(BetControls.Hidden);
             _view.PlayMoment(TableMoment.PactSealed, UiText.PactSealed);
             _view.SetMessage(UiText.SealedMessage, Tone.Warning);
-            _view.Dealer.Say(UiText.Pick(_dealerText.Sealed, _game.RoundNumber), DealerMood.Gloating);
+            Say(d => d.Sealed, _game.RoundNumber, DealerMood.Gloating);
         }
 
         public void ToggleDiscard(int index)
@@ -753,10 +775,12 @@ namespace HellPoker.Presentation
             if (!_discards.Remove(index))
             {
                 _discards.Add(index);
-                if (!_game.CanDraw(_discards, out string reason))
+                if (!_game.CanDraw(_discards, out _))
                 {
                     _discards.Remove(index);
-                    _view.SetMessage(reason, Tone.Warning);
+                    // The game's reason is for developers; the player hears it in their own language.
+                    _view.SetMessage(_game.IsPlayerCardChained(index) ? UiText.LockedChained
+                        : string.Format(UiText.LockedTooManyFormat, _game.Rules.MaxDiscards), Tone.Warning);
                     return;
                 }
             }
@@ -807,8 +831,63 @@ namespace HellPoker.Presentation
             string text = UiText.TipText(tip, _game.Rules.ForcedRaiseYears, _game.Rules.LuciferGateYears);
             if (text == null) return false;
             _guide.MarkTipSeen(tip);
-            _view.Dealer.Say(text, DealerMood.Neutral);
+            int forced = _game.Rules.ForcedRaiseYears, gate = _game.Rules.LuciferGateYears;
+            Say(_ => UiText.TipText(tip, forced, gate), DealerMood.Neutral);
             return true;
+        }
+
+        // ------------------------------------------------------------------ speech, in whatever language is spoken
+
+        /// <summary>The last thing the dealer said, as words to be found again in another language; null after a new seat.</summary>
+        private Func<string> _lastLine;
+
+        /// <summary>One of the dealer's lines, picked by <paramref name="counter"/> (taken now, so the same line comes back in another language).</summary>
+        private void Say(Func<DealerText, string[]> lines, int counter, DealerMood mood) => Say(d => UiText.Pick(lines(d), counter), mood);
+
+        /// <summary>
+        /// The dealer speaks. The line is kept as a recipe — whose words (the demon speaking now, even if the table changes
+        /// right after) and which — so a language change can say it again in the new language.
+        /// </summary>
+        private void Say(Func<DealerText, string> line, DealerMood mood)
+        {
+            string dealerId = _dealer?.Id;
+            Func<string> text = () => line(UiText.Dealer(dealerId)) ?? "";
+            _lastLine = text;
+            _view.Dealer.Say(text(), mood);
+        }
+
+        /// <summary>True while the table is being rewritten in another language: nothing is replayed, said or settled again.</summary>
+        private bool _relabelling;
+
+        /// <summary>
+        /// The language changed: the table says what it already says, in the new words. Whatever was animating finishes first;
+        /// the game, the hand, the save, the cheats and the deck are not touched — only the words on the screen are.
+        /// </summary>
+        private void OnLanguageChanged()
+        {
+            if (!Playing || _dealer == null) return;
+            if (_view.IsBusy) _view.SkipAnimations();
+
+            _dealerText = UiText.Dealer(_dealer.Id);
+            _view.Dealer.Relabel(DealerCards.Describe(_dealer));
+            _view.Payouts.SetTable(_dealer.Payouts);
+            if (!SoulMode && _game.Phase != GamePhase.Damned)
+                ShowSentenceLine();
+
+            _relabelling = true;
+            try
+            {
+                Refresh();
+            }
+            finally
+            {
+                _relabelling = false;
+            }
+
+            if (_view.HandRanksOpen)
+                _view.ShowHandRanks(_dealer.Payouts, IntentFootnote());
+            if (_lastLine != null)
+                _view.Dealer.Say(_lastLine(), DealerMood.Neutral);
         }
 
         /// <summary>The player's caption: what the face-up cards make right now (hand guide), or just "YOUR HAND".</summary>
@@ -816,7 +895,7 @@ namespace HellPoker.Presentation
         {
             HandCategory? now = _game.PlayerHandNow;
             if (GuideOn && now.HasValue)
-                _view.Player.SetCaption(string.Format(UiText.HandNowFormat, UiText.CategoryName(now.Value).ToUpperInvariant()), Tone.Neutral);
+                _view.Player.SetCaption(string.Format(UiText.HandNowFormat, UiText.CategoryNameUpper(now.Value)), Tone.Neutral);
             else
                 _view.Player.SetCaption(UiText.PlayerCaption, Tone.Muted);
         }
@@ -895,7 +974,7 @@ namespace HellPoker.Presentation
             {
                 _finalStretchAnnounced = true;
                 if (finalTable || !Tip(UiText.TipFinalStretch))
-                    _view.Dealer.Say(UiText.Pick(_dealerText.FinalStretch, _game.RoundNumber), DealerMood.Menacing);
+                    Say(d => d.FinalStretch, _game.RoundNumber, DealerMood.Menacing);
             }
         }
 
@@ -914,7 +993,7 @@ namespace HellPoker.Presentation
             {
                 _soulShown = true;
                 if (!Tip(UiText.TipSoul))
-                    _view.Dealer.Say(UiText.Pick(_dealerText.SoulTaken, _game.RoundNumber), DealerMood.Gloating);
+                    Say(d => d.SoulTaken, _game.RoundNumber, DealerMood.Gloating);
             }
             else if (!_game.IsSoulAtStake && _soulShown)
             {
@@ -922,7 +1001,7 @@ namespace HellPoker.Presentation
                 _view.SetSoul(SoulGauge.Hidden);
                 _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
                 _view.Sentence.SetYears(_game.Years, animate: true);
-                _view.Dealer.Say(UiText.Pick(_dealerText.SoulReleased, _game.RoundNumber), DealerMood.Annoyed);
+                Say(d => d.SoulReleased, _game.RoundNumber, DealerMood.Annoyed);
             }
         }
 
@@ -1091,7 +1170,8 @@ namespace HellPoker.Presentation
             // The House turns first: a card a cheat kept from the player turns only once both hands are on the table.
             _view.House.Show(HouseSlots(Hand.Size));
             _view.Player.Show(PlayerSlots(Hand.Size));
-            _view.Pause(ShowdownPause);
+            if (!_relabelling)
+                _view.Pause(ShowdownPause);
 
             // A run can be over with no hand behind it here (a finished save, a sentence carried in): nothing to name.
             ShowdownResult showdown = round?.Showdown;
@@ -1119,7 +1199,7 @@ namespace HellPoker.Presentation
             }
 
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
-            if (round != null)
+            if (round != null && !_relabelling)
                 PlayMoments(round, playerWon);
             if (soulHand)
             {
@@ -1138,12 +1218,12 @@ namespace HellPoker.Presentation
                     bool deadMansHand = showdown != null && showdown.Player.Category == HandCategory.DeadMansHand;
                     _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : BeatLucifer ? UiText.MorningStarFallsMessage : UiText.ServedMessage,
                         Tone.Triumph);
-                    _view.Dealer.Say(_dealerText.Absolved, DealerMood.Annoyed);
+                    if (!_relabelling) Say(d => d.Absolved, DealerMood.Annoyed);
                     _view.SetAction(UiText.TheEnd);
                     break;
                 case GamePhase.Damned:
                     _view.SetMessage(UiText.DamnedMessage, Tone.Doom);
-                    _view.Dealer.Say(_dealerText.Damned, DealerMood.Gloating);
+                    if (!_relabelling) Say(d => d.Damned, DealerMood.Gloating);
                     _view.SetAction(UiText.TheEnd);
                     break;
                 default:
@@ -1153,10 +1233,10 @@ namespace HellPoker.Presentation
                     if (IsHoldingTheLastYear)
                     {
                         // Not a bug: an ordinary table keeps the last year for Lucifer — and says so.
-                        _view.Dealer.Say(UiText.LastYearLine, DealerMood.Menacing);
+                        if (!_relabelling) Say(_ => UiText.LastYearLine, DealerMood.Menacing);
                         _view.Sentence.SetLimit(_game.Rules.SoulThreshold, UiText.LastYearNote);
                     }
-                    else
+                    else if (!_relabelling)
                     {
                         SayRoundLine(round);
                     }
@@ -1176,7 +1256,7 @@ namespace HellPoker.Presentation
             if (category == HandCategory.DeadMansHand)
                 _view.PlayMoment(TableMoment.DeadMansHand, playerCards: DeadMansCards(_game.PlayerHand));
             else if (category >= HandCategory.TwoPair)
-                _view.PlayMoment(TableMoment.GoodHand, string.Format(UiText.GoodHandFormat, UiText.CategoryName(category).ToUpperInvariant()));
+                _view.PlayMoment(TableMoment.GoodHand, string.Format(UiText.GoodHandFormat, UiText.CategoryNameUpper(category)));
         }
 
         /// <summary>Where A♠ A♣ 8♠ 8♣ sit in the hand, in that order.</summary>
@@ -1201,13 +1281,13 @@ namespace HellPoker.Presentation
         {
             int counter = _game.RoundNumber;
             if (round.Folded)
-                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerFolds, counter), DealerMood.Gloating);
+                Say(d => d.PlayerFolds, counter, DealerMood.Gloating);
             else if (round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
-                _view.Dealer.Say(UiText.Pick(_dealerText.PlayerWins, counter), DealerMood.Annoyed);
+                Say(d => d.PlayerWins, counter, DealerMood.Annoyed);
             else if (round.Showdown.Outcome == ShowdownOutcome.HouseWins)
-                _view.Dealer.Say(UiText.Pick(_dealerText.HouseWins, counter), DealerMood.Gloating);
+                Say(d => d.HouseWins, counter, DealerMood.Gloating);
             else
-                _view.Dealer.Say(UiText.Pick(_dealerText.Push, counter), DealerMood.Neutral);
+                Say(d => d.Push, counter, DealerMood.Neutral);
         }
 
         private static string ResultMessage(RoundResult round, bool soulHand)

@@ -100,6 +100,18 @@ namespace HellPoker.Presentation.Views
             PlayBase();
         }
 
+        /// <summary>The same demon in another language: the name plate and title change, nothing else does.</summary>
+        public void Relabel(DealerCard dealer)
+        {
+            if (dealer == null) return;
+            _sequencer.Do(() =>
+            {
+                if (dealer.Id != _dealerId) return;
+                _name.text = dealer.Name;
+                _title.text = dealer.IsFinalTable ? "" : dealer.Title;
+            });
+        }
+
         /// <summary>True while the demon at the table is the Morning Star (his own dialogue colours).</summary>
         public bool IsFinalTable { get; private set; }
 

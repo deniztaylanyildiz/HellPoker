@@ -21,6 +21,9 @@ namespace HellPoker.Core.Tests
             public event Action SettingsPressed;
             public event Action RecordsPressed;
             public event Action NewGameConfirmed;
+            public event Action LanguagePressed;
+
+            public void PressLanguage() => LanguagePressed?.Invoke();
 
             public void PressRecords() => RecordsPressed?.Invoke();
 
@@ -191,9 +194,13 @@ namespace HellPoker.Core.Tests
             public event Action HandGuidePressed;
             public event Action ResetTipsPressed;
             public event Action BackPressed;
+            public event Action LanguagePressed;
+            public string Language { get; private set; }
+            public void PressLanguage() => LanguagePressed?.Invoke();
 
-            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft)
+            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language)
             {
+                Language = language;
                 Speed = speed;
                 Fullscreen = fullscreen;
                 HandGuide = handGuide;

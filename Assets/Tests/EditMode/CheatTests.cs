@@ -797,6 +797,30 @@ namespace HellPoker.Core.Tests
             Assert.Throws<InvalidOperationException>(() => game.ForfeitHand());
         }
 
+        // ================================================================== the gauge goes along as a share
+
+        [TestCase(3, 4, 2, 2)]
+        [TestCase(2, 2, 4, 4)]
+        [TestCase(1, 2, 4, 2)]
+        [TestCase(4, 4, 2, 2)]
+        [TestCase(4, 4, 1, 1)]
+        [TestCase(1, 4, 2, 1)]
+        [TestCase(1, 1, 4, 4)]
+        [TestCase(0, 4, 2, 0)]
+        [TestCase(3, 0, 2, 0)]
+        [TestCase(3, 4, 0, 0)]
+        public void Carry_KeepsTheShare_RoundedUp(int malice, int fromMax, int toMax, int carried)
+        {
+            Assert.AreEqual(carried, CheatSession.Carry(malice, fromMax, toMax));
+        }
+
+        [Test]
+        public void Carry_GoingBackAndForth_NeverDrainsTheGauge()
+        {
+            for (int malice = 0; malice <= 4; malice++)
+            foreach (int small in new[] { 1, 2 })
+                Assert.GreaterOrEqual(CheatSession.Carry(CheatSession.Carry(malice, 4, small), small, 4), malice, $"{malice}/4 via {small}");
+        }
         // ================================================================== the thorn's price
 
         [Test]

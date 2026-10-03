@@ -1,6 +1,7 @@
 using System.Linq;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Game;
+using HellPoker.Presentation.Animation;
 using HellPoker.Presentation.Settings;
 using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
@@ -67,10 +68,11 @@ namespace HellPoker.Presentation
             int? seed = _useFixedSeed ? _seed : (int?)null;
 
             ISettingsStore store = Store;
-            var settings = new GameSettings(store);
+            // A first launch speaks the system's language (Turkish or English); batch runs (tests) always start in English.
+            var settings = new GameSettings(store, FirstLanguage);
+            AnimationClock.Speed = settings.SpeedMultiplier;   // before anything animates
             var archive = new RunArchive(store);
             SettingsView settingsView = SettingsView.Create(transform);
-            _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode());
 
             // Every hall's art is loaded up front: the first sight of a hall never stalls a frame.
             UiArt.Salons.Preload(DealerRoster.All.Select(d => d.Id).Append(DealerRoster.LuciferId));
@@ -80,10 +82,11 @@ namespace HellPoker.Presentation
             ResumeSavedRun(archive);
 
             MainMenuView menu = MainMenuView.Create(transform,
-                string.Format(UiText.MenuTaglineFormat, table.StartingYears),
-                string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent,
+                () => string.Format(UiText.MenuTaglineFormat, table.StartingYears),
+                () => string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent,
                     table.LuciferGateYears, table.LuciferCastDownYears, DealerRoster.LuciferUnit, DealerRoster.LuciferCap),
-                DealerRoster.Mammon.Payouts, UiText.CheatsPage());
+                DealerRoster.Mammon.Payouts, UiText.CheatsPage);
+            _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode(), tableView, menu);
             DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
             EndScreenView endScreen = EndScreenView.Create(transform, UiArt.Dealers);
             RecordsView records = RecordsView.Create(transform);
@@ -105,6 +108,15 @@ namespace HellPoker.Presentation
         /// Settings, the saved run and the records live in PlayerPrefs. Batch runs (tests, screenshots) use one store in memory
         /// for the whole process instead: they never touch the player's own, and reloading the scene still finds the save.
         /// </summary>
+        private static Language FirstLanguage => FirstLanguageFor(Application.isBatchMode, Application.systemLanguage);
+
+        /// <summary>
+        /// The language of a first launch (nothing saved yet): a Turkish system gets Turkish, every other English. Batch runs
+        /// (tests, screenshots) always start in English, whatever machine they run on.
+        /// </summary>
+        internal static Language FirstLanguageFor(bool batchMode, SystemLanguage system) =>
+            batchMode ? Language.English : GameSettings.LanguageForSystem(system == SystemLanguage.Turkish);
+
         private static ISettingsStore Store => Application.isBatchMode ? BatchStore : (ISettingsStore)new PlayerPrefsStore();
 
         /// <summary>The in-memory store of batch runs (tests may clear it).</summary>

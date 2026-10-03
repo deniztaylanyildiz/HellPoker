@@ -2,7 +2,7 @@ using System;
 
 namespace HellPoker.Presentation.Abstractions
 {
-    public interface IMainMenuView
+    public interface IMainMenuView : ILanguageButton
     {
         event Action NewGamePressed;
         event Action ContinuePressed;
@@ -10,6 +10,7 @@ namespace HellPoker.Presentation.Abstractions
         event Action QuitPressed;
         event Action SettingsPressed;
         event Action RecordsPressed;
+
 
         /// <summary>The player accepted the New Game warning (walk away from the run in progress).</summary>
         event Action NewGameConfirmed;

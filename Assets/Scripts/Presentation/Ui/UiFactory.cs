@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -149,6 +150,19 @@ namespace HellPoker.Presentation.Ui
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            return text;
+        }
+
+        /// <summary>
+        /// Makes a fixed label follow the language: written now from <paramref name="source"/> and again whenever the
+        /// language changes (<see cref="LocalizedText"/>). Pass the UiText member as a lambda: <c>() => UiText.Fold</c>.
+        /// </summary>
+        public static Text Localized(this Text text, Func<string> source)
+        {
+            if (text == null || source == null) return text;
+            LocalizedText localized = text.GetComponent<LocalizedText>();
+            if (localized == null) localized = text.gameObject.AddComponent<LocalizedText>();
+            localized.Bind(text, source);
             return text;
         }
 

@@ -501,6 +501,73 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(0, _game.Grudge);
         }
 
+        [Test]
+        public void GoingToASmallGaugeAndBack_DoesNotDrainIt()
+        {
+            ResumeWithDemonsCheats(new RunSnapshot("mammon", 900, 4, new RunStats(1000, "mammon"), malice: 3), DealerRoster.Mammon);
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+            Assert.AreEqual(2, _game.Malice, "3/4 is 2/2, rounded up.");
+            _presenter.SwitchTable(DealerRoster.Mammon);
+
+            Assert.AreEqual(4, _game.Malice, "2/2 is full: full at Mammon's too.");
+        }
+
+        [Test]
+        public void AFullGauge_StaysFull_AtEveryTable()
+        {
+            ResumeWithDemonsCheats(new RunSnapshot("lilith", 900, 4, new RunStats(1000, "lilith"), malice: 4), DealerRoster.Lilith);
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+            Assert.AreEqual(2, _game.Malice);
+            _presenter.SwitchTable(DealerRoster.Lilith);
+
+            Assert.AreEqual(4, _game.Malice, "The cheat still comes with the next deal.");
+        }
+
+        [Test]
+        public void AnEmptyGauge_StaysEmpty()
+        {
+            ResumeWithDemonsCheats(new RunSnapshot("mammon", 900, 4, new RunStats(1000, "mammon")), DealerRoster.Mammon);
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+
+            Assert.AreEqual(0, _game.Malice);
+        }
+
+        [Test]
+        public void AFallFromLucifer_GivesBackTheGaugeTheyHadBelow()
+        {
+            const string win = "2C 9C JC 4C KC 2D 2H 5S 7H 9D 3S 6C JD QC 10S 2S 4H 5C 6D 7S";
+            const string loseBig = "2C 5D 7H 9S JC KS KH KD 4C 4H 3S 6C JD QC 10S 2S 4H 5C 6D 7S";
+            var decks = new Queue<string>(new[] { win, win, loseBig, win });
+            string last = win;
+            _view = new FakeTableView();
+            _presenter = new TablePresenter(d =>
+            {
+                last = decks.Count > 0 ? decks.Dequeue() : last;
+                var random = new FirstChoice();
+                return _game = new HellPokerGame(d.ApplyTo(new GameRules()), TestDecks.Stacked(last), HandEvaluator.CreateDefault(),
+                    new CardExchanger(new MaxDiscardPolicy(d.MaxDiscards)), new HouseDrawStrategy(d.MaxDiscards), d.Payouts, null,
+                    new CheatSession(d.Cheats, d.MaliceMax, random), random);
+            }, _view, null, null, DealerRoster.Lucifer);
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.TakeOver(200, 3);
+            _game.RestoreMalice(3, false);
+
+            _presenter.SwitchTable(DealerRoster.Mammon);   // 200: summoned at once
+            Assert.IsTrue(_presenter.IsAtFinalTable);
+            Assert.AreEqual(1, _game.Malice, "3/4 is his whole gauge of 1.");
+
+            _view.PressAction();
+            if (_game.Phase == GamePhase.PlayerReveal) _presenter.CheckToDraw();
+            _view.PressAction();
+            for (int guard = 0; guard < 5 && _game.Phase != GamePhase.RoundOver; guard++) _view.PressBet(BetAction.Pass);
+            _view.PressAction();   // lost above the gate: cast down
+
+            Assert.AreEqual("mammon", _presenter.CurrentDealerId);
+            Assert.AreEqual(3, _game.Malice, "Mammon's 3/4 comes back, not Lucifer's spent gauge.");
+        }
         // ------------------------------------------------------------------ the thorn's price, before the draw
 
         private int ThornedCard() => Enumerable.Range(0, 5).Single(_game.IsPlayerCardThorned);

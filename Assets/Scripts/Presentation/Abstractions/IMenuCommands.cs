@@ -21,5 +21,8 @@ namespace HellPoker.Presentation.Abstractions
     {
         /// <summary>Alt+Enter.</summary>
         void ToggleFullscreen();
+
+        /// <summary>L, or a language button: the next language, saved, and the screen speaks it at once.</summary>
+        void CycleLanguage();
     }
 }

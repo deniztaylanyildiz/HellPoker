@@ -1674,3 +1674,95 @@ desteler (gürültü), bir kısmı Lucifer'den düşen oyuncunun dolu göstergey
 ### Sıradaki
 - Kullanıcı 0.1.2'yi itch.io'ya yükleyecek. Belial / Lilith denge kararları oyun testi geri bildiriminden sonra.
 - Açık: Quit (menüden çıkış) onaysız; koşu el ortasındaysa açılışta forfeit + `Fled` / `Hunted` zaten çalışıyor.
+---
+
+## 2026-10-03 — Gösterge oranla taşınıyor (gidip gelme açığı)
+
+**İstek:** `SeatAt` göstergeyi adet olarak taşıyıp yeni şeytanın boyuna kırpıyordu: küçük göstergeli masaya (Belial 2) gidip gelerek
+göstergeyi boşaltmak mümkündü (Mammon 3/4 → Belial 2/2 → Mammon 2/4); Lucifer'den düşüşte gelinen şeytanın göstergesi Lucifer'in 1'lik
+göstergesinden geliyordu. Oranla, yukarı yuvarlayarak taşı; çağrılmada gelinen şeytanın göstergesini sakla, düşüşte geri yükle; saf
+fonksiyon + test; simülasyon aynı formülü kullansın; CLAUDE.md ve DEVLOG.
+
+### Yapılanlar
+- `CheatSession.Carry(malice, fromMax, toMax)` (Core, saf): `(malice × toMax + fromMax − 1) / fromMax`, 0 / Max 0 → 0, yeni boyla sınırlı.
+- `TablePresenter.SeatAt` bununla taşıyor. `BeSummoned` gelinen şeytanın göstergesini, boyunu ve kinini `_originMalice`'te saklıyor;
+  `BeCastDown` SeatAt'ten sonra (Betting'de) onu geri yüklüyor. Yeni koşu / devam / yeniden başlatmada sıfırlanıyor.
+- `BalanceSimulation` aynı formülü ve aynı düşüş kuralını kullanıyor.
+- Testler: `CheatTests` (Carry için 10 durum + gidip gelme hiçbir boyda göstergeyi düşürmüyor), `CheatPresenterTests`
+  (Mammon 3/4 → Belial → Mammon = 4/4; Lilith 4/4 → Belial → Lilith = 4/4; boş gösterge boş kalır; çağrılma + düşüş → Mammon'un 3/4'ü
+  geri geliyor, Lucifer'in harcanmış göstergesi değil). **587 EditMode (+1 explicit) geçiyor.**
+
+### Denge (2000 koşu)
+Mammon %78.2, Belial %74.7, Lilith %51.7; Lucifer'e ulaşan %85 / %82 / %65, ilk denemede %32 / %40 / %32. Bir öncekiyle neredeyse
+aynı: simülasyon oyuncusu masa değiştirmiyor, fark sadece düşüşte geri gelen göstergeden.
+
+### Kararlar
+- Saklanan köken göstergesi kayda yazılmadı (format değişmesin). Lucifer masasında kapatılıp açılan koşuda düşüş, Lucifer'in
+  göstergesini oranla taşır (1/1 → dolu, 0/1 → boş). İstenirse `origin.malice` alanı eklenebilir.
+---
+
+## 2026-10-03 — Dil: İngilizce + Türkçe (altyapı, Türkçe metinler, oyun içi buton, ilk açılış)
+
+**İstek (kullanıcı, üç adım + ek):**
+1. Altyapı ve Türkçe metinler: `Language` / `Lang` (Current, Set, Changed); UiText'teki her `const string` → `Lang.Pick(en, tr)`; replik
+   dizileri de Türkçe; şeytanların tonu korunsun; terimler ARTIR / GÖR / ÇEKİL / PAS / KART DEĞİŞ / ANTE, el adları Türkçe poker
+   terimleri (Kent, Renk, Full, Kare, Floş Royal, Ölü Adamın Eli). Core'da oyuncu metni kalmasın; anahtarlar / id'ler çevrilmesin;
+   CurrentCulture değişmesin. `GameSettings.Language` ("settings.language", bozuk → English), `CycleLanguage`, ayarlarda 5. satır.
+   Testler + Türkçe ekran görüntüleri, taşan metinleri kısalt.
+2. Oyun ekranında dil butonu (MENU / HANDS'in yanında, x 124), ana menüde de; L tuşu; `LocalizedText`; dil değişince ekran yeniden
+   açılmadan güncellensin, el ortasında oyun durumu / kayıt / hile / deste değişmesin, sahne yeniden yüklenmesin. Testler.
+3. (Ek) İlk açılışta dil `Application.systemLanguage`'a göre (Turkish → Türkçe, diğerleri → English), sonra kayıtlı seçim; batchmode'da hep English.
+
+### Yapılanlar — altyapı ve metinler
+- `Ui/Lang.cs`: `Language { English, Turkish }`, `Lang.Current / Set / Changed / Pick<T> / Next / IsTurkish`.
+- `UiText.cs`, `UiText.Dealers.cs`, `UiText.Cheats.cs`: ~270 metin `L("…", "…")` özelliği oldu. Anahtarlar const kaldı (`tip.*`,
+  `TipCheatPrefix`, `VersionFormat`, geliştirici `FpsFormat`). Her şeytanın Türkçe `DealerText`'i ayrı (`MammonTr`, `BelialTr`,
+  `LilithTr`, `LuciferTr`, `UnknownTr`); `UiText.Dealer(id)` dile göre seçer. Lucifer Türkçede "SABAH YILDIZI".
+- Ton: Mammon tefeci / defter / faiz ("Faizden mi korktun?"), Belial sahne / "canım" ("Sahne korkusu mu, canım?"), Lilith gece / küçük ruh,
+  Lucifer kısa ve ağır ("Her şey bende biter.").
+- `UiText.Upper / Lower / CategoryNameUpper`: Türkçe i/İ ı/I'yı elle çevirir; `CultureInfo` hiç değişmiyor (eski `ToUpperInvariant`
+  çağrıları buna geçti).
+- Core'un `out reason` metinleri artık oyuncuya gösterilmiyor: zincirli kart / fazla kart / el ortasında masa değiştirme presenter'da
+  `UiText.LockedChained / LockedTooManyFormat / LockedLeaveMidHand`.
+- `GameSettings.Language` (adıyla kaydedilir; yoksa ilk açılış dili, bozuksa English), `CycleLanguage`, `SetLanguage`; yüklenince ve her
+  değişimde `Lang.Set`. Ayarlarda 5. satır "LANGUAGE / DİL" (satırlar 32 px'e sıkıştırıldı).
+- `AssemblyInfo.cs`: `InternalsVisibleTo` test derlemelerine (UiText'i testler doğrudan okuyor).
+
+### Yapılanlar — oyun içi buton ve anında güncelleme
+- `ILanguageButton` (`LanguagePressed`): `ITableView`, `IMainMenuView`, `ISettingsView`. Masada x 124'te 28×18 "TR" / "EN" (gideceği dil),
+  ipucu satırı 156'ya kaydı; menüde sağ üst köşe. `ISettingsCommands.CycleLanguage` + L tuşu (her ekranda). Hepsi
+  `SettingsPresenter.CycleLanguage`'a gider.
+- `LocalizedText` + `UiFactory.Localized(() => UiText.X)`: bütün sabit etiketler (MENU, HANDS, PASS, FOLD, HEP PAS, ANTE, başlıklar, ayar
+  satırları, menü butonları, onay kutuları, rekorlar / son ekran butonları, el sıralaması, ödeme tablosu, LIAR, TOSS, RUHUN).
+  `MainMenuView` tagline / kurallar / hileler sayfasını `Func<string>` olarak alıyor.
+- `TablePresenter.OnLanguageChanged`: animasyonu bitirir, şeytanın adını / unvanını (`IDealerView.Relabel`), ödeme tablosunu ve ceza
+  satırını yeniler, `_relabelling` ile `Refresh` (sonuçta duraklama, an, replik, kayıt yok), açık el tablosunu yeniler, son repliği yeni
+  dilde bir kez söyler. Şeytan konuşması artık tarif: `Say(d => d.X, sayaç, ruh hali)` — kimin ve hangi replik, dil değişince aynısı
+  bulunur. Terk edilmiş masa güncellenmez, kaydedilmez.
+- `MainMenuPresenter`: şeytan kartlarını yeniden tarif eder; açık seçim / rekor / son ekranı perdesiz yeniden gösterir, New Game uyarısı
+  açıksa yeni dilde sorar. `SettingsPresenter` değerleri ("AÇIK", "HIZLI", "TÜRKÇE") yeniden yazar.
+
+### İlk açılış
+- `HellPokerBootstrap.FirstLanguageFor(batchMode, systemLanguage)`: batchmode → English; Türkçe sistem → Turkish; diğer → English.
+  `GameSettings(store, firstLanguage)`: kayıtlı dil yoksa bu, varsa kayıtlı olan.
+
+### Ekran görüntüleri
+- `HELLPOKER_LANG=tr` aynı turu Türkçe çeker; yeni çekim `08e_new_game_warning` (New Game uyarısı + alay). `Screenshots/` yenilendi,
+  Türkçeler `Screenshots/tr/`.
+- Kısaltılanlar: "PAS GEÇ / DEĞİŞE" iki satıra sığmıyordu → "HEP / PAS"; İngilizce ipucu satırı ikinci satıra taşıyordu → "D check",
+  "L lang". Diğer ekranlar (menü, ayarlar, kurallar, seçim, masa, ruh, onay kutuları, rekorlar, son ekranlar, Lucifer) sığıyor.
+- Not: başlık fontunun (Press Start 2P) kendi "İ" glifi noktaya yer açmak için I'yı kısaltıyor, büyük başlıklarda "i"ye benziyor
+  ("LANETLENDİN"). Okunuyor; istenirse `fonts.py`'de özel glif çizilebilir.
+
+### Testler
+- `LanguageTests` (yeni): kaydet / geri oku; bozuk değer English; ilk açılış dili ve kayıtlının önceliği; `FirstLanguageFor`; dil butonu
+  ayarı kaydeder ve döngüler; Türkçe terimler (`UiText.Fold == "ÇEKİL"`, el adları, Türkçe büyük harf); anahtarlar çevrilmez; yansımayla
+  bütün UiText metinleri (+ el / hile / hız / pay / ipucu metinleri, 250+): {n} kümeleri iki dilde aynı, boş Türkçe yok; her şeytanın her
+  repliği iki dilde; masada Drawing'de dil değişince faz / yıl / bahis / kartlar / seçili kart aynı, mesaj ve buton Türkçe, son replik bir
+  kez; sonuç ekranında hiçbir an tekrar oynamıyor, el iki kez sayılmıyor; animasyon sürerken önce atlatılıyor.
+- `EnglishByDefault` (SetUpFixture): her EditMode koşusu İngilizce başlar.
+- PlayMode `TheLanguageButton_TurnsTheTableTurkish_AtOnce_MidHand`: masada butona bas → "MENÜ", "PAS", buton "EN", el sürüyor, ayar kaydedildi.
+- **602 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+
+### Sıradaki
+- Oyun testinde Türkçe metinlerin tonu ve uzunlukları; istenirse başlık fontuna özel "İ".

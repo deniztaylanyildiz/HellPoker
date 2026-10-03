@@ -97,7 +97,7 @@ namespace HellPoker.Presentation.Views
             Image tag = UiFactory.CreateImage("DiscardTag", _content, Palette.BloodDark);
             tag.rectTransform.PlaceTL(0, 20, Size.x, 10);
             UiFactory.AddBorder(tag.gameObject, Palette.Black, 1f);
-            UiFactory.CreateText("Label", tag.transform, UiText.DiscardTag, 8, Palette.Ember, style: FontStyle.Bold)
+            UiFactory.CreateText("Label", tag.transform, "", 8, Palette.Ember, style: FontStyle.Bold).Localized(() => UiText.DiscardTag)
                 .rectTransform.Stretch();
             _discardTag = tag.gameObject;
 

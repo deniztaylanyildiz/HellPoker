@@ -125,8 +125,30 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - koşu, aklanma, lanet, şeytan başına aklanma (Lucifer'de biten koşu gelinen şeytana yazılır), en hızlı aklanma;
   - Lucifer'e ulaşma, Lucifer'i yenme, en az denemede yenme, Wild Bill kaçışları (satırlar isteğe bağlı, eski defter okunur).
 - **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): animasyon hızı, tam ekran (Alt+Enter; pencere 480×270'in tam katı),
-  el rehberi, ipuçları. Batchmode'da (testler) ayar / kayıt / rekor süreç boyu tek bir bellek deposunda
+  el rehberi, ipuçları, **dil** (`settings.language`, adıyla). Batchmode'da (testler) ayar / kayıt / rekor süreç boyu tek bir bellek deposunda
   (`HellPokerBootstrap.BatchStore`); PlayMode testleri her testte onu temizler.
+- **Dil** (İngilizce varsayılan, Türkçe):
+  - `Ui/Lang` (`Language` enum, `Lang.Current / Set / Changed / Pick(en, tr)`). Oyuncuya görünen **her** metin `UiText`'te
+    `L("İngilizce", "Türkçe")` özelliği (const değil); şeytan replikleri her dil için ayrı `DealerText` (`MammonTr`...), hile metinleri
+    `UiText.Cheats`'te. **Yeni metin her zaman iki dilde eklenir**; format string'lerde aynı {n}'ler (`LanguageTests` yansımayla
+    hepsini gezer: boş Türkçe yok, {n} kümeleri aynı, her şeytanın her repliği iki dilde).
+  - Anahtarlar ASLA çevrilmez: ipucu anahtarları (`tip.*`, const), kayıt alanları, şeytan / hile id'leri, PlayerPrefs anahtarları.
+  - `CultureInfo.CurrentCulture` DEĞİŞMEZ. Büyük harf metinler doğrudan büyük yazılır; kod içinde büyük / küçük harf gerekirse
+    `UiText.Upper / Lower` (Türkçe i→İ, ı→I). Core'un `out reason` metinleri teşhis içindir, oyuncuya gösterilmez (presenter UiText'ten söyler).
+  - Terimler: ARTIR, GÖR, ÇEKİL, PAS, KART DEĞİŞ, HEP PAS (check to draw), ANTE; eller Yüksek Kart, Bir Çift, İki Çift, Üçlü, Kent, Renk,
+    Full, Kare, Floş, Floş Royal, Ölü Adamın Eli. Lucifer Türkçede "SABAH YILDIZI". Şeytanların tonu korunur.
+  - İlk açılış (kayıtlı dil yok): `Application.systemLanguage` Türkçe ise Türkçe, değilse İngilizce
+    (`HellPokerBootstrap.FirstLanguageFor`); sonra kayıtlı seçim. Batchmode'da ilk dil hep İngilizce; EditMode testleri
+    `EnglishByDefault` (SetUpFixture) ile İngilizce başlar, dili değiştiren test TearDown'da geri alır.
+  - Değiştirme: masada sol altta MENU / HANDS'in yanında küçük dil butonu (x 124, 28×18, gideceği dili gösterir: "TR" / "EN"), ana menüde
+    sağ üst köşede, ayarlarda 5. satır (DİL / LANGUAGE), her ekranda **L** tuşu → `SettingsPresenter.CycleLanguage` → kayıt → `Lang.Changed`.
+  - Anında güncelleme, sahne yeniden yüklenmez: sabit etiketler `UiFactory.Localized(() => UiText.X)` (`LocalizedText` bileşeni;
+    OnEnable'da ve `Lang.Changed`'da yeniden yazar). Dinamik metinleri presenter'lar yeniden yazar: `TablePresenter.OnLanguageChanged`
+    (önce animasyonu bitirir, `_relabelling` ile `Refresh`: hiçbir an / duraklama / replik tekrar oynamaz, el / kayıt / hile / deste
+    değişmez; şeytanın son repliği yeni dilde bir kez daha), `MainMenuPresenter` (şeytan kartları yeniden tarif edilir, açık ekran
+    perdesiz yeniden gösterilir), `SettingsPresenter` (değerler). Şeytan konuşması tarif olarak tutulur (`Say(d => d.X, sayaç, ruh hali)`:
+    kimin, hangi repliği), böylece dil değişince aynı replik yeni dilde bulunur.
+  - Yeni görünümde sabit metin `Localized` ile kurulur; yeni dinamik metin presenter'ın yeniden yazdığı yoldan geçmeli.
 - **New Game → kurpiyer şeytan seçimi** (Mammon / Belial / Lilith). Her şeytanın kendi ev kuralları var (`DealerRoster`):
   | Şeytan | Kart değiştir | Kasa gösterir | Ödeme | Çekilme (önce/sonra) | Re-raise (Two Pair+ / blöf) | Hileler (gösterge) |
   |---|---|---|---|---|---|---|
@@ -145,8 +167,11 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (Lucifer hariç). Dolunca dağıtımda hile seçilir ve **niyet** olarak duyurulur (`IHellPokerGame.PendingCheat`; Belial'inki yalan olabilir).
   - Küçük / büyük: ceza ≤ `MajorCheatYears` (400) iken büyük hile %50. Lucifer'in Düşüş'ü sadece ≤ 150, **denemede bir kez**,
     "THE FALL AWAITS" diye duyurulur. Seçimler ayrı zar akışından (`IRandomSource`, seed+2).
-  - Gösterge koşuya aittir, masaya değil: masa değişimi, çağrılma ve düşüşte gösterge ve kin yeni masaya taşınır (yeni şeytanın
-    gösterge boyuna kırpılır; `cheat.major` masaya özgü, sıfırlanır).
+  - Gösterge koşuya aittir, masaya değil: masa değişimi, çağrılma ve düşüşte gösterge ve kin yeni masaya taşınır, **doluluk oranıyla,
+    yukarı yuvarlanarak** (`CheatSession.Carry(malice, fromMax, toMax)` = ⌈malice × toMax / fromMax⌉; boş gösterge 0, dolu gösterge
+    her masada dolu). Küçük göstergeli masaya gidip gelmek göstergeyi boşaltamaz (Mammon 3/4 → Belial 2/2 → Mammon 4/4).
+    Lucifer'e çağrılırken gelinen şeytanın göstergesi ve kini saklanır, düşüşte o geri gelir (Lucifer'in 1'lik göstergesi değil).
+    `cheat.major` masaya özgü, sıfırlanır. Saklanan gösterge kayda yazılmaz: Lucifer masasında kapatılıp açılan koşu düşüşte Lucifer'den taşır.
   - Vuran / engellenen hile göstergeyi boşaltır; boşa giden (hedef yok) ya da anı gelmeyen (oyuncu önce çekildi) dolu bırakır.
   - Değişmezler: showdown sonucunu sadece Düşüş değiştirir; **Dead Man's Hand kartları bağışık**; her hile görünür;
     eski kurallar (mühür, ruh, Lucifer) geçerli. Her vuruştan önce `ICheatGuard` sorulur (şimdilik `AllowEveryCheat`; ileride sınıf yetenekleri).
@@ -176,9 +201,9 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   niyete tepki verir):
   | Şeytan | Aklanma (hedef) | Ort. el | Lucifer'e ulaşan | İlk denemede yenme | Ort. deneme | Hile / el |
   |---|---|---|---|---|---|---|
-  | Mammon | %78.0 (~80) | ~51 | %85 | %32 | 3.0 | 0.27 |
+  | Mammon | %78.2 (~80) | ~50 | %85 | %32 | 2.9 | 0.28 |
   | Belial | %74.7 (~70) | ~27 | %82 | %40 | 2.5 | 0.48 |
-  | Lilith | %51.2 (~55) | ~30 | %65 | %32 | 2.5 | 0.35 |
+  | Lilith | %51.7 (~55) | ~30 | %65 | %32 | 2.5 | 0.37 |
 
   (Gösterge masa değişiminde taşınıyor, tohumlar türetiliyor — 2026-10-03.) Lucifer masasında el başına 0.83 hile; geri tepme: Yanan Kart %25, Düşüş %18, Çatal Dil ~%0.04 (kayma nadiren renk verir).
   Belial her el hile yapsa bile ~%75'in altına inmiyor (hileleri hafif); son karar oyun testinden sonra — bkz. DEVLOG.
@@ -224,7 +249,7 @@ Assets/Scripts/
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings), ISettingsStore (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
     Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
-                   + UiText.Cheats, PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
+                   + UiText.Cheats (iki dilli), Lang (dil), LocalizedText (`Localized()`: dille değişen sabit etiket), PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
     TablePresenter (masa; IRunSession: yeni koşu, devam (Resume), LEAVE isteği, masa değiştirme (ceza taşınır), kayıt / rekor, RunEnded;
     her masada oyunu Func<Dealer, IHellPokerGame> ile kurar), MainMenuPresenter (tüm ekranlar arası gezinme, Esc, geçişler),
@@ -350,7 +375,7 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
 - Rastgelelik her zaman `IRandomSource` üzerinden; testlerde seed veya `TestDecks.Stacked(...)` kullan.
   Fabrika tek ana tohumdan (`seed` ya da `RandomSeeds.Fresh()`) her akışa (deste / kasa / hile) `RandomSeeds.Derive` ile ayrı tohum
   verir; asla birden fazla `new Random()` (aynı saat tikinde aynı sayılar).
-- Oyuncuya görünen tüm metinler `UiText` içinde (ileride yerelleştirme için).
+- Oyuncuya görünen tüm metinler `UiText` içinde, iki dilde (bkz. **Dil**). Core'da oyuncuya görünen metin yok.
 
 ## Komutlar
 
@@ -392,7 +417,7 @@ Builds\WindowsDev\HellPoker.exe -fpstour -screen-fullscreen 0 -screen-width 1920
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, C karşıla, F çekil, 1-5 kart seç, H el tablosu, Esc bir üst ekran,
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (her ekranda), Esc bir üst ekran,
 Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

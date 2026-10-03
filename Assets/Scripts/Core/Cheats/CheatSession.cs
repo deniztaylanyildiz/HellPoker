@@ -100,6 +100,16 @@ namespace HellPoker.Core.Cheats
             Grudge = Math.Max(Grudge, rules.GrudgeHands);
         }
 
+        /// <summary>
+        /// The gauge as it goes along to another demon's table: the same share of the gauge, rounded up (a full gauge stays
+        /// full, a demon with a small gauge cannot be used to drain a big one). 0 when it was empty or either demon has none.
+        /// </summary>
+        public static int Carry(int malice, int fromMax, int toMax)
+        {
+            if (malice <= 0 || fromMax <= 0 || toMax <= 0) return 0;
+            return Math.Min(toMax, (Math.Min(malice, fromMax) * toMax + fromMax - 1) / fromMax);
+        }
+
         /// <summary>The player won a hand: the demon's malice grows.</summary>
         public void PlayerWon(GameRules rules)
         {

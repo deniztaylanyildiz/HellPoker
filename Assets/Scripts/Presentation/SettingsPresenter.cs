@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Animation;
 using HellPoker.Presentation.Settings;
@@ -8,16 +9,20 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keeps the settings screen, the saved settings and the running game in step: a press changes and saves a setting,
-    /// the screen shows the new value, and the change takes effect at once (animation speed, window mode).
+    /// the screen shows the new value, and the change takes effect at once (animation speed, window mode, language).
+    /// Every language button (the table's, the menu's, the settings row) and the L key cycle the language here.
     /// </summary>
     public sealed class SettingsPresenter : ISettingsCommands, IDisposable
     {
         private readonly GameSettings _settings;
         private readonly ISettingsView _view;
         private readonly IDisplayMode _display;
+        private readonly ILanguageButton[] _languageButtons;
 
-        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display)
+        /// <param name="languageButtons">Other screens with a language button (the table, the title menu).</param>
+        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, params ILanguageButton[] languageButtons)
         {
+            _languageButtons = new ILanguageButton[] { view }.Concat(languageButtons ?? new ILanguageButton[0]).Where(b => b != null).ToArray();
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _display = display ?? throw new ArgumentNullException(nameof(display));
@@ -27,11 +32,16 @@ namespace HellPoker.Presentation
             _view.HandGuidePressed += _settings.ToggleHandGuide;
             _view.ResetTipsPressed += _settings.ResetTips;
             _settings.Changed += Apply;
+            foreach (ILanguageButton button in _languageButtons)
+                button.LanguagePressed += CycleLanguage;
+            Lang.Changed += Apply;   // the values on the settings screen ("ON", "FAST") are words too
 
             Apply();
         }
 
         public void ToggleFullscreen() => _settings.ToggleFullscreen();
+
+        public void CycleLanguage() => _settings.CycleLanguage();
 
         public void Dispose()
         {
@@ -40,6 +50,9 @@ namespace HellPoker.Presentation
             _view.HandGuidePressed -= _settings.ToggleHandGuide;
             _view.ResetTipsPressed -= _settings.ResetTips;
             _settings.Changed -= Apply;
+            foreach (ILanguageButton button in _languageButtons)
+                button.LanguagePressed -= CycleLanguage;
+            Lang.Changed -= Apply;
         }
 
         private bool _fullscreenApplied;
@@ -54,7 +67,8 @@ namespace HellPoker.Presentation
                 _fullscreenApplied = _settings.Fullscreen;
                 _appliedOnce = true;
             }
-            _view.Render(UiText.SpeedName(_settings.Speed), _settings.Fullscreen, _settings.HandGuide, _settings.TipsSeen.Count > 0);
+            _view.Render(UiText.SpeedName(_settings.Speed), _settings.Fullscreen, _settings.HandGuide, _settings.TipsSeen.Count > 0,
+                UiText.LanguageName(_settings.Language));
         }
     }
 }

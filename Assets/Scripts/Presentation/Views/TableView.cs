@@ -67,6 +67,7 @@ namespace HellPoker.Presentation.Views
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
+        public event Action LanguagePressed;
 
         public bool HandRanksOpen => _handRanks.IsOpen;
 
@@ -98,22 +99,30 @@ namespace HellPoker.Presentation.Views
             else
             {
                 logo.enabled = false;
-                UiFactory.CreateText("TitleText", screen, UiText.Title, 16, Palette.Hell, style: FontStyle.Bold).WithOutline()
+                UiFactory.CreateText("TitleText", screen, "", 16, Palette.Hell, style: FontStyle.Bold).WithOutline().Localized(() => UiText.Title)
                     .rectTransform.PlaceTL(Middle, 4, MiddleWidth, 16);
             }
 
             // Left column: the dealer.
             _dealer = DealerView.Create(screen, 4, 4, _sequencer, dealers);
 
-            Button menu = UiFactory.CreateButton("MenuButton", screen, UiText.Menu, 8, out _, ButtonSkin.Ash);
+            Button menu = UiFactory.CreateButton("MenuButton", screen, "", 8, out Text menuLabel, ButtonSkin.Ash);
+            menuLabel.Localized(() => UiText.Menu);
             ((RectTransform)menu.transform).PlaceTL(4, 248, 56, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
 
-            Button hands = UiFactory.CreateButton("HandsButton", screen, UiText.HandsButton, 8, out _, ButtonSkin.Ash);
+            Button hands = UiFactory.CreateButton("HandsButton", screen, "", 8, out Text handsLabel, ButtonSkin.Ash);
+            handsLabel.Localized(() => UiText.HandsButton);
             ((RectTransform)hands.transform).PlaceTL(64, 248, 56, 18);
             hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
 
-            _leaveButton = UiFactory.CreateButton("LeaveButton", screen, UiText.LeaveTable, 8, out _leaveLabel, ButtonSkin.Ash);
+            // The language: shows the one a press switches to ("TR" / "EN"); L does the same.
+            Button language = UiFactory.CreateButton("LanguageButton", screen, "", 8, out Text languageLabel, ButtonSkin.Ash);
+            languageLabel.Localized(() => UiText.LanguageButton);
+            ((RectTransform)language.transform).PlaceTL(124, 248, 28, 18);
+            language.onClick.AddListener(() => LanguagePressed?.Invoke());
+
+            _leaveButton = UiFactory.CreateButton("LeaveButton", screen, "", 8, out _leaveLabel, ButtonSkin.Ash);
             ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
             _leaveButton.onClick.AddListener(() => LeavePressed?.Invoke());
             _leaveButton.gameObject.SetActive(false);
@@ -144,18 +153,21 @@ namespace HellPoker.Presentation.Views
             _actionButton.onClick.AddListener(() => ActionPressed?.Invoke());
 
             _raiseButton = CreateBetButton(screen, "RaiseButton", "", BetAction.Raise, Middle, 96, ButtonSkin.Ember, out _raiseLabel);
-            _passButton = CreateBetButton(screen, "PassButton", UiText.Pass, BetAction.Pass, Middle + 104, 72, ButtonSkin.Blood, out _);
-            _foldButton = CreateBetButton(screen, "FoldButton", UiText.Fold, BetAction.Fold, Middle + 184, 72, ButtonSkin.Ash, out _);
+            _passButton = CreateBetButton(screen, "PassButton", "", BetAction.Pass, Middle + 104, 72, ButtonSkin.Blood, out Text passLabel);
+            passLabel.Localized(() => UiText.Pass);
+            _foldButton = CreateBetButton(screen, "FoldButton", "", BetAction.Fold, Middle + 184, 72, ButtonSkin.Ash, out Text foldLabel);
+            foldLabel.Localized(() => UiText.Fold);
             _callButton = CreateBetButton(screen, "CallButton", "", BetAction.Call, Middle + 24, 112, ButtonSkin.Ember, out _callLabel);
             // Two short lines, so four buttons fit the row in the 8 px title font.
-            _checkToDrawButton = UiFactory.CreateButton("CheckToDrawButton", screen, UiText.CheckToDrawButton, 8, out Text checkLabel, ButtonSkin.Blood);
+            _checkToDrawButton = UiFactory.CreateButton("CheckToDrawButton", screen, "", 8, out Text checkLabel, ButtonSkin.Blood);
+            checkLabel.Localized(() => UiText.CheckToDrawButton);
             checkLabel.verticalOverflow = VerticalWrapMode.Overflow;
             checkLabel.lineSpacing = 1f;
             _checkToDrawButton.onClick.AddListener(() => CheckToDrawPressed?.Invoke());
             ApplyBetControls(BetControls.Hidden);
 
-            UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline()
-                .rectTransform.PlaceTL(126, 253, 350, 9);
+            UiFactory.CreateText("Hint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline().Localized(() => UiText.Hint)
+                .rectTransform.PlaceTL(156, 253, 320, 9);
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
@@ -163,7 +175,7 @@ namespace HellPoker.Presentation.Views
             _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
             _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56));
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
-            _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, UiText.HandRanksTableFooter);
+            _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, () => UiText.HandRanksTableFooter);
             _stage = new Stage(this);
         }
 
@@ -207,6 +219,8 @@ namespace HellPoker.Presentation.Views
             /// <summary>True for the Morning Star: every line he speaks makes the screen shudder.</summary>
             private bool _finalTable;
 
+            public void Relabel(DealerCard dealer) => _table._dealer.Relabel(dealer);
+
             public void Say(string line, DealerMood mood)
             {
                 _table._scenes.End();
@@ -222,7 +236,7 @@ namespace HellPoker.Presentation.Views
             RectTransform ante = UiFactory.CreateRect("Ante", screen).PlaceTL(Middle, ControlsY, 152, ButtonHeight);
             _ante = ante.gameObject;
 
-            UiFactory.CreateText("Label", ante, UiText.StakeLabel, 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Label", ante, "", 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline().Localized(() => UiText.StakeLabel)
                 .rectTransform.PlaceTL(0, 6, 40, 8);
 
             Image coin = UiFactory.CreateSprite("Chip", ante, UiArt.Coin, Palette.Gold);

@@ -10,8 +10,8 @@ namespace HellPoker.Presentation.Views
     public sealed class SettingsView : MonoBehaviour, ISettingsView
     {
         private const int SortingOrder = 105;
-        private const int RowsTop = 52;
-        private const int RowHeight = 34;
+        private const int RowsTop = 48;
+        private const int RowHeight = 32;
         private const int LabelX = 64;
         private const int ValueX = 288;
         private const int ValueWidth = 128;
@@ -21,12 +21,14 @@ namespace HellPoker.Presentation.Views
         private Text _fullscreen;
         private Text _handGuide;
         private Text _tips;
+        private Text _language;
         private ButtonFeel _tipsFeel;
 
         public event Action SpeedPressed;
         public event Action FullscreenPressed;
         public event Action HandGuidePressed;
         public event Action ResetTipsPressed;
+        public event Action LanguagePressed;
         public event Action BackPressed;
 
         public bool IsVisible => _canvas.enabled;
@@ -48,26 +50,32 @@ namespace HellPoker.Presentation.Views
             Image panel = UiFactory.CreatePanel("SettingsPanel", screen);
             panel.rectTransform.PlaceTL(32, 16, PixelScreen.Width - 64, PixelScreen.Height - 32);
 
-            UiFactory.CreateText("Title", screen, UiText.SettingsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Title", screen, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.SettingsTitle)
                 .rectTransform.PlaceTL(0, 24, PixelScreen.Width, 16);
 
-            _speed = Row(screen, 0, UiText.SettingSpeed, UiText.SettingSpeedHint, "SpeedButton", () => SpeedPressed?.Invoke(), out _);
-            _fullscreen = Row(screen, 1, UiText.SettingFullscreen, UiText.SettingFullscreenHint, "FullscreenButton", () => FullscreenPressed?.Invoke(), out _);
-            _handGuide = Row(screen, 2, UiText.SettingHandGuide, UiText.SettingHandGuideHint, "HandGuideButton", () => HandGuidePressed?.Invoke(), out _);
-            _tips = Row(screen, 3, UiText.SettingTips, UiText.SettingTipsHint, "ResetTipsButton", () => ResetTipsPressed?.Invoke(), out Button tips);
+            _speed = Row(screen, 0, () => UiText.SettingSpeed, () => UiText.SettingSpeedHint, "SpeedButton", () => SpeedPressed?.Invoke(), out _);
+            _fullscreen = Row(screen, 1, () => UiText.SettingFullscreen, () => UiText.SettingFullscreenHint, "FullscreenButton",
+                () => FullscreenPressed?.Invoke(), out _);
+            _handGuide = Row(screen, 2, () => UiText.SettingHandGuide, () => UiText.SettingHandGuideHint, "HandGuideButton",
+                () => HandGuidePressed?.Invoke(), out _);
+            _tips = Row(screen, 3, () => UiText.SettingTips, () => UiText.SettingTipsHint, "ResetTipsButton", () => ResetTipsPressed?.Invoke(),
+                out Button tips);
             _tipsFeel = tips.GetComponent<ButtonFeel>();
+            _language = Row(screen, 4, () => UiText.SettingLanguage, () => UiText.SettingLanguageHint, "SettingsLanguageButton",
+                () => LanguagePressed?.Invoke(), out _);
 
-            Button back = UiFactory.CreateButton("SettingsBackButton", screen, UiText.Back, 8, out _, ButtonSkin.Blood);
+            Button back = UiFactory.CreateButton("SettingsBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Blood);
+            backLabel.Localized(() => UiText.Back);
             ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 48, 80, 20);
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
-        private static Text Row(Transform screen, int index, string label, string hint, string buttonName, Action pressed, out Button button)
+        private static Text Row(Transform screen, int index, Func<string> label, Func<string> hint, string buttonName, Action pressed, out Button button)
         {
             int y = RowsTop + index * RowHeight;
-            UiFactory.CreateText(buttonName + "Label", screen, label, 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline()
+            UiFactory.CreateText(buttonName + "Label", screen, "", 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline().Localized(label)
                 .rectTransform.PlaceTL(LabelX, y + 2, 216, 8);
-            Text hintText = UiFactory.CreateText(buttonName + "Hint", screen, hint, 8, Palette.BoneDark, TextAnchor.UpperLeft);
+            Text hintText = UiFactory.CreateText(buttonName + "Hint", screen, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).Localized(hint);
             hintText.rectTransform.PlaceTL(LabelX, y + 12, 216, 18);
 
             button = UiFactory.CreateButton(buttonName, screen, "", 8, out Text value, ButtonSkin.Ember);
@@ -76,8 +84,9 @@ namespace HellPoker.Presentation.Views
             return value;
         }
 
-        public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft)
+        public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language)
         {
+            _language.text = language;
             _speed.text = speed;
             _fullscreen.text = fullscreen ? UiText.On : UiText.Off;
             _handGuide.text = handGuide ? UiText.On : UiText.Off;

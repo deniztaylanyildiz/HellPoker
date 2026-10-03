@@ -67,7 +67,7 @@ namespace HellPoker.Presentation.Views
             // The selected demon's hall shows behind the choice.
             _salon = SalonView.Create(screen, salons);
 
-            UiFactory.CreateText("Title", screen, UiText.ChooseDealerTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Title", screen, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.ChooseDealerTitle)
                 .rectTransform.PlaceTL(0, 4, PixelScreen.Width, 16);
             _subtitle = UiFactory.CreateText("Subtitle", screen, UiText.ChooseDealerSubtitle, 8, Palette.BoneMid).WithOutline();
             _subtitle.rectTransform.PlaceTL(0, 20, PixelScreen.Width, 9);
@@ -85,7 +85,8 @@ namespace HellPoker.Presentation.Views
             _traitsRight = UiFactory.CreateText("TraitsRight", details.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
             _traitsRight.rectTransform.PlaceTL(232, 38, 224, 36);
 
-            Button back = UiFactory.CreateButton("DealerBackButton", screen, UiText.Back, 8, out _, ButtonSkin.Ash);
+            Button back = UiFactory.CreateButton("DealerBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Ash);
+            backLabel.Localized(() => UiText.Back);
             ((RectTransform)back.transform).PlaceTL(8, 4, 56, 16);
             back.onClick.AddListener(() => BackPressed?.Invoke());
 
@@ -105,7 +106,8 @@ namespace HellPoker.Presentation.Views
             _warning = UiFactory.CreateText("Warning", box.transform, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
             _warning.rectTransform.PlaceTL(8, 8, ConfirmWidth - 16, 44);
 
-            Button sit = UiFactory.CreateButton("ConfirmSeatButton", box.transform, UiText.SitAnyway, 8, out _, ButtonSkin.Blood);
+            Button sit = UiFactory.CreateButton("ConfirmSeatButton", box.transform, "", 8, out Text sitLabel, ButtonSkin.Blood);
+            sitLabel.Localized(() => UiText.SitAnyway);
             ((RectTransform)sit.transform).PlaceTL(16, ConfirmHeight - 28, 104, 18);
             sit.onClick.AddListener(() =>
             {
@@ -113,7 +115,8 @@ namespace HellPoker.Presentation.Views
                 SeatConfirmed?.Invoke();
             });
 
-            Button cancel = UiFactory.CreateButton("CancelSeatButton", box.transform, UiText.Back, 8, out _, ButtonSkin.Ash);
+            Button cancel = UiFactory.CreateButton("CancelSeatButton", box.transform, "", 8, out Text cancelLabel, ButtonSkin.Ash);
+            cancelLabel.Localized(() => UiText.Back);
             ((RectTransform)cancel.transform).PlaceTL(ConfirmWidth - 16 - 104, ConfirmHeight - 28, 104, 18);
             cancel.onClick.AddListener(() =>
             {

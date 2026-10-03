@@ -37,14 +37,15 @@ namespace HellPoker.Presentation.Views
             Image panel = UiFactory.CreatePanel("RecordsPanel", screen);
             panel.rectTransform.PlaceTL(96, 24, PixelScreen.Width - 192, PixelScreen.Height - 48);
 
-            UiFactory.CreateText("Title", screen, UiText.RecordsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Title", screen, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.RecordsTitle)
                 .rectTransform.PlaceTL(0, 36, PixelScreen.Width, 16);
 
             _body = UiFactory.CreateText("Body", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter);
             _body.rectTransform.PlaceTL(104, 58, PixelScreen.Width - 208, 152);
             _body.lineSpacing = 1.1f;
 
-            Button back = UiFactory.CreateButton("RecordsBackButton", screen, UiText.Back, 8, out _, ButtonSkin.Blood);
+            Button back = UiFactory.CreateButton("RecordsBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Blood);
+            backLabel.Localized(() => UiText.Back);
             ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 56, 80, 20);
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }

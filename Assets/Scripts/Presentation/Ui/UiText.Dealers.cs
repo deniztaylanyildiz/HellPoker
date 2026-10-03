@@ -58,48 +58,51 @@ namespace HellPoker.Presentation.Ui
 
     internal static partial class UiText
     {
-        public const string ChooseDealerTitle = "CHOOSE YOUR DEALER";
-        public const string SoulLineCardFormat = "SOUL AT {0}";
-        public const string ChooseDealerSubtitle = "Three demons keep a table in Hell. Each plays by their own rules.";
-        public const string Challenge = "SIT DOWN";
+        public static string ChooseDealerTitle => L("CHOOSE YOUR DEALER", "KURPİYERİNİ SEÇ");
+        public static string SoulLineCardFormat => L("SOUL AT {0}", "RUH {0} YILDA");
+        public static string ChooseDealerSubtitle => L("Three demons keep a table in Hell. Each plays by their own rules.",
+            "Cehennemde üç şeytan masa kurar. Her biri kendi kuralıyla oynar.");
+        public static string Challenge => L("SIT DOWN", "OTUR");
 
-        public const string TraitDrawFormat = "Exchange up to {0} cards";
-        public const string TraitRevealFormat = "Shows {0} House cards before your last bet";
-        public const string TraitRevealOne = "Shows only 1 House card before your last bet";
-        public const string TraitRevealNone = "Shows none of his cards before the showdown";
-        public const string TraitFixedStakesFormat = "Fixed stakes: ante {0}, at most {1} on the table";
-        public const string TraitPayoutFormat = "Pair ×{0} · Flush ×{1} · Full ×{2} · Royal ×{3}";
+        public static string TraitDrawFormat => L("Exchange up to {0} cards", "En fazla {0} kart değişir");
+        public static string TraitRevealFormat => L("Shows {0} House cards before your last bet", "Son bahisten önce kasa {0} kart açar");
+        public static string TraitRevealOne => L("Shows only 1 House card before your last bet", "Son bahisten önce kasa yalnızca 1 kart açar");
+        public static string TraitRevealNone => L("Shows none of his cards before the showdown", "Eller açılana kadar hiç kart göstermez");
+        public static string TraitFixedStakesFormat => L("Fixed stakes: ante {0}, at most {1} on the table", "Sabit bahis: ante {0}, masada en fazla {1}");
+        public static string TraitPayoutFormat => L("Pair ×{0} · Flush ×{1} · Full ×{2} · Royal ×{3}", "Çift ×{0} · Renk ×{1} · Full ×{2} · Royal ×{3}");
         /// <summary>{0} loss surcharge (see <see cref="UiText.LossSurcharge"/>).</summary>
-        public const string TraitLossFormat = "Lose: same, on the House's hand{0}";
+        public static string TraitLossFormat => L("Lose: same, on the House's hand{0}", "Kayıp: aynısı, kasanın eliyle{0}");
         /// <summary>{0}, {1}: <see cref="UiText.ShareShort"/> before and after the draw.</summary>
-        public const string TraitFoldFormat = "Fold: {0} before the draw, {1} after";
-        public const string TraitFoldSameFormat = "Fold: always {0} of the stake";
+        public static string TraitFoldFormat => L("Fold: {0} before the draw, {1} after", "Çekil: değişten önce {0}, sonra {1}");
+        public static string TraitFoldSameFormat => L("Fold: always {0} of the stake", "Çekil: her zaman {0}");
         /// <summary>{0} weakest strong hand, {1} re-raise percent with it, {2} bluff percent.</summary>
-        public const string TraitTemperFormat = "Re-raises with {0}+ {1}% · bluffs {2}%";
+        public static string TraitTemperFormat => L("Re-raises with {0}+ {1}% · bluffs {2}%", "{0}+ ile %{1} artırır · %{2} blöf");
 
         /// <summary>How a share of the stake reads in rule texts: "half the stake", "the stake", "1.5 × the stake"...</summary>
         public static string StakeShare(int percent)
         {
             switch (percent)
             {
-                case 0: return "nothing";
-                case 25: return "a quarter of the stake";
-                case 50: return "half the stake";
-                case 100: return "the stake";
-                case 200: return "twice the stake";
-                default: return (percent / 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " × the stake";
+                case 0: return L("nothing", "hiçbir şey");
+                case 25: return L("a quarter of the stake", "bahsin çeyreği");
+                case 50: return L("half the stake", "bahsin yarısı");
+                case 100: return L("the stake", "bahsin tamamı");
+                case 200: return L("twice the stake", "bahsin iki katı");
+                default: return (percent / 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + L(" × the stake", " × bahis");
             }
         }
 
+        /// <summary>What a demon is called and says, in the current language.</summary>
         public static DealerText Dealer(string id)
         {
+            bool tr = Lang.IsTurkish;
             switch (id)
             {
-                case DealerRoster.MammonId: return Mammon;
-                case DealerRoster.BelialId: return Belial;
-                case DealerRoster.LilithId: return Lilith;
-                case DealerRoster.LuciferId: return Lucifer;
-                default: return Unknown;
+                case DealerRoster.MammonId: return tr ? MammonTr : Mammon;
+                case DealerRoster.BelialId: return tr ? BelialTr : Belial;
+                case DealerRoster.LilithId: return tr ? LilithTr : Lilith;
+                case DealerRoster.LuciferId: return tr ? LuciferTr : Lucifer;
+                default: return tr ? UnknownTr : Unknown;
             }
         }
 
@@ -413,6 +416,316 @@ namespace HellPoker.Presentation.Ui
             Damned = "Damned."
         };
 
+        // ================================================================== Türkçe (the same demons, the same voices)
+
+        private static readonly DealerText MammonTr = new DealerText
+        {
+            Name = "MAMMON",
+            Title = "Dokuzuncu Kasanın Tefecisi",
+            Description = "Her yılı iki kez sayar ve kitabına harfiyen uyar. Cehennemin en adil masası — ki bu pek bir şey söylemez.",
+            Greeting = new[] { "Otur, otur. Borçlu olduğun her yıl burada yazılı. Bakalım kaçını geri alabileceksin." },
+            PlayerWins = new[]
+            {
+                "Bir borç affedildi... Başkasının hesabına yazarım.",
+                "Hıh. Deftere işle. Kırmızı mürekkeple.",
+                "Tadını çıkar. Faiz bir yerlerde işliyor."
+            },
+            HouseWins = new[]
+            {
+                "Ahh, büyüyen bir borcun tatlı sesi.",
+                "Deftere bir kalem daha. Beni hep meşgul ediyorsun.",
+                "Altın, yıl, ruh — hepsi toplanır, dostum."
+            },
+            PlayerFolds = new[] { "Kısmi ödeme. Akıllıca, yine de kârlı.", "Kötü borçtan mı kaçıyorsun? Yarısı peşinden gelir." },
+            Push = new[] { "Berabere. Ne korkunç derecede kârsız." },
+            FinalStretch = new[] { "Hesabı kapatmaya bu kadar yakınken ucuz bahis yok. Öde ya da çekil." },
+            ReRaise = new[]
+            {
+                "Görürüm, üstüne faiz de koyarım.",
+                "Güzel bir rakam. Daha da güzelleştirelim.",
+                "Teminat lütfen. Biraz daha."
+            },
+            SoulTaken = new[] { "Hesap eksiye düştü. Ruhunu teminat olarak alıyorum." },
+            SoulReleased = new[] { "Ödendi mi? Hıh. Teminat iade edildi. Şimdilik." },
+            SoulLocked = new[] { "Gitmek mi? Teminatımla mı? Otur ve öde." },
+            Sealed = new[]
+            {
+                "İmzalandı, tanıklandı. Bu sözleşmeden dönüş yok.",
+                "Şartlar kesin. Hesabı kartlar kapatsın.",
+                "Mumla ve mürekkeple mühürlendi. Bakalım kim ödeyecek."
+            },
+            Fled = new[]
+            {
+                "Elin ortasında çıkıp gittin mi? Defter fark etti. Faiziyle borçlandırıldın.",
+                "Açık hesabı bırakıp kaçmak mı? Ceza olarak işledim."
+            },
+            Hunted = new[]
+            {
+                "Teminatımdan mı kaçtın? Nereye? Burası cehennem. Kaçmanın da faizi var.",
+                "Tahsil etmeden sıvıştın mı? O zaman iki kez tahsil ederim. Yakında ve sık sık."
+            },
+            Scorn = new[]
+            {
+                "Hesabın açıkken mi gidiyorsun? Faizden mi korktun?",
+                "Git bakalım. Ama burası cehennem, borçlu. Nereye gideceksin?",
+                "Birkaç rakamdan mı korktun? Kapat defteri. Bende bir kopyası var."
+            },
+            Backfire = new[]
+            {
+                "Bir kâtip hatası. İki kez olmaz.",
+                "O kayıt... talihsizdi. Defterden silin.",
+                "Defterimin bile kötü günü olur. Tadını çıkar."
+            },
+            Farewell = new[]
+            {
+                "Borcun neredeyse bitti... ve biri seni fark etti. Başın sağ olsun.",
+                "Ah. Hesap devrediliyor. Aşağıya."
+            },
+            Returned = new[]
+            {
+                "Bu kadar çabuk mu döndün? Defter yeniden açıldı. Faiziyle.",
+                "Eski bir sikke gibi fırlatıldın. Otur. Kapatacak hesaplarımız var."
+            },
+            SoulWarning = "Ruhun onun masasına konacak — ve o teminatı asla bırakmaz.",
+            Absolved = "Tamamen mi ödendi?! İmkânsız... Defterde bir hata bulmadan defol.",
+            Damned = "Hesabın kapandı. Sonsuza dek. Sıradaki!"
+        };
+
+        private static readonly DealerText BelialTr = new DealerText
+        {
+            Name = "BELIAL",
+            Title = "Gümüş Dil",
+            Description = "Prens gibi öder, nefes alır gibi yalan söyler. Elinin çoğunu iş işten geçene kadar saklar.",
+            Greeting = new[] { "Büyülendim. Bunu ilginç hale getirelim mi? Israr ediyorum." },
+            PlayerWins = new[]
+            {
+                "Bravo! Gerçekten. İçinde biraz direniş olan ruhlara bayılırım.",
+                "Al. Kazanmak seni masamda tutmamın yolu.",
+                "Şanslısın. Şans bir hanımefendidir ve bana borçludur."
+            },
+            HouseWins = new[]
+            {
+                "Sana her şeyi göstereceğimi mi sandın?",
+                "Yazık. Kendinden o kadar emindin ki.",
+                "İnce yazıyı oku, canım. Hep vardır."
+            },
+            PlayerFolds = new[] { "Bu kadar erken mi? Gece daha gençti.", "Tedbir. Ne kadar da... ölümlüce." },
+            Push = new[] { "Berabere. Ne kadar da kibarız." },
+            FinalStretch = new[] { "Kapılar! Umudunu neredeyse görebiliyorum. Artır — gösteri devam etmeli." },
+            ReRaise = new[]
+            {
+                "Ah, canım. Beni mi artırıyorsun? Ben de seni.",
+                "Bende var mı? Belki. Öğrenmeye cesaretin var mı?",
+                "Daha fazla. Kıvranmanı seviyorum."
+            },
+            SoulTaken = new[] { "Sonunda gerçek bahis. Ruhun, canım, masamda." },
+            SoulReleased = new[] { "Oltadan kurtuldun. Ne kadar da... beklenmedik eğlenceli." },
+            SoulLocked = new[] { "Gösterinin ortasında mı? Ruhun elimdeyken olmaz." },
+            Sealed = new[]
+            {
+                "Artık çıkış yok, canım. Perde açık kalıyor.",
+                "Mühürlendi! Şimdi hangimizin yalan söylediğini göreceğiz.",
+                "Her şey masada. Ne nefis bir son."
+            },
+            Fled = new[]
+            {
+                "Perde ortasında kaybolmak mı? Biletini sakladım. Bahsini de.",
+                "Son sahneden önce çıktın, canım. Bahis bende kaldı."
+            },
+            Hunted = new[]
+            {
+                "Küçük numaramdan mı kaçtın? Canım, burası cehennem. Her çıkış sahneme döner.",
+                "Sahneden kaçtın. Sana daha acımasız birini yazacağım, hem de yakında."
+            },
+            Scorn = new[]
+            {
+                "Son perdeden önce mi gidiyorsun? Sahne korkusu mu, canım?",
+                "Çıkış, peşinde kimse yok. Nereye gideceksin? Aşağısı da cehennem.",
+                "Beni mi bırakıyorsun? Ne sıkıcı. Daha anlatacak ne yalanlarım vardı."
+            },
+            Backfire = new[]
+            {
+                "Dilim... kaydı.",
+                "Prova ettiğim replik bu değildi.",
+                "Alkış, canım. Alışma."
+            },
+            Farewell = new[]
+            {
+                "Eyvah. O seni fark etti. Eğlendirici olmaya çalış, canım.",
+                "Benim perdem iniyor. Seninki açılmak üzere... aşağıda."
+            },
+            Returned = new[]
+            {
+                "Bis! Uzak duramayacağını biliyordum.",
+                "Bana kadar mı düştün? Ne dokunaklı."
+            },
+            SoulWarning = "Ruhun onun masasına konacak — ve o seyircinin gitmesine izin vermez.",
+            Absolved = "İyi oynadın. Yine gel — sonunda hep ben kazanırım.",
+            Damned = "Evine hoş geldin. Sana bir koltuk ayırdım. Sonsuza dek."
+        };
+
+        private static readonly DealerText LilithTr = new DealerText
+        {
+            Name = "LILITH",
+            Title = "Gecenin Kraliçesi",
+            Description = "Dört kart değiştirmene izin verir, umutlu kalpleri sever. Ama kimse masasından ucuza kalkamaz.",
+            Greeting = new[] { "Yaklaş. Nefret ettiğini at — sana daha iyisini veririm. Belki." },
+            PlayerWins = new[]
+            {
+                "Mmm. O yıllar sende kalsın. Şimdilik.",
+                "Ne hoş. Umut sana yakışıyor.",
+                "Gece uzun, küçük ruh."
+            },
+            HouseWins = new[]
+            {
+                "Şşş. Sadece sonsuza dek acıtır.",
+                "Ay her şeyi gördü. Ben de.",
+                "Benimle karanlıkta bir yıl daha. O kadar kötü mü?"
+            },
+            PlayerFolds = new[] { "Kimse benden sıvışamaz. Tamamını ödersin.", "Kaçıyor musun? Bahsin tamamı, tatlım." },
+            Push = new[] { "Bu gece ikimiz de kanamıyoruz." },
+            FinalStretch = new[] { "Kapılar yakın... onları ne kadar istediğini göster bana." },
+            ReRaise = new[]
+            {
+                "Cesur. Cesuru severim. Daha cesur o zaman.",
+                "Bana mı uzanıyorsun? Ben de sana uzanırım.",
+                "Mm. Karanlığımda kalmak için biraz daha öde."
+            },
+            SoulTaken = new[] { "İşte orada. Ruhun, soğuk ve güzel, ellerimde." },
+            SoulReleased = new[] { "Geri aldın. Nasıl hissettirdiğini unutmayacağım." },
+            SoulLocked = new[] { "Gitmek mi? Ruhun benimle kalır, sen de." },
+            Sealed = new[]
+            {
+                "Artık bağlısın. Kıpırdama, bırak gece karar versin.",
+                "Bundan kaçış yok, küçük ruh.",
+                "Bir öpücükle mühürlendi. Geri alamazsın."
+            },
+            Fled = new[]
+            {
+                "Karanlıkta sıvıştın. Masamda bıraktığını aldım.",
+                "Elin ortasında kaçmak mı? Benden hiçbir şey kurtulmaz. O bahis benim."
+            },
+            Hunted = new[]
+            {
+                "Dikenlerimden mi kaçtın? Nereye? Burası cehennem. Seni her karanlıkta bulurum.",
+                "Geceden kaçtın. Gece unutmaz, ve daha da acıkır."
+            },
+            Scorn = new[]
+            {
+                "Karanlıktan şimdiden mi korktun, küçüğüm?",
+                "Kaç o zaman. Burada gece her yerde.",
+                "Bahçeme geldin, şimdi kaçıyor musun? Ne kadar da ölümlüce."
+            },
+            Backfire = new[]
+            {
+                "Gece seni bana tercih etti. Ne kaba.",
+                "Dikenlerimin bile gözdeleri var. Uzun sürmez."
+            },
+            Farewell = new[]
+            {
+                "Şşş. Geceden de yaşlı biri seni çağırıyor. Git.",
+                "Seni fark etti, küçük ruh. Ben bile onu bekletmem."
+            },
+            Returned = new[]
+            {
+                "Karanlığıma geri düştün. Yerini sıcak tuttum.",
+                "Düşürüldün mü? Gel buraya. Gece onun affetmediğini affeder."
+            },
+            SoulWarning = "Ruhun onun masasına konacak. O tuttuğunu geri vermez.",
+            Absolved = "Git o zaman. Şafak seni sıkıcı bulacak. Beni özleyeceksin.",
+            Damned = "Benim. Tamamen benim. Var olmuş her gece boyunca."
+        };
+
+        private static readonly DealerText LuciferTr = new DealerText
+        {
+            Name = "SABAH YILDIZI",
+            Title = "250 yılın altında bekler",
+            Description = "Her ceza onun masasında biter. Kimse ondan gözlerinden fazlasını görmedi.",
+            Greeting = new[] { "Çok derine indin. Otur. Seni yalnızca ben bırakabilirim." },
+            Remembers = new[]
+            {
+                "Yine. Ellerini hatırlıyorum. Otur.",
+                "Bir kez daha. Her düşüşünü izledim. Otur."
+            },
+            PlayerWins = new[]
+            {
+                "Al. Hiçbir şey değişmez.",
+                "Küçük bir merhamet. Çoğunu karşılayabilirim.",
+                "İyi. Umut sönmeden önce daha parlak yanar."
+            },
+            HouseWins = new[]
+            {
+                "Beklendiği gibi.",
+                "O eli asla kazanamayacaktın.",
+                "Tırman. Beklerim."
+            },
+            PlayerFolds = new[] { "Korku. Sonunda dürüst bir şey.", "Masamda çekilmek her şeye mal olur. Biliyordun." },
+            Push = new[] { "Hiçbir şey. Şimdilik." },
+            FinalStretch = new[] { "Çok yakın. Umut ettiğini duyabiliyorum." },
+            ReRaise = new[]
+            {
+                "Daha yüksek.",
+                "Beni görüyor musun? O zaman daha fazlası için öde.",
+                "Ben artırırım. Sen titrersin. Düzen budur."
+            },
+            Sealed = new[]
+            {
+                "Bağlandın. Sonunda her ruh gibi.",
+                "Artık seçim yok. Sadece kartlar.",
+                "Mühürlendi. Dönüşlerini izle."
+            },
+            Fled = new[] { "Sen gözlerini kapadın. Ben kapamadım. Bahis benim.", "Ortadan kalkmak yok. Benden olmaz." },
+            Hunted = new[] { "Ateşimden kaçtın. Benim olmayan bir yer yok.", "Alevden kaç, peşinden gelir. Hep gelir." },
+            Scorn = new[] { "Beni bırakabileceğini mi sanıyorsun? Her şey bende biter.", "Git. Baştan başla. Yine de bana düşeceksin." },
+            Backfire = new[]
+            {
+                "Ateş seçti. Ben değil.",
+                "Şans hükmetmediğim tek şey. Bunu unutma.",
+                "Sende kalsın. İhtiyacın olacak."
+            },
+            CastDown = new[]
+            {
+                "Fazla ağır. Geldiğin yere düş.",
+                "Henüz layık değilsin. Aşağı.",
+                "Bana geri tırman. Yapabilirsen."
+            },
+            SoulTaken = new[] { "Ruhun. Daha iyilerini tuttum." },
+            SoulReleased = new[] { "Sende kalsın. Zaten pek değerli değildi." },
+            SoulLocked = new[] { "Gitmek mi? Masamdan hiçbir şey gitmez.", "Otur." },
+            SoulWarning = "",
+            Farewell = new[] { "" },
+            Returned = new[] { "" },
+            NotYet = "Henüz değil. Bana in.",
+            Absolved = "...Git. Sabah bensiz de gelecek.",
+            Damned = "Sonsuza dek o halde. Karanlığı sevmeyi öğreneceksin."
+        };
+
+        private static readonly DealerText UnknownTr = new DealerText
+        {
+            Farewell = new[] { "Aşağıda biri seni istiyor." },
+            Returned = new[] { "Yine geldin." },
+            Name = "KASA",
+            Title = "",
+            Description = "",
+            Greeting = new[] { "Otur." },
+            PlayerWins = new[] { "Hm." },
+            HouseWins = new[] { "Kasa kazanır." },
+            PlayerFolds = new[] { "Çekildin." },
+            Push = new[] { "Berabere." },
+            FinalStretch = new[] { "Artık pas yok." },
+            ReRaise = new[] { "Artırıyorum." },
+            SoulTaken = new[] { "Ruhun artık oynanacak." },
+            SoulReleased = new[] { "Ruhun yeniden senin." },
+            SoulLocked = new[] { "Ruhun masadayken olmaz." },
+            Sealed = new[] { "Mühürlendi." },
+            Fled = new[] { "Elin ortasında gittin. Ceza yazıldı." },
+            Hunted = new[] { "Hilemden kaçtın. Unutmayacağım." },
+            Scorn = new[] { "Bu kadar erken mi? Korktun mu?" },
+            Backfire = new[] { "O sana değildi." },
+            SoulWarning = "Ruhun bu masaya konacak.",
+            Absolved = "Özgürsün.",
+            Damned = "Lanetlendin."
+        };
         /// <summary>Picks a line by a counter, so the same moment does not always say the same thing (and stays testable).</summary>
         public static string Pick(string[] lines, int counter)
         {

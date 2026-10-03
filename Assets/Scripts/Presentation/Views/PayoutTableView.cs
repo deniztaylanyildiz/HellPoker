@@ -32,7 +32,7 @@ namespace HellPoker.Presentation.Views
             var view = panel.gameObject.AddComponent<PayoutTableView>();
             view._sequencer = sequencer;
 
-            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Title", panel.transform, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.PayoutsTitle)
                 .rectTransform.PlaceTL(0, 6, Width, 8);
             UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider).rectTransform.PlaceTL((Width - 48) / 2, 15, 48, 3);
 
@@ -42,7 +42,7 @@ namespace HellPoker.Presentation.Views
                 Image row = UiFactory.CreateImage(category.ToString(), panel.transform, Color.clear);
                 row.rectTransform.PlaceTL(4, FirstRow + i * RowHeight, Width - 8, RowHeight);
 
-                Text name = UiFactory.CreateText("Name", row.transform, UiText.CategoryName(category), 8, Palette.Bone, TextAnchor.MiddleLeft);
+                Text name = UiFactory.CreateText("Name", row.transform, "", 8, Palette.Bone, TextAnchor.MiddleLeft).Localized(() => UiText.CategoryName(category));
                 name.rectTransform.Stretch();
                 name.rectTransform.offsetMin = new Vector2(3f, 0f);
                 Text value = UiFactory.CreateText("Value", row.transform, "", 8, Palette.Bone, TextAnchor.MiddleRight);

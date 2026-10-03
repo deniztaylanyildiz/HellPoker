@@ -80,11 +80,13 @@ namespace HellPoker.Presentation.Views
             _eyes.FallbackColor = Palette.Black;
             _eyes.transform.parent.gameObject.SetActive(false);
 
-            Button newGame = UiFactory.CreateButton("EndNewGameButton", screen, UiText.NewGame, 8, out _, ButtonSkin.Ember);
+            Button newGame = UiFactory.CreateButton("EndNewGameButton", screen, "", 8, out Text newGameLabel, ButtonSkin.Ember);
+            newGameLabel.Localized(() => UiText.NewGame);
             ((RectTransform)newGame.transform).PlaceTL(PixelScreen.Width / 2 - 108, PixelScreen.Height - 56, 104, 20);
             newGame.onClick.AddListener(() => NewGamePressed?.Invoke());
 
-            Button menu = UiFactory.CreateButton("EndMenuButton", screen, UiText.ToMenu, 8, out _, ButtonSkin.Ash);
+            Button menu = UiFactory.CreateButton("EndMenuButton", screen, "", 8, out Text menuLabel, ButtonSkin.Ash);
+            menuLabel.Localized(() => UiText.ToMenu);
             ((RectTransform)menu.transform).PlaceTL(PixelScreen.Width / 2 + 4, PixelScreen.Height - 56, 104, 20);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
         }

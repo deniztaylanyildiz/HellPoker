@@ -60,6 +60,7 @@ namespace HellPoker.Core.Tests
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
+        public event Action LanguagePressed;
 
         public bool HandRanksOpen { get; private set; }
         public IPayoutInfo HandRanksPayouts { get; private set; }
@@ -96,6 +97,7 @@ namespace HellPoker.Core.Tests
 
         public void HideHandRanks() => HandRanksOpen = false;
         public void PressHandRanks() => HandRanksPressed?.Invoke();
+        public void PressLanguage() => LanguagePressed?.Invoke();
 
         /// <summary>Every row of cards either hand was told to show, in the order the table was told (house or player).</summary>
         public List<(bool house, CardSlot[] slots)> ShowLog { get; } = new List<(bool, CardSlot[])>();
@@ -280,6 +282,11 @@ namespace HellPoker.Core.Tests
 
         /// <summary>Every line said, with the mood it was said in.</summary>
         public List<(string line, DealerMood mood)> Said { get; } = new List<(string, DealerMood)>();
+
+        /// <summary>The name plate as the language last relabelled it.</summary>
+        public DealerCard Relabelled { get; private set; }
+
+        public void Relabel(DealerCard dealer) => Relabelled = dealer;
 
         public void Say(string line, DealerMood mood)
         {

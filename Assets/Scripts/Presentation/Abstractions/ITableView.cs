@@ -7,7 +7,7 @@ namespace HellPoker.Presentation.Abstractions
     /// The whole table as the presenter sees it: widgets and raw input, no game rules.
     /// Updates are shown in call order; implementations may animate them, and report <see cref="IsBusy"/> meanwhile.
     /// </summary>
-    public interface ITableView
+    public interface ITableView : ILanguageButton
     {
         IHandView House { get; }
         IHandView Player { get; }

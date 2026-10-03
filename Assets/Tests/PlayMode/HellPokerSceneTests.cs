@@ -47,6 +47,29 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheLanguageButton_TurnsTheTableTurkish_AtOnce_MidHand()
+        {
+            StartRun();
+            Press("ActionButton");
+            yield return WaitForTable();
+            Assert.AreEqual("MENU", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
+            Assert.AreEqual("PASS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
+
+            Press("LanguageButton");
+            yield return WaitForTable();
+
+            Assert.AreEqual("MENÜ", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
+            Assert.AreEqual("PAS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
+            Assert.AreEqual("EN", Find<Button>("LanguageButton").GetComponentInChildren<Text>().text, "It offers the way back.");
+            Assert.IsTrue(IsActive("PassButton"), "Still the same decision: the hand goes on.");
+            Assert.AreEqual("Turkish", HellPokerBootstrap.BatchStore.GetString("settings.language", null), "Saved.");
+
+            Press("LanguageButton");
+            yield return WaitForTable();
+            Assert.AreEqual("MENU", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
+        }
+
+        [UnityTest]
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {
             StartRun();

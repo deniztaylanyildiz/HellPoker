@@ -29,6 +29,9 @@ namespace HellPoker.PlayMode.Tests
         public IEnumerator CaptureScreens()
         {
             HellPokerBootstrap.BatchStore.Clear();
+            // HELLPOKER_LANG=tr: the same tour in Turkish (point HELLPOKER_SHOTS at another folder).
+            if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             yield return Shot("01_menu");
@@ -149,6 +152,16 @@ namespace HellPoker.PlayMode.Tests
             yield return null;
             yield return Shot("08d_big_loss");
             yield return WaitForTable();
+
+            // New Game over the run: the warning, with the demon's scorn (not confirmed: the run goes on).
+            Press("MenuButton");
+            yield return new WaitForSeconds(0.4f);
+            Find<Button>("NewGameButton").onClick.Invoke();
+            yield return new WaitForSeconds(0.2f);
+            yield return Shot("08e_new_game_warning");
+            Press("CancelNewGameButton");
+            Press("ContinueButton");
+            yield return new WaitForSeconds(0.4f);
 
             // Every hall: betting, a decision, and the final stretch (sentence cut to 200 behind the game's back).
             string[] halls = { "mammon", "belial", "lilith" };

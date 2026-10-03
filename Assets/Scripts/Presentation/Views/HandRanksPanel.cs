@@ -24,7 +24,7 @@ namespace HellPoker.Presentation.Views
 
         public bool IsOpen => gameObject.activeSelf;
 
-        public static HandRanksPanel Create(Transform parent, int x, int y, string footer = null)
+        public static HandRanksPanel Create(Transform parent, int x, int y, System.Func<string> footer = null)
         {
             Image panel = UiFactory.CreatePanel("HandRanks", parent, hot: true);
             panel.raycastTarget = true;
@@ -36,14 +36,14 @@ namespace HellPoker.Presentation.Views
             return view;
         }
 
-        private void Build(Transform panel, string footer)
+        private void Build(Transform panel, System.Func<string> footer)
         {
             _categories = System.Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
             _values = new Text[_categories.Length];
 
-            UiFactory.CreateText("Title", panel, UiText.HandRanksTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("Title", panel, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.HandRanksTitle)
                 .rectTransform.PlaceTL(0, 6, Width, 8);
-            UiFactory.CreateText("Subtitle", panel, UiText.HandRanksSubtitle, 8, Palette.BoneMid).rectTransform.PlaceTL(0, 15, Width, 9);
+            UiFactory.CreateText("Subtitle", panel, "", 8, Palette.BoneMid).Localized(() => UiText.HandRanksSubtitle).rectTransform.PlaceTL(0, 15, Width, 9);
 
             for (int i = 0; i < _categories.Length; i++)
             {
@@ -51,9 +51,9 @@ namespace HellPoker.Presentation.Views
                 int y = FirstRow + i * RowHeight;
                 Color color = category == HandCategory.DeadMansHand ? Palette.GoldLight : Palette.Bone;
 
-                UiFactory.CreateText("Name" + i, panel, UiText.CategoryName(category), 8, color, TextAnchor.MiddleLeft)
+                UiFactory.CreateText("Name" + i, panel, "", 8, color, TextAnchor.MiddleLeft).Localized(() => UiText.CategoryName(category))
                     .rectTransform.PlaceTL(10, y, 112, RowHeight);
-                UiFactory.CreateText("Example" + i, panel, UiText.HandExample(category), 8, Palette.LilacLight, TextAnchor.MiddleLeft)
+                UiFactory.CreateText("Example" + i, panel, "", 8, Palette.LilacLight, TextAnchor.MiddleLeft).Localized(() => UiText.HandExample(category))
                     .rectTransform.PlaceTL(124, y, 136, RowHeight);
                 _values[i] = UiFactory.CreateText("Value" + i, panel, "", 8, color, TextAnchor.MiddleRight);
                 _values[i].rectTransform.PlaceTL(Width - 58, y, 48, RowHeight);
@@ -63,8 +63,8 @@ namespace HellPoker.Presentation.Views
             _footnote = UiFactory.CreateText("Footnote", panel, "", 8, Palette.Ember, TextAnchor.UpperCenter);
             _footnote.rectTransform.PlaceTL(8, FirstRow + _categories.Length * RowHeight + 1, Width - 16, 18);
 
-            if (!string.IsNullOrEmpty(footer))
-                UiFactory.CreateText("Footer", panel, footer, 8, Palette.BoneDark).rectTransform.PlaceTL(0, Height - 11, Width, 9);
+            if (footer != null)
+                UiFactory.CreateText("Footer", panel, "", 8, Palette.BoneDark).Localized(footer).rectTransform.PlaceTL(0, Height - 11, Width, 9);
         }
 
         /// <summary>Fills in what each hand pays at this table and opens the panel.</summary>

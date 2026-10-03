@@ -40,5 +40,8 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>The dealer speaks a line in a mood.</summary>
         void Say(string line, DealerMood mood);
+
+        /// <summary>The same demon under the words of another language: name and title only, nothing replayed.</summary>
+        void Relabel(DealerCard dealer);
     }
 }

@@ -113,6 +113,7 @@ namespace HellPoker.Core.Tests
                     Dealer seat = dealer;
                     HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed);
                     var gate = new LuciferGate(table);
+                    (int, int, int)? originMalice = null;
                     int played = 0;
                     bool staked = false;
 
@@ -125,6 +126,7 @@ namespace HellPoker.Core.Tests
                             int years = game.Years;
                             if (call == GateCall.Summoned)
                             {
+                                originMalice = (game.Malice, game.MaliceMax, game.Grudge);
                                 gate.Summon(seat.Id);
                                 seat = lucifer;
                             }
@@ -138,7 +140,11 @@ namespace HellPoker.Core.Tests
                             game.TakeOver(years, played);
                             if (game.IsGameOver) break;
                             // As at the real table: the demons' malice goes along with the player.
-                            game.RestoreMalice(previous.Malice, false, previous.Grudge);
+                            // The gauge goes along as a share; a fall gives back the gauge the player had below.
+                            var (carried, carriedMax, grudge) = call == GateCall.CastDown && originMalice.HasValue
+                                ? originMalice.Value
+                                : (previous.Malice, previous.MaliceMax, previous.Grudge);
+                            game.RestoreMalice(CheatSession.Carry(carried, carriedMax, game.MaliceMax), false, grudge);
                         }
 
                         if (PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), seat.Payouts))

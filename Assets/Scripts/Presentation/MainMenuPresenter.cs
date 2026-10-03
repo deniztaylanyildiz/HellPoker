@@ -26,10 +26,17 @@ namespace HellPoker.Presentation
         private readonly IApplicationQuitter _quitter;
         private readonly IScreenTransition _transition;
         private readonly Dealer[] _dealers;
-        private readonly DealerCard[] _dealerCards;
+        private readonly Dealer _finalDealer;
+
+        /// <summary>The demons in words (names, titles, house rules): built again when the language changes.</summary>
+        private DealerCard[] _dealerCards;
 
         /// <summary>Lucifer's card: last on the choice screen, locked; null when there is no Lucifer.</summary>
-        private readonly DealerCard _finalCard;
+        private DealerCard _finalCard;
+
+        /// <summary>The choice screen as last shown (new run or changing tables), to show again in another language.</summary>
+        private bool _choiceForTables;
+        private RunSummary _lastSummary;
 
         private bool _changingTables;
         private int _pendingSeat = -1;
@@ -40,6 +47,7 @@ namespace HellPoker.Presentation
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
             IReadOnlyList<Dealer> dealers, Dealer finalDealer = null)
         {
+            _finalDealer = finalDealer;
             _finalCard = finalDealer == null ? null : DealerCards.Describe(finalDealer);
             _menu = menu ?? throw new ArgumentNullException(nameof(menu));
             _dealerSelect = dealerSelect ?? throw new ArgumentNullException(nameof(dealerSelect));
@@ -72,6 +80,7 @@ namespace HellPoker.Presentation
             _table.MenuPressed += OpenMenu;
             _session.LeaveRequested += OpenTableChoice;
             _session.RunEnded += ShowEnd;
+            Lang.Changed += OnLanguageChanged;
 
             OpenMenu();
         }
@@ -129,6 +138,37 @@ namespace HellPoker.Presentation
             _table.MenuPressed -= OpenMenu;
             _session.LeaveRequested -= OpenTableChoice;
             _session.RunEnded -= ShowEnd;
+            Lang.Changed -= OnLanguageChanged;
+        }
+
+        /// <summary>
+        /// The language changed: the demons are described again, and the screen that is open says the same in the new words
+        /// (without a curtain). Fixed labels follow by themselves (<see cref="LocalizedText"/>).
+        /// </summary>
+        private void OnLanguageChanged()
+        {
+            _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
+            _finalCard = _finalDealer == null ? null : DealerCards.Describe(_finalDealer);
+
+            if (_dealerSelect.IsVisible)
+            {
+                if (_choiceForTables)
+                    OpenTableChoice(curtain: false);
+                else
+                    OpenNewRunChoice(curtain: false);
+            }
+            else if (_records.IsVisible)
+            {
+                _records.Show(_session.Records, _dealerCards);
+            }
+            else if (_endScreen.IsVisible && _lastSummary != null)
+            {
+                _endScreen.Show(_lastSummary);
+            }
+            else if (_menu.IsVisible && _menu.IsConfirming)
+            {
+                AskForNewGame();
+            }
         }
 
         /// <summary>
@@ -159,10 +199,13 @@ namespace HellPoker.Presentation
             OpenNewRunChoice();
         }
 
-        private void OpenNewRunChoice()
+        private void OpenNewRunChoice() => OpenNewRunChoice(curtain: true);
+
+        private void OpenNewRunChoice(bool curtain)
         {
             _changingTables = false;
-            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), soulAtStake: false, isCurrent: false)));
+            _choiceForTables = false;
+            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), soulAtStake: false, isCurrent: false)), curtain);
         }
 
         /// <summary>From the menu: go back to the table and ask there, so a soul-bound table answers in the dealer's voice.</summary>
@@ -172,22 +215,25 @@ namespace HellPoker.Presentation
             _session.RequestLeave();
         }
 
-        private void OpenTableChoice()
+        private void OpenTableChoice() => OpenTableChoice(curtain: true);
+
+        private void OpenTableChoice(bool curtain)
         {
             _changingTables = true;
-            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), _session.WouldStakeSoul(d), d.Id == _session.CurrentDealerId)));
+            _choiceForTables = true;
+            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), _session.WouldStakeSoul(d), d.Id == _session.CurrentDealerId)), curtain);
         }
 
         private DealerCard Card(Dealer dealer) => _dealerCards[Array.IndexOf(_dealers, dealer)];
 
-        private void ShowChoice(IEnumerable<DealerChoice> choices)
+        private void ShowChoice(IEnumerable<DealerChoice> choices, bool curtain = true)
         {
             _pendingSeat = -1;
             HideAll();
             if (_finalCard != null)
                 choices = choices.Concat(new[] { new DealerChoice(_finalCard, soulAtStake: false, isCurrent: false, isLocked: true) });
             _dealerSelect.Show(choices.ToArray());
-            _transition.Play();
+            if (curtain) _transition.Play();
         }
 
         /// <summary>Every screen goes away; the caller shows the one wanted.</summary>
@@ -203,6 +249,7 @@ namespace HellPoker.Presentation
 
         private void ShowEnd(RunSummary summary)
         {
+            _lastSummary = summary;
             HideAll();
             _endScreen.Show(summary);
             _transition.Play();

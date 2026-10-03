@@ -63,7 +63,7 @@ namespace HellPoker.Presentation.Views
             Sprite[] frames = UiArt.Strip(UiArt.SoulLamp, UiArt.SoulLampWidth);
             flicker.Play(frames != null ? new SpriteClip(frames, 6f, loop: true) : null);
 
-            _label = UiFactory.CreateText("Label", root, UiText.SoulLabel, 8, Palette.LilacLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline();
+            _label = UiFactory.CreateText("Label", root, "", 8, Palette.LilacLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline().Localized(() => UiText.SoulLabel);
             _label.rectTransform.PlaceTL(26, 10, 76, 8);
             _label.horizontalOverflow = HorizontalWrapMode.Overflow;
 
