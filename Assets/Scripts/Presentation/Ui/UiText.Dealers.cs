@@ -26,6 +26,12 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The player closed the game mid-hand and came back: the hand was forfeited.</summary>
         public string[] Fled;
 
+        /// <summary>The player came back from walking out on a hand the demon meant to cheat: scorn, and a grudge.</summary>
+        public string[] Hunted;
+
+        /// <summary>The player wants to start over (New Game over a run in progress): the demon mocks them for it.</summary>
+        public string[] Scorn;
+
         /// <summary>The demon's own cheat helped the player (a backfire): said with an angry look.</summary>
         public string[] Backfire;
 
@@ -138,6 +144,17 @@ namespace HellPoker.Presentation.Ui
                 "You walked out mid-hand? The ledger noticed. Debited, with interest.",
                 "Skipping out on an open account? I charged it as forfeit."
             },
+            Hunted = new[]
+            {
+                "You ran from my collateral? Where to? This is Hell. I charge interest on running.",
+                "Skipped out before I could collect? Then I collect twice. Soon, and often."
+            },
+            Scorn = new[]
+            {
+                "Leaving with your account open? Afraid of the interest?",
+                "Run along. But this is Hell, debtor. Where would you go?",
+                "Scared of a few numbers? Close the book, then. I keep a copy."
+            },
             Backfire = new[]
             {
                 "A clerical error. It will not happen twice.",
@@ -199,6 +216,17 @@ namespace HellPoker.Presentation.Ui
             {
                 "Vanishing mid-act? I kept your ticket. And your wager.",
                 "You left before the final scene, darling. The stakes stayed with me."
+            },
+            Hunted = new[]
+            {
+                "Ran from my little trick? Darling, this is Hell. Every exit leads back to my stage.",
+                "You fled the scene. I'll write you a crueller one, and soon."
+            },
+            Scorn = new[]
+            {
+                "Leaving before the final act? Stage fright, darling?",
+                "Exit, pursued by nothing. Where would you go? It's Hell all the way down.",
+                "Walking out on me? How dull. I had such lies left to tell you."
             },
             Backfire = new[]
             {
@@ -262,6 +290,17 @@ namespace HellPoker.Presentation.Ui
                 "You slipped away in the dark. I kept what you left on my table.",
                 "Running mid-hand? Nothing leaves me. That wager is mine."
             },
+            Hunted = new[]
+            {
+                "You fled my thorns? Where to? This is Hell. I find you in every dark.",
+                "You ran from the night. The night remembers, and it grows hungrier."
+            },
+            Scorn = new[]
+            {
+                "Afraid of the dark already, little one?",
+                "Run, then. The night is everywhere here.",
+                "You came to my garden and you flee it? How very mortal."
+            },
             Backfire = new[]
             {
                 "The night chose you over me. How rude.",
@@ -322,6 +361,8 @@ namespace HellPoker.Presentation.Ui
                 "Sealed. Watch them turn."
             },
             Fled = new[] { "You closed your eyes. I did not. The wager is mine.", "There is no leaving in the middle. Not from me." },
+            Hunted = new[] { "You ran from my fire. There is nowhere that is not mine.", "Flee the flame, and it follows. It always follows." },
+            Scorn = new[] { "You think you can leave me? I am where everything ends.", "Go. Begin again. You will fall to me all the same." },
             Backfire = new[]
             {
                 "The fire chose. Not I.",
@@ -364,6 +405,8 @@ namespace HellPoker.Presentation.Ui
             SoulLocked = new[] { "Not with your soul on the table." },
             Sealed = new[] { "Sealed." },
             Fled = new[] { "You left mid-hand. It is forfeit." },
+            Hunted = new[] { "You ran from my trick. I will not forget it." },
+            Scorn = new[] { "Leaving so soon? Afraid?" },
             Backfire = new[] { "That was not meant for you." },
             SoulWarning = "Your soul will be on this table.",
             Absolved = "You are free.",

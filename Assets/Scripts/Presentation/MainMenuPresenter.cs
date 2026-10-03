@@ -54,7 +54,8 @@ namespace HellPoker.Presentation
             _dealers = dealers.ToArray();
             _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
 
-            _menu.NewGamePressed += OpenNewRunChoice;
+            _menu.NewGamePressed += AskForNewGame;
+            _menu.NewGameConfirmed += AbandonAndChoose;
             _menu.ContinuePressed += OpenTable;
             _menu.ChangeTablePressed += AskToChangeTables;
             _menu.SettingsPressed += OpenSettings;
@@ -110,7 +111,8 @@ namespace HellPoker.Presentation
 
         public void Dispose()
         {
-            _menu.NewGamePressed -= OpenNewRunChoice;
+            _menu.NewGamePressed -= AskForNewGame;
+            _menu.NewGameConfirmed -= AbandonAndChoose;
             _menu.ContinuePressed -= OpenTable;
             _menu.ChangeTablePressed -= AskToChangeTables;
             _menu.SettingsPressed -= OpenSettings;
@@ -127,6 +129,34 @@ namespace HellPoker.Presentation
             _table.MenuPressed -= OpenMenu;
             _session.LeaveRequested -= OpenTableChoice;
             _session.RunEnded -= ShowEnd;
+        }
+
+        /// <summary>
+        /// New Game from the menu. With a run in progress the player is never held — but asked first, told what walking
+        /// away costs, and mocked for it in the demon's own voice.
+        /// </summary>
+        private void AskForNewGame()
+        {
+            AbandonRisk risk = _session.AbandonRisk;
+            if (risk == AbandonRisk.None)
+            {
+                OpenNewRunChoice();
+                return;
+            }
+
+            string id = _session.CurrentDealerId;
+            DealerText dealer = id == null ? null : UiText.Dealer(id);
+            string taunt = dealer?.Scorn == null ? null : UiText.Pick(dealer.Scorn, Environment.TickCount & int.MaxValue);
+            string warning = risk == AbandonRisk.Soul ? UiText.AbandonSoulWarning
+                : risk == AbandonRisk.Hand ? UiText.AbandonHandWarning
+                : UiText.AbandonRunWarning;
+            _menu.AskToConfirmNewGame(taunt, warning);
+        }
+
+        private void AbandonAndChoose()
+        {
+            _session.AbandonRun();
+            OpenNewRunChoice();
         }
 
         private void OpenNewRunChoice()

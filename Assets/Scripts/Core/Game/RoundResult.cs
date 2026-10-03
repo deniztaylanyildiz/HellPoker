@@ -22,12 +22,17 @@ namespace HellPoker.Core.Game
         public int YearsAfter { get; }
         public GamePhase PhaseAfter { get; }
 
+        /// <summary>True when a thorn thrown back at the draw took the last of the soul: the hand ended there, unplayed
+        /// (<see cref="Folded"/> is set too, as there is no showdown).</summary>
+        public bool ThornDamned { get; }
+
         /// <summary>Negative when years were forgiven, positive when added.</summary>
         public int YearsChange => YearsAfter - YearsBefore;
 
         public RoundResult(int stake, bool folded, ExchangeResult playerExchange, ExchangeResult houseExchange, ShowdownResult showdown,
-            int yearsBefore, int yearsAfter, GamePhase phaseAfter)
+            int yearsBefore, int yearsAfter, GamePhase phaseAfter, bool thornDamned = false)
         {
+            ThornDamned = thornDamned;
             Stake = stake;
             Folded = folded;
             PlayerExchange = playerExchange;

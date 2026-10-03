@@ -335,6 +335,75 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1, _archive.LoadRecords().Damnations);
         }
 
+        // ------------------------------------------------------------------ walking away: New Game over a run
+
+        [Test]
+        public void AbandoningBetweenHands_ForgetsTheRun()
+        {
+            Start();
+            Assert.AreEqual(AbandonRisk.None, _presenter.AbandonRisk, "Nothing dealt yet: nothing to lose, no warning.");
+            _view.PressAction();
+            _view.PressBet(BetAction.Fold);
+            _view.PressAction();   // between hands
+            Assert.AreEqual(AbandonRisk.Run, _presenter.AbandonRisk);
+
+            _presenter.AbandonRun();
+
+            Assert.IsFalse(_presenter.CanContinue);
+            Assert.AreEqual(AbandonRisk.None, _presenter.AbandonRisk);
+            Assert.IsNull(_archive.LoadRun());
+            Assert.AreEqual(0, _archive.LoadRecords().Damnations, "Only walked away, not damned.");
+        }
+
+        [Test]
+        public void AbandoningMidHand_FoldsTheHandFirst()
+        {
+            Start();
+            _view.PressAction();   // the deal: 100 on the table
+            Assert.AreEqual(AbandonRisk.Hand, _presenter.AbandonRisk);
+
+            _presenter.AbandonRun();
+
+            Assert.AreEqual(1050, _game.Years, "Folded before the draw: half the ante.");
+            Assert.AreEqual(GamePhase.Betting, _game.Phase);
+            Assert.AreEqual(1, _presenter.Stats.HandsPlayed);
+            Assert.IsFalse(_presenter.CanContinue);
+            Assert.IsNull(_archive.LoadRun(), "Nothing to continue: the half-played hand cannot be picked up again.");
+            _view.PressAction();
+            Assert.AreEqual(GamePhase.Betting, _game.Phase, "The abandoned table takes no more input.");
+        }
+
+        [Test]
+        public void AbandoningWithTheSoulOnTheTable_CountsAsDamnation()
+        {
+            _archive.SaveRun(new RunSnapshot("mammon", 2100, 5, new RunStats(4, 800, 2100, null, new[] { "mammon" }, true)));
+            _presenter = CreatePresenter();
+            _presenter.Resume(DealerRoster.Mammon, _archive.LoadRun());
+            Assert.AreEqual(AbandonRisk.Soul, _presenter.AbandonRisk);
+
+            _presenter.AbandonRun();
+
+            Assert.AreEqual(1, _archive.LoadRecords().Damnations);
+            Assert.IsNull(_archive.LoadRun());
+            Assert.IsFalse(_presenter.CanContinue);
+        }
+
+        [Test]
+        public void ANewRun_AfterAbandoning_StartsClean()
+        {
+            Start();
+            _view.PressAction();
+            _presenter.AbandonRun();
+
+            _presenter.StartNewRun(DealerRoster.Belial);
+
+            Assert.AreEqual(1000, _game.Years);
+            Assert.AreEqual(DealerRoster.BelialId, _presenter.CurrentDealerId);
+            Assert.IsNotNull(_archive.LoadRun(), "The new run is saved.");
+            _view.PressAction();
+            Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase, "The new table plays.");
+        }
+
         [Test]
         public void Snapshot_WithAHand_SurvivesTheRoundTrip()
         {

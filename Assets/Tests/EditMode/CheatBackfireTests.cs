@@ -140,18 +140,12 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the save and the records remember them
 
         [Test]
-        public void TheSave_KeepsTheRunsBackfires_AndAnOlderV3SaveHasNone()
+        public void ASaveWithTheRunsOldBackfiresLine_StillReads()
         {
-            var stats = new RunStats(1000, "belial");
-            stats.NoteBackfires(2);
-            string text = new RunSnapshot("belial", 800, 9, stats).Encode();
+            string text = new RunSnapshot("belial", 800, 9, new RunStats(1000, "belial")).Encode() + "\nbackfires=2";
 
-            Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot back));
-            Assert.AreEqual(2, back.Stats.Backfires);
-
-            string older = string.Join("\n", text.Split('\n').Where(line => !line.StartsWith("backfires=")));
-            Assert.IsTrue(RunSnapshot.TryDecode(older, out RunSnapshot old), "A v=3 save from before backfires still reads.");
-            Assert.AreEqual(0, old.Stats.Backfires);
+            Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot back), "The dropped key is ignored.");
+            Assert.AreEqual(800, back.Years);
         }
 
         [Test]

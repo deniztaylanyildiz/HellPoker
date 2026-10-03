@@ -240,6 +240,15 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsTrue(button.gameObject.activeInHierarchy, $"{button.name} is hidden.");
             Assert.IsTrue(button.interactable, $"{button.name} is not interactable.");
             button.onClick.Invoke();
+            // New Game over a run asks first: the tests mean it.
+            if (button.name == "NewGameButton") ConfirmNewGame();
+        }
+
+        private static void ConfirmNewGame()
+        {
+            Button confirm = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+            if (confirm != null) confirm.onClick.Invoke();
         }
 
         private static bool IsActive(string name) => Find<Button>(name).gameObject.activeInHierarchy;

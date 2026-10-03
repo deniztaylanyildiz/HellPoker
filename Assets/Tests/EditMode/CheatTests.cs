@@ -701,7 +701,7 @@ namespace HellPoker.Core.Tests
         public void Snapshot_v3_KeepsTheGaugeAndTheHandsCheat()
         {
             var snapshot = new RunSnapshot("belial", 800, 9, new RunStats(1000, "belial"),
-                new HandInProgress(200, 100, false, false, false, CheatIds.SerpentSwap, CheatIds.FalseFace, true), malice: 2, majorCheatUsed: true);
+                new HandInProgress(200, 100, false, false, false, CheatIds.SerpentSwap, true), malice: 2, majorCheatUsed: true, grudge: 2);
 
             string text = snapshot.Encode();
             StringAssert.StartsWith("v=3", text);
@@ -710,8 +710,121 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(2, back.Malice);
             Assert.IsTrue(back.MajorCheatUsed);
             Assert.AreEqual(CheatIds.SerpentSwap, back.Hand.CheatId);
-            Assert.AreEqual(CheatIds.FalseFace, back.Hand.ShownCheatId);
             Assert.IsTrue(back.Hand.CheatResolved);
+            Assert.IsFalse(back.Hand.FledACheat);
+            Assert.AreEqual(2, back.Grudge);
+            StringAssert.DoesNotContain("hand.shown", text, "Written but never read: dropped.");
+            StringAssert.DoesNotContain("backfires", text, "The run's backfires were never read: dropped (the records keep theirs).");
+        }
+
+        [Test]
+        public void Snapshot_WithTheOldKeys_StillReads()
+        {
+            string text = "v=3\ndealer=belial\nyears=800\nrounds=9\nhands=8\nlowest=800\nhighest=1000\nbest=\ndealers=belial\nsoul=0\n" +
+                          "lucifer=0\norigin=\nattempts=0\nmalice=1\ncheat.major=0\nbackfires=2\n" +
+                          "hand.stake=200\nhand.ante=100\nhand.drawn=0\nhand.soul=0\nhand.sealed=0\nhand.cheat=thorn\nhand.shown=night_veil\nhand.cheat.done=0";
+
+            Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot back));
+            Assert.AreEqual(1, back.Malice);
+            Assert.AreEqual(0, back.Grudge, "No grudge line: none.");
+            Assert.IsTrue(back.Hand.FledACheat);
+        }
+
+        // ================================================================== walking out on a cheat: the grudge
+
+        [Test]
+        public void FleeingACheat_FillsTheGauge_AndHoldsAGrudge()
+        {
+            var game = Game(Nothing, HouseFullHouse, new GazeCheat(), maliceMax: 4, rules: new GameRules(1000, 5000, luciferGateYears: 0));
+
+            game.ForfeitHand(new HandInProgress(100, 100, false, false, false, CheatIds.Thorn, cheatResolved: false));
+
+            Assert.AreEqual(4, game.Malice, "Full: the cheat comes at the next deal.");
+            Assert.AreEqual(3, game.Grudge);
+
+            game.PlaceBet();
+            Assert.AreEqual(CheatIds.Gaze, Played(game).CheatId);
+            Assert.AreEqual(2, game.Grudge);
+            game.Bet(BetAction.Fold);
+            game.NextRound();
+
+            game.PlaceBet();
+            Assert.AreEqual(2, game.Malice, "1 a hand + 1 for the grudge.");
+        }
+
+        [Test]
+        public void FleeingAStruckCheat_OrNone_HoldsNoGrudge()
+        {
+            var game = Game(Nothing, HouseFullHouse, new GazeCheat(), maliceMax: 4, rules: new GameRules(1000, 5000, luciferGateYears: 0));
+
+            game.ForfeitHand(new HandInProgress(100, 100, false, false, false, CheatIds.Thorn, cheatResolved: true));
+            game.ForfeitHand(new HandInProgress(100, 100, false, false, false));
+
+            Assert.AreEqual(0, game.Malice);
+            Assert.AreEqual(0, game.Grudge);
+        }
+
+        [Test]
+        public void TheGrudge_IsRestored()
+        {
+            var game = Game(Nothing, HouseFullHouse, new GazeCheat(), maliceMax: 4);
+
+            game.RestoreMalice(1, false, 2);
+
+            Assert.AreEqual(2, game.Grudge);
+        }
+
+        [Test]
+        public void ForfeitingTheHandBeingPlayed_IsAFold_AndAPendingCheatEarnsAGrudge()
+        {
+            var game = Game(Nothing, HouseFullHouse, new CollateralCheat(), maliceMax: 1, rules: new GameRules(1000, 5000, luciferGateYears: 0));
+            game.PlaceBet();
+            Assert.IsNotNull(game.PendingCheat);
+
+            RoundResult round = game.ForfeitHand();
+
+            Assert.AreEqual(GamePhase.Betting, game.Phase);
+            Assert.IsTrue(round.Folded);
+            Assert.AreEqual(50, round.YearsChange, "Folding the ante before the draw: half of it.");
+            Assert.AreEqual(3, game.Grudge);
+            Assert.IsNull(game.CurrentHand);
+        }
+
+        [Test]
+        public void ForfeitingWithNoHand_Throws()
+        {
+            var game = Game(Nothing, HouseFullHouse, new CollateralCheat());
+            Assert.Throws<InvalidOperationException>(() => game.ForfeitHand());
+        }
+
+        // ================================================================== the thorn's price
+
+        [Test]
+        public void ThornCost_IsKnownBeforeTheDraw()
+        {
+            var game = Game(Nothing, HouseFullHouse, new ThornCheat(), rules: new GameRules(1000, 5000, luciferGateYears: 0));
+            ToTheDraw(game);
+
+            Assert.AreEqual(100, game.ThornCost(new[] { 0, 1 }));
+            Assert.AreEqual(0, game.ThornCost(new[] { 1, 2 }));
+            Assert.AreEqual(0, game.ThornCost(null));
+        }
+
+        [Test]
+        public void AThornThatTakesTheLastOfTheSoul_DamnsAtOnce()
+        {
+            // Damnation at 3000; a soul hand with 10 years of soul left: the ante is all in, the thorn costs a soul unit (100).
+            var game = Game(Nothing, HouseFullHouse, new ThornCheat(), rules: new GameRules(1000, 2000, luciferGateYears: 0));
+            game.TakeOver(2990, 3);
+            ToTheDraw(game);
+            Assert.IsTrue(game.IsPlayerCardThorned(0));
+
+            game.Draw(new[] { 0 });
+
+            Assert.AreEqual(GamePhase.Damned, game.Phase, "No hand is left to win it back.");
+            Assert.IsTrue(game.LastRound.ThornDamned);
+            Assert.IsNull(game.LastRound.Showdown);
+            Assert.AreEqual(3090, game.Years);
         }
 
         [Test]

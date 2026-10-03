@@ -411,14 +411,24 @@ def card_mark(mark):
         img.put(16, 25, C.BLACK)
         img.put(16, 26, C.BLACK)
         img.paint(img.m_ellipse(16, 21, 3, 3) & ~img.m_ellipse(16, 21, 1.6, 1.6) & img.m_rect(0, 0, 31, 21), C.GOLD_MID)
-    elif mark == "thorned":              # a thorny vine along the edge, a drop of blood
-        vine = bezier([(1, 47), (6, 30), (2, 16), (8, 1)], 24)
-        img.paint(img.m_line(vine, 1), C.BONE_SHADE)
-        for k in range(2, 24, 4):
-            x, y = vine[k]
-            img.put(int(x) + 1, int(y), C.BONE_DARK)
-            img.put(int(x) + 2, int(y) - 1, C.WHITE)
-        img.paint(img.m_ellipse(5, 36, 1.6, 2.2), C.RED)
+    elif mark == "thorned":              # thick blood-red vines up both edges, big pale thorns, drops of blood
+        # Clear of the rank in the top left corner and the suit in the middle; readable at a glance (it costs years).
+        for side in (0, 1):
+            pts = [(2, 47), (9, 36), (1, 22), (6, 10)]
+            if side:
+                pts = [(CARD_W - 1 - x, y) for x, y in pts]
+            vine = bezier(pts, 28)
+            body = img.m_line(vine, 3)
+            img.paint(body, C.RED)
+            img.inner_outline(body, C.BLOOD_DARK)
+            for k in range(2, 28, 4):
+                x, y = int(vine[k][0]), int(vine[k][1])
+                d = -1 if side else 1                         # thorns point into the card
+                for px, py, col in ((2, 0, C.BONE_DARK), (2, -1, C.BONE_DARK), (3, -1, C.BONE), (3, -2, C.BONE), (4, -2, C.WHITE)):
+                    img.put(x + px * d, y + py, col)
+            drop_x = CARD_W - 6 if side else 5
+            img.paint(img.m_ellipse(drop_x, 38 if side else 30, 1.6, 2.4), C.RED)
+            img.put(drop_x, 37 if side else 29, C.HELL)
     elif mark == "veiled":               # darkness over the card, a thin crescent
         full = np.ones((img.h, img.w), bool)
         img.dither(full, C.CLEAR, C.BLACK, 0.5)

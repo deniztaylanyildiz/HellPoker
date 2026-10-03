@@ -169,6 +169,7 @@ namespace HellPoker.Core.Game
         public ICheat PendingCheat => InPlay ? _cheats.Intent : null;
         public IReadOnlyList<CheatResult> CheatsThisHand => _cheats.Results;
         public bool MajorCheatUsed => _cheats.MajorUsed;
+        public int Grudge => _cheats.Grudge;
         public int ThornYearsThisHand { get; private set; }
         public int TitheYearsThisHand { get; private set; }
 
@@ -187,10 +188,10 @@ namespace HellPoker.Core.Game
         /// <summary>The House card as the player sees it: a false face until the showdown turns the truth.</summary>
         public Card HouseCardFace(int index) => IsHouseCardFalse(index) ? _cheats.Marks.FakeHouseFace : HouseHand[index];
 
-        public void RestoreMalice(int malice, bool majorCheatUsed)
+        public void RestoreMalice(int malice, bool majorCheatUsed, int grudge = 0)
         {
             RequirePhase(GamePhase.Betting);
-            _cheats.Restore(malice, majorCheatUsed);
+            _cheats.Restore(malice, majorCheatUsed, grudge);
         }
 
         /// <summary>A hand is being played (the marks matter); once it is settled every card shows as it is.</summary>
@@ -308,9 +309,16 @@ namespace HellPoker.Core.Game
 
         public HandInProgress CurrentHand =>
             IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise
-                ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed, _cheats.Planned?.Id,
-                    _cheats.Results.Count > 0 ? _cheats.Results[0].ShownId : _cheats.Intent?.Id, _cheats.IsResolved)
+                ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed, _cheats.Planned?.Id, _cheats.IsResolved)
                 : null;
+
+        public RoundResult ForfeitHand()
+        {
+            HandInProgress hand = CurrentHand ?? throw new InvalidOperationException("No hand is being played.");
+            ClearHand();
+            Phase = GamePhase.Betting;
+            return ForfeitHand(hand);
+        }
 
         public RoundResult ForfeitHand(HandInProgress hand)
         {
@@ -321,6 +329,10 @@ namespace HellPoker.Core.Game
             int penalty = hand.IsSealed
                 ? _payouts.GetLeastYearsAdded(hand.Stake, hand.Ante, surcharge)
                 : _payouts.GetFoldPenalty(hand.Stake, hand.IsAfterDraw, surcharge);
+
+            // Walking out on a hand the demon meant to cheat is not forgotten: the cheat comes next hand, and more follow.
+            if (hand.FledACheat)
+                _cheats.PlayerFled(Rules);
 
             int yearsBefore = _ledger.Years;
             _ledger.Add(penalty);
@@ -369,7 +381,8 @@ namespace HellPoker.Core.Game
                 throw new InvalidOperationException(reason);
 
             // A thorned card thrown back costs a unit, at once.
-            int thorns = discardIndices.Count(IsPlayerCardThorned);
+            int yearsBefore = _ledger.Years;
+            int thorns = ThornsIn(discardIndices);
             if (thorns > 0)
             {
                 ThornYearsThisHand = thorns * Unit;
@@ -382,12 +395,30 @@ namespace HellPoker.Core.Game
             HouseHand = _houseExchange.Hand;
             _drawnIndices = _playerExchange.ReplacedIndices;
             IsAfterDraw = true;
+
+            // The thorn took the last of the soul: there is no hand left to play.
+            if (_ledger.Years >= Rules.DamnationYears)
+            {
+                HouseReRaiseAmount = 0;
+                PlayerCardsRevealed = Hand.Size;
+                HouseCardsRevealed = Hand.Size;
+                Phase = GamePhase.Damned;
+                LastRound = new RoundResult(CurrentStake, true, _playerExchange, _houseExchange, null, yearsBefore, _ledger.Years, Phase,
+                    thornDamned: true);
+                return _playerExchange;
+            }
+
             Phase = GamePhase.DrawReveal;
             Strike(CheatTiming.AfterDraw);
             SkipEmptyDecisions();
 
             return _playerExchange;
         }
+
+        public int ThornCost(IReadOnlyCollection<int> discardIndices) => ThornsIn(discardIndices) * Unit;
+
+        private int ThornsIn(IReadOnlyCollection<int> discardIndices) =>
+            discardIndices == null ? 0 : discardIndices.Distinct().Count(i => i >= 0 && i < Hand.Size && IsPlayerCardThorned(i));
 
         public void NextRound()
         {

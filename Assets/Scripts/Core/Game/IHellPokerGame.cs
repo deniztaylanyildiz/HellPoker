@@ -107,8 +107,15 @@ namespace HellPoker.Core.Game
         /// <summary>True once a major cheat struck at this table (Lucifer's Fall comes once per attempt).</summary>
         bool MajorCheatUsed { get; }
 
-        /// <summary>Years a thorn cost the player this hand (added at the draw).</summary>
+        /// <summary>Hands left in which the demon's malice grows faster: the player walked out on a cheat
+        /// (<see cref="GameRules.GrudgeHands"/>). Goes along to other tables with the gauge.</summary>
+        int Grudge { get; }
+
+        /// <summary>Years a thorn cost the player this hand (added at the draw; if it takes the last of the soul, the run ends there).</summary>
         int ThornYearsThisHand { get; }
+
+        /// <summary>What drawing these cards would cost in thorns (0 when none of them is thorned).</summary>
+        int ThornCost(IReadOnlyCollection<int> discardIndices);
 
         /// <summary>Years the tithe took off this hand's win.</summary>
         int TitheYearsThisHand { get; }
@@ -134,8 +141,8 @@ namespace HellPoker.Core.Game
         /// <summary>A House card as the player sees it (a false face until the showdown).</summary>
         Card HouseCardFace(int index);
 
-        /// <summary>Brings back a saved gauge (between hands).</summary>
-        void RestoreMalice(int malice, bool majorCheatUsed);
+        /// <summary>Brings back a saved gauge — or the one the player carries from another table (between hands).</summary>
+        void RestoreMalice(int malice, bool majorCheatUsed, int grudge = 0);
 
         // ------------------------------------------------------------------ a hand left behind
 
@@ -148,6 +155,12 @@ namespace HellPoker.Core.Game
         /// (the whole stake, the dealer's loss percent and the soul surcharge, as a loss to the weakest hand).
         /// </summary>
         RoundResult ForfeitHand(HandInProgress hand);
+
+        /// <summary>
+        /// The player walks away from the hand being played (a new game started over it): settled exactly as if the game had
+        /// been closed now (<see cref="ForfeitHand(HandInProgress)"/>), and the table is between hands again.
+        /// </summary>
+        RoundResult ForfeitHand();
 
         // ------------------------------------------------------------------ the soul
 

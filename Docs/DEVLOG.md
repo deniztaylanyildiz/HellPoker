@@ -1594,3 +1594,83 @@ build'i; kullanıcı itch.io'ya yükleyecek.
 
 ### Sıradaki
 - Kullanıcı zip'i itch.io'ya yükleyecek; geri bildirimler (GERI_BILDIRIM.txt) gelince Belial / Lilith kararları.
+
+---
+
+## 2026-10-03 — Kaçış açıkları, alaycı şeytanlar, kin, tohum, diken; 0.1.2 build'i
+
+**İstek (kullanıcı):** Bir prompt listesi: (1) menüden New Game ile kaçış: koşu varken onay sorulsun, el ortasındaysa fold sayılıp ceza
+eklensin, ruh masadayken koşu kayıp sayılsın; (2) masa değiştirince hile göstergesi sıfırlanmasın, koşuya bağlı kalsın; (4) üç ayrı
+`new Random()` yerine tek ana tohumdan türetilmiş tohumlar; (5) dikenli kart seçilince "+X YEARS" uyarısı, buton "DRAW 1 (+X YEARS)",
+diken işareti kalın; diken yıllarından sonra lanet kontrolü; (6) CLAUDE.md'deki v=2 → v=3, kayda yazılıp okunmayan alanlar kaldırılsın.
+**Düzeltme (kullanıcı):** 3. madde (mühürlü eli kapatma) ve 5'in son cümlesi (diken yılını sonuç satırına katma) atlandı; testlerde gerçek
+sorun olmadıkları görülmüş. (Bahsedilen `hellpoker-claude-code-promptlari.md` diskte bulunamadı; mesajdaki düzeltme uygulandı.)
+**Ek istek (iş sürerken):** Oyuncuyu oyunda zorla tutmayalım ama çıkarken şeytanlar küçümsesin ("korktun mu?"); hileli elden kaçana ceza
+olarak hile ihtimali artsın ve şeytan "kaçarsan nereye, burası cehennem" gibi alay etsin; metinler şeytanın tipine göre.
+Sonunda itch.io için yeni build, eski build'ler silinsin.
+
+### Yapılanlar — Core
+- `RandomSeeds` (Randomness): `Fresh()` tek kilitli ana `Random`'dan (Guid tohumlu) taze ana tohum; `Derive(master, stream)` SplitMix32
+  karıştırması. `HellPokerGameFactory`: `seed ?? Fresh()` → deste / kasa / hile akışlarına (`DeckStream/HouseStream/CheatStream`) ayrı
+  tohum. Eski `seed, seed+1, seed+2` komşu oyunların akışlarını çakıştırıyordu (5'in kasası = 6'nın destesi); tohumsuz oyunda üç
+  `new Random()` aynı saat tikinde aynı sayıları üretebiliyordu.
+- **Kin (grudge):** `GameRules.GrudgeHands` (3), `GrudgeMalicePerHand` (1). `CheatSession.PlayerFled`: gösterge hemen dolar, kin 3 el
+  boyunca her el +1 fazla doldurur. `HandInProgress.FledACheat` (planlanmış ama vurmamış hile) olan el çekilince (`ForfeitHand`) devreye girer.
+  `Restore(malice, major, grudge)`, `IHellPokerGame.Grudge`, kayıtta `grudge` (v=3 içinde isteğe bağlı).
+- `IHellPokerGame.ForfeitHand()`: oynanan eli, oyun kapatılıp açılmış gibi kapatır (aynı fold / mühür kuralları), masa eller arasına döner.
+- Diken: `ThornCost(discards)`; diken yılları laneti geçirirse el orada biter (`Phase = Damned`, `RoundResult.ThornDamned`).
+- Kayıt temizliği: `hand.shown` (`HandInProgress.ShownCheatId`) ve koşunun `backfires`'ı (`RunStats.Backfires / NoteBackfires`) yazılıyor
+  ama hiçbir yerde okunmuyordu → kaldırıldı (rekorlardaki "Backfires seen" `RecordBook`'ta duruyor). Eski kayıtlardaki bu anahtarlar yok sayılır.
+
+### Yapılanlar — sunum
+- **New Game onayı:** `IRunSession.AbandonRisk` (None / Run / Hand / Soul) + `AbandonRun()`; `IMainMenuView.AskToConfirmNewGame(taunt,
+  warning)` / `NewGameConfirmed` / `IsConfirming`. `MainMenuView`'da kızgın kutu: üstte şeytanın `Scorn` repliği (kor rengi), altında bedel,
+  ABANDON / BACK; Esc (`CloseOverlay`) kapatır. Henüz el dağıtılmamışsa ya da koşu bitmişse sormaz. Quit onaysız kaldı (zorla tutmuyoruz).
+- `TablePresenter.AbandonRun`: el ortasındaysa `ForfeitHand()` + el istatistiği; ruh masadaysa / lanetliyse rekora lanet; kayıt silinir,
+  `_abandoned` ile masa girdi almaz (`Playing`). `StartNewRun` temiz başlar.
+- **Gösterge masaya değil koşuya ait:** `SeatAt` yeni oyuna eski oyunun göstergesini ve kinini taşır (masa değişimi, çağrılma, düşüş);
+  yeni şeytanın boyuna kırpılır, `cheat.major` masaya özgü olduğu için sıfırlanır.
+- Kaçıştan dönüş: hileli elden kaçana `Hunted` repliği + "You ran from a cheat. The demon holds a grudge..." satırı.
+- Replikler (`UiText.Dealers`, her şeytana kendi tonunda): `Scorn` (Mammon tefeci: "Afraid of the interest?", Belial oyuncu: "Stage fright,
+  darling?", Lilith gece: "Afraid of the dark already, little one?", Lucifer: "I am where everything ends."), `Hunted` ("Where to? This is
+  Hell..." çeşitlemeleri).
+- Diken: seçilince uyarı "A thorn! Throwing it back costs +X YEARS, at once.", buton "DRAW 1\n(+X YEARS)" (96 px butona iki satır);
+  ruhta sayı yok ("THORN BITES"). Lanete götüren dikende oyuncu başlığı "THE THORN BIT".
+- `pixel_ui.py`: diken işareti iki kenarda 3 px kalın kırmızı sarmaşık, büyük kemik rengi dikenler, iki kan damlası (rank köşesi ve orta
+  sembol açık); `card_marks.png` yeniden üretildi.
+- PlayMode test yardımcıları NewGameButton'dan sonra açılan onayı otomatik geçiyor (`ConfirmNewGame`).
+- Sürüm 0.1.2.
+
+### Kararlar
+- New Game onayı yalnızca menüde; bitmiş koşunun son ekranındaki NEW GAME sormaz (kaybedilecek bir şey yok).
+- Eller arasında koşuyu bırakmak lanet sayılmaz, sadece unutulur (ruh masada değilse). El ortasında bırakmak, kapatıp açmakla aynı bedeli öder.
+- Kin, koşu devam ettiğinde anlamlı: oyunu kapatıp açınca uygulanır. New Game ile bırakılan koşu zaten bitiyor, orada sadece alay var.
+- Tohum türetmesi tohumlu oyunların kart sırasını da değiştirdi; tohuma bağlı testler etkilenmedi.
+### Denge (2000 koşu, gösterge 4 / 2 / 4 / 1; simülasyon da göstergeyi masalar arasında taşıyor)
+| Şeytan | Aklanma (önce → şimdi) | Ort. el | Lucifer'e ulaşan | İlk denemede |
+|---|---|---|---|---|
+| Mammon | %79.7 → %78.0 | 50.6 | %85.3 | %32.2 |
+| Belial | %74.1 → %74.7 | 27.0 | %81.6 | %39.8 |
+| Lilith | %52.6 → %51.2 | 29.5 | %64.9 | %31.6 |
+
+Lucifer: 0.83 hile / el, geri tepme %10.1 (Yanan Kart %24.8, Düşüş %18.1). Farklar küçük; bir kısmı tohum türetmesinin değiştirdiği
+desteler (gürültü), bir kısmı Lucifer'den düşen oyuncunun dolu göstergeyle geri gelmesi. Simülasyon kaçış / kin oynamıyor.
+
+### Testler
+- Core: `CheatTests` (kin: dolma, 3 el hızlanma, vurmuş hilede kin yok, geri yükleme; oynanan eli kapatma; `ThornCost`; dikenle anında lanet;
+  eski anahtarlı kayıt okuma, v=3 gidiş-dönüş `grudge`), `RandomSeedsTests` (600 farklı akış tohumu, tekrar üretilebilirlik, taze tohumlar,
+  aynı anda kurulan iki oyun farklı karılır), `CheatBackfireTests` (eski `backfires` satırı yok sayılır).
+- Sunum: `MainMenuPresenterTests` (onay + alay, ABANDON, Esc, risk metinleri, koşu yokken doğrudan seçim), `PactPresenterTests`
+  (eller arası / el ortası / ruhta bırakma, sonra temiz yeni koşu, bırakılan masa girdi almıyor), `CheatPresenterTests` (gösterge ve kin
+  masa değişiminde taşınır ve kırpılır, hileden kaçışta alay + kin, diken butonu ve uyarısı, ruhta sayısız).
+- **572 EditMode (+1 explicit) + 24 PlayMode (+2 explicit) geçiyor.**
+### Build 0.1.2 (itch.io için)
+- Eski build'ler silindi (`Builds/Windows`, `Builds/WindowsDev`, `HellPoker-0.1.1-win64.zip`). `bundleVersion` 0.1.2.
+- `Builds/HellPoker-0.1.2-win64.zip` (~35 MB). Zip'ten açılıp duman testi (`-fpstour`): menü → seçim → Mammon → Belial → Lilith → Lucifer,
+  Player.log'da hata / uyarı yok, hepsi ~60 FPS.
+- Duman testi bir hata yakaladı: kayıtlı koşu varken tur New Game'e basınca onay kutusu açılıyor, tur şeytan seçemiyordu.
+  `FpsTour.Press` NewGame'den sonra onayı geçiyor (PlayMode yardımcıları gibi).
+
+### Sıradaki
+- Kullanıcı 0.1.2'yi itch.io'ya yükleyecek. Belial / Lilith denge kararları oyun testi geri bildiriminden sonra.
+- Açık: Quit (menüden çıkış) onaysız; koşu el ortasındaysa açılışta forfeit + `Fled` / `Hunted` zaten çalışıyor.

@@ -84,7 +84,50 @@ namespace HellPoker.Presentation
         /// <summary>The game of the current table; null before the first run.</summary>
         public IHellPokerGame Game => _game;
 
-        public bool CanContinue => _game != null && _game.RoundNumber > 0 && !_game.IsGameOver;
+        public bool CanContinue => _game != null && !_abandoned && _game.RoundNumber > 0 && !_game.IsGameOver;
+
+        /// <summary>True once the player walked away from this run (a new game over it): nothing more is played or saved.</summary>
+        private bool _abandoned;
+
+        /// <summary>There is a table to play at: a run has started and has not been walked away from.</summary>
+        private bool Playing => _game != null && !_abandoned;
+
+        public AbandonRisk AbandonRisk
+        {
+            get
+            {
+                if (!CanContinue) return AbandonRisk.None;
+                HandInProgress hand = _game.CurrentHand;
+                if (_game.IsSoulAtStake || (hand != null && hand.IsSoulHand)) return AbandonRisk.Soul;
+                return hand != null ? AbandonRisk.Hand : AbandonRisk.Run;
+            }
+        }
+
+        /// <summary>
+        /// The player walks away from the run (a new game started over it). A hand on the table is forfeited — a fold at the
+        /// state it is in, as if the game had been closed now — and with the soul on the table the run counts as damned.
+        /// Otherwise the run is simply forgotten.
+        /// </summary>
+        public void AbandonRun()
+        {
+            if (!CanContinue) return;
+            _view.SkipAnimations();
+
+            HandInProgress hand = _game.CurrentHand;
+            bool soul = _game.IsSoulAtStake || (hand != null && hand.IsSoulHand);
+            if (hand != null)
+            {
+                _game.ForfeitHand();
+                _stats.RecordHand(_game.Years, null, soul || _game.IsSoulAtStake);
+            }
+
+            if (soul || _game.IsSoulAtStake || _game.Phase == GamePhase.Damned)
+                _records.RunEnded(false, _dealer.IsFinalTable && _origin != null ? _origin.Id : _dealer.Id, _stats.HandsPlayed,
+                    _gate.Attempts);
+            _archive?.SaveRecords(_records);
+            _archive?.ClearRun();
+            _abandoned = true;
+        }
 
         public string CurrentDealerId => _dealer?.Id;
 
@@ -118,7 +161,7 @@ namespace HellPoker.Presentation
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
             if (_game.Phase == GamePhase.Betting)
-                _game.RestoreMalice(snapshot.Malice, snapshot.MajorCheatUsed);   // the demon has not forgotten
+                _game.RestoreMalice(snapshot.Malice, snapshot.MajorCheatUsed, snapshot.Grudge);   // the demon has not forgotten
             GameRules rules = _game.Rules;
             _gate = _finalDealer == null
                 ? new LuciferGate(0, 0)
@@ -162,12 +205,16 @@ namespace HellPoker.Presentation
             }
 
             // The demon whose hand was left speaks first — the forfeit may still move the player (Lucifer's gate).
-            _view.Dealer.Say(UiText.Pick(_dealerText.Fled, _game.RoundNumber), DealerMood.Gloating);
+            // Walking out on a cheat earns scorn, and a grudge: the demon's cheats come sooner for a while.
+            string[] lines = hand.FledACheat ? (_dealerText.Hunted ?? _dealerText.Fled) : _dealerText.Fled;
+            _view.Dealer.Say(UiText.Pick(lines, _game.RoundNumber), DealerMood.Gloating);
             Refresh();
 
             string message = soul
                 ? hand.IsSealed ? UiText.FledSealedSoul : UiText.FledSoul
                 : string.Format(hand.IsSealed ? UiText.FledSealedFormat : UiText.FledFormat, round.YearsChange);
+            if (hand.FledACheat)
+                message += "\n" + UiText.GrudgeMessage;
             _view.SetMessage(message, Tone.Bad);
         }
 
@@ -218,7 +265,7 @@ namespace HellPoker.Presentation
         private RunSnapshot Snapshot(HandInProgress hand = null)
         {
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
-                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed);
+                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge);
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -239,7 +286,6 @@ namespace HellPoker.Presentation
             int backfires = _game.CheatsThisHand.Count(r => r.Backfired);
             if (backfires > 0)
             {
-                _stats.NoteBackfires(backfires);
                 _records.NoteBackfires(backfires);
                 _archive?.SaveRecords(_records);
             }
@@ -291,7 +337,7 @@ namespace HellPoker.Presentation
 
         public void RequestLeave()
         {
-            if (_game == null || Hurry() || _game.IsGameOver) return;
+            if (!Playing || Hurry() || _game.IsGameOver) return;
 
             // A finished hand counts as "between hands": move on to the next one first.
             if (_game.Phase == GamePhase.RoundOver)
@@ -374,9 +420,15 @@ namespace HellPoker.Presentation
 
             IHellPokerGame game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
             if (carriedYears.HasValue)
+            {
                 game.TakeOver(carriedYears.Value, roundsPlayed);
+                // The demons' malice belongs to the run, not to one table: moving on never empties the gauge (or the grudge).
+                if (_game != null && !_abandoned && game.Phase == GamePhase.Betting)
+                    game.RestoreMalice(_game.Malice, majorCheatUsed: false, _game.Grudge);
+            }
 
             _game = game;
+            _abandoned = false;
             _dealer = dealer;
             _discards.Clear();
             _finalStretchAnnounced = false;
@@ -423,7 +475,7 @@ namespace HellPoker.Presentation
 
         public void PerformAction()
         {
-            if (_game == null || Hurry()) return;
+            if (!Playing || Hurry()) return;
 
             TableState before = CaptureState();
             switch (_game.Phase)
@@ -484,7 +536,7 @@ namespace HellPoker.Presentation
 
         public void Bet(BetAction action)
         {
-            if (_game == null || Hurry()) return;
+            if (!Playing || Hurry()) return;
 
             if (!_game.CanBet(action, out _))
             {
@@ -505,7 +557,7 @@ namespace HellPoker.Presentation
 
         public void CheckToDraw()
         {
-            if (_game == null || Hurry()) return;
+            if (!Playing || Hurry()) return;
 
             if (!_game.CanCheckToDraw(out _))
             {
@@ -696,7 +748,7 @@ namespace HellPoker.Presentation
 
         public void ToggleDiscard(int index)
         {
-            if (_game == null || Hurry() || _game.Phase != GamePhase.Drawing) return;
+            if (!Playing || Hurry() || _game.Phase != GamePhase.Drawing) return;
 
             if (!_discards.Remove(index))
             {
@@ -1015,7 +1067,14 @@ namespace HellPoker.Presentation
                 _view.SetMessage(string.Format(UiText.SealedDrawPrompt, _game.Rules.MaxDiscards), Tone.Warning);
             else
                 _view.SetMessage(string.Format(UiText.PromptDrawFormat, _game.Rules.MaxDiscards), Tone.Neutral);
-            _view.SetAction(_discards.Count == 0 ? UiText.Stand : string.Format(UiText.DrawFormat, _discards.Count));
+            // A thorned card picked to go: the price is said before the draw, on the button too.
+            int thorn = _game.ThornCost(_discards);
+            if (thorn > 0)
+                _view.SetMessage(SoulMode ? UiText.ThornWarningSoul : string.Format(UiText.ThornWarningFormat, thorn), Tone.Warning);
+            string draw = _discards.Count == 0 ? UiText.Stand : string.Format(UiText.DrawFormat, _discards.Count);
+            if (thorn > 0)
+                draw = SoulMode ? string.Format(UiText.DrawThornSoulFormat, _discards.Count) : string.Format(UiText.DrawThornFormat, _discards.Count, thorn);
+            _view.SetAction(draw);
             Tip(UiText.TipFirstDraw);
         }
 
@@ -1047,7 +1106,8 @@ namespace HellPoker.Presentation
             else if (round.Folded)
             {
                 _view.House.SetCaption(UiText.HouseCaption, Tone.Muted);
-                _view.Player.SetCaption(UiText.FoldedCaption, Tone.Bad);
+                // Damned at the draw: the thorn took the last of the soul, nobody folded.
+                _view.Player.SetCaption(round.ThornDamned ? UiText.ThornedCaption : UiText.FoldedCaption, Tone.Bad);
             }
             else
             {

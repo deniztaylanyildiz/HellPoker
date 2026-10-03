@@ -436,5 +436,105 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(4, _view.Malice.Max);
             Assert.AreEqual(3, archive.LoadRun().Malice, "Saved again as it is.");
         }
+
+        /// <summary>A run resumed from <paramref name="snapshot"/>, every demon with their own cheats.</summary>
+        private RunArchive ResumeWithDemonsCheats(RunSnapshot snapshot, Dealer dealer)
+        {
+            var archive = new RunArchive(new MemoryStore());
+            archive.SaveRun(snapshot);
+            _view = new FakeTableView();
+            _presenter = new TablePresenter(d =>
+            {
+                var random = new FirstChoice();
+                return _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000, luciferGateYears: 0)),
+                    TestDecks.Stacked($"{Nothing} {HouseFullHouse} {Blanks}"), HandEvaluator.CreateDefault(), new CardExchanger(new MaxDiscardPolicy()),
+                    new HouseDrawStrategy(), d.Payouts, null, new CheatSession(d.Cheats, d.MaliceMax, random), random);
+            }, _view, null, archive);
+            _presenter.Resume(dealer, archive.LoadRun());
+            return archive;
+        }
+
+        [Test]
+        public void ChangingTables_KeepsTheGauge_AndTheGrudge()
+        {
+            RunArchive archive = ResumeWithDemonsCheats(new RunSnapshot("mammon", 900, 4, new RunStats(1000, "mammon"), malice: 3, grudge: 2),
+                DealerRoster.Mammon);
+
+            _presenter.SwitchTable(DealerRoster.Lilith);
+
+            Assert.AreEqual(3, _game.Malice, "No escaping a full gauge by changing tables.");
+            Assert.AreEqual(2, _game.Grudge);
+            Assert.AreEqual(3, _view.Malice.Value);
+            Assert.AreEqual(3, archive.LoadRun().Malice);
+            Assert.AreEqual(2, archive.LoadRun().Grudge);
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+
+            Assert.AreEqual(2, _game.Malice, "Never fuller than this demon's gauge (Belial's holds 2).");
+        }
+
+        [Test]
+        public void WalkingOutOnACheat_TheDemonMocks_AndHoldsAGrudge()
+        {
+            var hand = new HandInProgress(200, 100, false, false, false, CheatIds.Collateral, cheatResolved: false);
+            ResumeWithDemonsCheats(new RunSnapshot("mammon", 900, 5, new RunStats(4, 800, 900, null, new[] { "mammon" }, false), hand),
+                DealerRoster.Mammon);
+
+            CollectionAssert.Contains(new[]
+            {
+                "You ran from my collateral? Where to? This is Hell. I charge interest on running.",
+                "Skipped out before I could collect? Then I collect twice. Soon, and often."
+            }, _view.DealerView.LastLine);
+            StringAssert.Contains("grudge", _view.Message);
+            Assert.AreEqual(4, _game.Malice, "Full: the cheat comes with the next deal.");
+            Assert.AreEqual(3, _game.Grudge);
+        }
+
+        [Test]
+        public void WalkingOutWithNoCheatComing_IsTheUsualForfeit()
+        {
+            var hand = new HandInProgress(200, 100, false, false, false);
+            ResumeWithDemonsCheats(new RunSnapshot("mammon", 900, 5, new RunStats(4, 800, 900, null, new[] { "mammon" }, false), hand),
+                DealerRoster.Mammon);
+
+            StringAssert.DoesNotContain("grudge", _view.Message);
+            Assert.AreEqual(0, _game.Grudge);
+        }
+
+        // ------------------------------------------------------------------ the thorn's price, before the draw
+
+        private int ThornedCard() => Enumerable.Range(0, 5).Single(_game.IsPlayerCardThorned);
+
+        [Test]
+        public void PickingTheThornedCard_SaysThePrice_OnTheButtonToo()
+        {
+            Start(new ThornCheat());
+            ToTheDraw();
+            int thorned = ThornedCard();
+            int other = Enumerable.Range(0, 5).First(i => i != thorned);
+
+            _presenter.ToggleDiscard(other);
+            Assert.AreEqual("DRAW 1", _view.ActionLabel);
+
+            _presenter.ToggleDiscard(other);
+            _presenter.ToggleDiscard(thorned);
+
+            Assert.AreEqual("DRAW 1\n(+100 YEARS)", _view.ActionLabel);
+            StringAssert.Contains("+100 YEARS", _view.Message);
+            Assert.AreEqual(Tone.Warning, _view.MessageTone);
+        }
+
+        [Test]
+        public void ThePriceOfAThorn_OnTheSoul_HasNoNumber()
+        {
+            Start(new ThornCheat(), years: 2100);
+            ToTheDraw();
+
+            _presenter.ToggleDiscard(ThornedCard());
+
+            Assert.AreEqual("DRAW 1\n(THORN BITES)", _view.ActionLabel);
+            Assert.IsFalse(System.Text.RegularExpressions.Regex.IsMatch(_view.Message, @"\d{2,}"), _view.Message);
+            StringAssert.Contains("soul", _view.Message);
+        }
     }
 }

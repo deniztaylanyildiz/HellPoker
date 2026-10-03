@@ -98,15 +98,24 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - Dead Man's Hand'de ekran kararır, dört kart tek tek parlar (`TableMoment`).
 - **Kayıt:** her el sonunda, yeni koşuda, masa değişiminde ve **el sürerken her adımda** (DEAL'dan itibaren) koşu kaydedilir
   (`RunArchive` → PlayerPrefs `run.save`).
-  - Format: `RunSnapshot`, "key=value" satırları, **`v=2`**: dealer, years, rounds, hands, lowest, highest, best, dealers, soul,
-    `lucifer` (masasında mı), `origin` (gelinen şeytan), `attempts`.
-  - El sürüyorsa ayrıca `hand.stake`, `hand.ante`, `hand.drawn`, `hand.soul`, `hand.sealed` (`HandInProgress`; isteğe bağlı).
-  - **`v=1` kayıtlar okunmaya devam eder**: Lucifer'i hiç görmemiş koşu sayılır.
+  - Format: `RunSnapshot`, "key=value" satırları, **`v=3`**: dealer, years, rounds, hands, lowest, highest, best, dealers, soul,
+    `lucifer` (masasında mı), `origin` (gelinen şeytan), `attempts`, `malice`, `cheat.major`, `grudge` (isteğe bağlı).
+  - El sürüyorsa ayrıca `hand.stake`, `hand.ante`, `hand.drawn`, `hand.soul`, `hand.sealed`, `hand.cheat`, `hand.cheat.done`
+    (`HandInProgress`; isteğe bağlı).
+  - Artık yazılmayan anahtarlar (`hand.shown`, koşunun `backfires`'ı: yazılıp hiç okunmuyordu) eski kayıtlarda yok sayılır.
+  - **`v=1` / `v=2` kayıtlar okunmaya devam eder**: Lucifer'i hiç görmemiş koşu / boş gösterge sayılır.
   - Lucifer masasında olup nereden geldiği bilinmeyen kayıt silinir (bootstrap).
   - Bozuk ya da başka sürüm kayıt silinip yok sayılır. Deste ve kartlar kaydedilmez. Açılışta kayıt varsa Continue ile devam edilir.
   - **El ortasında kapatma:** açılışta yarım el `IHellPokerGame.ForfeitHand` ile kapanır. O anki bahis ve draw durumuna göre
     çekilmiş sayılır (ruh elinde ×1.5). Mühürlü el çekilemeyeceği için kaybedilmiş sayılır: en zayıf ele kayıp
     (bahis × şeytanın `LossPercent`'i × ruh çarpanı). Şeytan `Fled` repliğini söyler. Ceza lanete götürebilir.
+  - **Hileden kaçış (kin):** yarım elde planlanmış ama henüz vurmamış bir hile varsa (`HandInProgress.FledACheat`) gösterge
+    hemen dolar ve `GameRules.GrudgeHands` (3) el boyunca her el +`GrudgeMalicePerHand` (1) fazla dolar (`CheatSession.Grudge`,
+    kayıtta `grudge`). Şeytan `Hunted` repliğiyle alay eder ("Where to? This is Hell."), sonuç satırına kin notu eklenir.
+- **Oyuncu zorla tutulmaz:** Quit onaysız. Koşu sürerken menüdeki **New Game** önce sorar (`IMainMenuView.AskToConfirmNewGame`):
+  şeytanın `Scorn` repliği (her şeytana kendi tonunda alay) + bedeli (`IRunSession.AbandonRisk`: Run / Hand / Soul), ABANDON / BACK, Esc kapatır.
+  Onayda `IRunSession.AbandonRun`: el ortasındaysa el `IHellPokerGame.ForfeitHand()` ile kapanış gibi çekilmiş sayılır (ceza eklenir);
+  ruh masadaysa koşu lanet olarak rekora yazılır; kayıt silinir, masa artık girdi almaz. Henüz el dağıtılmamışsa sormaz.
 - **Oyun sonu:** masada "THE END" → son ekranı. NEW GAME / MENU.
   - Ekranlar: "THE MORNING STAR FALLS" (Lucifer'i yenince; gözleri parlayıp 1.6 sn sonra söner, "fell on attempt N"),
     "WILD BILL'S ESCAPE" (hiç çağrılmadan Dead Man's Hand), ABSOLVED (Lucifer'siz oyun ya da düşmüş oyuncunun Dead Man's Hand'i,
@@ -136,11 +145,16 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (Lucifer hariç). Dolunca dağıtımda hile seçilir ve **niyet** olarak duyurulur (`IHellPokerGame.PendingCheat`; Belial'inki yalan olabilir).
   - Küçük / büyük: ceza ≤ `MajorCheatYears` (400) iken büyük hile %50. Lucifer'in Düşüş'ü sadece ≤ 150, **denemede bir kez**,
     "THE FALL AWAITS" diye duyurulur. Seçimler ayrı zar akışından (`IRandomSource`, seed+2).
+  - Gösterge koşuya aittir, masaya değil: masa değişimi, çağrılma ve düşüşte gösterge ve kin yeni masaya taşınır (yeni şeytanın
+    gösterge boyuna kırpılır; `cheat.major` masaya özgü, sıfırlanır).
   - Vuran / engellenen hile göstergeyi boşaltır; boşa giden (hedef yok) ya da anı gelmeyen (oyuncu önce çekildi) dolu bırakır.
   - Değişmezler: showdown sonucunu sadece Düşüş değiştirir; **Dead Man's Hand kartları bağışık**; her hile görünür;
     eski kurallar (mühür, ruh, Lucifer) geçerli. Her vuruştan önce `ICheatGuard` sorulur (şimdilik `AllowEveryCheat`; ileride sınıf yetenekleri).
   - Hedefler (kart seçen hileler, `CheatTable.AdvisedDiscards` = kasa mantığının atacağı kartlar):
     - Rehin: atılacak kartların en yükseği (hazır elde en düşük kart). Diken: atılacak kartlardan biri (yoksa rastgele).
+      Dikenli kart seçilince bedel önceden söylenir: uyarı "+X YEARS", buton "DRAW 1 / (+X YEARS)" (`IHellPokerGame.ThornCost`;
+      ruhta sayısız "THORN BITES"); işaret iki kenarda kalın kırmızı dikenli sarmaşık. Diken yılları laneti geçirirse el orada
+      biter (`RoundResult.ThornDamned`, "THE THORN BIT").
     - Yanan Kart: en iyi kombinasyonun (çift, üçlü..., kenta / renk ise her kart) en yüksek kartı, yoksa en yüksek kart; yerine desteden rastgele.
     - Gece Örtüsü **dağıtımda** vurur, sadece henüz açılmamış (3.-5.) bir karta: kart sırası gelince yüzü hiç görünmeden, örtüyle açılır.
     - Çatal Dil %80 nişanlı (önce renk / 4 aynı renk bozulur, yoksa eli düşüren, yoksa zararsız değişim), %20 "dil kayar"
@@ -149,11 +163,11 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - **Geri tepme (backfire):** hile oyuncunun elini güçlendirirse (`CheatResult.Backfired`, `CheatSession` vuruş öncesi / sonrası eli
     karşılaştırır). Sadece şansa bırakan hileler geri tepebilir: Çatal Dil'in kayması, Yanan Kart, Düşüş. Diğer hiçbir hile oyuncuya
     yaramaz (Satın Al ve Yılan Takası yarayacak kartı seçmez; testle sabit). Masada: yeni kart hemen döner, üstünde "BACKFIRE",
-    şeytan kızgın (angry) ve kendi `Backfire` repliğini söyler; sonuç satırı "It backfired!". Kayıtta `backfires` (koşu), rekorlarda
-    "Backfires seen".
+    şeytan kızgın (angry) ve kendi `Backfire` repliğini söyler; sonuç satırı "It backfired!". Rekorlarda
+    "Backfires seen" (`RecordBook`).
   - **Gizlilik:** oyuncudan gizlenen kart (`WasPlayerCardHidden`) showdown'da kasa beş kartını açana kadar hiçbir yoldan yüzünü göstermez
     (mühürlü elin kendi kendine açılışı, hile vuruşu dahil); gizli kart varken draw ipucu çerçevesi yok. Sonuçta önce kasa, sonra oyuncu döner.
-  - Kayıt `v=3`: `malice`, `cheat.major`, `backfires`, yarım elde `hand.cheat / hand.shown / hand.cheat.done`; v1/v2 boş göstergeyle okunur.
+  - Kayıt `v=3`: `malice`, `cheat.major`, `grudge`, yarım elde `hand.cheat / hand.cheat.done`; v1/v2 boş göstergeyle okunur.
   - Masada: portrenin altında pip göstergesi, üstünde niyet şeridi (ikon + ad, hover'da açıklama, H panelinde de), yalan "LIAR" diye
     kırılıp gerçeğe döner. Vuruşta kart 1-2 px sarsılır, şeytan reraise animasyonu + hile repliği; işaretler kartta kalır
     (zincir, diken, örtü, sahte yüz parıltısı). Sonuç mesajında hile satırı (ruhta yıl yok). Şeytan başına ilk hile ipucu.
@@ -162,11 +176,11 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   niyete tepki verir):
   | Şeytan | Aklanma (hedef) | Ort. el | Lucifer'e ulaşan | İlk denemede yenme | Ort. deneme | Hile / el |
   |---|---|---|---|---|---|---|
-  | Mammon | %79.7 (~80) | ~49 | %85 | %34 | 3.0 | 0.27 |
-  | Belial | %74.1 (~70) | ~26 | %81 | %39 | 2.5 | 0.48 |
-  | Lilith | %52.6 (~55) | ~29 | %66 | %34 | 2.5 | 0.36 |
+  | Mammon | %78.0 (~80) | ~51 | %85 | %32 | 3.0 | 0.27 |
+  | Belial | %74.7 (~70) | ~27 | %82 | %40 | 2.5 | 0.48 |
+  | Lilith | %51.2 (~55) | ~30 | %65 | %32 | 2.5 | 0.35 |
 
-  Lucifer masasında el başına 0.83 hile; geri tepme: Yanan Kart %26, Düşüş %18, Çatal Dil ~%0.04 (kayma nadiren renk verir).
+  (Gösterge masa değişiminde taşınıyor, tohumlar türetiliyor — 2026-10-03.) Lucifer masasında el başına 0.83 hile; geri tepme: Yanan Kart %25, Düşüş %18, Çatal Dil ~%0.04 (kayma nadiren renk verir).
   Belial her el hile yapsa bile ~%75'in altına inmiyor (hileleri hafif); son karar oyun testinden sonra — bkz. DEVLOG.
   Ruhu masaya koyan koşular %29 / %38 / %61. `HELLPOKER_LUCIFER_GATE` (0 = Lucifer yok) ve `HELLPOKER_CAST_DOWN` ile denenebilir. Ruh değerini düşürmek el sayısını neredeyse değiştirmiyor
   (bahis birimi ruhla birlikte küçülüyor), sadece Lilith'i zorlaştırıyor — bkz. DEVLOG.
@@ -181,7 +195,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 Assets/Scripts/
   Core/          HellPoker.Core.asmdef  — noEngineReferences: true (UnityEngine KULLANILAMAZ)
     Cards/         Card, Rank, Suit, Hand (değişmez), IDeck/Deck
-    Randomness/    IRandomSource, IShuffler, FisherYatesShuffler
+    Randomness/    IRandomSource, IShuffler, FisherYatesShuffler, RandomSeeds (ana tohum + akış başına türetme)
     Evaluation/    HandEvaluator + Rules/ (her el türü bir IHandRule), VisibleHandReader (açık kartların şu anki eli)
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory,
@@ -334,6 +348,8 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
 - uGUI butonları `UiFactory.MakeClickOnly` ile oluşturulmalı (yoksa Space/Enter son tıklanan butonu tekrar tetikler).
 - **Girdi kaynakları** (`KeyboardInput` vb.) sadece `ITableCommands`'a konuşur.
 - Rastgelelik her zaman `IRandomSource` üzerinden; testlerde seed veya `TestDecks.Stacked(...)` kullan.
+  Fabrika tek ana tohumdan (`seed` ya da `RandomSeeds.Fresh()`) her akışa (deste / kasa / hile) `RandomSeeds.Derive` ile ayrı tohum
+  verir; asla birden fazla `new Random()` (aynı saat tikinde aynı sayılar).
 - Oyuncuya görünen tüm metinler `UiText` içinde (ileride yerelleştirme için).
 
 ## Komutlar

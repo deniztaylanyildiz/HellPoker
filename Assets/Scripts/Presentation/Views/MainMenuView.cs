@@ -44,8 +44,20 @@ namespace HellPoker.Presentation.Views
         public event Action ChangeTablePressed;
         public event Action SettingsPressed;
         public event Action RecordsPressed;
+        public event Action NewGameConfirmed;
 
         public bool IsVisible => _canvas.enabled;
+
+        private const int ConfirmWidth = 272;
+        private const int ConfirmHeight = 96;
+        private GameObject _confirm;
+        private Text _taunt;
+        private Text _warning;
+
+        public bool IsConfirming => _confirm != null && _confirm.activeSelf;
+
+        /// <summary>The demon's mocking line in the New Game warning (for tests).</summary>
+        public string LastTaunt => _taunt.text;
 
         /// <param name="payouts">What the hands pay at a standard table, for the hand ranking page of the rules.</param>
         /// <param name="cheats">The Cheats page of How to Play (every demon's cheats); null for none.</param>
@@ -111,6 +123,45 @@ namespace HellPoker.Presentation.Views
 
             _rulesPanel = BuildRulesPanel(screen, rules, cheats);
             ShowRules(false);
+            BuildConfirm(screen);
+        }
+
+        /// <summary>The New Game warning over a run in progress: an invisible layer that swallows clicks, and a box.</summary>
+        private void BuildConfirm(RectTransform screen)
+        {
+            Image shade = UiFactory.CreateImage("ConfirmNewGame", screen, Color.clear);
+            shade.rectTransform.Stretch();
+            _confirm = shade.gameObject;
+
+            Image box = UiFactory.CreatePanel("ConfirmBox", shade.transform, hot: true);
+            box.rectTransform.PlaceTL((PixelScreen.Width - ConfirmWidth) / 2, (PixelScreen.Height - ConfirmHeight) / 2 + 40, ConfirmWidth, ConfirmHeight);
+
+            _taunt = UiFactory.CreateText("Taunt", box.transform, "", 8, Palette.Ember, TextAnchor.UpperCenter).WithOutline();
+            _taunt.rectTransform.PlaceTL(8, 8, ConfirmWidth - 16, 26);
+            _warning = UiFactory.CreateText("Warning", box.transform, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
+            _warning.rectTransform.PlaceTL(8, 36, ConfirmWidth - 16, 26);
+
+            Button abandon = UiFactory.CreateButton("ConfirmNewGameButton", box.transform, UiText.AbandonButton, 8, out _, ButtonSkin.Blood);
+            ((RectTransform)abandon.transform).PlaceTL(16, ConfirmHeight - 28, 104, 18);
+            abandon.onClick.AddListener(() =>
+            {
+                _confirm.SetActive(false);
+                NewGameConfirmed?.Invoke();
+            });
+
+            Button back = UiFactory.CreateButton("CancelNewGameButton", box.transform, UiText.Back, 8, out _, ButtonSkin.Ash);
+            ((RectTransform)back.transform).PlaceTL(ConfirmWidth - 16 - 104, ConfirmHeight - 28, 104, 18);
+            back.onClick.AddListener(() => _confirm.SetActive(false));
+
+            _confirm.SetActive(false);
+        }
+
+        public void AskToConfirmNewGame(string taunt, string warning)
+        {
+            _taunt.text = taunt ?? "";
+            _warning.text = warning ?? "";
+            _confirm.SetActive(true);
+            _confirm.transform.SetAsLastSibling();
         }
 
         private GameObject BuildRulesPanel(Transform screen, string rules, string cheats)
@@ -176,6 +227,11 @@ namespace HellPoker.Presentation.Views
 
         public bool CloseOverlay()
         {
+            if (IsConfirming)
+            {
+                _confirm.SetActive(false);
+                return true;
+            }
             if (!_rulesPanel.activeSelf) return false;
             if (_page != Page.Rules)
                 ShowPage(Page.Rules);   // another page goes back to the rules first
@@ -217,12 +273,14 @@ namespace HellPoker.Presentation.Views
             _changeTableButton.SetActive(canContinue);
             LayOut();
             ShowRules(false);
+            _confirm.SetActive(false);
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;
         }
 
         public void Hide()
         {
+            _confirm.SetActive(false);
             _canvas.enabled = false;
             GetComponent<GraphicRaycaster>().enabled = false;
         }

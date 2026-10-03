@@ -75,10 +75,29 @@ namespace HellPoker.Core.Cheats
             int gain = rules.MalicePerHand;
             if (!rules.IsFinalTable && years <= rules.MaliceLowSentenceYears)
                 gain += rules.MaliceLowSentenceBonus;
+            if (Grudge > 0)
+            {
+                gain += rules.GrudgeMalicePerHand;
+                Grudge--;
+            }
             Malice = Math.Min(MaliceMax, Malice + gain);
 
             if (Malice >= MaliceMax)
                 _pick = _policy.Choose(new CheatContext(years, rules.MajorCheatYears, rules.MajorCheatPercent, MajorUsed), _random);
+        }
+
+        /// <summary>Hands left in which the demon's malice grows faster: the player walked out on a cheat.</summary>
+        public int Grudge { get; private set; }
+
+        /// <summary>
+        /// The player walked out on a hand the demon meant to cheat: the gauge fills at once (the cheat comes at the next
+        /// deal) and the grudge (<see cref="GameRules.GrudgeHands"/>) makes the next ones come sooner.
+        /// </summary>
+        public void PlayerFled(GameRules rules)
+        {
+            if (!IsActive) return;
+            Malice = MaliceMax;
+            Grudge = Math.Max(Grudge, rules.GrudgeHands);
         }
 
         /// <summary>The player won a hand: the demon's malice grows.</summary>
@@ -132,12 +151,17 @@ namespace HellPoker.Core.Cheats
             _resolved = false;
         }
 
-        /// <summary>A saved run comes back: the gauge as it was, and whether the big cheat has been spent at this table.</summary>
-        public void Restore(int malice, bool majorUsed)
+        /// <summary>
+        /// A saved run comes back — or the player sits down at another table, the demons' malice going along: the gauge as it
+        /// was (no fuller than this demon's), the grudge, and whether the big cheat has been spent at this table.
+        /// </summary>
+        public void Restore(int malice, bool majorUsed, int grudge = 0)
         {
             if (malice < 0) throw new ArgumentOutOfRangeException(nameof(malice));
+            if (grudge < 0) throw new ArgumentOutOfRangeException(nameof(grudge));
             Malice = Math.Min(MaliceMax, malice);
             MajorUsed = majorUsed;
+            Grudge = IsActive ? grudge : 0;
         }
     }
 }

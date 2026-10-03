@@ -92,6 +92,14 @@ namespace HellPoker.Presentation
                 return;
             }
             button.onClick.Invoke();
+
+            // New Game over a run in progress asks first: the tour means it.
+            if (name == "NewGameButton")
+            {
+                Button confirm = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+                if (confirm != null) confirm.onClick.Invoke();
+            }
         }
     }
 }

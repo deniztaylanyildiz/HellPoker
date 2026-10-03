@@ -178,6 +178,15 @@ namespace HellPoker.PlayMode.Tests
             Button button = Find<Button>(name);
             Assert.IsTrue(button.gameObject.activeInHierarchy && button.interactable, $"{name} cannot be pressed.");
             button.onClick.Invoke();
+            // New Game over a run asks first: the tests mean it.
+            if (button.name == "NewGameButton") ConfirmNewGame();
+        }
+
+        private static void ConfirmNewGame()
+        {
+            Button confirm = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+            if (confirm != null) confirm.onClick.Invoke();
         }
 
         private static bool IsActive(string name) => Find<Button>(name).gameObject.activeInHierarchy;

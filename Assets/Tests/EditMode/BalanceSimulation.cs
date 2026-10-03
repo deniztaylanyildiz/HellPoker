@@ -133,9 +133,12 @@ namespace HellPoker.Core.Tests
                                 years = gate.CastDown(years);
                                 seat = dealer;
                             }
+                            HellPokerGame previous = game;
                             game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings);
                             game.TakeOver(years, played);
                             if (game.IsGameOver) break;
+                            // As at the real table: the demons' malice goes along with the player.
+                            game.RestoreMalice(previous.Malice, false, previous.Grudge);
                         }
 
                         if (PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), seat.Payouts))

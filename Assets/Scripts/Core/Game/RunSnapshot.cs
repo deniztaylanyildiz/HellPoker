@@ -11,12 +11,13 @@ namespace HellPoker.Core.Game
     /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
-    /// Text format, one "key=value" per line, starting with "v=2". The hand lines ("hand.*") are optional, so saves made
+    /// Text format, one "key=value" per line, starting with "v=3". The hand lines ("hand.*") are optional, so saves made
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
-    /// this table) and, in a hand, "hand.cheat" / "hand.shown" / "hand.cheat.done"; a v=2 (or v=1) save reads with an empty
-    /// gauge. "backfires" (cheats that helped the player, this run) is optional within v=3. Anything unreadable — a garbled file, another version, impossible numbers — decodes to nothing, so a bad save
-    /// is simply ignored.
+    /// this table), "grudge" (optional: hands of faster malice after walking out on a cheat) and, in a hand, "hand.cheat" /
+    /// "hand.cheat.done" (whether the player walked out on it); a v=2 (or v=1) save reads with an empty gauge. Keys no longer
+    /// written ("hand.shown", "backfires") are ignored. Anything unreadable — a garbled file, another version, impossible
+    /// numbers — decodes to nothing, so a bad save is simply ignored.
     /// </summary>
     public sealed class RunSnapshot
     {
@@ -27,6 +28,9 @@ namespace HellPoker.Core.Game
 
         /// <summary>True once the demon's big cheat was spent at this table (Lucifer's Fall, once per attempt).</summary>
         public bool MajorCheatUsed { get; }
+
+        /// <summary>Hands of faster malice left: the player walked out on a cheat.</summary>
+        public int Grudge { get; }
 
         /// <summary>The oldest version still read.</summary>
         public const int OldestVersion = 1;
@@ -54,8 +58,10 @@ namespace HellPoker.Core.Game
         public HandInProgress Hand { get; }
 
         public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
-            bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false)
+            bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0)
         {
+            if (grudge < 0) throw new ArgumentOutOfRangeException(nameof(grudge));
+            Grudge = grudge;
             if (malice < 0) throw new ArgumentOutOfRangeException(nameof(malice));
             Malice = malice;
             MajorCheatUsed = majorCheatUsed;
@@ -95,7 +101,7 @@ namespace HellPoker.Core.Game
                 "attempts=" + LuciferAttempts.ToString(CultureInfo.InvariantCulture),
                 "malice=" + Malice.ToString(CultureInfo.InvariantCulture),
                 "cheat.major=" + Flag(MajorCheatUsed),
-                "backfires=" + Stats.Backfires.ToString(CultureInfo.InvariantCulture)
+                "grudge=" + Grudge.ToString(CultureInfo.InvariantCulture)
             };
             if (Hand != null)
             {
@@ -107,7 +113,6 @@ namespace HellPoker.Core.Game
                 if (Hand.CheatId != null)
                 {
                     lines.Add("hand.cheat=" + Hand.CheatId);
-                    lines.Add("hand.shown=" + Hand.ShownCheatId);
                     lines.Add("hand.cheat.done=" + Flag(Hand.CheatResolved));
                 }
             }
@@ -123,7 +128,7 @@ namespace HellPoker.Core.Game
             bool cheat = values.TryGetValue("hand.cheat", out string cheatId) && cheatId.Length > 0;
             return new HandInProgress(KeyValues.Int(values, "hand.stake"), KeyValues.Int(values, "hand.ante"),
                 KeyValues.Flag(values, "hand.drawn"), KeyValues.Flag(values, "hand.soul"), KeyValues.Flag(values, "hand.sealed"),
-                cheat ? cheatId : null, cheat ? values["hand.shown"] : null, cheat && KeyValues.Flag(values, "hand.cheat.done"));
+                cheat ? cheatId : null, cheat && KeyValues.Flag(values, "hand.cheat.done"));
         }
 
         /// <returns>False (and null) for anything that is not a readable save of this version.</returns>
@@ -154,10 +159,8 @@ namespace HellPoker.Core.Game
 
                 string[] dealers = (values.TryGetValue("dealers", out string list) ? list : "")
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                // "backfires" came later within v=3: a save without it has seen none.
-                int backfires = values.ContainsKey("backfires") ? KeyValues.Int(values, "backfires") : 0;
                 var stats = new RunStats(KeyValues.Int(values, "hands"), KeyValues.Int(values, "lowest"), KeyValues.Int(values, "highest"),
-                    best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1", backfires);
+                    best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1");
 
                 // v=1 knew nothing of Lucifer: such a run never met him.
                 bool atLucifer = version >= 2 && KeyValues.Flag(values, "lucifer");
@@ -167,9 +170,11 @@ namespace HellPoker.Core.Game
                 // v=1 and v=2 knew nothing of the cheats: the gauge starts empty.
                 int malice = version >= 3 ? KeyValues.Int(values, "malice") : 0;
                 bool majorUsed = version >= 3 && KeyValues.Flag(values, "cheat.major");
+                // "grudge" came later within v=3: a save without it holds none.
+                int grudge = values.ContainsKey("grudge") ? KeyValues.Int(values, "grudge") : 0;
 
                 snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
-                    atLucifer, origin, attempts, malice, majorUsed);
+                    atLucifer, origin, attempts, malice, majorUsed, grudge);
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException

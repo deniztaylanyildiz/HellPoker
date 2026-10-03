@@ -40,6 +40,7 @@ namespace HellPoker.Presentation.Ui
         public const string HouseCaption = "THE HOUSE";
         public const string PlayerCaption = "YOUR HAND";
         public const string FoldedCaption = "FOLDED";
+        public const string ThornedCaption = "THE THORN BIT";
         public const string DiscardTag = "TOSS";
         public const string Hint = "Space deal/draw/pass  R raise  D check to draw  C call  F fold  1-5 cards  H hands  Esc menu";
         public const string PotFormat = "ON THE TABLE: {0}";
@@ -92,6 +93,10 @@ namespace HellPoker.Presentation.Ui
         public const string Deal = "DEAL";
         public const string Stand = "STAND PAT";
         public const string DrawFormat = "DRAW {0}";
+        public const string DrawThornFormat = "DRAW {0}\n(+{1} YEARS)";
+        public const string DrawThornSoulFormat = "DRAW {0}\n(THORN BITES)";
+        public const string ThornWarningFormat = "A thorn! Throwing it back costs +{0} YEARS, at once.";
+        public const string ThornWarningSoul = "A thorn! Throwing it back costs a piece of your soul, at once.";
         public const string Next = "NEXT HAND";
         public const string TheEnd = "THE END";
         public const string RaiseFormat = "RAISE +{0}";
@@ -133,6 +138,14 @@ namespace HellPoker.Presentation.Ui
         public const string FledSealedFormat = "You left a sealed hand. The whole wager is lost.  +{0} years.";
         public const string FledSoul = "You left mid-hand. A piece of your soul stays on the table.";
         public const string FledSealedSoul = "You left a sealed hand. The whole wager burns your soul.";
+        public const string GrudgeMessage = "You ran from a cheat. The demon holds a grudge: the next ones come sooner.";
+
+        // ------------------------------------------------------------------ walking away (New Game over a run)
+
+        public const string AbandonRunWarning = "Abandon this run? Your sentence will be forgotten.";
+        public const string AbandonHandWarning = "Abandon this run? The hand on the table counts as folded.";
+        public const string AbandonSoulWarning = "Your soul is on the table. Walking away counts as damnation.";
+        public const string AbandonButton = "ABANDON";
 
         // ------------------------------------------------------------------ guidance for new players
 

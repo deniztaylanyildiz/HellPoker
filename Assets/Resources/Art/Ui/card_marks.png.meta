@@ -310,7 +310,14 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      card_marks_0: -2161396222351122562
+      card_marks_1: 2499938005291210000
+      card_marks_2: -4017751722080327567
+      card_marks_3: -7784056195190230233
+      card_marks_4: 6817481664174728290
+      card_marks_5: -5591119593093574372
+      card_marks_6: 3435630156606260232
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

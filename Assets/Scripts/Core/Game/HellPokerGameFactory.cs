@@ -12,6 +12,9 @@ namespace HellPoker.Core.Game
     /// <summary>Wires the standard Hell Poker implementations together.</summary>
     public static class HellPokerGameFactory
     {
+        /// <summary>The dice streams derived from a game's master seed (<see cref="RandomSeeds.Derive"/>).</summary>
+        public const int DeckStream = 0, HouseStream = 1, CheatStream = 2;
+
         /// <param name="rules">Defaults to <see cref="GameRules.Default"/>.</param>
         /// <param name="payouts">Defaults to <see cref="PayoutTable.CreateDefault"/>.</param>
         /// <param name="seed">Fixed seed for reproducible shuffles; null for a random game.</param>
@@ -23,10 +26,12 @@ namespace HellPoker.Core.Game
             ICheatPolicy cheats = null, int maliceMax = 0, ICheatGuard guard = null, int backfirePercent = 0)
         {
             rules = rules ?? GameRules.Default;
-            IRandomSource deckRandom = seed.HasValue ? new SystemRandomSource(seed.Value) : new SystemRandomSource();
-            // Separate streams for the house's temper and the demon's cheats, so their dice never change the order of the cards.
-            IRandomSource houseRandom = seed.HasValue ? new SystemRandomSource(seed.Value + 1) : new SystemRandomSource();
-            IRandomSource cheatRandom = seed.HasValue ? new SystemRandomSource(seed.Value + 2) : new SystemRandomSource();
+            // One master seed; separate streams derived from it for the deck, the house's temper and the demon's cheats,
+            // so their dice never change the order of the cards (and never start from the same clock tick).
+            int master = seed ?? RandomSeeds.Fresh();
+            IRandomSource deckRandom = new SystemRandomSource(RandomSeeds.Derive(master, DeckStream));
+            IRandomSource houseRandom = new SystemRandomSource(RandomSeeds.Derive(master, HouseStream));
+            IRandomSource cheatRandom = new SystemRandomSource(RandomSeeds.Derive(master, CheatStream));
 
             return new HellPokerGame(
                 rules,

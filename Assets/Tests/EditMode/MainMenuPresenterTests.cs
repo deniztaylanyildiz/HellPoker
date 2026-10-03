@@ -20,8 +20,26 @@ namespace HellPoker.Core.Tests
             public event Action ChangeTablePressed;
             public event Action SettingsPressed;
             public event Action RecordsPressed;
+            public event Action NewGameConfirmed;
 
             public void PressRecords() => RecordsPressed?.Invoke();
+
+            public string Taunt { get; private set; }
+            public string Warning { get; private set; }
+            public bool IsConfirming { get; private set; }
+
+            public void AskToConfirmNewGame(string taunt, string warning)
+            {
+                Taunt = taunt;
+                Warning = warning;
+                IsConfirming = true;
+            }
+
+            public void Confirm()
+            {
+                IsConfirming = false;
+                NewGameConfirmed?.Invoke();
+            }
 
             /// <summary>The rules panel, open over the menu.</summary>
             public bool RulesOpen { get; set; }
@@ -34,6 +52,11 @@ namespace HellPoker.Core.Tests
 
             public bool CloseOverlay()
             {
+                if (IsConfirming)
+                {
+                    IsConfirming = false;
+                    return true;
+                }
                 if (!RulesOpen) return false;
                 RulesOpen = false;
                 return true;
@@ -109,6 +132,17 @@ namespace HellPoker.Core.Tests
             public event Action<RunSummary> RunEnded;
 
             public HellPoker.Core.Game.RecordBook Records { get; } = new HellPoker.Core.Game.RecordBook();
+
+            /// <summary>What walking away would cost while a run is on.</summary>
+            public AbandonRisk Risk { get; set; } = AbandonRisk.Run;
+            public AbandonRisk AbandonRisk => CanContinue ? Risk : AbandonRisk.None;
+            public int Abandoned { get; private set; }
+
+            public void AbandonRun()
+            {
+                Abandoned++;
+                CanContinue = false;
+            }
 
             public void EndRun(RunSummary summary)
             {
@@ -662,6 +696,82 @@ namespace HellPoker.Core.Tests
             _records.PressBack();
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsFalse(_records.IsVisible);
+        }
+
+        // ------------------------------------------------------------------ New Game over a run in progress
+
+        [Test]
+        public void NewGame_DuringARun_AsksFirst_WithTheDemonsScorn()
+        {
+            StartRunWith(0);
+            _table.PressMenu();
+
+            _menu.PressNewGame();
+
+            Assert.IsTrue(_menu.IsConfirming);
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsFalse(_dealerSelect.IsVisible, "Nothing happens before the player answers.");
+            Assert.AreEqual(0, _session.Abandoned);
+            CollectionAssert.Contains(new[]
+            {
+                "Leaving with your account open? Afraid of the interest?",
+                "Run along. But this is Hell, debtor. Where would you go?",
+                "Scared of a few numbers? Close the book, then. I keep a copy."
+            }, _menu.Taunt);
+            Assert.AreEqual("Abandon this run? Your sentence will be forgotten.", _menu.Warning);
+        }
+
+        [Test]
+        public void ConfirmingNewGame_AbandonsTheRun_AndOpensTheChoice()
+        {
+            StartRunWith(1);
+            _table.PressMenu();
+            _menu.PressNewGame();
+
+            _menu.Confirm();
+
+            Assert.AreEqual(1, _session.Abandoned);
+            Assert.IsTrue(_dealerSelect.IsVisible);
+            _dealerSelect.PressBack();
+            Assert.IsFalse(_menu.ContinueShown, "The abandoned run cannot be continued.");
+        }
+
+        [Test]
+        public void Escape_OnTheNewGameWarning_ClosesIt_AndKeepsTheRun()
+        {
+            StartRunWith(0);
+            _table.PressMenu();
+            _menu.PressNewGame();
+
+            _presenter.GoBack();
+
+            Assert.IsFalse(_menu.IsConfirming);
+            Assert.IsTrue(_menu.IsVisible, "Still on the menu.");
+            Assert.AreEqual(0, _session.Abandoned);
+            _presenter.GoBack();
+            Assert.IsTrue(_table.Visible, "The run goes on.");
+        }
+
+        [TestCase(AbandonRisk.Hand, "Abandon this run? The hand on the table counts as folded.")]
+        [TestCase(AbandonRisk.Soul, "Your soul is on the table. Walking away counts as damnation.")]
+        public void TheWarning_SaysWhatWalkingAwayCosts(AbandonRisk risk, string warning)
+        {
+            StartRunWith(2);
+            _session.Risk = risk;
+            _table.PressMenu();
+
+            _menu.PressNewGame();
+
+            Assert.AreEqual(warning, _menu.Warning);
+        }
+
+        [Test]
+        public void NewGame_WithNoRun_GoesStraightToTheChoice()
+        {
+            _menu.PressNewGame();
+
+            Assert.IsFalse(_menu.IsConfirming);
+            Assert.IsTrue(_dealerSelect.IsVisible);
         }
 
         [Test]
