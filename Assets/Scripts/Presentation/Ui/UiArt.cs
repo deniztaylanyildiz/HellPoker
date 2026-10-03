@@ -78,10 +78,13 @@ namespace HellPoker.Presentation.Ui
         public static readonly DealerAnimationLibrary Dealers = new DealerAnimationLibrary(path => Resources.Load<Texture2D>("Art/" + path));
 
         /// <summary>The title screen's animated backdrop (also behind the rules, settings and records), loaded from Resources/Art.</summary>
-        public static readonly MenuBackdropLibrary MenuBackdrop = new MenuBackdropLibrary(path => Resources.Load<Texture2D>("Art/" + path));
+        public static readonly MenuBackdropLibrary MenuBackdrop = new MenuBackdropLibrary(path => Resources.Load<Texture2D>("Art/" + path), LoadText);
 
         /// <summary>The demons' halls, loaded from Resources/Art.</summary>
-        public static readonly SalonLibrary Salons = new SalonLibrary(path => Resources.Load<Texture2D>("Art/" + path));
+        public static readonly SalonLibrary Salons = new SalonLibrary(path => Resources.Load<Texture2D>("Art/" + path), LoadText);
+
+        /// <summary>A text file under Resources/Art (the backdrops' motion manifests); null when missing.</summary>
+        private static string LoadText(string path) => Resources.Load<TextAsset>("Art/" + path)?.text;
 
         public static Sprite Sprite(string name)
         {

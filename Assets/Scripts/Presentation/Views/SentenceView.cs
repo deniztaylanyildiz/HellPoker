@@ -73,7 +73,7 @@ namespace HellPoker.Presentation.Views
                 digit.enabled = false;
                 _digits.Add(digit);
             }
-            _fallbackNumber = UiFactory.CreateText("Years", _digitRow, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithShadow();
+            _fallbackNumber = UiFactory.CreateText("Years", _digitRow, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _fallbackNumber.rectTransform.Stretch();
             _fallbackNumber.enabled = _digitSprites == null;
 

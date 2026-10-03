@@ -46,9 +46,17 @@ namespace HellPoker.Core.Cheats
 
         public bool WasLie => ShownId != null && ShownId != CheatId;
 
+        /// <summary>
+        /// The cheat turned on its demon: the player's hand came out of it stronger (a higher category, or the same one
+        /// stronger). Only cheats that leave something to chance can do it (Belial's slipping tongue, Lucifer's burning card
+        /// and The Fall); every other cheat never helps the player.
+        /// </summary>
+        public bool Backfired { get; }
+
         public CheatResult(string cheatId, CheatOutcome outcome, IReadOnlyList<int> playerCards = null, IReadOnlyList<int> houseCards = null,
-            Card? lost = null, Card? gained = null, int years = 0, string shownId = null)
+            Card? lost = null, Card? gained = null, int years = 0, string shownId = null, bool backfired = false)
         {
+            Backfired = backfired;
             if (string.IsNullOrEmpty(cheatId)) throw new ArgumentException("A cheat id is needed.", nameof(cheatId));
             CheatId = cheatId;
             ShownId = shownId ?? cheatId;
@@ -64,6 +72,10 @@ namespace HellPoker.Core.Cheats
 
         /// <summary>The same result, told as announced under <paramref name="shownId"/>.</summary>
         public CheatResult AnnouncedAs(string shownId) =>
-            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, shownId);
+            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, shownId, Backfired);
+
+        /// <summary>The same result, marked as having helped the player.</summary>
+        public CheatResult AsBackfire() =>
+            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, ShownId, backfired: true);
     }
 }

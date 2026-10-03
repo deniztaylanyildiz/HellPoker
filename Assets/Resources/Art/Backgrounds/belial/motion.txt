@@ -1,0 +1,5 @@
+# Hell Poker backdrop motion (Tools/ArtGen). Generated: do not edit.
+layer curtain_left 95 36 12 10 1 0 0 0
+layer curtain_right 340 36 12 10 1 0 0 0
+layer column_left 89 30 12 10 1 0 0 0
+layer column_right 361 30 12 10 1 0 0 0

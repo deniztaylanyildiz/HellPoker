@@ -14,6 +14,7 @@ sys.path.insert(0, HERE)
 import pixel_demons  # noqa: E402
 import pixel_menu  # noqa: E402
 import pixel_salons  # noqa: E402
+import pixel_splash  # noqa: E402
 import pixel_ui  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -32,6 +33,10 @@ def main(selected):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "menu" in selected:
         for path in pixel_menu.write_all(os.path.join(ART, "Ui")):
+            print("wrote", os.path.relpath(path, ROOT))
+    if not selected or "splash" in selected:
+        # The studio logo is not loaded by the game's code: it lives outside Resources, for the splash screen only.
+        for path in pixel_splash.write_all(os.path.join(ROOT, "Assets", "Art", "Splash")):
             print("wrote", os.path.relpath(path, ROOT))
 
 

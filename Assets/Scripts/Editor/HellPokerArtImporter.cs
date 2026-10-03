@@ -15,6 +15,9 @@ namespace HellPoker.Editor
         private const string ArtFolder = "Assets/Resources/Art/";
         private const string FontFolder = "Assets/Resources/Fonts/";
 
+        /// <summary>The studio logo for the splash screen (outside Resources: the game's code never loads it).</summary>
+        public const string SplashFolder = "Assets/Art/Splash/";
+
         /// <summary>Sprite borders (left, bottom, right, top) in pixels, by file name.</summary>
         private static readonly Dictionary<string, Vector4> Borders = new Dictionary<string, Vector4>
         {
@@ -29,7 +32,8 @@ namespace HellPoker.Editor
 
         private void OnPreprocessTexture()
         {
-            if (!assetPath.Replace('\\', '/').StartsWith(ArtFolder)) return;
+            string path = assetPath.Replace('\\', '/');
+            if (!path.StartsWith(ArtFolder) && !path.StartsWith(SplashFolder)) return;
 
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Sprite;

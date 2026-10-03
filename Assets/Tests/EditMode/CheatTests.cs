@@ -32,6 +32,12 @@ namespace HellPoker.Core.Tests
             public int Next(int maxExclusive) => 0;
         }
 
+        /// <summary>Always the last option: every "this often" roll fails (no bluff, no slip).</summary>
+        private sealed class LastChoice : IRandomSource
+        {
+            public int Next(int maxExclusive) => maxExclusive - 1;
+        }
+
         /// <summary>Always this cheat, announced as itself (or as <paramref name="shown"/>).</summary>
         private sealed class OnlyCheat : ICheatPolicy
         {
@@ -55,13 +61,13 @@ namespace HellPoker.Core.Tests
         /// <summary>A game where the demon plays <paramref name="cheat"/> every hand (gauge of 1).</summary>
         private static HellPokerGame Game(string player, string house, ICheat cheat, string rest = Blanks, GameRules rules = null,
             IHouseBettingStrategy betting = null, ICheatGuard guard = null, int maliceMax = 1, ICheatPolicy policy = null,
-            IPayoutTable payouts = null)
+            IPayoutTable payouts = null, IRandomSource random = null, int backfirePercent = 0)
         {
-            var random = new FirstChoice();
+            random = random ?? new FirstChoice();
             rules = rules ?? Rules();
             return new HellPokerGame(rules, TestDecks.Stacked($"{player} {house} {rest}"), HandEvaluator.CreateDefault(),
                 new CardExchanger(new MaxDiscardPolicy(rules.MaxDiscards)), new HouseDrawStrategy(rules.MaxDiscards), payouts ?? PayoutTable.CreateDefault(),
-                betting, new CheatSession(policy ?? new OnlyCheat(cheat), maliceMax, random, guard), random);
+                betting, new CheatSession(policy ?? new OnlyCheat(cheat), maliceMax, random, guard, backfirePercent), random);
         }
 
         private static void ToTheDraw(HellPokerGame game)
@@ -258,19 +264,30 @@ namespace HellPoker.Core.Tests
         // ================================================================== Mammon
 
         [Test]
-        public void Collateral_ChainsTheHighestCard_ItCannotBeThrownBack()
+        public void Collateral_ChainsACardYouWouldThrowBack_ItMustStay()
         {
+            // Nothing: a sensible draw keeps J♣ 9♠ and throws 2♣ 5♦ 7♥ — the chain goes on the highest of those, the 7♥.
             var game = Game(Nothing, HouseFullHouse, new CollateralCheat());
 
             ToTheDraw(game);
 
-            Assert.AreEqual(4, Played(game).PlayerCards.Single(), "J♣ is the highest.");
-            Assert.IsTrue(game.IsPlayerCardChained(4));
-            Assert.IsFalse(game.CanDraw(new[] { 4 }, out string reason));
+            Assert.AreEqual(2, Played(game).PlayerCards.Single(), "7♥: the best of the cards to be thrown.");
+            Assert.IsTrue(game.IsPlayerCardChained(2));
+            Assert.IsFalse(game.CanDraw(new[] { 2 }, out string reason));
             StringAssert.Contains("collateral", reason);
             Assert.IsTrue(game.CanDraw(new[] { 0, 1 }, out _));
-            CollectionAssert.DoesNotContain(game.SuggestedDiscards(), 4);
-            Assert.Throws<InvalidOperationException>(() => game.Draw(new[] { 4 }));
+            CollectionAssert.DoesNotContain(game.SuggestedDiscards(), 2);
+            Assert.Throws<InvalidOperationException>(() => game.Draw(new[] { 2 }));
+        }
+
+        [Test]
+        public void Collateral_OnAMadeHand_ChainsTheLowestCard()
+        {
+            var game = Game(Flush, HouseTwos, new CollateralCheat());
+
+            ToTheDraw(game);
+
+            Assert.AreEqual(0, Played(game).PlayerCards.Single(), "A flush throws nothing: the 2♣, its lowest card.");
         }
 
         [Test]
@@ -366,19 +383,53 @@ namespace HellPoker.Core.Tests
         // ================================================================== Lilith
 
         [Test]
-        public void NightVeil_HidesACard_TheGuideCannotSeeIt()
+        public void NightVeil_AtTheDeal_DarkensACardNotYetTurned_ItIsNeverSeen()
         {
             var game = Game("KS KH 2C 5D 9C", "3D 4D 6H 7H 8D", new NightVeilCheat());
 
-            ToTheDraw(game);
+            game.PlaceBet();
 
-            Assert.IsTrue(game.IsPlayerCardHidden(0));
-            Assert.AreEqual(HandCategory.HighCard, game.PlayerHandNow, "The kings' pair is not visible any more.");
+            CheatResult result = Played(game);
+            int veiled = result.PlayerCards.Single();
+            Assert.GreaterOrEqual(veiled, game.Rules.OpeningCardsShown, "Never a card the player has already seen.");
+            Assert.AreEqual(2, veiled, "The 2♣, the first card still to turn.");
+            Assert.IsTrue(game.IsPlayerCardHidden(veiled), "It comes in the dark — from its very first turn.");
+            Assert.AreEqual(HandCategory.OnePair, game.PlayerHandNow, "The kings show; the dark card does not count.");
+
+            game.CheckToDraw();
+            Assert.IsTrue(game.IsPlayerCardHidden(veiled), "Still dark at the draw.");
             Assert.IsEmpty(game.SuggestedDiscards(), "No hint that would give the hidden card away.");
-            Assert.IsTrue(game.CanDraw(new[] { 0 }, out _), "It may be thrown back blind.");
+            Assert.IsTrue(game.CanDraw(new[] { veiled }, out _), "It may be thrown back blind.");
 
-            game.Draw(new[] { 0 });
-            Assert.IsFalse(game.IsPlayerCardHidden(0), "The veil went with the card.");
+            game.Draw(new[] { veiled });
+            Assert.IsFalse(game.IsPlayerCardHidden(veiled), "The veil went with the card.");
+        }
+
+        [Test]
+        public void NightVeil_OnlyEverDarkensACardStillToTurn()
+        {
+            // Four cards open at the deal: only the fifth is still to come — that is the one that comes in the dark.
+            var rules = new GameRules(1000, openingCardsShown: 4, luciferGateYears: 0);
+            var game = Game("KS KH 2C 5D 9C", "3D 4D 6H 7H 8D", new NightVeilCheat(), rules: rules);
+
+            game.PlaceBet();
+
+            Assert.AreEqual(4, Played(game).PlayerCards.Single());
+        }
+
+        [Test]
+        public void NightVeil_IsEffective_TheHiddenCardStillPlaysAtTheShowdown()
+        {
+            // The veiled 2♣ is one of a pair of twos: the player cannot see the pair, but the showdown counts it.
+            var game = Game("KS QH 2C 2D 9C", HouseFullHouse, new NightVeilCheat());
+            game.PlaceBet();
+            Assert.AreEqual(HandCategory.HighCard, game.PlayerHandNow, "The pair is half in the dark.");
+
+            game.CheckToDraw();
+            game.Draw(new int[0]);
+            PassToTheEnd(game);
+
+            Assert.AreEqual(HandCategory.OnePair, game.LastRound.Showdown.Player.Category);
         }
 
         [Test]
@@ -392,6 +443,19 @@ namespace HellPoker.Core.Tests
 
             Assert.AreEqual(1100, game.Years, "Added the moment the card was thrown back.");
             Assert.AreEqual(100, game.ThornYearsThisHand);
+        }
+
+        [Test]
+        public void Thorn_PiercesACardYouWouldThrowBack()
+        {
+            // A pair of kings throws the 2♣ 5♦ 9♣: the thorn goes in one of those, never a king.
+            var game = Game("KS KH 2C 5D 9C", HouseFullHouse, new ThornCheat());
+
+            ToTheDraw(game);
+
+            int thorned = Played(game).PlayerCards.Single();
+            CollectionAssert.Contains(new[] { 2, 3, 4 }, thorned);
+            Assert.IsTrue(game.IsPlayerCardThorned(thorned));
         }
 
         [Test]
@@ -433,15 +497,23 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Gaze_TheHouseNeverReRaises_WhenThePlayerWouldWin()
+        public void Gaze_OnAWinningHand_TheHouseBluffsHalfTheTime_SoItsRaiseIsNoTell()
         {
-            var game = Game(Flush, HouseTwos, new GazeCheat(), rules: Rules(50), betting: new HellPokerGameTests.FixedHouseBetting(true));
-            ToTheDraw(game);
-            game.Draw(new int[0]);
+            // The dice land under 50: he re-raises the flush he knows beats him.
+            var bluff = Game(Flush, HouseTwos, new GazeCheat(), rules: Rules(50), betting: new HellPokerGameTests.FixedHouseBetting(false));
+            ToTheDraw(bluff);
+            bluff.Draw(new int[0]);
+            bluff.Bet(BetAction.Raise);
+            Assert.AreEqual(GamePhase.HouseReRaise, bluff.Phase, "A bluff: the player cannot read the raise as a loss.");
 
-            game.Bet(BetAction.Raise);
-
-            Assert.AreEqual(GamePhase.HouseReveal, game.Phase);
+            // The dice land over 50: he lets it go — even though his own temper would have raised.
+            var quiet = Game(Flush, HouseTwos, new GazeCheat(), rules: Rules(50), betting: new HellPokerGameTests.FixedHouseBetting(true),
+                random: new LastChoice());
+            ToTheDraw(quiet);
+            quiet.Draw(new int[0]);
+            quiet.Bet(BetAction.Raise);
+            Assert.AreEqual(GamePhase.HouseReveal, quiet.Phase);
+            Assert.AreEqual(50, HellPokerGame.GazeBluffPercent);
         }
 
         [Test]
@@ -459,7 +531,7 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void BurningCard_TheHighestCardBecomesAnother()
+        public void BurningCard_WithoutACombination_TheHighestCardBecomesAnother()
         {
             var game = Game("2C 5D KH 9S JC", HouseFullHouse, new BurningCardCheat());
 
@@ -469,6 +541,19 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(new Card(Rank.King, Suit.Hearts), result.Lost);
             Assert.AreEqual(result.Gained.Value, game.PlayerHand[2]);
             Assert.AreNotEqual(Rank.King, game.PlayerHand[2].Rank);
+        }
+
+        [Test]
+        public void BurningCard_BurnsTheTopCardOfTheBestCombination()
+        {
+            // A pair of queens beside a lone king: the fire takes a queen, and the pair is gone.
+            var game = Game("QS QH KD 5C 2D", HouseFullHouse, new BurningCardCheat());
+
+            ToTheDraw(game);
+
+            Assert.AreEqual(Rank.Queen, Played(game).Lost.Value.Rank);
+            Assert.AreEqual(HandCategory.HighCard, HandEvaluator.CreateDefault().Evaluate(game.PlayerHand).Category);
+            Assert.IsFalse(Played(game).Backfired);
         }
 
         /// <summary>Lucifer's own table and policy at <paramref name="years"/>, with FirstChoice dice.</summary>
@@ -570,7 +655,7 @@ namespace HellPoker.Core.Tests
 
             Assert.IsTrue(game.IsCommitted);
             Assert.AreEqual(GamePhase.Drawing, game.Phase);
-            Assert.IsTrue(game.IsPlayerCardChained(4));
+            Assert.IsTrue(game.IsPlayerCardChained(2));
         }
 
         [Test]

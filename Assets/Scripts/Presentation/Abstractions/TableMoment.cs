@@ -13,6 +13,9 @@ namespace HellPoker.Presentation.Abstractions
         DeadMansHand,
 
         /// <summary>The table is full: "THE PACT IS SEALED" flares up, and the rest of the hand plays out on its own.</summary>
-        PactSealed
+        PactSealed,
+
+        /// <summary>A demon's cheat helped the player: the text ("BACKFIRE") blinks over the player's cards it touched.</summary>
+        Backfire
     }
 }

@@ -38,19 +38,19 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case CheatIds.Collateral: return "Before the draw your highest card is chained: it cannot be thrown back.";
+                case CheatIds.Collateral: return "A card you would throw back is chained: it must stay.";
                 case CheatIds.Tithe: return "If you win this hand, a unit of what you win is his.";
-                case CheatIds.Buyout: return "Before the draw your highest card is traded for the House's lowest.";
+                case CheatIds.Buyout: return "Your highest card is traded for one of the House's lowest.";
                 case CheatIds.FalseFace: return "One card the House shows is not what it seems — until the showdown.";
-                case CheatIds.ForkedTongue: return "After the draw one of your cards changes suit. Flushes beware.";
-                case CheatIds.SerpentSwap: return "After the draw a card of yours slips to the House; what comes back stays dark.";
-                case CheatIds.NightVeil: return "Before the draw one of your cards goes dark. You may throw it back blind.";
-                case CheatIds.Thorn: return "Before the draw a thorn pierces a card: throwing it back costs a unit.";
+                case CheatIds.ForkedTongue: return "After the draw a card changes suit. Flushes beware. His tongue may slip.";
+                case CheatIds.SerpentSwap: return "A card of yours slips to the House; what comes back stays dark.";
+                case CheatIds.NightVeil: return "One of your cards will come to you in the dark.";
+                case CheatIds.Thorn: return "A thorn in a card you would throw back: letting it go costs a unit.";
                 case CheatIds.Moonless: return "The cards you draw stay dark until the showdown.";
-                case CheatIds.Gaze: return "He sees your cards: he raises back only when you would lose.";
-                case CheatIds.Rewrite: return "After the draw a card of your hand is rewritten into something weaker.";
-                case CheatIds.BurningCard: return "Before the draw your highest card burns into another.";
-                case CheatIds.TheFall: return "If you win the showdown, both best cards fall and are dealt again. You may fold.";
+                case CheatIds.Gaze: return "He sees your hand. His raises will hurt.";
+                case CheatIds.Rewrite: return "After the draw a card is rewritten into something weaker.";
+                case CheatIds.BurningCard: return "Your best combination's top card burns into a random one.";
+                case CheatIds.TheFall: return "If you would win, both best cards are dealt again. You may fold.";
                 default: return "";
             }
         }
@@ -80,6 +80,9 @@ namespace HellPoker.Presentation.Ui
         /// <summary>Belial, caught announcing one cheat and playing another.</summary>
         public const string LiarLine = "Did you believe me? How sweet.";
 
+        /// <summary>Over the card a cheat helped instead of hurt.</summary>
+        public const string BackfireFlash = "BACKFIRE";
+
         /// <summary>The result screen's line about the hand's cheat. Never a number while the soul is on the table.</summary>
         public static string CheatLog(string dealerName, CheatResult result, bool soul, int thornYears, int titheYears)
         {
@@ -87,6 +90,17 @@ namespace HellPoker.Presentation.Ui
             string who = Capitalised(dealerName);
             string lost = result.Lost.HasValue ? result.Lost.Value.ToString() : "a card";
             string gained = result.Gained.HasValue ? result.Gained.Value.ToString() : "a card";
+            if (result.Backfired)
+            {
+                // The cheat turned on its demon: said so, plainly.
+                switch (result.CheatId)
+                {
+                    case CheatIds.ForkedTongue: return $"{who}'s tongue slipped: your {lost} became the {gained}. It backfired!";
+                    case CheatIds.BurningCard: return $"{who} burned your {lost} — the {gained} rose from the ashes. It backfired!";
+                    case CheatIds.TheFall: return $"{who}: the {lost} fell, and the {gained} rose. It backfired!";
+                    default: return $"{who}'s cheat backfired!";
+                }
+            }
             switch (result.CheatId)
             {
                 case CheatIds.Collateral: return $"{who} chained your {lost} as collateral.";
@@ -145,8 +159,8 @@ namespace HellPoker.Presentation.Ui
             string Line(string id) => $"   {CheatName(id)} — {CheatDescription(id)}";
             return
                 "Every demon has a MALICE gauge under the portrait. It fills every hand (faster when you win, and under 500 years).\n" +
-                "When it is full, the demon announces a cheat above the portrait — then plays it on the cards, in plain sight.\n" +
-                "Under 400 years the big ones come out. The Dead Man's Hand (A♠ A♣ 8♠ 8♣) is beyond any cheat.\n\n" +
+                "Full, the demon announces a cheat above the portrait, then plays it on the cards. Under 400 the big ones come out.\n" +
+                "A♠ A♣ 8♠ 8♣ are beyond any cheat. A cheat left to chance may BACKFIRE and help you (tongue, fire, The Fall).\n\n" +
                 "MAMMON (always honest)\n" + Line(CheatIds.Collateral) + "\n" + Line(CheatIds.Tithe) + "\n" + Line(CheatIds.Buyout) + "\n" +
                 "BELIAL (a quarter of his intents are lies)\n" + Line(CheatIds.FalseFace) + "\n" + Line(CheatIds.ForkedTongue) + "\n" +
                 Line(CheatIds.SerpentSwap) + "\n" +

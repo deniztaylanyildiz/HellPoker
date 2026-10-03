@@ -48,7 +48,7 @@ namespace HellPoker.Presentation.Views
             Image panel = UiFactory.CreatePanel("SettingsPanel", screen);
             panel.rectTransform.PlaceTL(32, 16, PixelScreen.Width - 64, PixelScreen.Height - 32);
 
-            UiFactory.CreateText("Title", screen, UiText.SettingsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", screen, UiText.SettingsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 24, PixelScreen.Width, 16);
 
             _speed = Row(screen, 0, UiText.SettingSpeed, UiText.SettingSpeedHint, "SpeedButton", () => SpeedPressed?.Invoke(), out _);
@@ -65,7 +65,7 @@ namespace HellPoker.Presentation.Views
         private static Text Row(Transform screen, int index, string label, string hint, string buttonName, Action pressed, out Button button)
         {
             int y = RowsTop + index * RowHeight;
-            UiFactory.CreateText(buttonName + "Label", screen, label, 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithShadow()
+            UiFactory.CreateText(buttonName + "Label", screen, label, 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(LabelX, y + 2, 216, 8);
             Text hintText = UiFactory.CreateText(buttonName + "Hint", screen, hint, 8, Palette.BoneDark, TextAnchor.UpperLeft);
             hintText.rectTransform.PlaceTL(LabelX, y + 12, 216, 18);

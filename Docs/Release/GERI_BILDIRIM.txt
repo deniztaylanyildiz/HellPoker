@@ -1,0 +1,83 @@
+HELL POKER {VERSION} — geri bildirim
+====================================
+
+Cevaplarını her sorunun altına yaz, dosyayı kaydet ve bana geri gönder. Kısa cevaplar da çok işime yarar;
+"bilmiyorum" ya da boş bırakmak da serbest. Poker bilmiyorsan bunu da söyle, o da önemli bir bilgi.
+
+Oynadığın süre (yaklaşık):
+Poker biliyor musun? (hiç / biraz / iyi):
+
+
+1. İLK İZLENİM
+   Oyunu açtığında ilk ne düşündün? Ana menü ve şeytan seçme ekranı sana ne hissettirdi?
+
+   >
+
+
+2. KURALLAR
+   Ne yapman gerektiğini anladın mı? Nerede takıldın? (HOW TO PLAY sayfası, şeytanların ipuçları,
+   "NOW: ..." el adı, H tuşundaki el tablosu işine yaradı mı?)
+
+   >
+
+
+3. TEMPO
+   Eller çok mu hızlı, çok mu yavaş geçti? Beklerken sıkıldığın ya da acele ettirildiğini hissettiğin bir an oldu mu?
+
+   >
+
+
+4. ZORLUK VE EN ZOR ŞEYTAN
+   Hangi şeytan(lar)la oynadın, aşağı yukarı kaç el sürdü, nasıl bitti (kurtuldun / lanetlendin / bıraktın)?
+   Sence en zor şeytan hangisi, neden?
+
+   >
+
+
+5. HİLELER: ADİL Mİ, ANLAŞILIR MI?
+   Şeytanlar hile yapıyor: portrenin üstünde yapacakları hilenin adı ve işareti çıkıyor, sonra kartlarda görünüyor.
+   Bu işareti fark ettin mi, ne anlama geldiğini anladın mı? Hileler adil hissettirdi mi, yoksa haksızlık gibi mi?
+   En çok hangi hile sinirini bozdu?
+
+   >
+
+
+6. BELİAL'İN SAHTE KARTI
+   Belial (kırmızı, boynuzlu şeytan) bazen açtığı kartlardan birini sahte gösterir; sahte kart hafifçe parlar.
+   Bunu fark ettin mi? Sahte karta kanıp yanlış karar verdiğin oldu mu?
+
+   >
+
+
+7. BİR HİLE SANA YARADI MI?
+   Bazen şeytanın hilesi geri teper ve senin işine yarar (kartın üstünde "BACKFIRE" yazar, şeytan kızar).
+   Böyle bir an yaşadın mı? Nasıl hissettirdi?
+
+   >
+
+
+8. EN SEVDİĞİN AN
+   Oyunda en çok hoşuna giden an neydi?
+
+   >
+
+
+9. EN SIKICI / EN SİNİR BOZUCU AN
+   Ne seni sıktı ya da kızdırdı? Bir şeyi değiştirebilseydin ne olurdu?
+
+   >
+
+
+10. HATA GÖRDÜN MÜ?
+    Garip, bozuk ya da yanlış görünen bir şey oldu mu? Ne yapıyordun, ne oldu, ne bekliyordun?
+    Gördüysen Player.log dosyasını da eklersen çok iyi olur (nerede olduğu OKUBENI.txt'de yazıyor).
+
+    >
+
+
+Eklemek istediğin başka bir şey:
+
+>
+
+
+Teşekkürler!

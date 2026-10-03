@@ -34,7 +34,7 @@ namespace HellPoker.Presentation.Views
             effect._flamesBottom = CreateFlames(screen, "FlamesBottom", background, flipped: false);
             effect._flamesTop = CreateFlames(screen, "FlamesTop", background, flipped: true);
 
-            effect._banner = UiFactory.CreateText("FinalStretchBanner", screen, "", 8, Palette.Hell, style: FontStyle.Bold).WithShadow();
+            effect._banner = UiFactory.CreateText("FinalStretchBanner", screen, "", 8, Palette.Hell, style: FontStyle.Bold).WithOutline();
             effect._banner.rectTransform.PlaceTL(bannerX, bannerY, bannerWidth, 8);
             effect._banner.horizontalOverflow = HorizontalWrapMode.Overflow;
 

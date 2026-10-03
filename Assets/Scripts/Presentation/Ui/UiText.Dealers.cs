@@ -26,6 +26,9 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The player closed the game mid-hand and came back: the hand was forfeited.</summary>
         public string[] Fled;
 
+        /// <summary>The demon's own cheat helped the player (a backfire): said with an angry look.</summary>
+        public string[] Backfire;
+
         /// <summary>The player is summoned to Lucifer from this demon's table: the demon's last word.</summary>
         public string[] Farewell;
 
@@ -135,6 +138,12 @@ namespace HellPoker.Presentation.Ui
                 "You walked out mid-hand? The ledger noticed. Debited, with interest.",
                 "Skipping out on an open account? I charged it as forfeit."
             },
+            Backfire = new[]
+            {
+                "A clerical error. It will not happen twice.",
+                "That entry was... unfortunate. Strike it from the record.",
+                "Even my ledger has a bad day. Enjoy it."
+            },
             Farewell = new[]
             {
                 "Your debt is nearly paid... and someone else has noticed you. My condolences.",
@@ -190,6 +199,12 @@ namespace HellPoker.Presentation.Ui
             {
                 "Vanishing mid-act? I kept your ticket. And your wager.",
                 "You left before the final scene, darling. The stakes stayed with me."
+            },
+            Backfire = new[]
+            {
+                "My tongue... slipped.",
+                "That was not the line I rehearsed.",
+                "Applause, darling. Do not get used to it."
             },
             Farewell = new[]
             {
@@ -247,6 +262,11 @@ namespace HellPoker.Presentation.Ui
                 "You slipped away in the dark. I kept what you left on my table.",
                 "Running mid-hand? Nothing leaves me. That wager is mine."
             },
+            Backfire = new[]
+            {
+                "The night chose you over me. How rude.",
+                "Even my thorns have favourites. Not for long."
+            },
             Farewell = new[]
             {
                 "Shh. Someone older than the night is calling you. Go.",
@@ -302,6 +322,12 @@ namespace HellPoker.Presentation.Ui
                 "Sealed. Watch them turn."
             },
             Fled = new[] { "You closed your eyes. I did not. The wager is mine.", "There is no leaving in the middle. Not from me." },
+            Backfire = new[]
+            {
+                "The fire chose. Not I.",
+                "Chance is the one thing I do not rule. Remember that.",
+                "Keep it. You will need it."
+            },
             CastDown = new[]
             {
                 "Too heavy. Fall back where you came from.",
@@ -338,6 +364,7 @@ namespace HellPoker.Presentation.Ui
             SoulLocked = new[] { "Not with your soul on the table." },
             Sealed = new[] { "Sealed." },
             Fled = new[] { "You left mid-hand. It is forfeit." },
+            Backfire = new[] { "That was not meant for you." },
             SoulWarning = "Your soul will be on this table.",
             Absolved = "You are free.",
             Damned = "Damned."

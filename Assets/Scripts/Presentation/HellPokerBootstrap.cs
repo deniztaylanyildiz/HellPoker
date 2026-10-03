@@ -72,6 +72,8 @@ namespace HellPoker.Presentation
             SettingsView settingsView = SettingsView.Create(transform);
             _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode());
 
+            // Every hall's art is loaded up front: the first sight of a hall never stalls a frame.
+            UiArt.Salons.Preload(DealerRoster.All.Select(d => d.Id).Append(DealerRoster.LuciferId));
             TableView tableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
             _tablePresenter = new TablePresenter(dealer => HellPokerGameFactory.Create(table, dealer, seed), tableView, settings, archive,
                 DealerRoster.Lucifer);
@@ -90,6 +92,13 @@ namespace HellPoker.Presentation
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer);
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter);
+
+            // Development builds (and the editor): F3 shows the frame rate. Any build: -fpstour walks every screen, measures, quits
+            // (also the release build's smoke test: its log must stay clean through every screen change).
+            if (Debug.isDebugBuild)
+                FpsCounter.Create(transform);
+            if (FpsTour.IsRequested)
+                gameObject.AddComponent<FpsTour>().Run(_tablePresenter);
         }
 
         /// <summary>

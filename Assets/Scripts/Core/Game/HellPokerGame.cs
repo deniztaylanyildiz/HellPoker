@@ -29,6 +29,9 @@ namespace HellPoker.Core.Game
         private readonly IRandomSource _cheatRandom;
         private IReadOnlyList<int> _drawnIndices = Array.Empty<int>();
 
+        /// <summary>Under Lucifer's Gaze the House still re-raises a hand it knows will beat it this often (a bluff).</summary>
+        public const int GazeBluffPercent = 50;
+
         /// <summary>The decision the house's re-raise interrupted; play resumes from it after a call.</summary>
         private GamePhase _interruptedPhase;
 
@@ -172,6 +175,8 @@ namespace HellPoker.Core.Game
         /// <summary>While the hand is played: true for a card of the player's the player cannot see (veiled, moonless, swapped in).</summary>
         public bool IsPlayerCardHidden(int index) => InPlay && _cheats.Marks.HiddenFromPlayer.Contains(PlayerHand[index]);
 
+        public bool WasPlayerCardHidden(int index) => PlayerHand != null && _cheats.Marks.HiddenFromPlayer.Contains(PlayerHand[index]);
+
         public bool IsPlayerCardChained(int index) => InPlay && _cheats.Marks.Chained.Contains(PlayerHand[index]);
 
         public bool IsPlayerCardThorned(int index) => InPlay && _cheats.Marks.Thorned.Contains(PlayerHand[index]);
@@ -195,8 +200,10 @@ namespace HellPoker.Core.Game
         /// <returns>The showdown as it stands afterwards (The Fall may change it).</returns>
         private ShowdownResult Strike(CheatTiming timing, ShowdownResult showdown = null)
         {
+            // At the deal the player has seen only the opening cards; the next one turns at the first decision.
+            int seen = timing == CheatTiming.AfterDeal ? Math.Min(Rules.OpeningCardsShown, PlayerCardsRevealed) : PlayerCardsRevealed;
             CheatTable after = _cheats.Strike(timing, () => new CheatTable(PlayerHand, HouseHand, _deck, _evaluator, _cheatRandom,
-                _cheats.Marks, Unit, HouseCardsRevealed, _drawnIndices, showdown));
+                _cheats.Marks, Unit, HouseCardsRevealed, _drawnIndices, showdown, seen, _cheats.BackfirePercent, _houseStrategy));
             if (after == null) return showdown;
             PlayerHand = after.PlayerHand;
             HouseHand = after.HouseHand;
@@ -508,15 +515,15 @@ namespace HellPoker.Core.Game
             return true;
         }
 
-        /// <summary>The House's temper — unless Lucifer's Gaze is on the hand: then he knows (never when the player would win,
-        /// always when they would lose).</summary>
+        /// <summary>The House's temper — unless Lucifer's Gaze is on the hand: then he knows. A losing hand is always
+        /// re-raised; a winning one half the time (<see cref="GazeBluffPercent"/>), so his raise is a threat, never a tell.</summary>
         private bool HouseWantsToReRaise()
         {
             if (_cheats.Marks.Gaze)
             {
                 ShowdownOutcome outcome = ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand)).Outcome;
-                if (outcome == ShowdownOutcome.PlayerWins) return false;
                 if (outcome == ShowdownOutcome.HouseWins) return true;
+                if (outcome == ShowdownOutcome.PlayerWins) return _cheatRandom.Next(100) < GazeBluffPercent;
             }
             return _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
         }

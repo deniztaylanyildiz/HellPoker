@@ -44,7 +44,7 @@ namespace HellPoker.Presentation.Views
                 _cards.Add(card);
             }
 
-            _caption = UiFactory.CreateText("Caption", root.parent, "", 8, Palette.MutedText, style: FontStyle.Bold).WithShadow();
+            _caption = UiFactory.CreateText("Caption", root.parent, "", 8, Palette.MutedText, style: FontStyle.Bold).WithOutline();
             _caption.rectTransform.PlaceTL(x - 40, captionY, width + 80, 8);
             _caption.horizontalOverflow = HorizontalWrapMode.Overflow;
         }

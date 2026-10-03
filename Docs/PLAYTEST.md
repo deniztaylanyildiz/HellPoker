@@ -1,9 +1,10 @@
 # Hell Poker — Oyun testi notları
 
-Build: `Builds/Windows/HellPoker.exe` · Tarih: ____________ · Sürüm / commit: ____________
+Build: `Builds/Windows/HellPoker.exe` (ya da `Builds/HellPoker-<sürüm>-win64.zip`) · Tarih: ____________ · Sürüm (menünün sağ alt köşesi): ____________
 
 Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, C karşıla, F çekil, 1-5 kart seç, H el tablosu,
-Esc bir üst ekran, Alt+Enter tam ekran. Hata olursa: `%USERPROFILE%\AppData\LocalLow\DefaultCompany\Hellpoker\Player.log`.
+Esc bir üst ekran, Alt+Enter tam ekran. Hata olursa: `%USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log`
+(0.1.0 ve öncesi: `...\LocalLow\DefaultCompany\Hellpoker\Player.log`).
 
 ---
 

@@ -77,7 +77,7 @@ namespace HellPoker.Presentation.Views
             _name = UiFactory.CreateText("Name", banner.transform, "", 8, Palette.Ember, TextAnchor.MiddleLeft);
             _name.rectTransform.PlaceTL(19, 5, _size - 26, 8);
             _name.horizontalOverflow = HorizontalWrapMode.Overflow;
-            _liar = UiFactory.CreateText("Liar", banner.transform, UiText.LiarFlash, 8, Palette.Hell, TextAnchor.MiddleCenter, FontStyle.Bold).WithShadow();
+            _liar = UiFactory.CreateText("Liar", banner.transform, UiText.LiarFlash, 8, Palette.Hell, TextAnchor.MiddleCenter, FontStyle.Bold).WithOutline();
             _liar.rectTransform.PlaceTL(0, 5, _size - 4, 8);
             _liar.enabled = false;
 

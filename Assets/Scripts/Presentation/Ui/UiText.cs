@@ -63,6 +63,12 @@ namespace HellPoker.Presentation.Ui
         public const string Quit = "QUIT";
         public const string Back = "BACK";
         public const string MenuFooter = "Esc — menu";
+
+        /// <summary>The build's version in the menu's corner ("v0.1.1").</summary>
+        public const string VersionFormat = "v{0}";
+
+        /// <summary>The development FPS readout (F3): average and slowest frame.</summary>
+        public const string FpsFormat = "FPS {0}  min {1}";
         public const string RulesTitle = "THE RULES OF THE HOUSE";
 
         /// <summary>{0} starting years, {1} (unused), {2} forced-raise threshold, {3} table cap percent, {4} Lucifer's gate,
@@ -210,6 +216,7 @@ namespace HellPoker.Presentation.Ui
         public const string RecordsFewestAttemptsFormat = "Fewest attempts: {0}";
         public const string RecordsFewestAttemptsNone = "Fewest attempts: not yet";
         public const string RecordsWildBillFormat = "Wild Bill's escapes: {0}";
+        public const string RecordsBackfiresFormat = "Backfires seen: {0}";
         public const string ToMenu = "MENU";
         public const string Records = "RECORDS";
         public const string RecordsTitle = "RECORDS";

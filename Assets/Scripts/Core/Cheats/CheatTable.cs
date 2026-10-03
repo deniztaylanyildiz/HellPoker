@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
@@ -71,9 +72,24 @@ namespace HellPoker.Core.Cheats
         /// <summary>At the showdown: how it stands. The Fall may change it.</summary>
         public ShowdownResult Showdown { get; set; }
 
+        /// <summary>How many of the player's cards (from the left) the player has already seen face up.</summary>
+        public int PlayerCardsSeen { get; }
+
+        /// <summary>How often (percent) a cheat that may slip does slip and leave it to chance (Belial's tongue).</summary>
+        public int BackfirePercent { get; }
+
+        /// <summary>The House's own sense of which cards to throw back; null when there is none to ask.</summary>
+        public IDrawStrategy Advice { get; }
+
         public CheatTable(Hand playerHand, Hand houseHand, IDeck deck, IHandEvaluator evaluator, IRandomSource random, CheatMarks marks,
-            int unit, int houseCardsRevealed = 0, IReadOnlyList<int> drawnIndices = null, ShowdownResult showdown = null)
+            int unit, int houseCardsRevealed = 0, IReadOnlyList<int> drawnIndices = null, ShowdownResult showdown = null,
+            int playerCardsSeen = Hand.Size, int backfirePercent = 0, IDrawStrategy advice = null)
         {
+            if (playerCardsSeen < 0 || playerCardsSeen > Hand.Size) throw new ArgumentOutOfRangeException(nameof(playerCardsSeen));
+            if (backfirePercent < 0 || backfirePercent > 100) throw new ArgumentOutOfRangeException(nameof(backfirePercent));
+            PlayerCardsSeen = playerCardsSeen;
+            BackfirePercent = backfirePercent;
+            Advice = advice;
             PlayerHand = playerHand ?? throw new ArgumentNullException(nameof(playerHand));
             HouseHand = houseHand ?? throw new ArgumentNullException(nameof(houseHand));
             Deck = deck ?? throw new ArgumentNullException(nameof(deck));
@@ -123,6 +139,26 @@ namespace HellPoker.Core.Cheats
         {
             int[] all = targets.ToArray();
             return all.Length == 0 ? -1 : all[Random.Next(all.Length)];
+        }
+
+        /// <summary>The cards a sensible player would throw back (the House's own logic); empty for a made hand or no advice.</summary>
+        public IReadOnlyCollection<int> AdvisedDiscards() =>
+            Advice == null ? Array.Empty<int>() : Advice.ChooseDiscards(PlayerHand);
+
+        /// <summary>True when <paramref name="after"/> is a stronger hand for the player than the one they hold now.</summary>
+        public bool Improves(Hand after) => Evaluator.Evaluate(after).CompareTo(Evaluator.Evaluate(PlayerHand)) > 0;
+
+        /// <summary>
+        /// The player's cards that make up their best combination: every card of a straight, flush or better; the cards of a
+        /// pair, two pair, trips, full house or quads; nothing for a plain high card.
+        /// </summary>
+        public IEnumerable<int> CombinationCards()
+        {
+            HandCategory category = Evaluator.Evaluate(PlayerHand).Category;
+            bool wholeHand = category == HandCategory.Straight || category == HandCategory.Flush || category == HandCategory.StraightFlush
+                             || category == HandCategory.RoyalFlush;
+            Hand hand = PlayerHand;
+            return Enumerable.Range(0, Hand.Size).Where(i => wholeHand || hand.Count(c => c.Rank == hand[i].Rank) >= 2);
         }
 
         /// <summary>The player's card at <paramref name="index"/> becomes a particular card taken out of the deck.</summary>

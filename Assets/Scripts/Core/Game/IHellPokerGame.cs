@@ -116,6 +116,12 @@ namespace HellPoker.Core.Game
         /// <summary>While the hand is played: the player cannot see this card of theirs (veiled, moonless, swapped in).</summary>
         bool IsPlayerCardHidden(int index);
 
+        /// <summary>
+        /// This card of the player's was hidden from them this hand — still true once the hand is settled (until the next deal),
+        /// so the table can keep it face down until the showdown is actually shown.
+        /// </summary>
+        bool WasPlayerCardHidden(int index);
+
         /// <summary>While the hand is played: this card is chained as collateral and cannot be thrown back.</summary>
         bool IsPlayerCardChained(int index);
 

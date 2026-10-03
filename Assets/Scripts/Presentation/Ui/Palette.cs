@@ -24,6 +24,10 @@ namespace HellPoker.Presentation.Ui
         public static readonly Color GoldLight = Hex(0xffd860);
         public static readonly Color GreenLight = Hex(0x8a9a3a);
         public static readonly Color LilacLight = Hex(0xc8a8d4);
+        public static readonly Color Lilac = Hex(0x9a7aa8);
+        public static readonly Color Silver = Hex(0xb8c0cc);
+        public static readonly Color Spark = Hex(0xffe08a);
+        public static readonly Color White = Hex(0xffffff);
 
         public static readonly Color Background = Black;
         public static readonly Color Felt = Dusk;

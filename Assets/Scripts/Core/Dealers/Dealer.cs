@@ -48,10 +48,19 @@ namespace HellPoker.Core.Dealers
         /// <summary>The demon's cheats and how they choose one; null for a demon who never cheats.</summary>
         public ICheatPolicy Cheats { get; }
 
+        /// <summary>
+        /// How often (percent) the demon's slippery cheats slip and leave the change to chance — which may help the player
+        /// (Belial's forked tongue). Cheats of other demons that can backfire do so by their nature (a card redealt at random).
+        /// </summary>
+        public int BackfirePercent { get; }
+
         public Dealer(string id, int maxDiscards, int houseCardsShown, PayoutTable payouts, HouseBettingStyle betting = null,
-            int soulThreshold = 2000, StakeScale stakes = null, bool isFinalTable = false, int maliceMax = 0, ICheatPolicy cheats = null)
+            int soulThreshold = 2000, StakeScale stakes = null, bool isFinalTable = false, int maliceMax = 0, ICheatPolicy cheats = null,
+            int backfirePercent = 0)
         {
             if (maliceMax < 0) throw new ArgumentOutOfRangeException(nameof(maliceMax));
+            if (backfirePercent < 0 || backfirePercent > 100) throw new ArgumentOutOfRangeException(nameof(backfirePercent));
+            BackfirePercent = backfirePercent;
             MaliceMax = cheats == null ? 0 : maliceMax;
             Cheats = cheats;
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A dealer needs an id.", nameof(id));
@@ -74,7 +83,11 @@ namespace HellPoker.Core.Dealers
 
         /// <summary>The same demon with another malice gauge (tuning, the balance simulation).</summary>
         public Dealer WithMaliceMax(int maliceMax) =>
-            new Dealer(Id, MaxDiscards, HouseCardsShown, Payouts, Betting, SoulThreshold, Stakes, IsFinalTable, maliceMax, Cheats);
+            new Dealer(Id, MaxDiscards, HouseCardsShown, Payouts, Betting, SoulThreshold, Stakes, IsFinalTable, maliceMax, Cheats, BackfirePercent);
+
+        /// <summary>The same demon whose slippery cheats slip this often (tuning, tests).</summary>
+        public Dealer WithBackfirePercent(int backfirePercent) =>
+            new Dealer(Id, MaxDiscards, HouseCardsShown, Payouts, Betting, SoulThreshold, Stakes, IsFinalTable, MaliceMax, Cheats, backfirePercent);
 
         /// <summary>The same demon without any cheats (for comparison, and for tests of the plain rules).</summary>
         public Dealer WithoutCheats() =>

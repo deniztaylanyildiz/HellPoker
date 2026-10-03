@@ -62,9 +62,9 @@ namespace HellPoker.Presentation.Views
         {
             _portrait = CreatePortrait(root, 0, 0);
 
-            _name = UiFactory.CreateText("Name", root, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow();
+            _name = UiFactory.CreateText("Name", root, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _name.rectTransform.PlaceTL(0, 107, PortraitSize + 8, 8);
-            _title = UiFactory.CreateText("Title", root, "", 8, Palette.MutedText);
+            _title = UiFactory.CreateText("Title", root, "", 8, Palette.MutedText).WithOutline();
             _title.rectTransform.PlaceTL(-4, 117, PortraitSize + 16, 9);
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
 

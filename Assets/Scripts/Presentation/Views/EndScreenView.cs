@@ -62,16 +62,16 @@ namespace HellPoker.Presentation.Views
             // Wide enough for the longest title ("THE MORNING STAR FALLS", 352 px on the 16 px grid).
             panel.rectTransform.PlaceTL(56, 24, PixelScreen.Width - 112, PixelScreen.Height - 48);
 
-            _title = UiFactory.CreateText("Title", screen, "", 32, Palette.GoldLight, style: FontStyle.Bold).WithShadow();
+            _title = UiFactory.CreateText("Title", screen, "", 32, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _title.rectTransform.PlaceTL(0, 36, PixelScreen.Width, 32);
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
 
-            _subtitle = UiFactory.CreateText("Subtitle", screen, "", 8, Palette.Bone).WithShadow();
+            _subtitle = UiFactory.CreateText("Subtitle", screen, "", 8, Palette.Bone).WithOutline();
             _subtitle.rectTransform.PlaceTL(80, 76, PixelScreen.Width - 160, 9);
 
             UiFactory.CreateSprite("Divider", screen, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 90, 48, 3);
 
-            _story = UiFactory.CreateText("Story", screen, "", 8, Palette.BoneMid, TextAnchor.UpperCenter);
+            _story = UiFactory.CreateText("Story", screen, "", 8, Palette.BoneMid, TextAnchor.UpperCenter).WithOutline();
             _story.rectTransform.PlaceTL(88, 100, PixelScreen.Width - 176, 100);
             _story.lineSpacing = 1.25f;
 

@@ -56,7 +56,7 @@ namespace HellPoker.Presentation.Views
             UiFactory.AddBorder(moments._flareBand.gameObject, Palette.Gold, 1f);
             moments._flareBand.enabled = false;
 
-            moments._flare = UiFactory.CreateText("HandFlare", moments._flareBand.transform, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithShadow();
+            moments._flare = UiFactory.CreateText("HandFlare", moments._flareBand.transform, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             moments._flare.rectTransform.PlaceTL(0, 4, 256, 16);
             moments._flare.horizontalOverflow = HorizontalWrapMode.Overflow;
             moments._flare.enabled = false;

@@ -1,0 +1,60 @@
+HELL POKER {VERSION} — test sürümü
+===================================
+
+Merhaba! Oynadığın için teşekkürler. Bu, arkadaşlar için erken bir test sürümü; hatalar olabilir.
+
+
+NASIL AÇILIR
+------------
+1. Zip dosyasının tamamını bir klasöre çıkar (zip'e sağ tık → "Tümünü ayıkla..."). Zip'in içinden doğrudan çalıştırma.
+2. Çıkan "HellPoker-{VERSION}" klasöründeki HellPoker.exe'ye çift tıkla.
+3. Windows mavi bir pencereyle "Windows bilgisayarınızı korudu" diyebilir (oyun imzalı değil, ondan):
+   "Ek bilgi" yazısına tıkla → "Yine de çalıştır" butonuna bas.
+4. Oyun açılır. Alt+Enter ile tam ekran / pencere arasında geçiş yaparsın.
+
+
+OYUN NE?
+--------
+Cehennemde 1000 yıl cezan var. Kasaya, yani bir şeytana karşı 5 kartlık poker (5 Card Draw) oynayarak cezanı sıfıra
+indirmeye çalışıyorsun. Kazanınca ceza azalır, kaybedince artar.
+
+Kurallar oyunun içinde: Ana menü → HOW TO PLAY (RULES / HANDS / CHEATS sayfaları).
+Poker bilmiyorsan dert etme:
+  - H tuşu hangi elin hangisini yendiğini gösterir.
+  - Oyun elinin adını söyler ("NOW: ONE PAIR").
+  - Kart değiştirirken tutman iyi olan kartlar altın çerçeveyle parlar.
+  - Şeytanlar ilk seferlerde ne olduğunu kendileri anlatır.
+
+
+KONTROLLER
+----------
+  Space / Enter   dağıt · kart değiştir · pas · karşıla
+  R               artır (raise)
+  F               çekil (fold)
+  D               kart değiştirmeye kadar pas geç (check to draw)
+  C               şeytanın artırmasını karşıla (call)
+  1-5             kart seç (atmak için)
+  H               el sıralaması
+  Esc             bir önceki ekran / menü
+  Alt+Enter       tam ekran aç / kapat
+
+  Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
+  Ayarlardan (SETTINGS) animasyon hızını değiştirebilirsin.
+  Fareyle de oynanır: butonlara ve kartlara tıkla.
+
+
+BİR SORUN OLURSA
+----------------
+Oyun çökerse ya da garip bir şey olursa şu dosyayı bana gönder:
+
+  %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log
+
+(Bu satırı Windows Gezgini'nin adres çubuğuna "Player.log" kısmı olmadan yapıştırıp Enter'a basarsan klasör açılır.)
+Yanına iki satır yaz: ne yapıyordun, ne oldu, ne bekliyordun.
+
+
+GERİ BİLDİRİM
+-------------
+GERI_BILDIRIM.txt dosyasındaki soruları cevaplayıp bana geri gönderirsen çok sevinirim. Kısa cevaplar da olur.
+
+İyi eğlenceler — ve şeytanların gösterdiği işaretlere dikkat et.

@@ -152,15 +152,6 @@ namespace HellPoker.Presentation.Ui
             return text;
         }
 
-        /// <summary>A hard 1 px drop shadow in palette black.</summary>
-        public static T WithShadow<T>(this T graphic) where T : Graphic
-        {
-            var shadow = graphic.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = Palette.Black;
-            shadow.effectDistance = new Vector2(1f, -1f);
-            return graphic;
-        }
-
         // ------------------------------------------------------------------ buttons
 
         public static Button CreateButton(string name, Transform parent, string label, int fontSize, out Text labelText,
@@ -192,7 +183,7 @@ namespace HellPoker.Presentation.Ui
                 AddBorder(background.gameObject, Palette.Black, 1f);
             MakeClickOnly(button);
 
-            labelText = CreateText("Label", background.transform, label, fontSize, Palette.Bone, style: FontStyle.Bold).WithShadow();
+            labelText = CreateText("Label", background.transform, label, fontSize, Palette.Bone, style: FontStyle.Bold).WithOutline();
             labelText.rectTransform.Stretch();
             labelText.rectTransform.offsetMin = new Vector2(4f, 0f);
             labelText.rectTransform.offsetMax = new Vector2(-4f, 0f);

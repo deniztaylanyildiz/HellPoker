@@ -32,7 +32,7 @@ namespace HellPoker.Presentation.Views
             var view = panel.gameObject.AddComponent<PayoutTableView>();
             view._sequencer = sequencer;
 
-            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", panel.transform, UiText.PayoutsTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 6, Width, 8);
             UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider).rectTransform.PlaceTL((Width - 48) / 2, 15, 48, 3);
 

@@ -1,26 +1,27 @@
 """The title screen's backdrop: the very bottom of Hell, where the story ends.
 
-480×270, 4 frames side by side (1920 px, within the importer's 2048 px limit), played at ~4 FPS.
+One still 480×270 picture with small looping layers over it (see pixel_layers.py) and embers the game draws itself.
 - Above: a sky of smoke and dead stars, blotted out by two vast wings spreading from the top edge — and, between them, two
-  burning eyes looking down. Lucifer himself is never in the picture.
-- Below: a sea of fire on the horizon, the black ruins of a burning city on either side.
+  burning eyes looking down (a layer: they glow and blink). Lucifer himself is never in the picture.
+- Below: a sea of fire on the horizon (its wild edges roll in layers), the black ruins of a burning city on either side.
 - Edges: Mammon's spilled gold (left), the Dead Man's Hand fanned on a slab (right), Lilith's crescent caught in the left
-  wing's shadow, Belial's silver serpent coiled round a broken column.
+  wing's shadow, Belial's silver serpent coiled round a broken column (a layer).
 Readability first: the middle column (x 70-410, y 25-260), where the logo, the text and the buttons sit, is pushed
-down into the dark; every detail lives at the edges and the top.
-Output: Assets/Resources/Art/Ui/menu.png
+down into the dark, and nothing moves there.
+Output: Assets/Resources/Art/Ui/menu.png (still), menu_<layer>.png, menu_motion.txt
 """
 import math
 import os
 
 import numpy as np
 
-from pixel import C, Img, bezier, ribbon, sheet, shifted
-from pixel_salons import DARKER, lut, sparkle
+from pixel import C, Img, bezier, ribbon, shifted
+from pixel_layers import Layer, Particles, phase, write
+from pixel_salons import DARKER, glint_layer, lut
 
 W, H = 480, 270
-FRAMES = 4
 HORIZON = 200
+FRAMES = 12
 
 
 def sky(img):
@@ -34,9 +35,9 @@ def sky(img):
         img.put(int(rng.integers(0, W)), int(rng.integers(0, 110)), C.MAUVE if rng.random() < 0.7 else C.LILAC_LIGHT)
 
 
-def wings(img, frame):
+def wings(img):
     """Two vast membranes spreading from the top edge, ribbed, their hooked tips reaching down the sides."""
-    sway = [0, 1, 1, 0][frame]
+    sway = 0
     for side in (-1, 1):
         cx = 240 + side * 20
         outer = [(cx, 0), (cx + side * 230, -4), (240 + side * 248, 40 + sway), (240 + side * 232, 92 + sway)]
@@ -61,22 +62,41 @@ def wings(img, frame):
         img.paint(img.m_poly(ribbon([(tx, ty - 6), (tx + side * 3, ty), (tx, ty + 6)], 3, 1)), C.BONE_SHADE)
 
 
-def eyes(img, frame):
-    """His eyes, high above the logo: two slits of fire in the dark between the wings. They close once in a while."""
-    closed = frame == 3
-    for ex in (226, 254):
-        if closed:
-            img.paint(img.m_rect(ex - 4, 13, ex + 4, 13), C.BLOOD_DARK)
-            continue
-        halo = np.hypot(img.xs - ex - 0.5, img.ys - 13.5) / 9.0
+EYES = (226, 254)
+EYES_Y = 13.5
+# The eyes' layer: a box round both of them (screen x 214..266, y 3..24).
+EYES_BOX = (214, 3, 53, 22)
+# Over 12 frames: the glow deepens and eases, and once a loop they narrow, close and open again.
+EYE_OPEN = [2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 1.2, 0.0, 1.2, 2.2]
+EYE_CORE = [C.ORANGE, C.ORANGE, C.AMBER, C.AMBER, C.AMBER, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE]
+
+
+def eye_halos(img):
+    """The dim red glow round his eyes (still, on the backdrop)."""
+    for ex in EYES:
+        halo = np.hypot(img.xs - ex - 0.5, img.ys - EYES_Y) / 9.0
         img.dither(halo < 1, C.BLACK, C.BLOOD_DARK, np.clip(0.5 * (1 - halo), 0, 1))
-        almond = img.m_ellipse(ex + 0.5, 13.5, 5.2, 2.2)
-        img.paint(almond, C.HELL)
-        img.paint(img.m_ellipse(ex + 0.5, 13.5, 3.6, 1.3) & almond, C.AMBER if frame % 2 else C.ORANGE)
-        img.paint(img.m_ellipse(ex + 0.5, 13.5, 2.0, 0.8) & almond, C.EMBER)
-        img.put(ex, 12, C.BLACK)
-        img.put(ex, 13, C.BLACK)
-        img.put(ex, 14, C.BLACK)
+
+
+def eyes_layer():
+    """His eyes, high above the logo: two slits of fire in the dark between the wings. They close once a loop."""
+    ox, oy = EYES_BOX[0], EYES_BOX[1]
+
+    def draw(img, f):
+        for ex in EYES:
+            cx, cy = ex + 0.5 - ox, EYES_Y - oy
+            open_ = EYE_OPEN[f]
+            if open_ <= 0:
+                img.paint(img.m_rect(ex - 4 - ox, 13 - oy, ex + 4 - ox, 13 - oy), C.BLOOD_DARK)
+                continue
+            almond = img.m_ellipse(cx, cy, 5.2, open_)
+            img.paint(almond, C.HELL)
+            img.paint(img.m_ellipse(cx, cy, 3.6, max(0.6, open_ - 0.9)) & almond, EYE_CORE[f])
+            img.paint(img.m_ellipse(cx, cy, 2.0, max(0.5, open_ - 1.4)) & almond, C.EMBER)
+            for y in (12, 13, 14):
+                if almond[y - oy, ex - ox]:
+                    img.put(ex - ox, y - oy, C.BLACK)
+    return Layer("eyes", ox, oy, EYES_BOX[2], EYES_BOX[3], FRAMES, 8, draw)
 
 
 def crescent(img):
@@ -85,8 +105,9 @@ def crescent(img):
     img.shade(moon, [C.MAUVE, C.LILAC, C.LILAC_LIGHT, C.WHITE], light=(-1, 1), shadow=1)
 
 
-def city(img, frame):
+def city(img):
     """Black ruins on the horizon at both sides, windows burning, smoke stacks leaning."""
+    frame = 0
     rng = np.random.default_rng(17)
     for x0, x1 in ((0, 92), (388, W)):
         x = x0
@@ -106,29 +127,61 @@ def city(img, frame):
             x += w + int(rng.integers(0, 3))
 
 
-def fire_sea(img, frame):
+def fire_color(x, y, f):
+    """
+    The sea of fire at a screen pixel, at frame f of its loop. Two crests rolling opposite ways, with periods of 24 and
+    12 px so that over the 12-frame loop they move 2 px and 1 px a frame — and close exactly.
+    """
+    depth = (y - HORIZON) / (H - HORIZON)
+    p = phase(f, FRAMES)
+    wave = math.sin(2 * math.pi * x / 24 + y * 0.35 + p) + 0.6 * math.sin(2 * math.pi * x / 12 - p + y * 0.1)
+    # A still, irregular swell under the crests, so the sea does not read as a regular hatch.
+    wave += 0.7 * math.sin(x * 0.071 + y * 0.53) * math.sin(x * 0.033 - y * 0.21)
+    wave /= 2.0
+    # Calm under the buttons (the middle), wild toward the sides.
+    edge = min(1.0, max(0.0, (abs(x - 240) - 120) / 60.0))
+    heat = (wave * 0.5 + 0.5) * (0.45 + 0.55 * edge)
+    if heat > 0.85:
+        return C.AMBER if depth < 0.4 else C.ORANGE
+    if heat > 0.6:
+        return C.HELL
+    if heat > 0.35:
+        return C.RED
+    return C.CRIMSON if depth < 0.5 else C.BLOOD
+
+
+def fire_sea(img):
     """A sea of fire from the horizon down: rolling crests, burning at the edges, only embers glowing under the menu."""
     for y in range(HORIZON, H):
-        depth = (y - HORIZON) / (H - HORIZON)
         for x in range(W):
-            wave = math.sin(x * 0.09 + y * 0.35 + frame * 1.57) + 0.6 * math.sin(x * 0.23 - frame * 1.57 + y * 0.1)
-            # Calm under the buttons (the middle), wild toward the sides.
-            edge = min(1.0, max(0.0, (abs(x - 240) - 120) / 60.0))
-            heat = (wave * 0.5 + 0.5) * (0.45 + 0.55 * edge)
-            if heat > 0.85:
-                color = C.AMBER if depth < 0.4 else C.ORANGE
-            elif heat > 0.6:
-                color = C.HELL
-            elif heat > 0.35:
-                color = C.RED
-            else:
-                color = C.CRIMSON if depth < 0.5 else C.BLOOD
-            img.put(x, y, color)
+            img.put(x, y, fire_color(x, y, 0))
     img.paint(img.m_rect(0, HORIZON, W, HORIZON), C.EMBER)
 
 
-def gold(img, frame):
-    """Mammon's spilled treasure at the bottom left: a heap of coins, a tipped chest, a coin or two catching the light."""
+# The wild edges of the sea roll (layers); the middle, under the buttons and the footer, stays still.
+FIRE_EDGES = (("fire_left", 0, 88), ("fire_right", 392, 88))
+# Toward the still middle the motion fades out over this many pixels (dithered), so there is no seam.
+FIRE_FADE = 20
+BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
+
+
+def fire_layer(name, x0, w):
+    inner = x0 + w - 1 if x0 < 240 else x0   # the edge facing the middle
+
+    def draw(img, f):
+        for y in range(HORIZON + 1, H):
+            for x in range(x0, x0 + w):
+                still = 1 - min(1.0, abs(x - inner) / FIRE_FADE)   # 1 at the inner edge, 0 from FIRE_FADE px out
+                moving = still * 16 <= BAYER[y % 4][x % 4]
+                img.put(x - x0, y - HORIZON - 1, fire_color(x, y, f if moving else 0))
+    return Layer(name, x0, HORIZON + 1, w, H - HORIZON - 1, FRAMES, 8, draw, vignette=quiet_middle)
+
+
+GOLD_GLINTS = ((20, 254), (52, 252), (8, 262), (66, 262))
+
+
+def gold(img):
+    """Mammon's spilled treasure at the bottom left: a heap of coins, a tipped chest (its coins glint in layers)."""
     heap = img.m_ellipse(34, 272, 46, 26)
     img.shade(heap, [C.GOLD_DARK, C.GOLD_MID, C.GOLD, C.GOLD_LIGHT], shadow=2)
     rng = np.random.default_rng(23)
@@ -151,9 +204,6 @@ def gold(img, frame):
     img.inner_outline(lid, C.GOLD_DARK)
     for x in range(50, 68, 3):
         img.put(x, 235, C.GOLD_LIGHT if x % 2 else C.GOLD)
-    for i, (x, y) in enumerate(((20, 254), (52, 252), (8, 262), (66, 262))):
-        if i % FRAMES == frame:
-            sparkle(img, x, y, size=1)
 
 
 def card(img, x, y, rank, suit_rows, ink):
@@ -171,7 +221,7 @@ SPADE = ["..k..", ".kkk.", "kkkkk", "..k..", ".kkk."]
 CLUB = [".kkk.", ".kkk.", "kkkkk", "k.k.k", "..k.."]
 
 
-def dead_mans_hand(img, frame):
+def dead_mans_hand(img):
     """A♠ A♣ 8♠ 8♣ fanned on a stone slab at the bottom right — the one hand that walks out of here."""
     slab = img.m_rect(404, 236, 476, 262)
     img.paint(slab, C.DUSK)
@@ -179,47 +229,52 @@ def dead_mans_hand(img, frame):
     img.inner_outline(slab, C.BLACK)
     for i, (rank, suit) in enumerate(((GLYPH_A, SPADE), (GLYPH_A, CLUB), (GLYPH_8, SPADE), (GLYPH_8, CLUB))):
         card(img, 410 + i * 15, 230 - (1 if i in (1, 2) else 0), rank, suit, C.BLACK)
-    if frame == 1:
-        sparkle(img, 412, 230, size=1)
 
 
-def serpent_column(img, frame):
-    """A broken column at the right with Belial's silver serpent wound round it."""
-    x = 448
+COLUMN_X = 448
+# The serpent's layer: round the column from its broken top to the horizon (screen x 436..460, y 90..200).
+SERPENT_BOX = (434, 90, 29, HORIZON - 90 + 1)
+
+
+def serpent_column(img):
+    """A broken column at the right (Belial's silver serpent winds round it in a layer)."""
+    x = COLUMN_X
     column = img.m_rect(x - 7, 104, x + 7, HORIZON)
     img.paint(column, C.BONE_SHADE)
     img.paint(img.m_rect(x - 7, 104, x - 6, HORIZON), C.BONE_DARK)
     img.paint(img.m_poly([(x - 9, 104), (x - 4, 96), (x + 2, 102), (x + 8, 94), (x + 9, 104)]), C.BONE_SHADE)
     img.inner_outline(column, C.BLACK)
-    spine = [(x + 8 * math.sin(y * 0.16 + frame * 0.8), y) for y in range(108, HORIZON, 3)]
-    img.paint(img.m_poly(ribbon(spine, 4, 3)), C.SILVER_DARK)
-    hx, hy = spine[0]
-    img.paint(img.m_ellipse(hx + 2, hy - 2, 3, 2), C.SILVER)
-    img.put(int(hx) + 3, int(hy) - 3, C.HELL)
 
 
-def embers(img, frame):
-    rng = np.random.default_rng(66)
-    for _ in range(40):
-        x = int(rng.integers(0, W))
-        y = (int(rng.integers(30, HORIZON)) - frame * int(rng.integers(4, 9))) % HORIZON
-        img.put(x, y, [C.AMBER, C.ORANGE, C.HELL][int(rng.integers(0, 3))])
+def serpent_layer():
+    """The serpent's coils slide round the column, at most two pixels a frame; its head sways with them."""
+    ox, oy, w, h = SERPENT_BOX
+
+    def draw(img, f):
+        spine = [(COLUMN_X - ox + 4 * math.sin(y * 0.16 + phase(f, FRAMES)), y - oy) for y in range(108, HORIZON, 3)]
+        img.paint(img.m_poly(ribbon(spine, 4, 3)), C.SILVER_DARK)
+        hx, hy = spine[0]
+        img.paint(img.m_ellipse(hx + 2, hy - 2, 3, 2), C.SILVER)
+        img.put(int(hx) + 3, int(hy) - 3, C.HELL)
+    return Layer("serpent", ox, oy, w, h, FRAMES, 10, draw)
 
 
-def quiet_middle(img):
+def quiet_middle(img, ox=0, oy=0):
     """
     Two steps darker over the middle column (x 70-410, y 25-260), fading out over ~24 px, so the logo, the text and the
-    buttons always stand clear. The eyes above the logo stay lit.
+    buttons always stand clear. The eyes above the logo stay lit. (ox, oy): where the image sits on the screen, so a
+    layer gets the same darkness, with the same dither, as the backdrop under it.
     """
     darker = lut(DARKER)
     once = darker[img.px]
     twice = darker[once]
+    xs, ys = img.xs + ox, img.ys + oy
     threshold = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]], np.float32)[
-        np.arange(img.h)[:, None] % 4, np.arange(img.w)[None, :] % 4] / 16.0
+        (np.arange(img.h)[:, None] + oy) % 4, (np.arange(img.w)[None, :] + ox) % 4] / 16.0
 
     def field(x0, y0, x1, y1, fade):
-        dx = np.maximum(np.maximum(x0 - img.xs, img.xs - x1), 0)
-        dy = np.maximum(np.maximum(y0 - img.ys, img.ys - y1), 0)
+        dx = np.maximum(np.maximum(x0 - xs, xs - x1), 0)
+        dy = np.maximum(np.maximum(y0 - ys, ys - y1), 0)
         return np.clip(1 - np.hypot(dx, dy) / fade, 0, 1)
 
     middle = field(94, 30, 386, 256, 24)
@@ -228,24 +283,38 @@ def quiet_middle(img):
     img.px = out
 
 
-def menu(frame):
+def menu_base():
     img = Img(W, H, C.BLACK)
     sky(img)
     crescent(img)
-    fire_sea(img, frame)
-    city(img, frame)
-    embers(img, frame)
-    wings(img, frame)
-    serpent_column(img, frame)
-    gold(img, frame)
-    dead_mans_hand(img, frame)
+    fire_sea(img)
+    city(img)
+    wings(img)
+    serpent_column(img)
+    gold(img)
+    dead_mans_hand(img)
     quiet_middle(img)
-    eyes(img, frame)   # above the logo, never darkened
+    eye_halos(img)   # above the logo, never darkened (the eyes themselves are a layer)
     return img
 
 
+def menu_layers():
+    layers = [eyes_layer(), serpent_layer()]
+    layers += [fire_layer(name, x0, w) for name, x0, w in FIRE_EDGES]
+    for i, (x, y) in enumerate(GOLD_GLINTS):
+        layers.append(glint_layer(f"glint{i}", x, y, offset=i * 3))
+    layers.append(glint_layer("glint_cards", 412, 230, offset=7))
+    return layers
+
+
+# Embers rise from the burning city on either side, never across the logo, the words or the buttons.
+MENU_PARTICLES = [Particles("embers", 0, 30, 90, 170, 14), Particles("embers", 390, 30, 90, 170, 14)]
+
+# Where words sit on the title screen (nothing moves there): the taglines, the button grid, the footer, and the version
+# in the bottom right corner.
+MENU_TEXT = ((88, 84, 392, 126), (100, 128, 380, 240), (176, 250, 304, 266), (400, 256, 479, 269))
+
+
 def write_all(out_dir):
-    os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, "menu.png")
-    sheet([menu(f) for f in range(FRAMES)]).save(path)
-    return [path]
+    return write(out_dir, menu_base(), menu_layers(), MENU_PARTICLES, base_name="menu", layer_prefix="menu_",
+                 manifest_name="menu_motion", text_zones=MENU_TEXT)

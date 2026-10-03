@@ -122,7 +122,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   | Şeytan | Kart değiştir | Kasa gösterir | Ödeme | Çekilme (önce/sonra) | Re-raise (Two Pair+ / blöf) | Hileler (gösterge) |
   |---|---|---|---|---|---|---|
   | **Mammon** (Tefeci, dürüst) | 3 | 2 | standart | %50 / %100 | %70 / %5 | Rehin, Haraç / **Satın Al** (4) |
-  | **Belial** (Gümüş Dil, blöfçü) | 3 | 1 | yüksek (Quads ×15, SF ×25, Royal ×30) | %50 / %100 | %60 / %30 | Sahte Yüz, Çatal Dil / **Yılan Takası** (2), niyet %25 yalan |
+  | **Belial** (Gümüş Dil, blöfçü) | 3 | 1 | yüksek (Quads ×15, SF ×25, Royal ×30) | %50 / %100 | %60 / %30 | Sahte Yüz, Çatal Dil / **Yılan Takası** (2), niyet %25 yalan, dil %20 kayar |
   | **Lilith** (Gecenin Kraliçesi, acımasız, en zor) | 4 | 2 | standart, kayıp **×1.25** | %100 / %100 | %90 / %10 | Gece Örtüsü, Diken / **Aysız Gece** (4) |
   | **Lucifer** (The Morning Star, final; seçilemez) | 3 | **0** | standart, kayıp **×1.25**; **sabit ölçek** ante 50 / tavan 150 | %100 / %100 | %80 / %25 | Bakış, Yeniden Yazma, Yanan Kart / **Düşüş** (1 = her el) |
   - Lucifer'in sabit ölçeği: `Dealer.Stakes` = `StakeScale.Fixed(50, 150)`, daha azı all-in. `Dealer.IsFinalTable`.
@@ -139,7 +139,21 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - Vuran / engellenen hile göstergeyi boşaltır; boşa giden (hedef yok) ya da anı gelmeyen (oyuncu önce çekildi) dolu bırakır.
   - Değişmezler: showdown sonucunu sadece Düşüş değiştirir; **Dead Man's Hand kartları bağışık**; her hile görünür;
     eski kurallar (mühür, ruh, Lucifer) geçerli. Her vuruştan önce `ICheatGuard` sorulur (şimdilik `AllowEveryCheat`; ileride sınıf yetenekleri).
-  - Kayıt `v=3`: `malice`, `cheat.major`, yarım elde `hand.cheat / hand.shown / hand.cheat.done`; v1/v2 boş göstergeyle okunur.
+  - Hedefler (kart seçen hileler, `CheatTable.AdvisedDiscards` = kasa mantığının atacağı kartlar):
+    - Rehin: atılacak kartların en yükseği (hazır elde en düşük kart). Diken: atılacak kartlardan biri (yoksa rastgele).
+    - Yanan Kart: en iyi kombinasyonun (çift, üçlü..., kenta / renk ise her kart) en yüksek kartı, yoksa en yüksek kart; yerine desteden rastgele.
+    - Gece Örtüsü **dağıtımda** vurur, sadece henüz açılmamış (3.-5.) bir karta: kart sırası gelince yüzü hiç görünmeden, örtüyle açılır.
+    - Çatal Dil %80 nişanlı (önce renk / 4 aynı renk bozulur, yoksa eli düşüren, yoksa zararsız değişim), %20 "dil kayar"
+      (`Dealer.BackfirePercent`): rastgele renk değişimi, oyuncuya renk verebilir.
+    - Bakış: kaybedecek ele kasa %100, kazanacak ele %50 (`HellPokerGame.GazeBluffPercent`) re-raise yapar; re-raise kesin bilgi değildir.
+  - **Geri tepme (backfire):** hile oyuncunun elini güçlendirirse (`CheatResult.Backfired`, `CheatSession` vuruş öncesi / sonrası eli
+    karşılaştırır). Sadece şansa bırakan hileler geri tepebilir: Çatal Dil'in kayması, Yanan Kart, Düşüş. Diğer hiçbir hile oyuncuya
+    yaramaz (Satın Al ve Yılan Takası yarayacak kartı seçmez; testle sabit). Masada: yeni kart hemen döner, üstünde "BACKFIRE",
+    şeytan kızgın (angry) ve kendi `Backfire` repliğini söyler; sonuç satırı "It backfired!". Kayıtta `backfires` (koşu), rekorlarda
+    "Backfires seen".
+  - **Gizlilik:** oyuncudan gizlenen kart (`WasPlayerCardHidden`) showdown'da kasa beş kartını açana kadar hiçbir yoldan yüzünü göstermez
+    (mühürlü elin kendi kendine açılışı, hile vuruşu dahil); gizli kart varken draw ipucu çerçevesi yok. Sonuçta önce kasa, sonra oyuncu döner.
+  - Kayıt `v=3`: `malice`, `cheat.major`, `backfires`, yarım elde `hand.cheat / hand.shown / hand.cheat.done`; v1/v2 boş göstergeyle okunur.
   - Masada: portrenin altında pip göstergesi, üstünde niyet şeridi (ikon + ad, hover'da açıklama, H panelinde de), yalan "LIAR" diye
     kırılıp gerçeğe döner. Vuruşta kart 1-2 px sarsılır, şeytan reraise animasyonu + hile repliği; işaretler kartta kalır
     (zincir, diken, örtü, sahte yüz parıltısı). Sonuç mesajında hile satırı (ruhta yıl yok). Şeytan başına ilk hile ipucu.
@@ -148,11 +162,12 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   niyete tepki verir):
   | Şeytan | Aklanma (hedef) | Ort. el | Lucifer'e ulaşan | İlk denemede yenme | Ort. deneme | Hile / el |
   |---|---|---|---|---|---|---|
-  | Mammon | %81.8 (~80) | ~44 | %86 | %36 | 2.8 | 0.27 |
-  | Belial | %75.7 (~70) | ~25 | %81 | %42 | 2.4 | 0.48 |
-  | Lilith | %54.6 (~55) | ~28 | %67 | %37 | 2.3 | 0.35 |
+  | Mammon | %79.7 (~80) | ~49 | %85 | %34 | 3.0 | 0.27 |
+  | Belial | %74.1 (~70) | ~26 | %81 | %39 | 2.5 | 0.48 |
+  | Lilith | %52.6 (~55) | ~29 | %66 | %34 | 2.5 | 0.36 |
 
-  Lucifer masasında el başına 0.83 hile. Belial her el hile yapsa bile ~%75'in altına inmiyor (hileleri hafif) — bkz. DEVLOG.
+  Lucifer masasında el başına 0.83 hile; geri tepme: Yanan Kart %26, Düşüş %18, Çatal Dil ~%0.04 (kayma nadiren renk verir).
+  Belial her el hile yapsa bile ~%75'in altına inmiyor (hileleri hafif); son karar oyun testinden sonra — bkz. DEVLOG.
   Ruhu masaya koyan koşular %29 / %38 / %61. `HELLPOKER_LUCIFER_GATE` (0 = Lucifer yok) ve `HELLPOKER_CAST_DOWN` ile denenebilir. Ruh değerini düşürmek el sayısını neredeyse değiştirmiyor
   (bahis birimi ruhla birlikte küçülüyor), sadece Lilith'i zorlaştırıyor — bkz. DEVLOG.
 - **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) **yenilmez**: Royal Flush dahil her eli yener (testlerle sabit)
@@ -184,23 +199,25 @@ Assets/Scripts/
                    IMainMenuView, ISettingsView (+ IDisplayMode, IScreenTransition), IEndScreenView / IRecordsView (+ RunSummary),
                    IGuideSettings, DealerCard, SoulGauge (+ LeaveState), ITableCommands, IMenuCommands, Tone,
                    CheatDisplay (MaliceGauge, CheatCard, CheatImpact, CardMark; CardSlot.Mark)
-    Animation/     SpriteClip + SpriteSheet (yatay şeridi kare karelere böler), DealerAnimationLibrary ve SalonLibrary (yedek zincirleri),
-                   SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer), AnimationClock (hız + atlama; tüm tween'ler)
+    Animation/     SpriteClip + SpriteSheet (yatay şeridi kare karelere böler), DealerAnimationLibrary, SalonLibrary ve MenuBackdropLibrary
+                   (yedek zincirleri; sabit resim + `Motion`, salonlar açılışta `Preload`), BackdropMotion (motion.txt: BackdropLayer,
+                   BackdropParticles), SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer), AnimationClock (hız + atlama)
     Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, SalonView,
                    SoulView, SentenceView, CardView, HandRanksPanel, TableMoments, TableScenes (çağrılma kararması / düşüş /
-                   Lucifer titremesi), MaliceView (gösterge + niyet şeridi + yalanın kırılması), CheatEffects (hile vuruşu),
-                   MenuBackdrop, SettingsView, EndScreenView, RecordsView,
+                   Lucifer titremesi), MaliceView (gösterge + niyet şeridi + yalanın kırılması), CheatEffects (hile vuruşu, BACKFIRE),
+                   MenuBackdrop, BackdropMotionView (katmanlar + piksel parçacıkları, kendi Canvas'ı), FpsCounter (F3, dev build),
+                   SettingsView, EndScreenView, RecordsView,
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings), ISettingsStore (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
-    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font), Palette, UiText + UiText.Dealers
-                   + UiText.Cheats,
+    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
+                   + UiText.Cheats, PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
     TablePresenter (masa; IRunSession: yeni koşu, devam (Resume), LEAVE isteği, masa değiştirme (ceza taşınır), kayıt / rekor, RunEnded;
     her masada oyunu Func<Dealer, IHellPokerGame> ile kurar), MainMenuPresenter (tüm ekranlar arası gezinme, Esc, geçişler),
     SettingsPresenter (ayar ekranı ↔ GameSettings ↔ hız / pencere), UnityDisplayMode, DealerCards, KeyboardInput,
-    HellPokerBootstrap (composition root)
+    FpsTour (dev build + `-fpstour`: her ekranda FPS ölçüp log'a yazar, çıkar), HellPokerBootstrap (composition root)
   Editor/        HellPokerSceneBuilder (menü: Hell Poker ▸ Build Main Scene), HellPokerMenu (Hell Poker ▸ Play, Ctrl+Shift+P),
-                 HellPokerBuild (Hell Poker ▸ Build Windows: Builds/Windows/HellPoker.exe, x64),
+                 HellPokerBuild (Hell Poker ▸ Build Windows: Builds/Windows/HellPoker.exe, x64; Build Windows (Development): Builds/WindowsDev),
                  HellPokerArtImporter (Resources/Art: Point filtre, PPU 100, sıkıştırmasız, 9-slice; Resources/Fonts: Hinted Raster),
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
@@ -208,18 +225,21 @@ Assets/Tests/EditMode/  NUnit testleri (Core + Presenter, fake view'larla)
 Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla oynayan testler: HellPokerSceneTests, SalonRegressionTests,
                         RunJourneyTests (yeni oyun → eller → masa değiştir → menü → devam → sahneyi yeniden yükle → devam),
                         LuciferJourneyTests (yığılmış destelerle çağrılma → düşüş → yeniden çağrılma → zafer),
-                        CheatJourneyTests (her şeytan bir hile; CheatRig hileyi yansımayla masaya zorlar)
+                        CheatJourneyTests (her şeytan bir hile; CheatRig hileyi yansımayla masaya zorlar; DarkWatch her karede gizli kartı
+                        izler), BackdropMotionPlayTests (menü ve salonlar hareket eder, tam piksel)
                         + HellPokerScreenshots / CheatScreenshots ([Explicit]: 1920×1080 ekran görüntüleri; hileler 40–57)
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
 Assets/Resources/Art/   Üretilmiş piksel görseller:
                           Demons/<dealerId>/<durum>.png  (idle, talk, gloat, angry, reraise, final, soul — yatay şerit, kareler 96×96)
-                          Backgrounds/<dealerId>/{normal,hell,soul}.png  (şeytan salonları, 480×270 kareler, 4 FPS)
+                          Backgrounds/<dealerId>/{normal,hell,soul}.png  (şeytan salonları: tek kare 480×270 sabit resim)
+                                                 <katman>[_hell|_soul].png + motion.txt  (hareketli katmanlar, parçacıklar)
                           Ui/ (background[_hell], panel[_hot], dialog[_lucifer], button_*, card_face/back/slot, suit_*[_small], digits,
-                               title, coin, flames, divider, soul_lamp, fade, menu,
+                               title, coin, flames, divider, soul_lamp, fade, menu (+ menu_<katman>, menu_motion.txt),
                                cheat_icons (16×16, CheatIds sırası), malice_pips (8×8), card_marks (32×48 kart üstü işaretler))
 Assets/Resources/Fonts/ HellPokerPixelTitle (Press Start 2P), HellPokerPixel (Tiny5) — OFL lisansları yanında; eksik glifler piksel olarak eklendi
-Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_salons.py, pixel_ui.py, pixel_menu.py, fonts.py, generate_art.py,
-                        preview.py
+Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı zemin: Layer, Particles, döngü kontrolü, yazı bölgeleri),
+                        pixel_demons.py, pixel_salons.py, pixel_ui.py, pixel_menu.py, fonts.py, generate_art.py,
+                        preview.py (katmanlı zeminleri gerçek hızında oynatır)
                         (preview/ çıktısı repoya girmez)
 ```
 
@@ -243,6 +263,24 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_salons
 - **Salonlar:** masa yok; her şeytanın kendi salonu (Mammon hazine odası, Belial tiyatro, Lilith ay bahçesi). Orta sütun
   okunabilirlik için vinyetle koyu. Son 250 yılda `hell`, ruh masadayken `soul` varyantı (soul, hell'den önceliklidir).
   Seçim ekranında seçili şeytanın salonu arkada, 8 px'lik perde geçişiyle.
+- **Katmanlı zemin** (salonlar ve menü, `pixel_layers.py`): tam ekran çok kareli şerit yok (2048 px sınırı 4 kare demek, hareket
+  kesik kesik görünüyordu). Zemin **tek kare sabit resim**; hareket eden her parça kendi küçük şeridi:
+  - **8-12 kare, 8-12 FPS**, kare başına en fazla 1-2 piksel kayma (yavaş ama sürekli), şerit genişliği ≤ 2048.
+  - Liste `motion.txt`'te: `layer <dosya> x y kare fps tekrar kayma(px/sn) sarma ofset`, `particles <tür> x y w h adet`.
+    Varyant şeridi `<dosya>_hell` / `_soul`, yoksa normal (`SalonLibrary.Motion`). Kayan katman (Lilith'in kuşları) tam piksel ilerler, sarılır.
+  - Kor / toz / sis gibi parçacıklar sprite karesi değil kod: `BackdropMotionView` (tek piksellik Image'lar, tam piksel adım,
+    `AnimationClock` hızına uyar; türler embers / motes / wisps, soul'da soğuk, hell'de sıcak renk). Katmanlar gerçek zamanla döner.
+  - `BackdropMotionView` kendi iç içe Canvas'ı: her kare hareket eden pikseller masa canvas'ını yeniden kurdurmaz.
+  - Şu anki hareketler: Mammon kefeler (zıt fazda 1 px), sikke parıltıları, altın tozu; Belial perde kıvrımlarının dış yarısı,
+    yılanlı sütunlar; Lilith mum alevi, yıldızlar, kuşlar, sis; Lucifer dıştaki 4 zincir, korlar; menü gözler (kırpma), yılan,
+    ateş denizinin kenarları (ortaya doğru dither ile durulur), parıltılar, korlar.
+- **Döngü kuralı:** periyodik hareketin fazı `2π · kare / kare_sayısı`. ArtGen her şeritte kontrol eder (testler de): son kareden ilk
+  kareye geçiş, ardışık kareler arasındaki en büyük farktan büyük olamaz (%2 pay: aynı faz farklı kesirlerle nicelenir).
+  Parıltı / göz kırpma gibi "patlayan" hareketler büyüyüp söner, 0. kare daima dinlenme hali.
+- **Okunabilirlik kuralı:** oyun ve menü ekranındaki her yazı ya panelde / koyu şeritte durur ya da `WithOutline()` (8 yönlü 1 px
+  siyah dış çizgi, `PixelOutline`) alır. Hareketli katman ve parçacıklar yazı bölgelerine girmez: `TABLE_TEXT` / `MENU_TEXT`
+  (ArtGen) içinde katman temizlenir, sabit resim o bölgede katmanın 0. karesini alır (hiçbir şey eksik görünmez, ama oynamaz).
+  `BackdropMotionTests` her şeridi bu bölgelere karşı denetler. Yeni yazı eklenirse bölgeyi de güncelle.
 - **Ruh bölgesi görünümü:** sayaç yerine `SoulView` (fener + bar, masadaki pay yanıp söner, kayıpta kırmızı akar, girişte kutu
   yanıp söner). Hiç sayı yok. Solda LEAVE TABLE / SOUL BOUND butonu (dealer diyaloğunun altında).
 - **Yedek zinciri:** şeytan: durum dosyası yoksa idle, o da yoksa tek portre (`Demons/<id>.png`), o da yoksa düz renk.
@@ -254,7 +292,7 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_salons
 - **Lucifer asla tam görünmez:**
   - Portre zifiri karanlıkta iki yanan göz, iki pençe ucu ve bir kanat kenarı (`pixel_demons.lucifer_frames`). Yüz / beden / siluet yok.
   - `LuciferArtTests` her karede (angry hariç) en az %85 koyu piksel ister.
-  - Salonu (`Backgrounds/lucifer/{normal,hell}`, 4 kare): tahtın sadece alt basamakları ve ayakları, zincirler, korlar.
+  - Salonu (`Backgrounds/lucifer/{normal,hell}` + katmanlar): tahtın sadece alt basamakları ve ayakları, zincirler, korlar.
   - Konuşurken isim "THE MORNING STAR" (metin fontu, kızıl), yazı kor turuncusu, kutu `Ui/dialog_lucifer`; her replikte ekran 1 px titrer.
     Masada adının altı boş. "Waits below 250 years" sadece seçim ekranındaki kilitli kartta.
 - **Sahneler** (`TableScenes`, `IDealerView.SetDealer(card, SeatChange)`):
@@ -263,13 +301,18 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_demons.py, pixel_salons
   - Düşüş: ekran 6 px'lik adımlarla yukarı kayar, eski salon aşağıdan gelir.
   - Her sahne iki kuyruk adımı. İkinci adım yeni şeytan konuşunca ya da `SetAction`'da kuyruğa girer.
   - Değişim anında eski masanın son anlar / çıkış butonu sıfırlanır. Atlama çalışır, anında değişim `Abort` eder.
-- Importer 2048 px'ten geniş dokuyu küçültür: salon şeridi en fazla 4 kare (4 × 480).
-- **Ana menü zemini** (`Ui/menu.png`, `pixel_menu.py`, 4 kare, 4 FPS):
+- Importer 2048 px'ten geniş dokuyu küçültür: her şerit ≤ 2048 px (katmanlı zemin bu yüzden var).
+- **Ana menü zemini** (`Ui/menu.png` tek kare + `menu_*` katmanları + `menu_motion.txt`, `pixel_menu.py`):
   - Konu: cehennemin dibi. Gökte Lucifer'in kanatları ve logonun üstünde iki gözü (o kadar), ufukta ateş denizi ve yanan şehir.
   - Kenarlarda Mammon'un altını / sandığı, Lilith'in hilali, Belial'in yılanlı sütunu, Dead Man's Hand kartları.
   - Orta sütun (x 70-410, y 25-260) iki adım koyulaştırılmış, altındaki ateş denizi sakin. `MenuBackdropTests` en az %80 koyu ister.
   - `MenuBackdrop.Create` menü, ayarlar ve rekorlar ekranında oynar (kurallar menü canvas'ında, zemin arkada kalır).
-    Yedek zinciri: `Ui/menu` → `Ui/background` → düz renk (`MenuBackdropLibrary`).
+    Yedek zinciri: `Ui/menu` → `Ui/background` → düz renk (`MenuBackdropLibrary`). Sağ alt köşede sürüm (`Application.version`).
+- **FPS:** development build'de (ve editörde) F3 sol üstte FPS (ortalama + en yavaş kare) gösterir. Hedef sabit 60 (vSync).
+- **Açılış (splash):** stüdyo logosu `Assets/Art/Splash/caveman_logo.png` (`pixel_splash.py`, `generate_art.py splash`; 148×44
+  çizilip ×5 büyütülmüş, saydam zemin, başlık fontuyla "CAVEMAN" + mağara adamı). Resources dışında: oyun kodu yüklemez.
+  Ayarlar `HellPokerBuild.ApplySplashScreen` ile her build'den önce uygulanır (menü: Hell Poker ▸ Apply Splash Screen):
+  splash açık, Unity logosu kapalı, siyah arka plan, sabit (zoom yok), tek logo 2 sn.
 - Proje **lineer renk uzayında**: UI'da düşük alfa bile ekranda güçlü görünür.
 - Yeni hile: `Core/Cheats`'te `ICheat` sınıfı + `CheatIds` + şeytanın politikasına (`DealerRoster`), `UiText.Cheats`'e ad / açıklama /
   replik / kayıt satırı, `pixel_ui.py`'de `CHEAT_ICON_IDS`'e ikon. Presenter şeytanı yalnızca `Dealer` üzerinden tanır.
@@ -314,12 +357,18 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 # Görselleri / fontları yeniden üret (py -m pip install --user pillow numpy fonttools)
 py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu]
 py Tools/ArtGen/fonts.py
-py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: tüm şeytan karelerinin animasyonlu önizlemesi
+py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: şeytan kareleri + katmanlı zeminler gerçek hızında (yazı bölgeleri kesikli)
 
-# Oynanabilir Windows x64 build → Builds/Windows/HellPoker.exe (Builds/ git'e girmez; editörde: Hell Poker ▸ Build Windows).
+# Oynanabilir Windows x64 build → Builds/Windows/HellPoker.exe + test paketi Builds/HellPoker-<sürüm>-win64.zip
+# (Builds/ git'e girmez; editörde: Hell Poker ▸ Build Windows). Zip: HellPoker-<sürüm>/ klasörü (oyun, *_DoNotShip hariç) +
+# Docs/Release/OKUBENI.txt ve GERI_BILDIRIM.txt ({VERSION} doldurulur, UTF-8 BOM). Sürüm: Player Settings ▸ Version (bundleVersion).
 # Start-Process -Wait ile çalıştır ki çıkış kodu (hata = 1) görülsün. Oyun testi kontrol listesi: Docs/PLAYTEST.md
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.Windows -logFile build.log
-# Player log: %USERPROFILE%\AppData\LocalLow\DefaultCompany\Hellpoker\Player.log
+# Player log (Company "Deniz", Product "Hell Poker"): %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log
+# Duman testi (her build): HellPoker.exe -fpstour → menü, seçim, salonlar, Lucifer; log'da hata olmamalı.
+# FPS ölçümü: development build (Builds/WindowsDev, F3 açık), sonra her ekranı gezip log'a yazan tur:
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.WindowsDevelopment -logFile build.log
+Builds\WindowsDev\HellPoker.exe -fpstour -screen-fullscreen 0 -screen-width 1920 -screen-height 1080   # log'da "Hell Poker FPS ..." satırları
 
 # Ana sahneyi yeniden oluştur
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerSceneBuilder.Build -logFile build.log

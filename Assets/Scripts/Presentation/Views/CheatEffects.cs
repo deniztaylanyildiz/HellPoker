@@ -61,9 +61,16 @@ namespace HellPoker.Presentation.Views
             _sequencer.Play(Strike(impact));
         }
 
+        /// <summary>The cheat turned on its demon: <paramref name="text"/> blinks over the first card it touched.</summary>
+        public void PlayBackfire(string text, IReadOnlyList<int> playerCards)
+        {
+            _sequencer.Play(Backfire(text, playerCards));
+        }
+
         /// <summary>Everything back in place (skip).</summary>
         public void Finish()
         {
+            if (_backfire != null) _backfire.SetActive(false);
             foreach (Image sign in _signs.Values) sign.enabled = false;
             foreach (Image coin in _coins) coin.enabled = false;
             foreach (CardView card in _shaking) card.Nudge(0);
@@ -108,6 +115,58 @@ namespace HellPoker.Presentation.Views
             }
             _shaking.Clear();
             _screen.anchoredPosition = Vector2.zero;
+        }
+
+        /// <summary>
+        /// "BACKFIRE" on a dark strip across the card (readable over anything), blinking a few times, then gone.
+        /// </summary>
+        private IEnumerator Backfire(string text, IReadOnlyList<int> playerCards)
+        {
+            LastBackfire = text;
+            CardView card = playerCards != null && playerCards.Count > 0 ? _player.Card(playerCards[0]) : null;
+            if (_backfire == null) BuildBackfire();
+            _backfireText.text = text;
+
+            // The strip is centred on the card (or on the player's hand), wider than the card so the word fits.
+            Vector2 centre = card != null ? ScreenPoint(card) : new Vector2(240, 164);
+            ((RectTransform)_backfire.transform).PlaceTL(Mathf.RoundToInt(centre.x) - BackfireWidth / 2, Mathf.RoundToInt(centre.y) - 6,
+                BackfireWidth, 12);
+            _backfire.transform.SetAsLastSibling();
+            for (int i = 0; i < 6; i++)
+            {
+                _backfire.SetActive(i % 2 == 0 || i == 5);
+                yield return Tween.Wait(i == 5 ? 0.5f : 0.12f);
+            }
+            _backfire.SetActive(false);
+        }
+
+        private const int BackfireWidth = 72;
+        private GameObject _backfire;
+        private Text _backfireText;
+
+        /// <summary>The last backfire shown (for tests and screenshots).</summary>
+        public string LastBackfire { get; private set; }
+
+        private void BuildBackfire()
+        {
+            Image strip = UiFactory.CreateImage("Backfire", _screen, Palette.Black);
+            strip.raycastTarget = false;
+            UiFactory.AddBorder(strip.gameObject, Palette.Ember, 1f);
+            _backfireText = UiFactory.CreateText("Text", strip.transform, "", 8, Palette.GoldLight, TextAnchor.MiddleCenter, FontStyle.Bold)
+                .WithOutline();
+            _backfireText.rectTransform.Stretch();
+            _backfire = strip.gameObject;
+            _backfire.SetActive(false);
+        }
+
+        /// <summary>The centre of a card in screen pixels (top-left origin), from its place under the screen.</summary>
+        private Vector2 ScreenPoint(CardView card)
+        {
+            var rect = (RectTransform)card.transform;
+            Vector3 local = _screen.InverseTransformPoint(rect.TransformPoint(rect.rect.center));
+            // In PlaceTL terms: x from the screen's left edge, y down from its top.
+            Rect screen = _screen.rect;
+            return new Vector2(local.x - screen.xMin, screen.yMax - local.y);
         }
 
         /// <summary>Three coins rise from the player's hand to the demon, one after another.</summary>

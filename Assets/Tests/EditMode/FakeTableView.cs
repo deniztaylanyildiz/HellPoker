@@ -97,12 +97,17 @@ namespace HellPoker.Core.Tests
         public void HideHandRanks() => HandRanksOpen = false;
         public void PressHandRanks() => HandRanksPressed?.Invoke();
 
+        /// <summary>Every row of cards either hand was told to show, in the order the table was told (house or player).</summary>
+        public List<(bool house, CardSlot[] slots)> ShowLog { get; } = new List<(bool, CardSlot[])>();
+
         public FakeTableView()
         {
             SentenceView.Log = NumberLog;
             DealerView.Log = TextLog;
             HouseView.Log = TextLog;
             PlayerView.Log = TextLog;
+            HouseView.Shown = slots => ShowLog.Add((true, slots));
+            PlayerView.Shown = slots => ShowLog.Add((false, slots));
         }
 
         public void SetMessage(string text, Tone tone)
@@ -189,11 +194,15 @@ namespace HellPoker.Core.Tests
         /// <summary>Every row of slots the view was told to show, in order.</summary>
         public List<CardSlot[]> History { get; } = new List<CardSlot[]>();
 
+        /// <summary>Told about every row shown (the table's shared log).</summary>
+        public Action<CardSlot[]> Shown { get; set; }
+
         public void Show(IReadOnlyList<CardSlot> slots)
         {
             Slots = slots.ToArray();
             History.Add(Slots);
             ShownFaceUp.Add(FaceUpCount);
+            Shown?.Invoke(Slots);
         }
 
         public void SetSelection(ICollection<int> selectedIndices)
@@ -269,9 +278,13 @@ namespace HellPoker.Core.Tests
             Seats.Add((dealer.Id, change));
         }
 
+        /// <summary>Every line said, with the mood it was said in.</summary>
+        public List<(string line, DealerMood mood)> Said { get; } = new List<(string, DealerMood)>();
+
         public void Say(string line, DealerMood mood)
         {
             Log?.Add(line);
+            Said.Add((line, mood));
             LastLine = line;
             LastMood = mood;
             LinesSaid++;

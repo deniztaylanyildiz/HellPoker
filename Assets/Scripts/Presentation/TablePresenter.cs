@@ -235,6 +235,15 @@ namespace HellPoker.Presentation
             _stats.RecordHand(_game.Years, round.Folded ? (HandCategory?)null : round.Showdown.Player.Category,
                 _game.IsSoulAtStake || _game.IsSoulHand);
 
+            // A demon's cheat that helped the player goes into the run's story and the records.
+            int backfires = _game.CheatsThisHand.Count(r => r.Backfired);
+            if (backfires > 0)
+            {
+                _stats.NoteBackfires(backfires);
+                _records.NoteBackfires(backfires);
+                _archive?.SaveRecords(_records);
+            }
+
             if (_game.IsGameOver)
             {
                 EndRunRecords();
@@ -546,10 +555,11 @@ namespace HellPoker.Presentation
             new CheatCard(cheatId, UiText.CheatName(cheatId), UiText.CheatDescription(cheatId));
 
         /// <summary>
-        /// Every cheat that struck during the last command, in plain sight: a lie comes out first ("LIAR"), the card as it was
-        /// shows for a moment, the blow lands on the cards, and the demon says their line (with the sly re-raise look).
-        /// What changed then shows with the next table update (a card turning, a mark appearing).
-        /// A blocked or fizzled cheat just takes its sign down.
+        /// Every cheat that struck during the last command, in plain sight: the sign goes up (a cheat at the deal strikes
+        /// before it could be seen otherwise), a lie comes out ("LIAR"), the card as it was shows for a moment, the blow lands
+        /// on the cards, and the demon says their line (with the sly re-raise look). A cheat that helped the player turns
+        /// the new card at once, "BACKFIRE" blinks over it and the demon is angry. Otherwise what changed shows with the next
+        /// table update (a card turning, a mark appearing). A blocked or fizzled cheat just takes its sign down.
         /// </summary>
         private void PlayCheatStrikes(TableState before)
         {
@@ -559,21 +569,27 @@ namespace HellPoker.Presentation
                 CheatResult result = results[k];
                 if (result.Outcome != CheatOutcome.Played) continue;
 
+                _view.SetIntent(CardOf(result.ShownId));
                 if (result.WasLie)
                 {
                     _view.RevealLie(CardOf(result.CheatId));
                     _view.Dealer.Say(UiText.LiarLine, DealerMood.Gloating);
                 }
 
+                int faceUp = _game.Phase == GamePhase.RoundOver || _game.IsGameOver ? Hand.Size : _game.PlayerCardsRevealed;
                 int at = result.PlayerCards.Count > 0 ? result.PlayerCards[0] : -1;
                 if (result.Lost.HasValue && at >= 0 && _game.PlayerHand != null)
-                {
-                    int faceUp = _game.Phase == GamePhase.RoundOver || _game.IsGameOver ? Hand.Size : _game.PlayerCardsRevealed;
-                    _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value));
-                }
+                    _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value, keepHidden: true));
 
                 _view.PlayCheat(new CheatImpact(result.CheatId, result.PlayerCards, result.HouseCards));
                 _view.Dealer.Say(UiText.CheatLine(result.CheatId), DealerMood.Scheming);
+
+                if (result.Backfired && _game.PlayerHand != null)
+                {
+                    _view.Player.Show(PlayerSlots(faceUp, keepHidden: true));
+                    _view.PlayMoment(TableMoment.Backfire, UiText.BackfireFlash, result.PlayerCards);
+                    _view.Dealer.Say(UiText.Pick(_dealerText.Backfire, _game.RoundNumber), DealerMood.Annoyed);
+                }
             }
         }
 
@@ -659,7 +675,8 @@ namespace HellPoker.Presentation
                 _view.Sentence.SetYears(_game.LastRound.YearsBefore - _game.LastRound.Stake, animate: true);
                 _view.SetStakeInfo(null);
             }
-            _view.Player.Show(PlayerSlots(Hand.Size));
+            // Cards a cheat hid stay dark while the House turns its cards: only the result shows them.
+            _view.Player.Show(PlayerSlots(Hand.Size, keepHidden: true));
             _view.House.Show(HouseSlots(before.HouseCards));
             ShowPlayerCaption();
             for (int shown = before.HouseCards + 1; shown <= Hand.Size; shown++)
@@ -982,7 +999,9 @@ namespace HellPoker.Presentation
             _view.Player.SetInteractable(true);
             _view.Player.SetSelection(_discards);
             ShowPlayerCaption();
-            if (GuideOn)
+            // No keep frames on a hand with a card in the dark: they could only be guesses — or give it away.
+            bool anyHidden = Enumerable.Range(0, Hand.Size).Any(_game.IsPlayerCardHidden);
+            if (GuideOn && !anyHidden)
             {
                 IReadOnlyCollection<int> toss = _game.SuggestedDiscards();
                 _view.Player.SetHints(Enumerable.Range(0, Hand.Size).Where(i => !toss.Contains(i)).ToArray());
@@ -1010,8 +1029,9 @@ namespace HellPoker.Presentation
             _view.Player.SetInteractable(false);
             _view.Player.SetSelection(null);
             _view.Player.SetHints(null);
-            _view.Player.Show(PlayerSlots(Hand.Size));
+            // The House turns first: a card a cheat kept from the player turns only once both hands are on the table.
             _view.House.Show(HouseSlots(Hand.Size));
+            _view.Player.Show(PlayerSlots(Hand.Size));
             _view.Pause(ShowdownPause);
 
             // A run can be over with no hand behind it here (a finished save, a sentence carried in): nothing to name.
@@ -1158,11 +1178,13 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>
-        /// The player's cards as the player may see them: a card a cheat hid stays face down under its veil, a chained or
-        /// thorned card carries its mark.
+        /// The player's cards as the player may see them: a card a cheat hid stays face down — under its veil once its turn
+        /// has come — a chained or thorned card carries its mark. Hidden cards never show their face before the showdown.
         /// </summary>
         /// <param name="lostAt">Show <paramref name="lost"/> at this position instead (the moment before a cheat changes it).</param>
-        private CardSlot[] PlayerSlots(int faceUp, int lostAt = -1, Core.Cards.Card lost = default)
+        /// <param name="keepHidden">The hand is settled but the showdown is not shown yet (a sealed hand playing out, a cheat at
+        /// the showdown): a hidden card stays face down until the result shows both hands.</param>
+        private CardSlot[] PlayerSlots(int faceUp, int lostAt = -1, Core.Cards.Card lost = default, bool keepHidden = false)
         {
             CardSlot[] slots = Slots(_game.PlayerHand, faceUp);
             if (_game.PlayerHand == null) return slots;
@@ -1173,8 +1195,8 @@ namespace HellPoker.Presentation
                     slots[i] = CardSlot.Face(lost);
                     continue;
                 }
-                if (_game.IsPlayerCardHidden(i))
-                    slots[i] = CardSlot.Back.WithMark(CardMark.Veiled);
+                if (_game.IsPlayerCardHidden(i) || (keepHidden && _game.WasPlayerCardHidden(i)))
+                    slots[i] = i < faceUp ? CardSlot.Back.WithMark(CardMark.Veiled) : CardSlot.Back;
                 else if (_game.IsPlayerCardChained(i) && i < faceUp)
                     slots[i] = slots[i].WithMark(CardMark.Chained);
                 else if (_game.IsPlayerCardThorned(i) && i < faceUp)

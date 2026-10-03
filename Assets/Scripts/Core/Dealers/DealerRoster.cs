@@ -28,6 +28,9 @@ namespace HellPoker.Core.Dealers
         /// <summary>Belial's announced intent is a lie this often (percent).</summary>
         public const int BelialLiePercent = 25;
 
+        /// <summary>A liar's tongue slips: this often (percent) his forked tongue changes a suit at random, maybe to the player's good.</summary>
+        public const int BelialBackfirePercent = 20;
+
         /// <summary>Lucifer's Fall comes only at or below this sentence, once per attempt.</summary>
         public const int TheFallYears = 150;
 
@@ -64,7 +67,7 @@ namespace HellPoker.Core.Dealers
                 { HandCategory.RoyalFlush, 30 }
             }, HandCategory.DeadMansHand),
             new HouseBettingStyle(HandCategory.TwoPair, strongPercent: 60, bluffPercent: 30), soulThreshold: 1750,
-            maliceMax: BelialMalice, cheats: BelialCheats);
+            maliceMax: BelialMalice, cheats: BelialCheats, backfirePercent: BelialBackfirePercent);
 
         /// <summary>
         /// The Queen of the Night, the hardest table: four cards may be exchanged, but losses cost a quarter more,

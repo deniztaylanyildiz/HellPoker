@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HellPoker.Core.Cards;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
 
@@ -38,6 +39,9 @@ namespace HellPoker.Core.Cheats
 
         public ICheatPolicy Policy => _policy;
 
+        /// <summary>How often (percent) the demon's slippery cheats slip (see <see cref="Dealers.Dealer.BackfirePercent"/>).</summary>
+        public int BackfirePercent { get; }
+
         /// <summary>The announced intent, until it is played out (Belial's may be a lie); null when nothing is coming.</summary>
         public ICheat Intent => _pick != null && !_resolved ? _pick.Shown : null;
 
@@ -49,9 +53,12 @@ namespace HellPoker.Core.Cheats
 
         /// <param name="policy">The demon's cheats; null for a demon who never cheats.</param>
         /// <param name="guard">Asked before each cheat strikes; null lets every cheat through.</param>
-        public CheatSession(ICheatPolicy policy, int maliceMax, IRandomSource random, ICheatGuard guard = null)
+        /// <param name="backfirePercent">How often a cheat that may slip does (Belial's tongue).</param>
+        public CheatSession(ICheatPolicy policy, int maliceMax, IRandomSource random, ICheatGuard guard = null, int backfirePercent = 0)
         {
             if (maliceMax < 0) throw new ArgumentOutOfRangeException(nameof(maliceMax));
+            if (backfirePercent < 0 || backfirePercent > 100) throw new ArgumentOutOfRangeException(nameof(backfirePercent));
+            BackfirePercent = backfirePercent;
             if (policy != null && maliceMax > 0 && random == null) throw new ArgumentNullException(nameof(random));
             _policy = policy;
             MaliceMax = policy == null ? 0 : maliceMax;
@@ -97,7 +104,13 @@ namespace HellPoker.Core.Cheats
             else if (!cheat.CanApply(state))
                 result = CheatResult.Fizzled(cheat.Id);
             else
+            {
+                Hand before = state.PlayerHand;
                 result = cheat.Apply(state);
+                // A cheat that left the player stronger turned on its demon: everyone sees it.
+                if (result.Outcome == CheatOutcome.Played && state.Evaluator.Evaluate(state.PlayerHand).CompareTo(state.Evaluator.Evaluate(before)) > 0)
+                    result = result.AsBackfire();
+            }
 
             _resolved = true;
             _results.Add(result.AnnouncedAs(_pick.Shown.Id));

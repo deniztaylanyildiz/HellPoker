@@ -41,7 +41,7 @@ namespace HellPoker.Presentation.Views
             _categories = System.Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
             _values = new Text[_categories.Length];
 
-            UiFactory.CreateText("Title", panel, UiText.HandRanksTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", panel, UiText.HandRanksTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 6, Width, 8);
             UiFactory.CreateText("Subtitle", panel, UiText.HandRanksSubtitle, 8, Palette.BoneMid).rectTransform.PlaceTL(0, 15, Width, 9);
 

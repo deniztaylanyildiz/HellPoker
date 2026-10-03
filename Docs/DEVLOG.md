@@ -1354,3 +1354,243 @@ script, komut CLAUDE.md'de, Builds/ ignore), çalıştırıp Player.log'u kontro
 
 ### Sıradaki
 - Kullanıcı build'i oynayıp `Docs/PLAYTEST.md`'yi dolduracak. Belial kararı ve diğer ayarlar ondan sonra.
+
+---
+
+## 2026-10-03 — Plan 6 / Bölüm A: hile düzeltmeleri ve geri tepme
+
+**İstek (0.1.0 testinden sonra):** Bazı hileler oyunda işe yaramıyor. Gece Örtüsü geç kapanıyor; Çatal Dil %80 eli bozsun, %20 "dil
+kaysın" (oyuncuya yarayabilir, `BackfirePercent`); Bakış kesin bilgi vermesin (kaybedene %100, kazanana %50 re-raise); Rehin ve
+Diken atılacak kartlara; Yanan Kart kombinasyonun kartına; gizli kartların yüzü hiçbir yoldan sızmasın; geri tepme görünür bir an
+olsun (BACKFIRE, angry, replik, günlük, kayıt / rekor); her hile için "etkili" testi; PlayMode uçtan uca; simülasyon; CLAUDE.md ve
+CHEATS sayfası.
+
+### Yapılanlar — Core
+- `CheatTable`: `PlayerCardsSeen` (oyuncunun gördüğü kart sayısı; dağıtımda açılış kartları), `BackfirePercent`, `Advice`
+  (kasanın `IDrawStrategy`'si) + `AdvisedDiscards()`, `Improves(hand)`, `CombinationCards()`.
+- `CheatResult.Backfired` (+ `AsBackfire()`). `CheatSession.Strike` hile öncesi / sonrası oyuncu elini karşılaştırır, güçlendiyse
+  işaretler. `CheatSession(…, backfirePercent)`, `Dealer.BackfirePercent` (+ `WithBackfirePercent`), Belial 20
+  (`DealerRoster.BelialBackfirePercent`); fabrika şeytandan geçirir.
+- Hileler:
+  1. **Gece Örtüsü:** `AfterDeal`, hedef sadece `i ≥ PlayerCardsSeen` (açılış kartlarından sonraki 3.-5.). Kart sırası gelince sırtı
+     dönük + örtüyle açılır, showdown'a kadar kalır, kör atılabilir. Açıklama: "One of your cards will come to you in the dark."
+  2. **Çatal Dil:** zar `BackfirePercent`'in altına düşerse kayar (rastgele renk değişimi). Değilse nişanlı: önce renk / 4 aynı renk
+     bozulur, yoksa kategoriyi düşüren, yoksa elini iyileştirmeyen bir değişim (hiçbiri yoksa boşa gider).
+  3. **Bakış:** kaybedecek ele her zaman, kazanacak ele `GazeBluffPercent` (50) ihtimalle re-raise. Açıklama: "He sees your hand. His
+     raises will hurt."
+  4. **Rehin:** `AdvisedDiscards`'ın en yükseği; atılacak kart yoksa en düşük kart. Açıklama değişti.
+  5. **Diken:** atılacak kartlardan biri, yoksa rastgele.
+  6. **Yanan Kart:** en iyi kombinasyonun en yüksek kartı, yoksa en yüksek kart; yerine desteden rastgele (geri tepebilir).
+  7. **Satın Al** ve **Yılan Takası** artık oyuncuya yarayacak kartı seçmiyor (ör. Satın Al'ın verdiği düşük kart oyuncunun bir
+     kartıyla çift yapıyorsa o kart atlanır). Bu ikisi eskiden nadiren yarayabiliyordu.
+- `IHellPokerGame.WasPlayerCardHidden(i)`: el bitse de (sonraki dağıtıma kadar) gizli kartı bilir.
+- Kayıt / rekor: `RunStats.Backfires` + `NoteBackfires`, kayıtta `backfires` (v=3 içinde isteğe bağlı, yoksa 0), `RecordBook.BackfiresSeen`
+  (`backfires`, eski defter 0).
+
+### Yapılanlar — sunum
+- Sızıntı bulundu ve kapatıldı: **mühürlü el draw'dan sonra kendi kendine oynarken** oyuncunun gizli kartları (Aysız Gece / Yılan
+  Takası) kasa kartlarını açmadan önce yüzüyle gösteriliyordu (el bittiği için `IsPlayerCardHidden` false dönüyordu).
+  `PlayerSlots(keepHidden)` + `WasPlayerCardHidden` ile showdown'a kadar sırtı dönük. Sonuç ekranında artık önce kasa, sonra oyuncu döner.
+- Gizli kart varken draw ipucu çerçevesi hiç yok (eskiden "hepsini tut" diye beş kartı da çerçeveliyordu).
+- Örtü işareti sadece kartın sırası gelince görünür (henüz açılmamış kart düz sırt).
+- `PlayCheatStrikes`: her vuruştan önce niyet şeridi gösterilir (dağıtımda vuran hile de bir an görünür). Geri tepmede: yeni kart hemen döner,
+  `TableMoment.Backfire` ("BACKFIRE" koyu şerit üzerinde, kartın üstünde yanıp söner — `CheatEffects.PlayBackfire`), şeytan
+  `DealerMood.Annoyed` (angry) ve `DealerText.Backfire` repliği (her şeytana 2-3; Belial "My tongue... slipped.").
+- `UiText.CheatLog` geri tepmeyi söyler ("…tongue slipped: your 9♥ became the 9♣. It backfired!"). Rekorlar ekranında "Backfires seen".
+- CHEATS sayfası: yeni açıklamalar + "A cheat left to chance may BACKFIRE and help you".
+
+### Testler
+- `CheatTests` güncellendi (Rehin 7♥'ye, örtü dağıtımda, Bakış blöfü, Yanan Kart kombinasyonu, Diken atılacak karta).
+- `CheatBackfireTests` (yeni): Çatal Dil nişanlı / kayınca renk (backfire), Yanan Kart ve Düşüş geri tepmesi, Belial %20, kayıt ve rekor;
+  **11 hile × 300 karışık el**: hiçbiri oyuncuya yaramıyor ve her biri en az bir elde gerçekten vuruyor.
+- `CheatPresenterTests`: geri tepme anı (BACKFIRE, kızgın şeytan, günlük, rekor), gizlilik: Gece Örtüsü, Aysız Gece (normal +
+  **mühürlü**), Yılan Takası — `FakeTableView.ShowLog` her Show'u sırayla kaydeder; kasa beş kartı açmadan hiçbir gizli kartın yüzü yok,
+  hiçbir metin gizli kartı adlandırmıyor.
+- PlayMode `CheatJourneyTests` (7): Mammon rehin; Belial yalan + flush bozma ve dil kayması (BACKFIRE, rekor); Lilith örtü ve aysız
+  gece — `CheatRig.DarkWatch` her karede ekrandaki kart yüzlerini (`CardView.FaceShown`) gizli kartlarla karşılaştırır; Lucifer bakış
+  (240 yılda: 150'de masaya konan her şey all-in olduğu için re-raise'e yer kalmıyor) ve Düşüş.
+- **537 EditMode (+1 explicit) + 22 PlayMode (+2 explicit) geçiyor.**
+
+### Denge (2000 koşu; gösterge 4 / 2 / 4 / 1)
+| Şeytan | Aklanma (hedef) | Ort. el | Lucifer'e ulaşan | İlk denemede (hedef ~35) | Hile / el |
+|---|---|---|---|---|---|
+| Mammon | %79.7 (~80) | 48.9 | %85 | %33.9 | 0.27 |
+| Belial | %74.1 (~70) | 26.4 | %81 | %39.0 | 0.48 |
+| Lilith | %52.6 (~55) | 29.3 | %66 | %34.2 | 0.36 |
+
+Lucifer masası: 0.83 hile / el. **Geri tepme:** Yanan Kart %26.3, Düşüş %18.2, Çatal Dil 4 / ~9900 (%0.04). Toplam Lucifer hilelerinin
+%10.6'sı geri tepiyor; Mammon ve Lilith'te hiç yok (kuralı gereği).
+
+- Simülasyon oyuncusu Bakış'ta re-raise'i kesin bilgi saymıyordu zaten (çift ve üstüyle karşılar); belgelendi.
+- **Lilith:** %52.6, hedefin 2.4 altında. Gösterge 5 denendi: %52.5 (fark yok). Lilith'in kendi hileleri sonucu neredeyse
+  değiştirmiyor; düşüş Lucifer'den geliyor: Yanan Kart artık kombinasyonu yakıyor, ilk denemede yenme %37'den %34'e indi. Gösterge 4 kaldı.
+  (Lucifer'in göstergesi 1, daha sertleşemez; yumuşatmak tüm şeytanları değiştirir ve ilk deneme hedefini bozardı.)
+- **Belial:** gösterge 2 (kullanıcı kararı: oyun testinden sonra). Çatal Dil'in %20 kayması pratikte çok nadir yarıyor: rastgele renk
+  değişimi ancak el bir kart eksik renkteyse renk yapar.
+- Mammon ve Lucifer hedefte.
+
+### Kararlar
+- Geri tepme "el güçlendi mi" ile ölçülür (kategori ya da aynı kategoride güç). Showdown sonucuna bakılmaz: Düşüş'te el güçlenip yine
+  kazanmak da geri tepmedir.
+- Nişanlı Çatal Dil hiçbir değişim zararsız değilse boşa gider (iyileştiren tek seçenek kalsa bile vurmaz).
+- Örtülü kart açılmadan önce düz sırt görünür, örtü işaretini sırası gelince alır: hangi kartın örtüleceği ancak vuruş anında belli olur.
+
+### Açık sorular
+- Belial gösterge kararı ve Lilith'in 2.4 puanlık açığı oyun testine kaldı.
+
+---
+
+## 2026-10-03 — Plan 6 / Bölüm B: animasyon akıcılığı ve okunabilirlik
+
+**İstek:** Menü ve salonlar düşük FPS'li görünüyor (Belial'in yılanlı sütunları kesik kesik). Nedeni: tam ekran şeritler 3-4 kare /
+4 FPS ve bazı döngüler kapanmıyor. Katmanlı zemin (tek kare sabit resim + 8-12 kare / 8-12 FPS küçük şeritler), kusursuz döngü ve
+ArtGen kontrolü, kodla parçacık, kare başına 1-2 px, yazı okunabilirliği (panel ya da 1 px outline; hareket yazıya girmesin),
+F3 FPS göstergesi ve ölçüm, preview, CLAUDE.md.
+
+### Yapılanlar — ArtGen
+- `pixel_layers.py` (yeni):
+  - `Layer` (8-12 kare, şerit ≤ 2048 px) ve `Particles`; `phase(f, n) = 2π·f/n`.
+  - `check_loop`: son → ilk geçiş en büyük adımdan büyük olamaz. Ateş denizinde 2317'ye karşı 2310 px çıkınca %2 pay eklendi:
+    tam periyodik bir dalga da her fazda biraz farklı nicelenir.
+  - `keep_out_of_text`: yazı bölgesinde katman temizlenir, sabit resim orada katmanın 0. karesini alır.
+  - `write`: varyantlar (LUT), şeritler, `motion.txt`.
+- `pixel_salons.py`:
+  - Her salon `<x>_base()` (sabit) + katmanlar + parçacıklar. `readable_middle(img, ox, oy)` katmana kendi ekran yerindeki vinyeti verir.
+  - Mammon: kefeler zıt fazda ±1 px, 10 parıltı, altın tozu.
+  - Belial: perdelerin dış yarısı (yazıya bakan iç kenar sabit), iki yılanlı sütun (genlik 6 → 3 px: kare başına ≤ 1.6 px).
+  - Lilith: mum alevi, 6 yıldız, 3 kuş (9 px/sn kayan), sis.
+  - Lucifer: dıştaki 4 zincir ±1 px (ortadaki 2 zincir yazının arkasında, sabit), korlar.
+- `pixel_menu.py`:
+  - Sabit resim + katmanlar: gözler (12 karede parlıyor, kısılıp kapanıp açılıyor), yılan (genlik 8 → 4), ateş denizinin iki kenarı,
+    5 parıltı; kor parçacıkları.
+  - Ateş denizi 24 / 12 px periyotlu iki dalga (12 karede kare başına 2 / 1 px) + sabit düzensiz kabarma (düzenli tarama gibi
+    görünüyordu). Ortaya doğru 20 px dither ile durulur, ek yeri görünmez.
+- `preview.py`: her zemini (4 salon × varyant + menü) JS ile gerçek hızında oynatır: katmanlar kendi FPS / ofset / kaymasıyla,
+  parçacıklar, kesikli yazı bölgeleri.
+
+### Yapılanlar — Unity
+- `BackdropMotion` (manifest okuyucu; bozuk satır / eksik şerit atlanır), `SalonLibrary.Motion` + `Preload`,
+  `MenuBackdropLibrary.Motion`, `UiArt` metin yükleyici.
+- `BackdropMotionView`:
+  - Katman kopyaları gerçek zamanla döner; parçacıklar tek piksel, tam piksel adım, `AnimationClock` hızıyla.
+  - Renkler yaşa göre, değişince atanıyor; rampalar statik (kare başına çöp yok).
+  - Kendi iç içe Canvas'ı var. `SalonView` ve `MenuBackdrop` kullanıyor.
+- `PixelOutline` + `WithOutline()`: 8 yönlü 1 px siyah çizgi (Unity'nin Outline'ı sadece çaprazlara kayar, düz çizgilerin uçları açık
+  kalıyor). Eski `WithShadow` kaldırıldı, 31 çağrı yeniden adlandırıldı (`.NET` IO ile, UTF-8 korunarak).
+  Panelsiz kalan yazılar da outline aldı: şeytanın ünvanı, menü altbilgisi, yedek başlıklar, son ekran hikâyesi.
+- Menüde sağ alt köşede sürüm (`v{Application.version}`; C.23 burada yapıldı).
+- `FpsCounter` (dev build / editör, F3) ve `FpsTour` (`-fpstour`: menü, seçim, 3 salon, Lucifer; her birinde 4 sn ölçüm, log'a yazıp
+  çıkar). `HellPokerBuild.WindowsDevelopment` → `Builds/WindowsDev`.
+- İlk ölçümde seçim ekranında ve ilk görülen salonlarda takılmalar vardı (dokular ilk gösterimde yükleniyordu).
+  `SalonLibrary.Preload` ile tüm salonlar açılışta yükleniyor; takılmalar kayboldu.
+
+### FPS (dev build, 1920×1080 pencere, vSync, AMD Radeon entegre)
+| Ekran | Ortalama | En yavaş kare | >25 ms kare |
+|---|---|---|---|
+| Menü | 60.0 | 45 FPS | 0 |
+| Şeytan seçimi | 59.4-59.9 | 31-47 FPS | 0-2 |
+| Mammon | 59.7-59.8 | 32-40 FPS | 0-1 |
+| Belial | 60.0 | 43-52 FPS | 0 |
+| Lilith | 60.0 | 56-58 FPS | 0 |
+| Lucifer | 57.7-60.0 | 20-51 FPS | 0-8 |
+
+(İki tur; takılmalar turdan tura yer değiştiriyor, sistem gürültüsü gibi. Lucifer'in 8'i çağrılma sahnesi sürerken ölçülmüştü: bekleme 3 → 6 sn.)
+
+### Testler
+- `BackdropMotionTests`: manifest, ofset, kayma / sarma, varyant yedeği.
+- Üretilmiş tüm şeritler için tek test: ≤ 2048 px, 8-12 kare / 8-12 FPS, döngü kapanıyor, yazı bölgelerinde hiç piksel yok.
+- `MenuBackdropTests` tek kareye güncellendi. PlayMode `BackdropMotionPlayTests`: menü ve 4 salon hareket ediyor, her parça tam pikselde.
+- **545 EditMode (+1 explicit) + 24 PlayMode (+2 explicit) geçiyor.** Ekran görüntüleri yeniden alındı (menü, 4 salon kontrol edildi).
+
+### Kararlar
+- Katmanlar gerçek zamanla döner (salonun nefesi), parçacıklar oyun hızına uyar (istek böyle).
+- Belial'in sütunları büyük ölçüde şeytan panelinin ve ödeme panelinin arkasında kalıyor (eskiden de öyleydi); görünen hareket perde kıvrımları.
+- Yazı bölgeleri ArtGen'de sabit (`TABLE_TEXT`, `MENU_TEXT`) ve testte aynısı var. Masa düzeni değişirse ikisi de güncellenmeli.
+
+### Sıradaki
+- Bölüm C: 0.1.1 test build'i.
+
+---
+
+## 2026-10-03 — Plan 6 / Bölüm C: arkadaşlar için test build'i 0.1.1
+
+**İstek:** kökte test çıktısı kalmasın (`/*.xml`); Company "Deniz", Product "Hell Poker", Version "0.1.1"; sürüm menünün köşesinde;
+build sonrası `Builds/HellPoker-0.1.1-win64.zip` (klasörün tamamı) + Türkçe OKUBENI.txt ve GERI_BILDIRIM.txt; Belial'e dokunma;
+yeni build, açılış ve geçişlerde Player.log temiz; test sayıları, simülasyon, FPS ve zip yolu.
+
+### Yapılanlar
+- **21 — daha önce yapılmıştı** (2026-10-02 kaydı): `cshots.xml` silinmiş, .gitignore `/*.xml`. Kontrol edildi: kökte sadece
+  yok sayılan test çıktıları var, projenin ihtiyaç duyduğu xml yok.
+- **22** — `ProjectSettings.asset`: companyName `Deniz`, productName `Hell Poker`, bundleVersion `0.1.1`.
+  Sonuçlar:
+  - Player.log artık `%USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log`.
+  - PlayerPrefs de yeni anahtarda (`HKCU\Software\Deniz\Hell Poker`): 0.1.0'daki kayıtlı koşu ve rekorlar 0.1.1'de görünmez,
+    oyun temiz başlar.
+- **23** — menünün sağ alt köşesinde `v0.1.1` (`Application.version`, outline'lı; köşe menünün yazı bölgelerinde, hareket girmiyor).
+  Bölüm B'de yapıldı.
+- **24** — `HellPokerBuild.Windows`:
+  - Build klasörünü önce temizler (eski dosya zip'e girmesin).
+  - Build sonrası `Pack`: tek klasör `HellPoker-0.1.1/` (exe, `HellPoker_Data`, dll'ler, `MonoBleedingEdge`, `D3D12`) + iki metin.
+    Unity'nin `*_BurstDebugInformation_DoNotShip` klasörü dağıtılmıyor.
+  - Zip adı `PlayerSettings.bundleVersion`'dan. Builds/ zaten .gitignore'da.
+- **25** — `Docs/Release/OKUBENI.txt`: nasıl açılır, SmartScreen "Ek bilgi → Yine de çalıştır", oyunun kısa tarifi (poker bilmeyene
+  ipuçları), tüm kontroller, Player.log'un yeni tam yolu ve ne gönderecekleri.
+- **26** — `Docs/Release/GERI_BILDIRIM.txt`: 10 açık uçlu soru: ilk izlenim, kurallar, tempo, zorluk / en zor şeytan, hileler adil mi /
+  işaret anlaşılır mı / en sinir bozucu hile, Belial'in sahte kartına kanma, BACKFIRE, en sevdiğin / en sıkıcı an, hata. Ayrıca
+  oynama süresi ve "poker biliyor musun".
+  - Metinlerde `{VERSION}` var; zip'e UTF-8 BOM ve CRLF ile yazılıyor (Not Defteri için).
+- **27** — Belial'in göstergesi 2'de kaldı (Bölüm A'da sadece simülasyonda denendi).
+- **28** — Build alındı, zip açılıp oradan çalıştırıldı:
+  - Normal açılış: 12 sn, log temiz.
+  - Duman testi `-fpstour` (artık her build'de çalışıyor): menü → seçim → Mammon → Belial → Lilith → Lucifer (çağrılma) iki tur.
+    Log'da hata / uyarı / exception yok.
+
+### FPS (0.1.1 release, zip'ten, 1920×1080 pencere, vSync)
+| Ekran | 1. tur (soğuk açılış) | 2. tur |
+|---|---|---|
+| Menü | 58.6 ort, 3 takılma | 60.1, 0 |
+| Şeytan seçimi | 59.0, 2 | 60.0, 0 |
+| Mammon | 60.0, 0 | 60.0, 0 |
+| Belial | 60.1, 0 | 60.1, 0 |
+| Lilith | 60.0, 0 | 60.1, 0 |
+| Lucifer | 59.9, 0 | 60.0, 0 |
+
+İlk turdaki birkaç takılma yeni açılmış klasörün ilk çalışması (disk / shader ısınması); ikinci turda hiç yok.
+
+### Testler
+- **545 EditMode (+1 explicit simülasyon) + 24 PlayMode (+2 explicit ekran görüntüsü) geçiyor.**
+
+### Teslim
+- `Builds/HellPoker-0.1.1-win64.zip` (34 MB).
+
+### Açık sorular
+- Belial göstergesi ve Lilith'in açığı: test geri bildiriminden sonra.
+
+---
+
+## 2026-10-03 — Stüdyo logosu (Caveman) ve son test build'i
+
+**İstek:** Açılışta stüdyo logosu: firma adı şimdilik "Caveman". 16-bit piksel art, koyu zemin, yanında küçük bir mağara adamı.
+`Assets/Art/Splash/caveman_logo.png`, Sprite. Splash açık, Unity logosu kapalı, logo listede, siyah zemin, ~2 sn. Bununla son test
+build'i; kullanıcı itch.io'ya yükleyecek.
+
+### Yapılanlar
+- `Tools/ArtGen/pixel_splash.py` (+ `generate_art.py splash`):
+  - Oyunun paleti ve başlık fontu (Press Start 2P, yumuşatmasız); "CAVEMAN" oyunun başlığı gibi altından kızıla ateş renginde, 1 px
+    koyu gölgeli.
+  - Solda 22×32'lik mağara adamı: dağınık saç, saçında kemik, benekli post, omzunda topuzlu sopa; altta taş sıra.
+  - 148×44 çizilip ×5 en yakın komşuyla büyütüldü (740×220): Unity splash'i ölçeklese de pikseller kare kalıyor. Zemin saydam.
+  - "GAMES" gibi bir ek yazı koymadım (firma adı sadece Caveman).
+- `HellPokerArtImporter`: `Assets/Art/Splash/` da Sprite (Single, Point, sıkıştırmasız, mipmap yok).
+- `HellPokerBuild.ApplySplashScreen` (menü: Hell Poker ▸ Apply Splash Screen; her build'den önce çağrılır), Unity API'siyle:
+  show açık, Unity logosu kapalı, arka plan siyah, overlay 0, animasyon sabit (piksel art zoom'lanmasın), logo 2 sn.
+  `ProjectSettings.asset`'te doğrulandı.
+  Unity 6'da Personal lisansta Unity logosu kapatılabiliyor.
+- Build: `Builds/HellPoker-0.1.1-win64.zip` yeniden üretildi; sürüm 0.1.1 kaldı (0.1.1 henüz dağıtılmamıştı).
+  Oyun açılıp pencere görüntüsü alındı: siyah üzerinde Caveman logosu, keskin. Player.log temiz. 545 EditMode test geçiyor.
+
+### Kararlar
+- Ayarlar elle değil kodla, her build'de: Project Settings'te biri değiştirse de dağıtılan build hep aynı açılışı alır.
+
+### Sıradaki
+- Kullanıcı zip'i itch.io'ya yükleyecek; geri bildirimler (GERI_BILDIRIM.txt) gelince Belial / Lilith kararları.

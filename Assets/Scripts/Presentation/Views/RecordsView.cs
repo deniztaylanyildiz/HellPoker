@@ -37,7 +37,7 @@ namespace HellPoker.Presentation.Views
             Image panel = UiFactory.CreatePanel("RecordsPanel", screen);
             panel.rectTransform.PlaceTL(96, 24, PixelScreen.Width - 192, PixelScreen.Height - 48);
 
-            UiFactory.CreateText("Title", screen, UiText.RecordsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", screen, UiText.RecordsTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 36, PixelScreen.Width, 16);
 
             _body = UiFactory.CreateText("Body", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter);
@@ -64,6 +64,7 @@ namespace HellPoker.Presentation.Views
                     ? string.Format(UiText.RecordsFewestAttemptsFormat, records.FewestLuciferAttempts.Value)
                     : UiText.RecordsFewestAttemptsNone,
                 string.Format(UiText.RecordsWildBillFormat, records.WildBillEscapes),
+                string.Format(UiText.RecordsBackfiresFormat, records.BackfiresSeen),
                 ""
             };
             foreach (DealerCard dealer in dealers)

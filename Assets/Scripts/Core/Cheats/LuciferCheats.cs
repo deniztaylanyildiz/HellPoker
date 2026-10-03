@@ -6,7 +6,10 @@ using HellPoker.Core.Game;
 
 namespace HellPoker.Core.Cheats
 {
-    /// <summary>Gaze (minor, from the deal): this hand the House re-raises knowing the player's cards — never when the player would win, always when they would lose.</summary>
+    /// <summary>
+    /// Gaze (minor, from the deal): this hand the House answers raises knowing the player's cards — it always re-raises a hand
+    /// that would lose, and still re-raises a winning one half the time (a bluff), so its raise is a threat, never a certainty.
+    /// </summary>
     public sealed class GazeCheat : ICheat
     {
         public string Id => CheatIds.Gaze;
@@ -70,22 +73,32 @@ namespace HellPoker.Core.Cheats
         }
     }
 
-    /// <summary>Burning Card (minor, before the draw): the player's highest card catches fire and becomes a card from the deck.</summary>
+    /// <summary>
+    /// Burning Card (minor, before the draw): the highest card of the player's best combination (the pair, the trips...; any
+    /// card of a straight or flush) catches fire — the highest card when there is no combination — and becomes the next card
+    /// of the deck. That card is pure chance: the fire may backfire.
+    /// </summary>
     public sealed class BurningCardCheat : ICheat
     {
         public string Id => CheatIds.BurningCard;
         public CheatTier Tier => CheatTier.Minor;
         public CheatTiming Timing => CheatTiming.BeforeDraw;
 
-        public bool CanApply(CheatTable table) => table.Deck.Count > 0 && CheatTable.Highest(table.PlayerHand, table.PlayerTargets()) >= 0;
+        public bool CanApply(CheatTable table) => table.Deck.Count > 0 && Target(table) >= 0;
 
         public CheatResult Apply(CheatTable table)
         {
-            int index = CheatTable.Highest(table.PlayerHand, table.PlayerTargets());
+            int index = Target(table);
             if (index < 0) return CheatResult.Fizzled(Id);
             Card lost = table.PlayerHand[index];
             if (!table.RedealPlayerCard(index, out Card ash)) return CheatResult.Fizzled(Id);
             return new CheatResult(Id, CheatOutcome.Played, new[] { index }, lost: lost, gained: ash);
+        }
+
+        private static int Target(CheatTable table)
+        {
+            int index = CheatTable.Highest(table.PlayerHand, table.CombinationCards().Where(i => !CheatTable.IsImmune(table.PlayerHand[i])));
+            return index >= 0 ? index : CheatTable.Highest(table.PlayerHand, table.PlayerTargets());
         }
     }
 

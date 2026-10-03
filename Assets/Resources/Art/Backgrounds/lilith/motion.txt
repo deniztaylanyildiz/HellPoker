@@ -1,0 +1,13 @@
+# Hell Poker backdrop motion (Tools/ArtGen). Generated: do not edit.
+layer flame 279 235 8 8 1 0 0 0
+layer bird0 180 12 8 8 1 9 487 0
+layer bird1 232 6 8 8 1 9 487 3
+layer bird2 300 16 8 8 1 9 487 6
+layer star0 307 6 12 8 1 0 0 0
+layer star1 303 15 12 8 1 0 0 2
+layer star2 225 11 12 8 1 0 0 4
+layer star3 199 10 12 8 1 0 0 6
+layer star4 266 18 12 8 1 0 0 8
+layer star5 213 24 12 8 1 0 0 10
+particles wisps 0 134 136 112 6
+particles wisps 344 150 136 96 6

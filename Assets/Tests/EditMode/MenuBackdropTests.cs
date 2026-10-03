@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using HellPoker.Presentation.Animation;
 using NUnit.Framework;
 using UnityEngine;
@@ -38,7 +39,7 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheGeneratedArt_IsFourFramesWithinTheTextureLimit()
+        public void TheGeneratedArt_IsOneStillFrame_WithItsMotionBeside()
         {
             const string path = "Assets/Resources/Art/Ui/menu.png";
             Assert.IsTrue(File.Exists(path), "py Tools/ArtGen/generate_art.py menu");
@@ -46,8 +47,23 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(texture.LoadImage(File.ReadAllBytes(path)));
 
             Assert.AreEqual(270, texture.height);
-            Assert.AreEqual(4 * 480, texture.width);
-            Assert.LessOrEqual(texture.width, 2048);
+            Assert.AreEqual(480, texture.width, "The backdrop is one still frame; what moves is in its layers.");
+            Assert.IsTrue(File.Exists("Assets/Resources/Art/Ui/menu_motion.txt"));
+        }
+
+        [Test]
+        public void TheMenuMotion_IsRead_FromItsManifest()
+        {
+            var library = new MenuBackdropLibrary(path => path == "Ui/menu_eyes" ? new Texture2D(12 * 10, 8) : null,
+                path => path == MenuBackdropLibrary.MotionPath ? "layer menu_eyes 214 3 12 8 1 0 0 0\nparticles embers 0 30 90 170 14" : null);
+
+            BackdropMotion motion = library.Motion();
+
+            Assert.AreEqual(1, motion.Layers.Count);
+            Assert.AreEqual(12, motion.Layers[0].Clip.Frames.Length);
+            Assert.AreEqual(new Vector2Int(10, 8), motion.Layers[0].Size);
+            Assert.AreEqual(ParticleKind.Embers, motion.Particles.Single().Kind);
+            Assert.AreSame(BackdropMotion.None, new MenuBackdropLibrary(path => null).Motion(), "No manifest, no motion.");
         }
 
         [Test]
@@ -57,7 +73,7 @@ namespace HellPoker.Core.Tests
             var texture = new Texture2D(2, 2);
             texture.LoadImage(File.ReadAllBytes("Assets/Resources/Art/Ui/menu.png"));
             Color32[] pixels = texture.GetPixels32();
-            for (int frame = 0; frame < 4; frame++)
+            for (int frame = 0; frame < texture.width / 480; frame++)
             {
                 int dark = 0, total = 0;
                 for (int y = 40; y <= 250; y++)

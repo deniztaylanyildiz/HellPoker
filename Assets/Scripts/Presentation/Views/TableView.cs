@@ -98,7 +98,8 @@ namespace HellPoker.Presentation.Views
             else
             {
                 logo.enabled = false;
-                UiFactory.CreateText("TitleText", screen, UiText.Title, 16, Palette.Hell, style: FontStyle.Bold).rectTransform.PlaceTL(Middle, 4, MiddleWidth, 16);
+                UiFactory.CreateText("TitleText", screen, UiText.Title, 16, Palette.Hell, style: FontStyle.Bold).WithOutline()
+                    .rectTransform.PlaceTL(Middle, 4, MiddleWidth, 16);
             }
 
             // Left column: the dealer.
@@ -128,11 +129,11 @@ namespace HellPoker.Presentation.Views
             House = HandView.Create(screen, "HouseHand", handX, 38, CardSpacing, 28, _sequencer);
             Player = HandView.Create(screen, "PlayerHand", handX, 140, CardSpacing, 192, _sequencer);
 
-            _message = UiFactory.CreateText("Message", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithShadow();
+            _message = UiFactory.CreateText("Message", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
             _message.rectTransform.PlaceTL(Middle, 91, MiddleWidth, 18);
-            _pot = UiFactory.CreateText("Pot", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow();
+            _pot = UiFactory.CreateText("Pot", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _pot.rectTransform.PlaceTL(Middle, 111, MiddleWidth, 8);
-            _stakeInfo = UiFactory.CreateText("StakeInfo", screen, "", 8, Palette.BoneMid).WithShadow();
+            _stakeInfo = UiFactory.CreateText("StakeInfo", screen, "", 8, Palette.BoneMid).WithOutline();
             _stakeInfo.rectTransform.PlaceTL(Middle, 123, MiddleWidth, 9);
             _stakeInfo.horizontalOverflow = HorizontalWrapMode.Overflow;
 
@@ -153,7 +154,7 @@ namespace HellPoker.Presentation.Views
             _checkToDrawButton.onClick.AddListener(() => CheckToDrawPressed?.Invoke());
             ApplyBetControls(BetControls.Hidden);
 
-            UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithShadow()
+            UiFactory.CreateText("Hint", screen, UiText.Hint, 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline()
                 .rectTransform.PlaceTL(126, 253, 350, 9);
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
@@ -221,13 +222,13 @@ namespace HellPoker.Presentation.Views
             RectTransform ante = UiFactory.CreateRect("Ante", screen).PlaceTL(Middle, ControlsY, 152, ButtonHeight);
             _ante = ante.gameObject;
 
-            UiFactory.CreateText("Label", ante, UiText.StakeLabel, 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Label", ante, UiText.StakeLabel, 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 6, 40, 8);
 
             Image coin = UiFactory.CreateSprite("Chip", ante, UiArt.Coin, Palette.Gold);
             coin.rectTransform.PlaceTL(40, 2, 16, 16);
 
-            _anteAmount = UiFactory.CreateText("Amount", ante, "", 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithShadow();
+            _anteAmount = UiFactory.CreateText("Amount", ante, "", 8, Palette.Bone, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline();
             _anteAmount.rectTransform.PlaceTL(60, 6, 92, 8);
             _anteAmount.horizontalOverflow = HorizontalWrapMode.Overflow;
             _ante.SetActive(false);
@@ -394,7 +395,11 @@ namespace HellPoker.Presentation.Views
 
         public void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null)
         {
-            _moments.Play(moment, text, playerCards);
+            // A backfire belongs to the cheat's effects (it lands on the cards the cheat touched).
+            if (moment == TableMoment.Backfire)
+                _cheatEffects.PlayBackfire(text, playerCards);
+            else
+                _moments.Play(moment, text, playerCards);
         }
 
         public void Pause(float seconds)

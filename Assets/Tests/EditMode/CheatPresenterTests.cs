@@ -60,15 +60,17 @@ namespace HellPoker.Core.Tests
 
         /// <summary>Mammon's table, the demon playing <paramref name="cheat"/> every hand (or his own cheats with <paramref name="policy"/>).</summary>
         private void Start(ICheat cheat, string player = Nothing, string house = HouseFullHouse, ICheat shown = null, int years = 1000,
-            IGuideSettings guide = null, RunArchive archive = null, ICheatPolicy policy = null, int maliceMax = 1, Dealer dealer = null)
+            IGuideSettings guide = null, RunArchive archive = null, ICheatPolicy policy = null, int maliceMax = 1, Dealer dealer = null,
+            string rest = Blanks)
         {
             dealer = dealer ?? DealerRoster.Mammon;
+            _hidden.Clear();   // the fixture instance is shared by its tests
             _view = new FakeTableView();
             _presenter = new TablePresenter(d =>
             {
                 var random = new FirstChoice();
                 return _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000, luciferGateYears: 0)),
-                    TestDecks.Stacked($"{player} {house} {Blanks}"), HandEvaluator.CreateDefault(), new CardExchanger(new MaxDiscardPolicy()),
+                    TestDecks.Stacked($"{player} {house} {rest}"), HandEvaluator.CreateDefault(), new CardExchanger(new MaxDiscardPolicy()),
                     new HouseDrawStrategy(), d.Payouts, null,
                     new CheatSession(policy ?? new OnlyCheat(cheat, shown), maliceMax, random), random);
             }, _view, guide, archive);
@@ -121,11 +123,11 @@ namespace HellPoker.Core.Tests
 
             CheatImpact impact = _view.Impacts.Single();
             Assert.AreEqual(CheatIds.Collateral, impact.CheatId);
-            CollectionAssert.AreEqual(new[] { 4 }, impact.PlayerCards);
+            CollectionAssert.AreEqual(new[] { 2 }, impact.PlayerCards, "The 7♥, a card to be thrown.");
             CollectionAssert.Contains(_view.TextLog, "Collateral. This one stays with you — on my terms.");
             Assert.IsNull(_view.Intent, "Played out: the sign comes down.");
             Assert.AreEqual(0, _view.Malice.Value);
-            Assert.AreEqual(CardMark.Chained, _view.PlayerView.Slots[4].Mark);
+            Assert.AreEqual(CardMark.Chained, _view.PlayerView.Slots[2].Mark);
         }
 
         [Test]
@@ -134,9 +136,9 @@ namespace HellPoker.Core.Tests
             Start(new CollateralCheat());
             ToTheDraw();
 
-            _view.PlayerView.Click(4);
+            _view.PlayerView.Click(2);
 
-            CollectionAssert.DoesNotContain(_presenter.SelectedDiscards, 4);
+            CollectionAssert.DoesNotContain(_presenter.SelectedDiscards, 2);
             StringAssert.Contains("collateral", _view.Message);
         }
 
@@ -154,14 +156,20 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void AVeiledCard_ShowsFaceDown_UnderItsVeil()
+        public void AVeiledCard_TurnsFaceDown_UnderItsVeil_FromItsFirstTurn()
         {
             Start(new NightVeilCheat());
 
-            ToTheDraw();
+            _view.PressAction();   // the deal: the third card turns — in the dark
 
-            Assert.AreEqual(CardSlot.SlotKind.Back, _view.PlayerView.Slots[0].Kind);
-            Assert.AreEqual(CardMark.Veiled, _view.PlayerView.Slots[0].Mark);
+            Assert.AreEqual(CardSlot.SlotKind.Back, _view.PlayerView.Slots[2].Kind);
+            Assert.AreEqual(CardMark.Veiled, _view.PlayerView.Slots[2].Mark);
+            Assert.AreEqual(CheatIds.NightVeil, _view.Impacts.Single().CheatId);
+            CollectionAssert.Contains(_view.TextLog, "NIGHT VEIL", "The sign went up before the blow, even at the deal.");
+
+            _presenter.CheckToDraw();
+            Assert.AreEqual(CardSlot.SlotKind.Back, _view.PlayerView.Slots[2].Kind, "Still dark at the draw.");
+            Assert.AreEqual(CardMark.Veiled, _view.PlayerView.Slots[2].Mark);
         }
 
         [Test]
@@ -201,7 +209,7 @@ namespace HellPoker.Core.Tests
 
             PlayOut();
 
-            StringAssert.Contains("Mammon chained your J♣ as collateral.", _view.Message);
+            StringAssert.Contains("Mammon chained your 7♥ as collateral.", _view.Message);
         }
 
         [Test]
@@ -211,7 +219,148 @@ namespace HellPoker.Core.Tests
 
             PlayOut();
 
-            StringAssert.Contains("The Morning Star chained your J♣ as collateral.", _view.Message);
+            StringAssert.Contains("The Morning Star chained your 7♥ as collateral.", _view.Message);
+        }
+
+        // ------------------------------------------------------------------ backfire
+
+        [Test]
+        public void ABackfire_TurnsTheNewCard_FlashesBackfire_AngersTheDemon_AndIsRecorded()
+        {
+            // The K♥ burns into the 2♦: a pair of twos for the player.
+            Start(new BurningCardCheat(), player: "2C 5D KH 9S JC", house: "3D 4D 6C 7S 8D", rest: "2D 6D 8S 2S 3H QD QC 8H 7C 6H");
+
+            ToTheDraw();
+
+            var moment = _view.Moments.Single(m => m.moment == TableMoment.Backfire);
+            Assert.AreEqual("BACKFIRE", moment.text);
+            CollectionAssert.AreEqual(new[] { 2 }, moment.cards);
+            Assert.AreEqual(new Card(Rank.Two, Suit.Diamonds), _view.PlayerView.Slots[2].Card, "The new card is already on the table.");
+            Assert.IsTrue(_view.DealerView.Said.Any(s => s.mood == DealerMood.Annoyed), "The demon is angry.");
+
+            PlayOut();
+
+            StringAssert.Contains("It backfired!", _view.Message);
+            Assert.AreEqual(1, _presenter.Records.BackfiresSeen);
+        }
+
+        [Test]
+        public void AnAimedCheat_ShowsNoBackfire()
+        {
+            Start(new CollateralCheat());
+
+            PlayOut();
+
+            Assert.IsFalse(_view.Moments.Any(m => m.moment == TableMoment.Backfire));
+            Assert.AreEqual(0, _presenter.Records.BackfiresSeen);
+        }
+
+        // ------------------------------------------------------------------ what the player may not see, they never see
+
+        private readonly HashSet<Card> _hidden = new HashSet<Card>();
+
+        /// <summary>Notes every card of the player's that is (or was, this hand) kept from them.</summary>
+        private void NoteHidden()
+        {
+            if (_game.PlayerHand == null) return;
+            for (int i = 0; i < Hand.Size; i++)
+                if (_game.WasPlayerCardHidden(i))
+                    _hidden.Add(_game.PlayerHand[i]);
+        }
+
+        /// <summary>
+        /// No row of the player's cards shows a hidden card's face until the House has shown all five (the showdown), and no
+        /// word on the table names it at all.
+        /// </summary>
+        private void AssertTheDarkHeld()
+        {
+            Assert.IsNotEmpty(_hidden, "The test needs a hidden card.");
+            bool showdown = false;
+            foreach (var (house, slots) in _view.ShowLog)
+            {
+                if (house && slots.All(s => s.Kind == CardSlot.SlotKind.Face)) showdown = true;
+                if (house || showdown) continue;
+                foreach (CardSlot slot in slots)
+                    Assert.IsFalse(slot.Kind == CardSlot.SlotKind.Face && _hidden.Contains(slot.Card),
+                        $"{slot.Card} showed its face before the showdown.");
+            }
+            Assert.IsTrue(showdown, "The hand reached its showdown.");
+            foreach (string text in _view.TextLog.Where(t => t != null))
+                foreach (Card card in _hidden)
+                    StringAssert.DoesNotContain(card.ToString(), text, $"\"{text}\" names a hidden card.");
+        }
+
+        [Test]
+        public void NightVeil_TheCardNeverShowsItsFace_BeforeTheShowdown()
+        {
+            Start(new NightVeilCheat(), player: "KS KH 2C 5D 9C", house: "3D 4D 6C 7S 8D");
+            _view.PressAction();
+            NoteHidden();
+            _presenter.CheckToDraw();
+            NoteHidden();
+            _view.PressAction();   // stand pat (the dark card stays)
+            NoteHidden();
+            while (_game.Phase == GamePhase.DrawReveal || _game.Phase == GamePhase.HouseReveal)
+            {
+                _view.PressBet(BetAction.Pass);
+                NoteHidden();
+            }
+
+            AssertTheDarkHeld();
+            Assert.IsFalse(_view.PlayerView.Hints.Count > 0 && _view.PlayerView.Hints.Count < Hand.Size,
+                "No keep frames with a card in the dark.");
+        }
+
+        [Test]
+        public void Moonless_TheDrawnCardsNeverShowTheirFaces_BeforeTheShowdown()
+        {
+            Start(new MoonlessCheat());
+            ToTheDraw();
+            _view.PlayerView.Click(0);
+            _view.PlayerView.Click(2);
+            _view.PressAction();   // the draw: the new cards stay dark
+            NoteHidden();
+            while (_game.Phase == GamePhase.DrawReveal || _game.Phase == GamePhase.HouseReveal)
+            {
+                _view.PressBet(BetAction.Pass);
+                NoteHidden();
+            }
+
+            AssertTheDarkHeld();
+        }
+
+        [Test]
+        public void Moonless_InASealedHand_TheCardsStayDarkWhileTheHouseTurns()
+        {
+            Start(new MoonlessCheat());
+            _view.PressAction();
+            _view.PressBet(BetAction.Raise);
+            _view.PressBet(BetAction.Raise);   // the table is full: sealed, on to the draw
+            Assert.AreEqual(GamePhase.Drawing, _game.Phase);
+            _view.PlayerView.Click(0);
+            _view.PlayerView.Click(2);
+
+            _view.PressAction();   // the draw — and the sealed hand plays out on its own
+
+            NoteHidden();
+            Assert.AreEqual(GamePhase.RoundOver, _game.Phase);
+            AssertTheDarkHeld();
+        }
+
+        [Test]
+        public void SerpentSwap_WhatComesBackNeverShowsItsFace_BeforeTheShowdown()
+        {
+            Start(new SerpentSwapCheat(), player: "QS QH 2C 5D 9C", house: "3D 4D 6C 7S 8D");
+            ToTheDraw();
+            _view.PressAction();   // stand pat: the serpent strikes after the draw
+            NoteHidden();
+            while (_game.Phase == GamePhase.DrawReveal || _game.Phase == GamePhase.HouseReveal)
+            {
+                _view.PressBet(BetAction.Pass);
+                NoteHidden();
+            }
+
+            AssertTheDarkHeld();
         }
 
         [Test]

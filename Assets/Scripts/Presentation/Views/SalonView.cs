@@ -20,6 +20,10 @@ namespace HellPoker.Presentation.Views
 
         private SalonLibrary _library;
         private SpriteFrameAnimator _animator;
+        private BackdropMotionView _motion;
+
+        /// <summary>The hall's moving parts on screen (for tests).</summary>
+        public BackdropMotionView MotionView => _motion;
         private Image _blinds;
         private string _dealerId;
         private SalonMode _mode;
@@ -45,6 +49,8 @@ namespace HellPoker.Presentation.Views
             view._library = library;
             view._animator = image.gameObject.AddComponent<SpriteFrameAnimator>();
             view._animator.FallbackColor = Palette.Night;
+            // The hall's moving parts over its still picture (and under the wipe).
+            view._motion = BackdropMotionView.Create(image.transform);
 
             // A dark curtain dropping from the top edge, sized in whole 8 px rows.
             view._blinds = UiFactory.CreateImage("Blinds", image.transform, Palette.Black);
@@ -98,6 +104,7 @@ namespace HellPoker.Presentation.Views
             ShownDealerId = _dealerId;
             ShownMode = _mode;
             _animator.Play(_library.Get(_dealerId, _mode));
+            _motion.Show(_library.Motion(_dealerId, _mode), _mode);
         }
 
         private IEnumerator Wipe()

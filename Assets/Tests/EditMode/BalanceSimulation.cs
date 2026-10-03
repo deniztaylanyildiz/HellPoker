@@ -33,7 +33,9 @@ namespace HellPoker.Core.Tests
             public int Played;
             public int Fizzled;
             public int Lies;
+            public int Backfires;
             public readonly Dictionary<string, int> ById = new Dictionary<string, int>();
+            public readonly Dictionary<string, int> BackfiresById = new Dictionary<string, int>();
 
             public void Count(HellPokerGame game)
             {
@@ -48,6 +50,11 @@ namespace HellPoker.Core.Tests
                     Played++;
                     if (result.WasLie) Lies++;
                     ById[result.CheatId] = ById.TryGetValue(result.CheatId, out int n) ? n + 1 : 1;
+                    if (result.Backfired)
+                    {
+                        Backfires++;
+                        BackfiresById[result.CheatId] = BackfiresById.TryGetValue(result.CheatId, out int b) ? b + 1 : 1;
+                    }
                 }
             }
         }
@@ -165,7 +172,7 @@ namespace HellPoker.Core.Tests
             if (cheats)
             {
                 report.AppendLine();
-                report.AppendLine("table    hands   cheats/hand  fizzled  lies  | cheat types (share of played cheats)");
+                report.AppendLine("table    hands   cheats/hand  fizzled  lies  backfires | cheat types (share of played cheats; backfire rate of that cheat)");
                 foreach (Dealer dealer in DealerRoster.All)
                     AppendTally(report, dealer.Id, TallyFor(dealer.Id));
                 AppendTally(report, lucifer.Id, luciferTally);
@@ -179,8 +186,10 @@ namespace HellPoker.Core.Tests
         {
             string perHand = (tally.Played / (double)Math.Max(1, tally.Hands)).ToString("0.00");
             string types = string.Join("  ", tally.ById.OrderByDescending(p => p.Value)
-                .Select(p => $"{p.Key} {100.0 * p.Value / Math.Max(1, tally.Played):0}%"));
-            report.AppendLine($"{id,-8} {tally.Hands,6}  {perHand,11}  {tally.Fizzled,7}  {tally.Lies,4}  | {types}");
+                .Select(p => $"{p.Key} {100.0 * p.Value / Math.Max(1, tally.Played):0}%" +
+                             (tally.BackfiresById.TryGetValue(p.Key, out int b) ? $" (bf {100.0 * b / p.Value:0.0}%)" : "")));
+            string backfires = $"{tally.Backfires} ({100.0 * tally.Backfires / Math.Max(1, tally.Played):0.0}%)";
+            report.AppendLine($"{id,-8} {tally.Hands,6}  {perHand,11}  {tally.Fizzled,7}  {tally.Lies,4}  {backfires,9} | {types}");
         }
 
         private static int EnvInt(string name, int fallback)
@@ -198,7 +207,8 @@ namespace HellPoker.Core.Tests
         /// after the draw raises with two pair or better, folds high card when the House shows a pair;
         /// calls a re-raise with a pair or better.
         /// Against the intent: never throws a thorned or chained card away; when The Fall awaits it does not raise (a big win
-        /// is what The Fall takes) and folds a weak hand after the draw.
+        /// is what The Fall takes) and folds a weak hand after the draw. Under Lucifer's Gaze a re-raise is no certainty (he
+        /// bluffs half the time), so it is answered like any other: called with a pair or better.
         /// </summary>
         /// <returns>True if the house re-raised during the hand.</returns>
         private static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)

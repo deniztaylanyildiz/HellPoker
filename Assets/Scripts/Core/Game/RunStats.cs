@@ -20,6 +20,9 @@ namespace HellPoker.Core.Game
         public IReadOnlyList<string> Dealers => _dealers;
         public bool SoulStaked { get; private set; }
 
+        /// <summary>Demons' cheats that turned on them and helped the player, this run.</summary>
+        public int Backfires { get; private set; }
+
         public RunStats(int startingYears, string dealerId)
         {
             if (startingYears < 0) throw new ArgumentOutOfRangeException(nameof(startingYears));
@@ -29,9 +32,12 @@ namespace HellPoker.Core.Game
         }
 
         /// <summary>Rebuilds saved stats.</summary>
-        public RunStats(int handsPlayed, int lowestYears, int highestYears, HandCategory? bestHand, IEnumerable<string> dealers, bool soulStaked)
+        public RunStats(int handsPlayed, int lowestYears, int highestYears, HandCategory? bestHand, IEnumerable<string> dealers, bool soulStaked,
+            int backfires = 0)
         {
             if (handsPlayed < 0) throw new ArgumentOutOfRangeException(nameof(handsPlayed));
+            if (backfires < 0) throw new ArgumentOutOfRangeException(nameof(backfires));
+            Backfires = backfires;
             if (lowestYears < 0 || highestYears < lowestYears) throw new ArgumentOutOfRangeException(nameof(lowestYears));
             HandsPlayed = handsPlayed;
             LowestYears = lowestYears;
@@ -54,6 +60,13 @@ namespace HellPoker.Core.Game
             LowestYears = Math.Min(LowestYears, years);
             HighestYears = Math.Max(HighestYears, years);
             SoulStaked |= soulAtStake;
+        }
+
+        /// <summary>A demon's cheat turned on them this many times (in the hand just settled).</summary>
+        public void NoteBackfires(int count)
+        {
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            Backfires += count;
         }
 
         /// <summary>A hand has been settled.</summary>

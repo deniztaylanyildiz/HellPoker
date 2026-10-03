@@ -39,16 +39,24 @@ namespace HellPoker.PlayMode.Tests
             public void Shuffle<T>(IList<T> items) { }
         }
 
+        /// <summary>Dice that always land on the first option (every "this often" roll succeeds).</summary>
+        public sealed class FirstChoice : IRandomSource
+        {
+            public int Next(int maxExclusive) => 0;
+        }
+
         public static TablePresenter Presenter =>
             (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", Flags).GetValue(Object.FindFirstObjectByType<HellPokerBootstrap>());
 
         /// <summary>Between hands: this cheat every hand (announced as <paramref name="shown"/>), on a stacked deck.</summary>
-        public static void Force(ICheat cheat, ICheat shown = null, string deck = null)
+        /// <param name="backfirePercent">How often a slippery cheat slips (Belial's tongue).</param>
+        /// <param name="random">The cheat's dice; a fixed seed by default.</param>
+        public static void Force(ICheat cheat, ICheat shown = null, string deck = null, int backfirePercent = 0, IRandomSource random = null)
         {
             object game = Presenter.Game;
             Type type = game.GetType();
-            var random = new SystemRandomSource(3);
-            type.GetField("_cheats", Flags).SetValue(game, new CheatSession(new OnlyCheat(cheat, shown), 1, random));
+            random = random ?? new SystemRandomSource(3);
+            type.GetField("_cheats", Flags).SetValue(game, new CheatSession(new OnlyCheat(cheat, shown), 1, random, null, backfirePercent));
             type.GetField("_cheatRandom", Flags).SetValue(game, random);
             type.GetField("_deck", Flags).SetValue(game, new Deck(new NoShuffle(), Cards(deck ?? $"{Flush} {HouseTwos} {Rest}").Reverse()));
         }
@@ -98,6 +106,69 @@ namespace HellPoker.PlayMode.Tests
 
         /// <summary>The player's card on screen at this position.</summary>
         public static CardView PlayerCard(int index) => Find<Transform>("PlayerHand").GetComponentsInChildren<CardView>()[index];
+
+        /// <summary>True once every House card shows its face on screen (the showdown is in front of the player).</summary>
+        public static bool HouseAllFaceUp => Find<Transform>("HouseHand").GetComponentsInChildren<CardView>().All(c => c.IsFaceUp);
+
+        /// <summary>
+        /// Watches every frame of a hand: a card kept from the player (veiled, moonless, swapped in) may not show its face on
+        /// screen — not in a deal, a flip, a cheat's blow or a sealed hand playing out — until the hand is over and the House's
+        /// cards are all face up. Start it before the deal; read <see cref="DarkWatch.Violation"/> at the end.
+        /// </summary>
+        public sealed class DarkWatch : MonoBehaviour
+        {
+            private readonly HashSet<Card> _hidden = new HashSet<Card>();
+
+            /// <summary>The first face seen too early; null while the dark holds.</summary>
+            public string Violation { get; private set; }
+
+            /// <summary>True once the showdown is on screen (the watch is over).</summary>
+            public bool Done { get; private set; }
+
+            /// <summary>How many cards were kept from the player this hand.</summary>
+            public int HiddenSeen => _hidden.Count;
+
+            private void LateUpdate()
+            {
+                if (Done) return;
+                IHellPokerGame game = Presenter.Game;
+                if (game.PlayerHand != null)
+                    for (int i = 0; i < Core.Cards.Hand.Size; i++)
+                        if (game.WasPlayerCardHidden(i)) _hidden.Add(game.PlayerHand[i]);
+
+                bool settled = game.Phase != GamePhase.Betting && !IsInPlay(game.Phase);
+                if (settled && HouseAllFaceUp)
+                {
+                    Done = true;
+                    return;
+                }
+
+                for (int i = 0; i < Core.Cards.Hand.Size && Violation == null; i++)
+                {
+                    Card? face = PlayerCard(i).FaceShown;
+                    if (face.HasValue && _hidden.Contains(face.Value))
+                        Violation = $"{face.Value} (card {i}) showed its face before the showdown.";
+                }
+            }
+
+            private static bool IsInPlay(GamePhase phase) =>
+                phase == GamePhase.PlayerReveal || phase == GamePhase.Drawing || phase == GamePhase.DrawReveal ||
+                phase == GamePhase.HouseReveal || phase == GamePhase.HouseReRaise;
+        }
+
+        public static DarkWatch WatchTheDark() => new GameObject("DarkWatch").AddComponent<DarkWatch>();
+
+        /// <summary>Waits for the watch to see the showdown, then checks it held.</summary>
+        public static IEnumerator AssertTheDarkHeld(DarkWatch watch)
+        {
+            float started = Time.time;
+            while (!watch.Done && Time.time - started < 20f)
+                yield return null;
+            NUnit.Framework.Assert.IsTrue(watch.Done, "The showdown never came on screen.");
+            NUnit.Framework.Assert.Greater(watch.HiddenSeen, 0, "Nothing was kept from the player: the test proves nothing.");
+            NUnit.Framework.Assert.IsNull(watch.Violation, watch.Violation);
+            Object.Destroy(watch.gameObject);
+        }
 
         /// <summary>The sign above the demon (null when nothing is announced).</summary>
         public static Presentation.Abstractions.CheatCard Intent => Object.FindFirstObjectByType<MaliceView>().Intent;

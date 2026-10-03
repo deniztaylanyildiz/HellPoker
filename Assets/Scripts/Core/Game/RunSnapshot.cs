@@ -15,7 +15,7 @@ namespace HellPoker.Core.Game
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
     /// this table) and, in a hand, "hand.cheat" / "hand.shown" / "hand.cheat.done"; a v=2 (or v=1) save reads with an empty
-    /// gauge. Anything unreadable — a garbled file, another version, impossible numbers — decodes to nothing, so a bad save
+    /// gauge. "backfires" (cheats that helped the player, this run) is optional within v=3. Anything unreadable — a garbled file, another version, impossible numbers — decodes to nothing, so a bad save
     /// is simply ignored.
     /// </summary>
     public sealed class RunSnapshot
@@ -94,7 +94,8 @@ namespace HellPoker.Core.Game
                 "origin=" + (OriginDealerId ?? ""),
                 "attempts=" + LuciferAttempts.ToString(CultureInfo.InvariantCulture),
                 "malice=" + Malice.ToString(CultureInfo.InvariantCulture),
-                "cheat.major=" + Flag(MajorCheatUsed)
+                "cheat.major=" + Flag(MajorCheatUsed),
+                "backfires=" + Stats.Backfires.ToString(CultureInfo.InvariantCulture)
             };
             if (Hand != null)
             {
@@ -153,8 +154,10 @@ namespace HellPoker.Core.Game
 
                 string[] dealers = (values.TryGetValue("dealers", out string list) ? list : "")
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                // "backfires" came later within v=3: a save without it has seen none.
+                int backfires = values.ContainsKey("backfires") ? KeyValues.Int(values, "backfires") : 0;
                 var stats = new RunStats(KeyValues.Int(values, "hands"), KeyValues.Int(values, "lowest"), KeyValues.Int(values, "highest"),
-                    best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1");
+                    best, dealers.Length > 0 ? dealers : new[] { dealer }, values.TryGetValue("soul", out string soul) && soul == "1", backfires);
 
                 // v=1 knew nothing of Lucifer: such a run never met him.
                 bool atLucifer = version >= 2 && KeyValues.Flag(values, "lucifer");

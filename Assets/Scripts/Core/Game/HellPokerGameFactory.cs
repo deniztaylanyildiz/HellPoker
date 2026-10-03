@@ -20,7 +20,7 @@ namespace HellPoker.Core.Game
         /// <param name="maliceMax">The demon's malice gauge (see <see cref="CheatSession"/>).</param>
         /// <param name="guard">Asked before each cheat strikes; null lets every cheat through (the player's abilities, later).</param>
         public static HellPokerGame Create(GameRules rules = null, IPayoutTable payouts = null, int? seed = null, HouseBettingStyle betting = null,
-            ICheatPolicy cheats = null, int maliceMax = 0, ICheatGuard guard = null)
+            ICheatPolicy cheats = null, int maliceMax = 0, ICheatGuard guard = null, int backfirePercent = 0)
         {
             rules = rules ?? GameRules.Default;
             IRandomSource deckRandom = seed.HasValue ? new SystemRandomSource(seed.Value) : new SystemRandomSource();
@@ -36,7 +36,7 @@ namespace HellPoker.Core.Game
                 new HouseDrawStrategy(rules.MaxDiscards),
                 payouts ?? PayoutTable.CreateDefault(),
                 betting == null ? null : new HandStrengthBettingStrategy(betting, houseRandom),
-                new CheatSession(cheats, maliceMax, cheatRandom, guard),
+                new CheatSession(cheats, maliceMax, cheatRandom, guard, backfirePercent),
                 cheatRandom);
         }
 
@@ -45,7 +45,8 @@ namespace HellPoker.Core.Game
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
-            return Create(dealer.ApplyTo(table ?? GameRules.Default), dealer.Payouts, seed, dealer.Betting, dealer.Cheats, dealer.MaliceMax, guard);
+            return Create(dealer.ApplyTo(table ?? GameRules.Default), dealer.Payouts, seed, dealer.Betting, dealer.Cheats, dealer.MaliceMax, guard,
+                dealer.BackfirePercent);
         }
     }
 }

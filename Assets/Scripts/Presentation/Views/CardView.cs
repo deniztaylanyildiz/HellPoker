@@ -47,6 +47,11 @@ namespace HellPoker.Presentation.Views
         /// <summary>True when the face is on screen right now (not just planned).</summary>
         public bool IsFaceUp => _content.gameObject.activeSelf && _faceGroup.activeSelf;
 
+        /// <summary>The card whose face is on screen right now; null when none is (for tests: what the player can see).</summary>
+        public Card? FaceShown => IsFaceUp ? _faceCard : (Card?)null;
+
+        private Card _faceCard;
+
         public event Action Clicked;
 
         public static CardView Create(Transform parent)
@@ -244,6 +249,7 @@ namespace HellPoker.Presentation.Views
             if (slot.Kind != CardSlot.SlotKind.Face) return;
 
             Card card = slot.Card;
+            _faceCard = card;
             Color ink = card.Suit.IsBlack() ? Palette.BlackSuit : Palette.RedSuit;
             string rank = card.Rank.ToShortString();
 

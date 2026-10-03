@@ -36,6 +36,15 @@ namespace HellPoker.Core.Game
         /// <summary>Runs set free by the Dead Man's Hand without ever meeting Lucifer.</summary>
         public int WildBillEscapes { get; private set; }
 
+        /// <summary>Demons' cheats that turned on them and helped the player, over all runs.</summary>
+        public int BackfiresSeen { get; private set; }
+
+        public void NoteBackfires(int count)
+        {
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            BackfiresSeen += count;
+        }
+
         public int AbsolutionsAt(string dealerId) => _absolutionsByDealer.TryGetValue(dealerId ?? "", out int count) ? count : 0;
 
         public void RunStarted() => RunsStarted++;
@@ -85,7 +94,8 @@ namespace HellPoker.Core.Game
                 "lucifer.reached=" + LuciferReached.ToString(CultureInfo.InvariantCulture),
                 "lucifer.defeated=" + LuciferDefeated.ToString(CultureInfo.InvariantCulture),
                 "lucifer.fewest=" + (FewestLuciferAttempts.HasValue ? FewestLuciferAttempts.Value.ToString(CultureInfo.InvariantCulture) : ""),
-                "wildbill=" + WildBillEscapes.ToString(CultureInfo.InvariantCulture)
+                "wildbill=" + WildBillEscapes.ToString(CultureInfo.InvariantCulture),
+                "backfires=" + BackfiresSeen.ToString(CultureInfo.InvariantCulture)
             };
             lines.AddRange(_absolutionsByDealer.OrderBy(pair => pair.Key)
                 .Select(pair => "free." + pair.Key + "=" + pair.Value.ToString(CultureInfo.InvariantCulture)));
@@ -113,6 +123,7 @@ namespace HellPoker.Core.Game
                 book.LuciferReached = OptionalCount(values, "lucifer.reached");
                 book.LuciferDefeated = OptionalCount(values, "lucifer.defeated");
                 book.WildBillEscapes = OptionalCount(values, "wildbill");
+                book.BackfiresSeen = OptionalCount(values, "backfires");
                 string fewest = values.TryGetValue("lucifer.fewest", out string l) ? l : "";
                 book.FewestLuciferAttempts = fewest.Length > 0 ? NonNegative(KeyValues.Int(values, "lucifer.fewest")) : (int?)null;
                 foreach (var pair in values.Where(pair => pair.Key.StartsWith("free.", StringComparison.Ordinal)))

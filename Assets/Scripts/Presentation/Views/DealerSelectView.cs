@@ -67,16 +67,16 @@ namespace HellPoker.Presentation.Views
             // The selected demon's hall shows behind the choice.
             _salon = SalonView.Create(screen, salons);
 
-            UiFactory.CreateText("Title", screen, UiText.ChooseDealerTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", screen, UiText.ChooseDealerTitle, 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 4, PixelScreen.Width, 16);
-            _subtitle = UiFactory.CreateText("Subtitle", screen, UiText.ChooseDealerSubtitle, 8, Palette.BoneMid).WithShadow();
+            _subtitle = UiFactory.CreateText("Subtitle", screen, UiText.ChooseDealerSubtitle, 8, Palette.BoneMid).WithOutline();
             _subtitle.rectTransform.PlaceTL(0, 20, PixelScreen.Width, 9);
 
             _cards = UiFactory.CreateRect("Cards", screen).Stretch();
 
             Image details = UiFactory.CreatePanel("Details", screen);
             details.rectTransform.PlaceTL(8, 190, PixelScreen.Width - 16, 76);
-            _detailTitle = UiFactory.CreateText("Name", details.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithShadow();
+            _detailTitle = UiFactory.CreateText("Name", details.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithOutline();
             _detailTitle.rectTransform.PlaceTL(8, 6, 300, 8);
             _description = UiFactory.CreateText("Description", details.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _description.rectTransform.PlaceTL(8, 16, PixelScreen.Width - 32, 18);
@@ -102,7 +102,7 @@ namespace HellPoker.Presentation.Views
             Image box = UiFactory.CreatePanel("ConfirmBox", shade.transform, hot: true);
             box.rectTransform.PlaceTL((PixelScreen.Width - ConfirmWidth) / 2, (PixelScreen.Height - ConfirmHeight) / 2, ConfirmWidth, ConfirmHeight);
 
-            _warning = UiFactory.CreateText("Warning", box.transform, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithShadow();
+            _warning = UiFactory.CreateText("Warning", box.transform, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
             _warning.rectTransform.PlaceTL(8, 8, ConfirmWidth - 16, 44);
 
             Button sit = UiFactory.CreateButton("ConfirmSeatButton", box.transform, UiText.SitAnyway, 8, out _, ButtonSkin.Blood);
@@ -213,14 +213,14 @@ namespace HellPoker.Presentation.Views
             if (changingTables && !choice.IsLocked)
             {
                 Text status = UiFactory.CreateText("SoulStatus", box.transform, choice.SoulAtStake ? UiText.SoulAtStake : UiText.Safe, 8,
-                    choice.SoulAtStake ? Palette.Hell : Palette.GreenLight, TextAnchor.MiddleCenter).WithShadow();
+                    choice.SoulAtStake ? Palette.Hell : Palette.GreenLight, TextAnchor.MiddleCenter).WithOutline();
                 status.rectTransform.PlaceTL(0, DealerView.PortraitSize - 7, DealerView.PortraitSize + 8, 9);
                 status.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
 
             // The locked one's long name ("THE MORNING STAR") takes the small pixel font, so it fits a narrow card.
             Text name = UiFactory.CreateText("Name", card, dealer.Name, 8, choice.IsLocked ? Palette.Hell : Palette.GoldLight,
-                style: choice.IsLocked ? FontStyle.Normal : FontStyle.Bold).WithShadow();
+                style: choice.IsLocked ? FontStyle.Normal : FontStyle.Bold).WithOutline();
             name.rectTransform.PlaceTL(-8, 106, width + 16, 8);
             name.horizontalOverflow = HorizontalWrapMode.Overflow;
             // Narrow cards give the title two lines.

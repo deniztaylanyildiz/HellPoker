@@ -79,13 +79,14 @@ namespace HellPoker.Presentation.Views
             else
             {
                 logo.enabled = false;
-                UiFactory.CreateText("TitleText", front, UiText.Title, 32, Palette.Hell, style: FontStyle.Bold).rectTransform.PlaceTL(0, 34, PixelScreen.Width, 32);
+                UiFactory.CreateText("TitleText", front, UiText.Title, 32, Palette.Hell, style: FontStyle.Bold).WithOutline()
+                    .rectTransform.PlaceTL(0, 34, PixelScreen.Width, 32);
             }
 
-            Text taglineText = UiFactory.CreateText("Tagline", front, tagline, 8, Palette.Bone, TextAnchor.UpperCenter).WithShadow();
+            Text taglineText = UiFactory.CreateText("Tagline", front, tagline, 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
             taglineText.rectTransform.PlaceTL(40, 88, PixelScreen.Width - 80, 18);
             UiFactory.CreateSprite("Divider", front, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 110, 48, 3);
-            UiFactory.CreateText("Subtagline", front, UiText.MenuSubtagline, 8, Palette.BoneMid).WithShadow()
+            UiFactory.CreateText("Subtagline", front, UiText.MenuSubtagline, 8, Palette.BoneMid).WithOutline()
                 .rectTransform.PlaceTL(40, 117, PixelScreen.Width - 80, 9);
 
             // Two columns in reading order; buttons that are hidden leave no gap (see LayOut).
@@ -100,7 +101,13 @@ namespace HellPoker.Presentation.Views
             _quitButton = CreateMenuButton(buttons, "QuitButton", UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
             LayOut();
 
-            UiFactory.CreateText("Footer", front, UiText.MenuFooter, 8, Palette.BoneDark).rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
+            UiFactory.CreateText("Footer", front, UiText.MenuFooter, 8, Palette.BoneDark).WithOutline()
+                .rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
+
+            // The build's version, small, in the bottom right corner (C.23).
+            Text version = UiFactory.CreateText("Version", front, string.Format(UiText.VersionFormat, Application.version), 8, Palette.BoneDark,
+                TextAnchor.MiddleRight).WithOutline();
+            version.rectTransform.PlaceTL(PixelScreen.Width - 84, 258, 80, 9);
 
             _rulesPanel = BuildRulesPanel(screen, rules, cheats);
             ShowRules(false);
@@ -112,7 +119,7 @@ namespace HellPoker.Presentation.Views
             panel.raycastTarget = true;
             panel.rectTransform.PlaceTL(8, 8, PixelScreen.Width - 16, PixelScreen.Height - 16);
 
-            UiFactory.CreateText("Title", panel.transform, UiText.RulesTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithShadow()
+            UiFactory.CreateText("Title", panel.transform, UiText.RulesTitle, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 8, PixelScreen.Width - 16, 8);
             UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 16 - 48) / 2, 19, 48, 3);
 
