@@ -14,6 +14,12 @@ namespace HellPoker.Core.Game
         public const int Version = 1;
 
         private readonly Dictionary<string, int> _absolutionsByDealer = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> _absolutionsByClass = new Dictionary<string, int>();
+
+        /// <summary>Runs ended free, per sinner class ("free.class.&lt;id&gt;"; an older book has none).</summary>
+        public IReadOnlyDictionary<string, int> AbsolutionsByClass => _absolutionsByClass;
+
+        public int AbsolutionsAs(string classId) => _absolutionsByClass.TryGetValue(classId ?? "", out int count) ? count : 0;
 
         public int RunsStarted { get; private set; }
         public int Absolutions { get; private set; }
@@ -53,8 +59,9 @@ namespace HellPoker.Core.Game
         /// <param name="luciferAttempts">How many times the run was summoned to Lucifer.</param>
         /// <param name="beatLucifer">True when the run ended free at Lucifer's table.</param>
         /// <param name="wildBill">True when the Dead Man's Hand set the run free without Lucifer.</param>
+        /// <param name="classId">The sinner class of the run; null for none.</param>
         public void RunEnded(bool absolved, string dealerId, int handsPlayed, int luciferAttempts = 0, bool beatLucifer = false,
-            bool wildBill = false)
+            bool wildBill = false, string classId = null)
         {
             if (luciferAttempts > 0) LuciferReached++;
 
@@ -78,6 +85,8 @@ namespace HellPoker.Core.Game
             Absolutions++;
             if (!string.IsNullOrEmpty(dealerId))
                 _absolutionsByDealer[dealerId] = AbsolutionsAt(dealerId) + 1;
+            if (!string.IsNullOrEmpty(classId))
+                _absolutionsByClass[classId] = AbsolutionsAs(classId) + 1;
             if (!FastestAbsolution.HasValue || handsPlayed < FastestAbsolution.Value)
                 FastestAbsolution = handsPlayed;
         }
@@ -99,6 +108,8 @@ namespace HellPoker.Core.Game
             };
             lines.AddRange(_absolutionsByDealer.OrderBy(pair => pair.Key)
                 .Select(pair => "free." + pair.Key + "=" + pair.Value.ToString(CultureInfo.InvariantCulture)));
+            lines.AddRange(_absolutionsByClass.OrderBy(pair => pair.Key)
+                .Select(pair => ClassPrefix + pair.Key + "=" + pair.Value.ToString(CultureInfo.InvariantCulture)));
             return string.Join("\n", lines);
         }
 
@@ -126,7 +137,10 @@ namespace HellPoker.Core.Game
                 book.BackfiresSeen = OptionalCount(values, "backfires");
                 string fewest = values.TryGetValue("lucifer.fewest", out string l) ? l : "";
                 book.FewestLuciferAttempts = fewest.Length > 0 ? NonNegative(KeyValues.Int(values, "lucifer.fewest")) : (int?)null;
-                foreach (var pair in values.Where(pair => pair.Key.StartsWith("free.", StringComparison.Ordinal)))
+                foreach (var pair in values.Where(pair => pair.Key.StartsWith(ClassPrefix, StringComparison.Ordinal)))
+                    book._absolutionsByClass[pair.Key.Substring(ClassPrefix.Length)] = NonNegative(KeyValues.Int(values, pair.Key));
+                foreach (var pair in values.Where(pair => pair.Key.StartsWith("free.", StringComparison.Ordinal) &&
+                                                          !pair.Key.StartsWith(ClassPrefix, StringComparison.Ordinal)))
                     book._absolutionsByDealer[pair.Key.Substring("free.".Length)] = NonNegative(KeyValues.Int(values, pair.Key));
                 return book;
             }
@@ -136,6 +150,9 @@ namespace HellPoker.Core.Game
                 return new RecordBook();
             }
         }
+
+        /// <summary>Absolutions per class: their own key, so they never read as a demon's.</summary>
+        private const string ClassPrefix = "free.class.";
 
         private static int OptionalCount(Dictionary<string, string> values, string key)
         {

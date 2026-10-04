@@ -59,11 +59,11 @@ namespace HellPoker.Core.Cheats
         public CheatTiming Timing => CheatTiming.AfterDraw;
 
         /// <summary>Nothing to darken when the player stands pat.</summary>
-        public bool CanApply(CheatTable table) => table.DrawnIndices.Any(i => !CheatTable.IsImmune(table.PlayerHand[i]));
+        public bool CanApply(CheatTable table) => table.DrawnIndices.Any(i => !table.IsUntouchable(i));
 
         public CheatResult Apply(CheatTable table)
         {
-            int[] dark = table.DrawnIndices.Where(i => !CheatTable.IsImmune(table.PlayerHand[i])).ToArray();
+            int[] dark = table.DrawnIndices.Where(i => !table.IsUntouchable(i)).ToArray();
             if (dark.Length == 0) return CheatResult.Fizzled(Id);
             foreach (int i in dark)
                 table.Marks.HiddenFromPlayer.Add(table.PlayerHand[i]);

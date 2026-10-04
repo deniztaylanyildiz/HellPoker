@@ -93,11 +93,18 @@ namespace HellPoker.Presentation
             }
             button.onClick.Invoke();
 
+            // A new run asks who the player was: the tour plays the Peasant.
+            if (name.StartsWith("ChooseDealer"))
+            {
+                Button sinner = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.name == "ChooseSinner0" && b.gameObject.activeInHierarchy);
+                if (sinner != null) sinner.onClick.Invoke();
+            }
             // New Game over a run in progress asks first: the tour means it.
             if (name == "NewGameButton")
             {
                 Button confirm = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                    .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+                    .FirstOrDefault(b => b.name == "MenuConfirmButton" && b.gameObject.activeInHierarchy);
                 if (confirm != null) confirm.onClick.Invoke();
             }
         }

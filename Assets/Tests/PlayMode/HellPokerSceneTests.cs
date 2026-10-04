@@ -47,28 +47,32 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheLanguageButton_TurnsTheTableTurkish_AtOnce_MidHand()
+        public IEnumerator TheMenusLanguageButton_BringsThePlayerBackToATurkishTable_MidHand()
         {
             StartRun();
             Press("ActionButton");
             yield return WaitForTable();
-            Assert.AreEqual("MENU", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
             Assert.AreEqual("PASS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
+            Assert.IsNull(Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "LanguageButton"), "No language button at the table.");
 
-            Press("LanguageButton");
+            Press("MenuButton");
+            yield return new WaitForSeconds(0.4f);
+            Press("MenuLanguageButton");
+            Assert.AreEqual("YENİ OYUN", Find<Button>("NewGameButton").GetComponentInChildren<Text>().text);
+            Press("ContinueButton");
             yield return WaitForTable();
 
             Assert.AreEqual("MENÜ", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
             Assert.AreEqual("PAS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
-            Assert.AreEqual("EN", Find<Button>("LanguageButton").GetComponentInChildren<Text>().text, "It offers the way back.");
             Assert.IsTrue(IsActive("PassButton"), "Still the same decision: the hand goes on.");
             Assert.AreEqual("Turkish", HellPokerBootstrap.BatchStore.GetString("settings.language", null), "Saved.");
 
-            Press("LanguageButton");
-            yield return WaitForTable();
-            Assert.AreEqual("MENU", Find<Button>("MenuButton").GetComponentInChildren<Text>().text);
+            Press("MenuButton");
+            yield return new WaitForSeconds(0.4f);
+            Press("MenuLanguageButton");
+            Assert.AreEqual("NEW GAME", Find<Button>("NewGameButton").GetComponentInChildren<Text>().text);
         }
-
         [UnityTest]
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {
@@ -265,12 +269,21 @@ namespace HellPoker.PlayMode.Tests
             button.onClick.Invoke();
             // New Game over a run asks first: the tests mean it.
             if (button.name == "NewGameButton") ConfirmNewGame();
+            // A new run asks who the player was: the tests play the Peasant unless they say otherwise.
+            if (button.name.StartsWith("ChooseDealer")) ChooseSinner(0);
+        }
+
+        private static void ChooseSinner(int index)
+        {
+            Button choose = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "ChooseSinner" + index && b.gameObject.activeInHierarchy);
+            if (choose != null) choose.onClick.Invoke();
         }
 
         private static void ConfirmNewGame()
         {
             Button confirm = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+                .FirstOrDefault(b => b.name == "MenuConfirmButton" && b.gameObject.activeInHierarchy);
             if (confirm != null) confirm.onClick.Invoke();
         }
 

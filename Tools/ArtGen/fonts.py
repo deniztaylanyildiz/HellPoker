@@ -23,9 +23,28 @@ SUITS_5 = {
     0x2666: ["..#..", ".###.", "#####", ".###.", "..#.."],   # diamond
 }
 
+# Turkish capital dotted I for the title font (Press Start 2P): the original squeezes the I to 4 rows to fit the dot inside the
+# 8 px em, and in big titles it reads as a small "i" ("LANETLENDİN"). This one is the full 7 px I, and its dot sits one empty
+# pixel above it — above the em: the line height stays the same (no layout moves), the dot rides over the line box.
+# Rows top to bottom: dot, gap, the I (bar, 5 stem rows, bar), the empty baseline row. 7 columns: advance 8 px like the I.
+TITLE_DOTTED_I = {
+    0x0130: [
+        "...##..",
+        ".......",
+        ".######",
+        "...##..",
+        "...##..",
+        "...##..",
+        "...##..",
+        "...##..",
+        ".######",
+        ".......",
+    ],
+}
+
 # Original file -> (output file, new family name, glyphs to add as bitmaps, codepoints to alias to an existing character).
 FONTS = {
-    "PressStart2P-Regular.ttf": ("HellPokerPixelTitle.ttf", "Hell Poker Pixel Title", {}, {0x2212: "-"}),
+    "PressStart2P-Regular.ttf": ("HellPokerPixelTitle.ttf", "Hell Poker Pixel Title", TITLE_DOTTED_I, {0x2212: "-"}),
     "Tiny5-Regular.ttf": ("HellPokerPixel.ttf", "Hell Poker Pixel", SUITS_5, {}),
 }
 
@@ -65,7 +84,7 @@ def add_glyphs(font, bitmaps, aliases):
         glyph = bitmap_glyph(rows, unit)
         font["glyf"][name] = glyph
         glyph.recalcBounds(font["glyf"])
-        font["hmtx"][name] = ((len(rows[0]) + 1) * unit, 0)
+        font["hmtx"][name] = ((len(rows[0]) + 1) * unit, getattr(glyph, "xMin", 0))
         if name not in order:
             order.append(name)
         for table in cmap_tables:

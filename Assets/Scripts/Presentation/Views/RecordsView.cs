@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Ui;
@@ -69,7 +70,9 @@ namespace HellPoker.Presentation.Views
                 ""
             };
             foreach (DealerCard dealer in dealers)
-                lines.Add(string.Format(UiText.RecordsDealerFormat, dealer.Name, records.AbsolutionsAt(dealer.Id)));
+                lines.Add(string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(dealer.Id)), records.AbsolutionsAt(dealer.Id)));
+            lines.Add(string.Format(UiText.RecordsClassesFormat, string.Join(" · ",
+                HellPoker.Core.Sinners.SinnerRoster.All.Select(c => UiText.SinnerName(c.Id) + " " + records.AbsolutionsAs(c.Id)))));
             _body.text = string.Join("\n", lines);
 
             _canvas.enabled = true;

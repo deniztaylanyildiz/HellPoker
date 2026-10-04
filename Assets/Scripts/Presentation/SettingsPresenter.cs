@@ -20,8 +20,17 @@ namespace HellPoker.Presentation
         private readonly ILanguageButton[] _languageButtons;
 
         /// <param name="languageButtons">Other screens with a language button (the table, the title menu).</param>
+        private readonly IAudio _audio;
+
         public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, params ILanguageButton[] languageButtons)
+            : this(settings, view, display, null, languageButtons)
         {
+        }
+
+        /// <param name="audio">The game's sound: the volumes are applied to it at once.</param>
+        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, IAudio audio, params ILanguageButton[] languageButtons)
+        {
+            _audio = audio ?? NullAudio.Instance;
             _languageButtons = new ILanguageButton[] { view }.Concat(languageButtons ?? new ILanguageButton[0]).Where(b => b != null).ToArray();
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _view = view ?? throw new ArgumentNullException(nameof(view));
@@ -31,6 +40,8 @@ namespace HellPoker.Presentation
             _view.FullscreenPressed += _settings.ToggleFullscreen;
             _view.HandGuidePressed += _settings.ToggleHandGuide;
             _view.ResetTipsPressed += _settings.ResetTips;
+            _view.MusicPressed += _settings.CycleMusic;
+            _view.SfxPressed += _settings.CycleSfx;
             _settings.Changed += Apply;
             foreach (ILanguageButton button in _languageButtons)
                 button.LanguagePressed += CycleLanguage;
@@ -49,6 +60,8 @@ namespace HellPoker.Presentation
             _view.FullscreenPressed -= _settings.ToggleFullscreen;
             _view.HandGuidePressed -= _settings.ToggleHandGuide;
             _view.ResetTipsPressed -= _settings.ResetTips;
+            _view.MusicPressed -= _settings.CycleMusic;
+            _view.SfxPressed -= _settings.CycleSfx;
             _settings.Changed -= Apply;
             foreach (ILanguageButton button in _languageButtons)
                 button.LanguagePressed -= CycleLanguage;
@@ -61,6 +74,7 @@ namespace HellPoker.Presentation
         private void Apply()
         {
             AnimationClock.Speed = _settings.SpeedMultiplier;
+            _audio.SetVolumes(_settings.MusicVolume / (float)GameSettings.MaxVolume, _settings.SfxVolume / (float)GameSettings.MaxVolume);
             if (!_appliedOnce || _fullscreenApplied != _settings.Fullscreen)
             {
                 _display.SetFullscreen(_settings.Fullscreen);
@@ -68,7 +82,8 @@ namespace HellPoker.Presentation
                 _appliedOnce = true;
             }
             _view.Render(UiText.SpeedName(_settings.Speed), _settings.Fullscreen, _settings.HandGuide, _settings.TipsSeen.Count > 0,
-                UiText.LanguageName(_settings.Language));
+                UiText.LanguageName(_settings.Language), UiText.Volume(_settings.MusicVolume, GameSettings.MaxVolume),
+                UiText.Volume(_settings.SfxVolume, GameSettings.MaxVolume));
         }
     }
 }

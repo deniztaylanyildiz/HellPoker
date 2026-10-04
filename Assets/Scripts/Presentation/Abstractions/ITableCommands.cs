@@ -18,6 +18,9 @@ namespace HellPoker.Presentation.Abstractions
 
         void ToggleDiscard(int index);
 
+        /// <summary>K (or the class badge): the King picks a card to protect, or stops picking.</summary>
+        void ToggleProtect();
+
         /// <summary>Opens or closes the hand ranking panel (H).</summary>
         void ToggleHandRanks();
 

@@ -7,7 +7,7 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keyboard shortcuts: Esc one screen up, Alt+Enter full screen; at the table Space/Enter main action, pass or call,
-    /// R raise, D check to draw, C call, F fold, 1-5 pick cards, H hand ranks; L the language, on every screen. While the table animates any of them hurries the animation instead.
+    /// R raise, D check to draw, K protect a card (the King), C call, F fold, 1-5 pick cards, H hand ranks; L the language, on the title menu only. While the table animates any of them hurries the animation instead.
     /// Nothing is read while a screen change plays.
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
@@ -46,7 +46,8 @@ namespace HellPoker.Presentation
                 return;
             }
 
-            if (keyboard.lKey.wasPressedThisFrame)
+            // The language changes on the title menu only — never at the table, under a warning or on a sub-screen.
+            if (keyboard.lKey.wasPressedThisFrame && _menu.IsAtMenuRoot)
             {
                 _settings?.CycleLanguage();
                 return;
@@ -65,6 +66,7 @@ namespace HellPoker.Presentation
                 _table.PerformAction();
             else if (keyboard.rKey.wasPressedThisFrame) _table.Bet(BetAction.Raise);
             else if (keyboard.dKey.wasPressedThisFrame) _table.CheckToDraw();
+            else if (keyboard.kKey.wasPressedThisFrame) _table.ToggleProtect();
             else if (keyboard.cKey.wasPressedThisFrame) _table.Bet(BetAction.Call);
             else if (keyboard.fKey.wasPressedThisFrame) _table.Bet(BetAction.Fold);
             else if (keyboard.digit1Key.wasPressedThisFrame) _table.ToggleDiscard(0);

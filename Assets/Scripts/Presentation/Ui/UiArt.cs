@@ -58,6 +58,35 @@ namespace HellPoker.Presentation.Ui
         }
 
         /// <summary>One pip of a demon's malice gauge (a coin, a scale, a thorn, an ember); null when missing.</summary>
+        public const string RelicIcons = "Ui/relic_icons";
+
+        /// <summary>A relic's 16×16 icon (strip in <see cref="HellPoker.Core.Relics.RelicRoster"/> order); null if missing.</summary>
+        public static Sprite RelicIcon(string relicId)
+        {
+            int index = -1;
+            for (int i = 0; i < HellPoker.Core.Relics.RelicRoster.All.Count; i++)
+                if (HellPoker.Core.Relics.RelicRoster.All[i].Id == relicId) index = i;
+            Sprite[] icons = Strip(RelicIcons, 16);
+            return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
+        }
+
+        public const string SinnerIcons = "Ui/sinner_icons";
+        public const int SinnerIconSize = 16;
+        public const int SinnerPortraitSize = 48;
+
+        /// <summary>The class's badge icon (16×16, from the strip in <see cref="HellPoker.Core.Sinners.SinnerRoster"/> order); null if missing.</summary>
+        public static Sprite SinnerIcon(string classId)
+        {
+            int index = -1;
+            for (int i = 0; i < HellPoker.Core.Sinners.SinnerRoster.All.Count; i++)
+                if (HellPoker.Core.Sinners.SinnerRoster.All[i].Id == classId) index = i;
+            Sprite[] icons = Strip(SinnerIcons, SinnerIconSize);
+            return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
+        }
+
+        /// <summary>The class's portrait (48×48, "Sinners/&lt;id&gt;"); null if missing.</summary>
+        public static Sprite SinnerPortrait(string classId) => Sprite("Sinners/" + classId);
+
         public static Sprite MalicePip(string dealerId, bool full)
         {
             int index = Array.IndexOf(MalicePipOrder, dealerId);

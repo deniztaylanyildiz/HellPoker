@@ -704,7 +704,7 @@ namespace HellPoker.Core.Tests
                 new HandInProgress(200, 100, false, false, false, CheatIds.SerpentSwap, true), malice: 2, majorCheatUsed: true, grudge: 2);
 
             string text = snapshot.Encode();
-            StringAssert.StartsWith("v=3", text);
+            StringAssert.StartsWith("v=4", text);
             Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot back));
 
             Assert.AreEqual(2, back.Malice);

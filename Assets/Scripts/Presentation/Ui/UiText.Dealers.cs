@@ -7,6 +7,20 @@ namespace HellPoker.Presentation.Ui
     internal sealed class DealerText
     {
         public string Name;
+
+        /// <summary>
+        /// Turkish only: the name with the possessive suffix, in capitals like <see cref="Name"/> ("MAMMON'UN", "BELIAL'IN").
+        /// Turkish suffixes follow the sound of the name, so they are written by hand. English leaves it null: Name + "'s".
+        /// Read through <see cref="UiText.GenitiveOf"/>.
+        /// </summary>
+        public string Genitive;
+
+        /// <summary>Turkish only: the name as it reads inside a sentence ("Lilith", "Sabah Yıldızı"); null: the name, capitalised.</summary>
+        public string Called;
+
+        /// <summary>Turkish only: <see cref="Called"/> with the possessive suffix ("Lilith'in", "Sabah Yıldızı'nın").</summary>
+        public string CalledGenitive;
+
         public string Title;
         public string Description;
         public string[] Greeting;
@@ -34,6 +48,30 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>The demon's own cheat helped the player (a backfire): said with an angry look.</summary>
         public string[] Backfire;
+
+        /// <summary>The Warlock warded off the demon's cheat: said with an angry look.</summary>
+        public string[] Blocked;
+
+        /// <summary>An event between hands: the player took the offer / let it pass.</summary>
+        public string[] EventAccepted;
+        public string[] EventDeclined;
+
+        /// <summary>The first word to a new run, by the sinner's class (null: the usual greeting).</summary>
+        public string GreetingAsPeasant;
+        public string GreetingAsWarlock;
+        public string GreetingAsKing;
+
+        /// <summary>The greeting for a run of this class; null when the demon has none for it.</summary>
+        public string GreetingFor(string classId)
+        {
+            switch (classId)
+            {
+                case HellPoker.Core.Sinners.Peasant.ClassId: return GreetingAsPeasant;
+                case HellPoker.Core.Sinners.Warlock.ClassId: return GreetingAsWarlock;
+                case HellPoker.Core.Sinners.King.ClassId: return GreetingAsKing;
+                default: return null;
+            }
+        }
 
         /// <summary>The player is summoned to Lucifer from this demon's table: the demon's last word.</summary>
         public string[] Farewell;
@@ -164,6 +202,12 @@ namespace HellPoker.Presentation.Ui
                 "That entry was... unfortunate. Strike it from the record.",
                 "Even my ledger has a bad day. Enjoy it."
             },
+            Blocked = new[] { "A seal on the account? Who taught you that trick?", "Warded. I will note the expense." },
+            EventAccepted = new[] { "A deal struck. I do love a signature.", "Accepted. The terms will find you." },
+            EventDeclined = new[] { "Prudent. Unprofitable, but prudent.", "No? The offer goes back in the drawer." },
+            GreetingAsPeasant = "A peasant. Nothing to your name but the debt. Sit, let us count it.",
+            GreetingAsWarlock = "A warlock. Keep your little signs off my ledger. Sit.",
+            GreetingAsKing = "A king! How fortunate. A crown counts as collateral.",
             Farewell = new[]
             {
                 "Your debt is nearly paid... and someone else has noticed you. My condolences.",
@@ -237,6 +281,12 @@ namespace HellPoker.Presentation.Ui
                 "That was not the line I rehearsed.",
                 "Applause, darling. Do not get used to it."
             },
+            Blocked = new[] { "A ward? Darling, you have read ahead in the script.", "Spoiled my best trick. How rude." },
+            EventAccepted = new[] { "Bravo! A player who says yes.", "Oh, this will be a lovely scene." },
+            EventDeclined = new[] { "No? You disappoint the audience, darling.", "Cautious. How very... dull." },
+            GreetingAsPeasant = "A peasant in the front row! Do try to keep up, darling.",
+            GreetingAsWarlock = "A warlock. How tiresome — you will see through my lines.",
+            GreetingAsKing = "A king! Finally, an audience worthy of the show.",
             Farewell = new[]
             {
                 "Oh dear. He has noticed you. Do try to be entertaining, darling.",
@@ -309,6 +359,12 @@ namespace HellPoker.Presentation.Ui
                 "The night chose you over me. How rude.",
                 "Even my thorns have favourites. Not for long."
             },
+            Blocked = new[] { "You turned my night aside. Clever little soul.", "A ward against me? I will find the gap." },
+            EventAccepted = new[] { "Mm. You reach for what the dark offers.", "Yes. Let the night take its share." },
+            EventDeclined = new[] { "You fear the gift. Wise, little soul.", "No? The night will ask again." },
+            GreetingAsPeasant = "A peasant, all calloused hands. Come, rest them in the dark.",
+            GreetingAsWarlock = "A warlock. You know a little of the night. Not enough.",
+            GreetingAsKing = "A king. Crowns slip so easily in the dark.",
             Farewell = new[]
             {
                 "Shh. Someone older than the night is calling you. Go.",
@@ -372,6 +428,7 @@ namespace HellPoker.Presentation.Ui
                 "Chance is the one thing I do not rule. Remember that.",
                 "Keep it. You will need it."
             },
+            Blocked = new[] { "A ward. Against me. Amusing.", "Your little magic held. Once." },
             CastDown = new[]
             {
                 "Too heavy. Fall back where you came from.",
@@ -411,6 +468,9 @@ namespace HellPoker.Presentation.Ui
             Hunted = new[] { "You ran from my trick. I will not forget it." },
             Scorn = new[] { "Leaving so soon? Afraid?" },
             Backfire = new[] { "That was not meant for you." },
+            Blocked = new[] { "Warded. Hm." },
+            EventAccepted = new[] { "So be it." },
+            EventDeclined = new[] { "As you wish." },
             SoulWarning = "Your soul will be on this table.",
             Absolved = "You are free.",
             Damned = "Damned."
@@ -421,6 +481,9 @@ namespace HellPoker.Presentation.Ui
         private static readonly DealerText MammonTr = new DealerText
         {
             Name = "MAMMON",
+            Genitive = "MAMMON'UN",
+            Called = "Mammon",
+            CalledGenitive = "Mammon'un",
             Title = "Dokuzuncu Kasanın Tefecisi",
             Description = "Her yılı iki kez sayar ve kitabına harfiyen uyar. Cehennemin en adil masası — ki bu pek bir şey söylemez.",
             Greeting = new[] { "Otur, otur. Borçlu olduğun her yıl burada yazılı. Bakalım kaçını geri alabileceksin." },
@@ -476,6 +539,12 @@ namespace HellPoker.Presentation.Ui
                 "O kayıt... talihsizdi. Defterden silin.",
                 "Defterimin bile kötü günü olur. Tadını çıkar."
             },
+            Blocked = new[] { "Hesaba mühür mü? Bu numarayı sana kim öğretti?", "Savuşturuldu. Masrafını not ediyorum." },
+            EventAccepted = new[] { "Anlaşma tamam. İmzaya bayılırım.", "Kabul edildi. Şartlar seni bulur." },
+            EventDeclined = new[] { "Tedbirli. Kârsız, ama tedbirli.", "Hayır mı? Teklif çekmeceye geri döner." },
+            GreetingAsPeasant = "Bir köylü. Adına borçtan başka bir şey yok. Otur, sayalım.",
+            GreetingAsWarlock = "Bir büyücü. İşaretlerini defterimden uzak tut. Otur.",
+            GreetingAsKing = "Bir kral! Ne şans. Taç da teminat sayılır.",
             Farewell = new[]
             {
                 "Borcun neredeyse bitti... ve biri seni fark etti. Başın sağ olsun.",
@@ -494,6 +563,9 @@ namespace HellPoker.Presentation.Ui
         private static readonly DealerText BelialTr = new DealerText
         {
             Name = "BELIAL",
+            Genitive = "BELIAL'IN",
+            Called = "Belial",
+            CalledGenitive = "Belial'in",
             Title = "Gümüş Dil",
             Description = "Prens gibi öder, nefes alır gibi yalan söyler. Elinin çoğunu iş işten geçene kadar saklar.",
             Greeting = new[] { "Büyülendim. Bunu ilginç hale getirelim mi? Israr ediyorum." },
@@ -549,6 +621,12 @@ namespace HellPoker.Presentation.Ui
                 "Prova ettiğim replik bu değildi.",
                 "Alkış, canım. Alışma."
             },
+            Blocked = new[] { "Koruma mı? Canım, senaryoyu önden okumuşsun.", "En iyi numaramı bozdun. Ne kaba." },
+            EventAccepted = new[] { "Bravo! Evet diyen bir oyuncu.", "Ah, bu çok güzel bir sahne olacak." },
+            EventDeclined = new[] { "Hayır mı? Seyirciyi hayal kırıklığına uğratıyorsun, canım.", "Temkinli. Ne kadar da... sıkıcı." },
+            GreetingAsPeasant = "Ön sırada bir köylü! Yetişmeye çalış, canım.",
+            GreetingAsWarlock = "Bir büyücü. Ne yorucu — repliklerimin içini göreceksin.",
+            GreetingAsKing = "Bir kral! Sonunda gösteriye layık bir seyirci.",
             Farewell = new[]
             {
                 "Eyvah. O seni fark etti. Eğlendirici olmaya çalış, canım.",
@@ -567,6 +645,9 @@ namespace HellPoker.Presentation.Ui
         private static readonly DealerText LilithTr = new DealerText
         {
             Name = "LILITH",
+            Genitive = "LILITH'IN",
+            Called = "Lilith",
+            CalledGenitive = "Lilith'in",
             Title = "Gecenin Kraliçesi",
             Description = "Dört kart değiştirmene izin verir, umutlu kalpleri sever. Ama kimse masasından ucuza kalkamaz.",
             Greeting = new[] { "Yaklaş. Nefret ettiğini at — sana daha iyisini veririm. Belki." },
@@ -621,6 +702,12 @@ namespace HellPoker.Presentation.Ui
                 "Gece seni bana tercih etti. Ne kaba.",
                 "Dikenlerimin bile gözdeleri var. Uzun sürmez."
             },
+            Blocked = new[] { "Gecemi yana çevirdin. Akıllı küçük ruh.", "Bana karşı koruma mı? Açığını bulurum." },
+            EventAccepted = new[] { "Mm. Karanlığın sunduğuna uzanıyorsun.", "Evet. Bırak gece payını alsın." },
+            EventDeclined = new[] { "Hediyeden korkuyorsun. Akıllıca, küçük ruh.", "Hayır mı? Gece yine soracak." },
+            GreetingAsPeasant = "Bir köylü, nasırlı ellerle. Gel, onları karanlıkta dinlendir.",
+            GreetingAsWarlock = "Bir büyücü. Geceden biraz anlarsın. Yetmez.",
+            GreetingAsKing = "Bir kral. Taçlar karanlıkta ne kolay kayar.",
             Farewell = new[]
             {
                 "Şşş. Geceden de yaşlı biri seni çağırıyor. Git.",
@@ -639,6 +726,9 @@ namespace HellPoker.Presentation.Ui
         private static readonly DealerText LuciferTr = new DealerText
         {
             Name = "SABAH YILDIZI",
+            Genitive = "SABAH YILDIZI'NIN",
+            Called = "Sabah Yıldızı",
+            CalledGenitive = "Sabah Yıldızı'nın",
             Title = "250 yılın altında bekler",
             Description = "Her ceza onun masasında biter. Kimse ondan gözlerinden fazlasını görmedi.",
             Greeting = new[] { "Çok derine indin. Otur. Seni yalnızca ben bırakabilirim." },
@@ -683,6 +773,7 @@ namespace HellPoker.Presentation.Ui
                 "Şans hükmetmediğim tek şey. Bunu unutma.",
                 "Sende kalsın. İhtiyacın olacak."
             },
+            Blocked = new[] { "Bir koruma. Bana karşı. Eğlenceli.", "Küçük büyün tuttu. Bir kez." },
             CastDown = new[]
             {
                 "Fazla ağır. Geldiğin yere düş.",
@@ -705,6 +796,9 @@ namespace HellPoker.Presentation.Ui
             Farewell = new[] { "Aşağıda biri seni istiyor." },
             Returned = new[] { "Yine geldin." },
             Name = "KASA",
+            Genitive = "KASANIN",
+            Called = "Kasa",
+            CalledGenitive = "Kasanın",
             Title = "",
             Description = "",
             Greeting = new[] { "Otur." },
@@ -722,6 +816,9 @@ namespace HellPoker.Presentation.Ui
             Hunted = new[] { "Hilemden kaçtın. Unutmayacağım." },
             Scorn = new[] { "Bu kadar erken mi? Korktun mu?" },
             Backfire = new[] { "O sana değildi." },
+            Blocked = new[] { "Savuşturuldu. Hm." },
+            EventAccepted = new[] { "Öyle olsun." },
+            EventDeclined = new[] { "Nasıl istersen." },
             SoulWarning = "Ruhun bu masaya konacak.",
             Absolved = "Özgürsün.",
             Damned = "Lanetlendin."

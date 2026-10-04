@@ -23,7 +23,7 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Payout panel footer when folding costs the same before and after the draw.</summary>
         public static string PayoutLossSameFoldFormat => L("× pays on the ante,\nraises pay 1 : 1.\nLose: House hand{0}\nFold: always {1}",
-            "× ante'ye işler,\nartırmalar 1 : 1.\nKayıp: kasanın eli{0}\nÇekil: hep {1}");
+            "× ante'ye işler,\nartırmalar 1 : 1.\nKayıp: kasanın eli{0}\nÇekil: her zaman {1}");
 
         /// <summary>A share of the stake in a word: "half", "all", "quarter", or a percentage.</summary>
         public static string ShareShort(int percent)
@@ -52,8 +52,8 @@ namespace HellPoker.Presentation.Ui
         public static string FoldedCaption => L("FOLDED", "ÇEKİLDİN");
         public static string ThornedCaption => L("THE THORN BIT", "DİKEN ISIRDI");
         public static string DiscardTag => L("TOSS", "AT");
-        public static string Hint => L("Space deal/draw/pass  R raise  D check  C call  F fold  1-5 cards  H hands  L lang  Esc menu",
-            "Boşluk dağıt/değiş/pas  R artır  D hep pas  C gör  F çekil  1-5 kart  H eller  L dil  Esc menü");
+        public static string Hint => L("Space deal/draw/pass  R raise  D check to draw  C call  F fold  1-5 cards  H hands  Esc menu",
+            "Boşluk dağıt/değiş/pas  R artır  D hep pas  C gör  F çekil  1-5 kart  H eller  Esc menü");
         public static string PotFormat => L("ON THE TABLE: {0}", "MASADA: {0}");
         public static string FinalStretchBannerFormat => L("UNDER {0}: NO PASSING", "{0} ALTI: PAS YOK");
         public static string LastMomentsBanner => L("ONE HAND FROM FREEDOM", "ÖZGÜRLÜĞE BİR EL");
@@ -111,7 +111,7 @@ namespace HellPoker.Presentation.Ui
             "4.  Kasa kartlarının bir kısmını açar — son karar — sonra eller açılır.\n" +
             "    Değişten sonra artırırsan kasa da artırabilir: GÖR ya da ÇEKİL.\n\n" +
             "Kazanç: silinen = masa + ante × (çarpanın − 1).   Kayıp: aynısı, kasanın eliyle.\n" +
-            "Masaya cezanın en fazla %{3}'u konabilir. Dolunca anlaşma mühürlenir: çekilmek yok, kartlar kendi açılır.\n" +
+            "Masaya en fazla cezanın %{3} kadarı konabilir. Dolunca anlaşma mühürlenir: çekilmek yok, kartlar kendi açılır.\n" +
             "A♠ A♣ 8♠ 8♣ — Ölü Adamın Eli — nerede oturursan otur seni anında özgür bırakır.\n\n" +
             "SABAH YILDIZI.  {4} yıl ya da altında Lucifer seni nerede olursan ol masasına çağırır. Ceza ancak orada biter.\n" +
             "Bahsi kendine özgü: ante {6}, masada en fazla {7}. Kart göstermez. Kalkamazsın.\n" +
@@ -183,6 +183,9 @@ namespace HellPoker.Presentation.Ui
         public static string AbandonSoulWarning => L("Your soul is on the table. Walking away counts as damnation.",
             "Ruhun masada. Kalkıp gitmek lanet sayılır.");
         public static string AbandonButton => L("ABANDON", "BIRAK");
+
+        /// <summary>Quit mid-hand (or with the soul on the table): the hand left behind is forfeited on the next launch.</summary>
+        public static string QuitHandWarning => L("Leave now and the hand is lost.", "Şimdi gidersen el kaybedilir.");
 
         // ------------------------------------------------------------------ guidance for new players
 
@@ -284,7 +287,7 @@ namespace HellPoker.Presentation.Ui
         public static string RecordsDamnedFormat => L("Damned: {0}", "Lanetlenen: {0}");
         public static string RecordsFastestFormat => L("Fastest freedom: {0} hands", "En hızlı özgürlük: {0} el");
         public static string RecordsFastestNone => L("Fastest freedom: not yet", "En hızlı özgürlük: henüz yok");
-        public static string RecordsDealerFormat => L("Freed at {0}'s table: {1}", "{0} masasında aklanma: {1}");
+        public static string RecordsDealerFormat => L("Freed at {0} table: {1}", "{0} masasında aklanma: {1}");   // {0}: GenitiveOf
 
         // ------------------------------------------------------------------ settings
 
@@ -300,7 +303,14 @@ namespace HellPoker.Presentation.Ui
         public static string SettingTips => L("FIRST-GAME TIPS", "İLK OYUN İPUÇLARI");
         public static string SettingTipsHint => L("The dealers explain each new moment once.", "Şeytanlar her yeni anı bir kez anlatır.");
         public static string SettingLanguage => L("LANGUAGE / DİL", "DİL / LANGUAGE");
-        public static string SettingLanguageHint => L("L switches at any time, even mid-hand.", "L ile her an değişir, elin ortasında bile.");
+        public static string SettingLanguageHint => L("On the title menu, L switches it too.", "Ana menüde L tuşu da değiştirir.");
+        public static string SettingMusic => L("MUSIC", "MÜZİK");
+        public static string SettingMusicHint => L("Every demon plays a tune of their own.", "Her şeytanın kendi ezgisi var.");
+        public static string SettingSfx => L("EFFECTS", "EFEKTLER");
+        public static string SettingSfxHint => L("Cards, chips, gongs and the rest.", "Kartlar, fişler, gonglar ve gerisi.");
+
+        /// <summary>A volume as shown: "7 / 10", or OFF at 0.</summary>
+        public static string Volume(int volume, int max) => volume <= 0 ? Off : volume + " / " + max;
         public static string On => L("ON", "AÇIK");
         public static string Off => L("OFF", "KAPALI");
         public static string ResetTips => L("SHOW AGAIN", "YİNE GÖSTER");

@@ -395,7 +395,7 @@ def malice_pips():
     return sheet([malice_pip(d, f) for d in MALICE_ORDER for f in (False, True)])
 
 
-MARK_ORDER = ["chained", "thorned", "veiled", "false_face"]
+MARK_ORDER = ["chained", "thorned", "veiled", "false_face", "protected"]
 
 
 def card_mark(mark):
@@ -434,6 +434,15 @@ def card_mark(mark):
         img.dither(full, C.CLEAR, C.BLACK, 0.5)
         moon = img.m_ellipse(16, 24, 7, 7) & ~img.m_ellipse(19, 21, 6, 6)
         img.paint(moon, C.LILAC)
+    elif mark == "protected":           # the King's protection: a small gold crown in the top right, a gold frame
+        frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
+        img.paint(frame, C.GOLD)
+        img.paint(img.m_rect(20, 6, 29, 9), C.GOLD)
+        for px in (20, 24, 28):
+            img.paint(img.m_poly([(px - 0.5, 6), (px + 0.5, 2), (px + 1.5, 6)]), C.GOLD_LIGHT)
+        img.paint(img.m_rect(20, 9, 29, 9), C.GOLD_MID)
+        img.put(24, 7, C.RED)
+        img.outline(C.BLACK, mask=img.m_rect(19, 1, 30, 10) & (img.px != C.CLEAR))
     elif mark == "false_face":           # the faintest silver sheen: a broken silver frame, two glints
         frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
         dashes = ((img.xs.astype(int) + img.ys.astype(int)) // 3) % 3 == 0

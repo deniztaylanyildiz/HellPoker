@@ -104,7 +104,7 @@ namespace HellPoker.PlayMode.Tests
         private static void StackTheDecks(Queue<string> decks)
         {
             string last = decks.Peek();
-            Func<Dealer, IHellPokerGame> stacked = dealer =>
+            Func<Dealer, HellPoker.Core.Sinners.Sinner, IHellPokerGame> stacked = (dealer, _) =>
             {
                 if (decks.Count > 0) last = decks.Dequeue();
                 GameRules rules = dealer.ApplyTo(new GameRules());
@@ -180,12 +180,21 @@ namespace HellPoker.PlayMode.Tests
             button.onClick.Invoke();
             // New Game over a run asks first: the tests mean it.
             if (button.name == "NewGameButton") ConfirmNewGame();
+            // A new run asks who the player was: the tests play the Peasant unless they say otherwise.
+            if (button.name.StartsWith("ChooseDealer")) ChooseSinner(0);
+        }
+
+        private static void ChooseSinner(int index)
+        {
+            Button choose = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "ChooseSinner" + index && b.gameObject.activeInHierarchy);
+            if (choose != null) choose.onClick.Invoke();
         }
 
         private static void ConfirmNewGame()
         {
             Button confirm = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+                .FirstOrDefault(b => b.name == "MenuConfirmButton" && b.gameObject.activeInHierarchy);
             if (confirm != null) confirm.onClick.Invoke();
         }
 

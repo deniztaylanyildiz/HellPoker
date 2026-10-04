@@ -7,12 +7,15 @@ using HellPoker.Core.Cheats;
 using HellPoker.Core.Randomness;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
+using HellPoker.Core.Events;
+using HellPoker.Core.Relics;
+using HellPoker.Core.Sinners;
 
 namespace HellPoker.Core.Game
 {
     /// <inheritdoc cref="IHellPokerGame"/>
     /// <remarks>Build with <see cref="HellPokerGameFactory"/> unless you need custom parts (tests, special modes).</remarks>
-    public sealed class HellPokerGame : IHellPokerGame
+    public sealed class HellPokerGame : IHellPokerGame, IEventTable
     {
         private readonly IDeck _deck;
         private readonly IHandEvaluator _evaluator;
@@ -26,6 +29,42 @@ namespace HellPoker.Core.Game
         private ExchangeResult _houseExchange;
 
         private readonly CheatSession _cheats;
+
+        /// <summary>The run's sinner class and what is left of its ability; null for a classless game (tests, old runs).</summary>
+        public Sinner Sinner { get; }
+
+        /// <summary>How many House cards turn before the last decision: the table's rule, or more for a class that sees through
+        /// a demon's concealment (the Warlock at Belial's table).</summary>
+        public int HouseCardsShown => ThisHand.HouseCardsShown >= 0 ? ThisHand.HouseCardsShown
+            : Math.Max(0, (Sinner?.Class.HouseCardsShownAt(Rules) ?? Rules.HouseCardsShown) + Relic.HouseCardsDelta);
+
+        /// <summary>The relics' combined effects on this hand (fixed at the deal).</summary>
+        public RelicEffects Relic { get; private set; } = RelicEffects.None;
+
+        /// <summary>Cards that may still be redrawn this hand (the Bone Die).</summary>
+        public int RedrawsLeft { get; private set; }
+
+        public bool CanRedraw(int index)
+        {
+            if (RedrawsLeft <= 0 || PlayerHand == null || index < 0 || index >= Hand.Size || _deck.Count == 0) return false;
+            bool beforeDraw = Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
+            if (!beforeDraw || index >= PlayerCardsRevealed || IsPlayerCardHidden(index)) return false;
+            // A chained card must stay; a thorned one is not shaken off this way.
+            return !IsPlayerCardChained(index) && !IsPlayerCardThorned(index) && !IsPlayerCardProtected(index);
+        }
+
+        /// <summary>The Bone Die: the card goes back, the next card of the deck takes its place. Returns the new card, or null.</summary>
+        public Card? Redraw(int index)
+        {
+            if (!CanRedraw(index)) return null;
+            RedrawsLeft--;
+            Card card = _deck.Draw();
+            PlayerHand = PlayerHand.With(index, card);
+            return card;
+        }
+
+        /// <summary>What a won hand forgives more (the King's crown): a share of the ante.</summary>
+        private int CrownBonus(int ante) => (ante * (Sinner?.Class.WinAntePercent ?? 0) + 99) / 100;
         private readonly IRandomSource _cheatRandom;
         private IReadOnlyList<int> _drawnIndices = Array.Empty<int>();
 
@@ -69,7 +108,7 @@ namespace HellPoker.Core.Game
         public bool IsSoulHand { get; private set; }
 
         public int SoulRemaining => IsSoulAtStake
-            ? Math.Max(0, Math.Min(SoulWorth, SoulWorth - (_ledger.Years - Rules.SoulThreshold)))
+            ? Math.Max(0, Math.Min(SoulWorth - Effects.SoulSold, SoulWorth - Effects.SoulSold - (_ledger.Years - Rules.SoulThreshold)))
             : SoulWorth;
 
         /// <summary>What may still be wagered this hand: the sentence normally, what is left of the soul when it is on the table.</summary>
@@ -94,7 +133,8 @@ namespace HellPoker.Core.Game
             }
         }
 
-        public int LeastYearsForgiven => _payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, _ledger.Years);
+        public int LeastYearsForgiven =>
+            Math.Min(_ledger.Years, _payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, _ledger.Years) + CrownBonus(AnteForOutlook));
         public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake));
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
@@ -102,14 +142,15 @@ namespace HellPoker.Core.Game
 
         private int _handPurse;
 
-        private int LossSurcharge(bool soulHand) => soulHand ? Rules.SoulLossPercent : 100;
+        private int LossSurcharge(bool soulHand) => !soulHand ? 100 : Relic.SoulLossPercent >= 0 ? Relic.SoulLossPercent : Rules.SoulLossPercent;
 
         /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
         /// <param name="cheats">The demon's cheating at this table; null for an honest table.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
             IDrawStrategy houseStrategy, IPayoutTable payouts, IHouseBettingStrategy houseBetting = null, CheatSession cheats = null,
-            IRandomSource cheatRandom = null)
+            IRandomSource cheatRandom = null, Sinner sinner = null)
         {
+            Sinner = sinner;
             _cheats = cheats ?? new CheatSession(null, 0, null);
             _cheatRandom = cheatRandom;
             if (_cheats.IsActive && cheatRandom == null) throw new ArgumentNullException(nameof(cheatRandom));
@@ -137,6 +178,7 @@ namespace HellPoker.Core.Game
         public void PlaceBet()
         {
             RequirePhase(GamePhase.Betting);
+            DeferredPaid = 0;
 
             // With the soul on the table the bets are measured against the soul's worth and limited to what is left of it.
             IsSoulHand = IsSoulAtStake;
@@ -144,11 +186,21 @@ namespace HellPoker.Core.Game
             _handPurse = AvailableForNextHand;
             _deck.Reset();
             Unit = Rules.Stakes.UnitFor(stakeBase);
-            Ante = Math.Min(Rules.Stakes.AnteFor(stakeBase), _handPurse);
-            TableCap = Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
+            // An event's mark on this hand (Charon's half ante, the burning bridge's three units and no cap...).
+            ThisHand = Effects.NextHand ?? HandModifier.None;
+            Effects.NextHand = HandModifier.None;
+            // The relics the run carries: their gifts and curses on every hand.
+            Relic = RelicRoster.Combined(Effects.Relics);
+            RedrawsLeft = Relic.RedrawsPerHand;
+            int ante = ThisHand.AnteUnits > 0 ? ThisHand.AnteUnits * Unit
+                : Math.Max(1, (Rules.Stakes.AnteFor(stakeBase) * ThisHand.AntePercent * Relic.AntePercent / 100 + 99) / 100);
+            Ante = Math.Min(ante, _handPurse);
+            TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
             PlayerHand = _deck.DealHand();
             HouseHand = _deck.DealHand();
+            if (ThisHand.GhostSeed.HasValue)
+                PlayerHand = GhostHand(ThisHand.GhostSeed.Value) ?? PlayerHand;   // the lost soul plays it
             PlayerCardsRevealed = Math.Min(Hand.Size, Rules.OpeningCardsShown + 1);
             HouseCardsRevealed = 0;
             IsAfterDraw = false;
@@ -156,7 +208,7 @@ namespace HellPoker.Core.Game
             DecisionsSkipped = 0;
             RoundNumber++;
             Phase = GamePhase.PlayerReveal;
-            _cheats.BeginHand(Rules, _ledger.Years);
+            _cheats.BeginHand(Rules, _ledger.Years, Relic.MaliceExtraPerHand);
             Strike(CheatTiming.AfterDeal);
             NoteCommitment();
             SkipEmptyDecisions();
@@ -181,6 +233,28 @@ namespace HellPoker.Core.Game
         public bool IsPlayerCardChained(int index) => InPlay && _cheats.Marks.Chained.Contains(PlayerHand[index]);
 
         public bool IsPlayerCardThorned(int index) => InPlay && _cheats.Marks.Thorned.Contains(PlayerHand[index]);
+
+        public bool IsPlayerCardProtected(int index) => InPlay && _cheats.Marks.Protected.Contains(PlayerHand[index]);
+
+        /// <summary>The cheat really planned for this hand while it is still to come (a Warlock sees through the lie).</summary>
+        public ICheat PendingCheatTruth => InPlay && _cheats.Intent != null ? _cheats.Planned : null;
+
+        public bool CanProtect(int index)
+        {
+            if (Sinner == null || !Sinner.CanUse(SinnerAbility.Protect)) return false;
+            if (index < 0 || index >= Hand.Size || PlayerHand == null) return false;
+            // Before the draw: while the cards turn, and at the draw itself — a card the player can see, not yet protected.
+            bool beforeDraw = Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
+            if (!beforeDraw || index >= PlayerCardsRevealed || IsPlayerCardHidden(index)) return false;
+            return !_cheats.Marks.Protected.Contains(PlayerHand[index]);
+        }
+
+        public bool Protect(int index)
+        {
+            if (!CanProtect(index) || !Sinner.TrySpend(SinnerAbility.Protect)) return false;
+            _cheats.Marks.Protected.Add(PlayerHand[index]);
+            return true;
+        }
 
         /// <summary>True while a House card shows a false face (until the showdown).</summary>
         public bool IsHouseCardFalse(int index) => InPlay && _cheats.Marks.FakeHouseIndex == index;
@@ -336,7 +410,7 @@ namespace HellPoker.Core.Game
 
             int yearsBefore = _ledger.Years;
             _ledger.Add(penalty);
-            Phase = _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned : GamePhase.Betting;
+            Phase = _ledger.Years >= DamnationYears ? GamePhase.Damned : GamePhase.Betting;
             LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
             return LastRound;
         }
@@ -397,7 +471,7 @@ namespace HellPoker.Core.Game
             IsAfterDraw = true;
 
             // The thorn took the last of the soul: there is no hand left to play.
-            if (_ledger.Years >= Rules.DamnationYears)
+            if (_ledger.Years >= DamnationYears)
             {
                 HouseReRaiseAmount = 0;
                 PlayerCardsRevealed = Hand.Size;
@@ -425,6 +499,92 @@ namespace HellPoker.Core.Game
             RequirePhase(GamePhase.RoundOver);
             ClearHand();
             Phase = GamePhase.Betting;
+
+            // A sentence deferred to later (Mammon's ledger) comes due between hands.
+            DeferredPaid = Effects.HandSettled();
+            if (DeferredPaid > 0)
+            {
+                _ledger.Add(DeferredPaid);
+                if (_ledger.Years >= DamnationYears) Phase = GamePhase.Damned;
+            }
+        }
+
+        // ------------------------------------------------------------------ the run's events
+
+        /// <summary>The run's events and their marks (shared by every table's game; see <see cref="UseEffects"/>).</summary>
+        public RunEffects Effects { get; private set; } = new RunEffects();
+
+        /// <summary>How this hand differs, by an event; <see cref="HandModifier.None"/> between hands and for an ordinary hand.</summary>
+        public HandModifier ThisHand { get; private set; } = HandModifier.None;
+
+        /// <summary>Years that came due between the last hand and this one (Mammon's ledger); 0 for none.</summary>
+        public int DeferredPaid { get; private set; }
+
+        /// <summary>Damnation comes this early: the soul line plus what is left of the soul's worth (some may have been sold).</summary>
+        public int DamnationYears => Rules.DamnationYears - Effects.SoulSold;
+
+        public void UseEffects(RunEffects effects)
+        {
+            Effects = effects ?? throw new ArgumentNullException(nameof(effects));
+        }
+
+        int IEventTable.Years => _ledger.Years;
+        int IEventTable.DealtHands => RoundNumber;
+
+        public void ForgiveYears(int years)
+        {
+            RequirePhase(GamePhase.Betting);
+            // An event never ends a sentence: the last year stays (only a hand — at the right table — can end it).
+            _ledger.Forgive(Math.Max(0, Math.Min(years, _ledger.Years - 1)));
+        }
+
+        public void AddYears(int years)
+        {
+            RequirePhase(GamePhase.Betting);
+            _ledger.Add(Math.Max(0, years));
+            if (_ledger.Years >= DamnationYears) Phase = GamePhase.Damned;
+        }
+
+        public void EmptyMalice() => _cheats.Restore(0, _cheats.MajorUsed, _cheats.Grudge);
+
+        /// <summary>
+        /// The lost soul's hand: two pair or three of a kind, made of cards still in the deck (the dealt ones leave play).
+        /// Null when the deck cannot make one.
+        /// </summary>
+        private Hand GhostHand(int seed)
+        {
+            var random = new Randomness.SystemRandomSource(seed);
+            var byRank = _deck.Remaining.GroupBy(c => c.Rank).ToDictionary(g => g.Key, g => g.ToList());
+            bool trips = random.Next(2) == 0;
+            var ranks = byRank.Keys.OrderBy(r => r).ToList();
+            var made = new List<Card>();
+            if (trips)
+            {
+                var three = ranks.Where(r => byRank[r].Count >= 3).ToList();
+                if (three.Count == 0) return null;
+                Rank r3 = three[random.Next(three.Count)];
+                made.AddRange(byRank[r3].Take(3));
+            }
+            else
+            {
+                var two = ranks.Where(r => byRank[r].Count >= 2).ToList();
+                if (two.Count < 2) return null;
+                Rank a = two[random.Next(two.Count)];
+                two.Remove(a);
+                Rank b = two[random.Next(two.Count)];
+                made.AddRange(byRank[a].Take(2));
+                made.AddRange(byRank[b].Take(2));
+            }
+            var kickers = ranks.Where(r => made.All(c => c.Rank != r)).ToList();
+            while (made.Count < Hand.Size && kickers.Count > 0)
+            {
+                Rank k = kickers[random.Next(kickers.Count)];
+                kickers.Remove(k);
+                made.Add(byRank[k][0]);
+            }
+            if (made.Count < Hand.Size) return null;
+            foreach (Card card in made) _deck.Take(card);
+            return new Hand(made);
         }
 
         public bool CanLeaveTable(out string reason)
@@ -462,7 +622,7 @@ namespace HellPoker.Core.Game
             LastRound = null;
             RoundNumber = roundsPlayed;
             Phase = _ledger.IsServed ? GamePhase.Absolved
-                : _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned
+                : _ledger.Years >= DamnationYears ? GamePhase.Damned
                 : GamePhase.Betting;
         }
 
@@ -518,8 +678,8 @@ namespace HellPoker.Core.Game
                     }
                     break;
 
-                case GamePhase.DrawReveal when Rules.HouseCardsShown > 0:
-                    HouseCardsRevealed = Rules.HouseCardsShown;
+                case GamePhase.DrawReveal when HouseCardsShown > 0:
+                    HouseCardsRevealed = HouseCardsShown;
                     Phase = GamePhase.HouseReveal;
                     Strike(CheatTiming.HouseReveal);
                     break;
@@ -536,7 +696,7 @@ namespace HellPoker.Core.Game
         /// </summary>
         private bool TryHouseReRaise()
         {
-            int amount = Math.Max(0, Math.Min(Rules.HouseReRaiseUnits * Unit, WagerLeft));
+            int amount = Math.Max(0, Math.Min((Rules.HouseReRaiseUnits + Relic.ReRaiseExtraUnits) * Unit, WagerLeft));
             if (amount == 0 || !HouseWantsToReRaise())
                 return false;
 
@@ -581,8 +741,14 @@ namespace HellPoker.Core.Game
         {
             int yearsBefore = _ledger.Years;
 
+            bool freeFold = false;
             if (showdown == null)
-                _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
+            {
+                // The Peasant's honest heart: the run's first fold costs nothing.
+                freeFold = Sinner != null && Sinner.TrySpend(SinnerAbility.FreeFold);
+                if (!freeFold)
+                    _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
+            }
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
             {
                 int forgiven = Forgiven(showdown.Player.Category);
@@ -595,17 +761,18 @@ namespace HellPoker.Core.Game
                 _cheats.PlayerWon(Rules);
             }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)));
+                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)) *
+                                              (ThisHand.LossPercent / 100.0)));   // the lost soul doubles a loss
 
             HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;
             HouseCardsRevealed = Hand.Size;
             Phase = _ledger.IsServed ? GamePhase.Absolved
-                : _ledger.Years >= Rules.DamnationYears ? GamePhase.Damned
+                : _ledger.Years >= DamnationYears ? GamePhase.Damned
                 : GamePhase.RoundOver;
 
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
-                yearsBefore, _ledger.Years, Phase);
+                yearsBefore, _ledger.Years, Phase, freeFold: freeFold);
         }
 
         /// <summary>
@@ -615,6 +782,15 @@ namespace HellPoker.Core.Game
         private int Forgiven(HandCategory playerCategory)
         {
             int forgiven = _payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, _ledger.Years);
+            if (!_payouts.IsAbsolution(playerCategory))
+                forgiven = Math.Min(_ledger.Years, forgiven + CrownBonus(Ante));   // the King's crown
+            if (!_payouts.IsAbsolution(playerCategory))
+            {
+                // An event's mark: Charon halves a win, Belial's show doubles it, the burning bridge brings the sentence down to its line.
+                forgiven = Math.Min(_ledger.Years, forgiven * ThisHand.WinPercent / 100 * Relic.WinPercent / 100);
+                if (ThisHand.WinSetsYears >= 0 && _ledger.Years > ThisHand.WinSetsYears)
+                    forgiven = Math.Max(forgiven, _ledger.Years - ThisHand.WinSetsYears);
+            }
             if (Rules.KeepsTheLastYear && !_payouts.IsAbsolution(playerCategory))
                 forgiven = Math.Min(forgiven, _ledger.Years - 1);
             return forgiven;
@@ -622,6 +798,8 @@ namespace HellPoker.Core.Game
 
         private void ClearHand()
         {
+            ThisHand = HandModifier.None;
+            RedrawsLeft = 0;
             PlayerHand = null;
             HouseHand = null;
             Unit = 0;

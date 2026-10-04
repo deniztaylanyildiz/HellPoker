@@ -11,7 +11,8 @@ namespace HellPoker.Core.Game
     /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
-    /// Text format, one "key=value" per line, starting with "v=3". The hand lines ("hand.*") are optional, so saves made
+    /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", "class.charges";
+    /// later also the events and the relics, each with optional keys); a v=1..3 save reads as a Peasant's run. The hand lines ("hand.*") are optional, so saves made
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
     /// this table), "grudge" (optional: hands of faster malice after walking out on a cheat) and, in a hand, "hand.cheat" /
@@ -21,7 +22,17 @@ namespace HellPoker.Core.Game
     /// </summary>
     public sealed class RunSnapshot
     {
-        public const int Version = 3;
+        public const int Version = 4;
+
+        /// <summary>The sinner class of the run (v=4; an older save is a Peasant's).</summary>
+        public string ClassId { get; }
+
+        /// <summary>What was left of the class's ability (v=4); null: full.</summary>
+        public int? ClassCharges { get; }
+
+        /// <summary>The run's events (v=4, optional): seen events, the cooldown, the next hand's modifier, deferred years, the
+        /// sold soul. An empty state for a run without them.</summary>
+        public RunEventState Events { get; }
 
         /// <summary>The demon's malice gauge at the table.</summary>
         public int Malice { get; }
@@ -58,8 +69,13 @@ namespace HellPoker.Core.Game
         public HandInProgress Hand { get; }
 
         public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
-            bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0)
+            bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0,
+            string classId = null, int? classCharges = null, RunEventState events = null)
         {
+            Events = events ?? RunEventState.Empty;
+            if (classCharges.HasValue && classCharges.Value < 0) throw new ArgumentOutOfRangeException(nameof(classCharges));
+            ClassId = string.IsNullOrEmpty(classId) ? Sinners.Peasant.ClassId : classId;
+            ClassCharges = classCharges;
             if (grudge < 0) throw new ArgumentOutOfRangeException(nameof(grudge));
             Grudge = grudge;
             if (malice < 0) throw new ArgumentOutOfRangeException(nameof(malice));
@@ -101,8 +117,12 @@ namespace HellPoker.Core.Game
                 "attempts=" + LuciferAttempts.ToString(CultureInfo.InvariantCulture),
                 "malice=" + Malice.ToString(CultureInfo.InvariantCulture),
                 "cheat.major=" + Flag(MajorCheatUsed),
-                "grudge=" + Grudge.ToString(CultureInfo.InvariantCulture)
+                "grudge=" + Grudge.ToString(CultureInfo.InvariantCulture),
+                "class=" + ClassId
             };
+            if (ClassCharges.HasValue)
+                lines.Add("class.charges=" + ClassCharges.Value.ToString(CultureInfo.InvariantCulture));
+            Events.Encode(lines);
             if (Hand != null)
             {
                 lines.Add("hand.stake=" + Hand.Stake.ToString(CultureInfo.InvariantCulture));
@@ -173,8 +193,12 @@ namespace HellPoker.Core.Game
                 // "grudge" came later within v=3: a save without it holds none.
                 int grudge = values.ContainsKey("grudge") ? KeyValues.Int(values, "grudge") : 0;
 
+                // v=4 knows the sinner's class; an older run was a Peasant's, with the ability untouched.
+                string classId = version >= 4 && values.TryGetValue("class", out string c) && c.Length > 0 ? c : null;
+                int? charges = version >= 4 && values.ContainsKey("class.charges") ? KeyValues.Int(values, "class.charges") : (int?)null;
+
                 snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
-                    atLucifer, origin, attempts, malice, majorUsed, grudge);
+                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charges, RunEventState.Decode(values));
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException
@@ -217,6 +241,68 @@ namespace HellPoker.Core.Game
                 case "0": return false;
                 default: throw new FormatException($"{key} is not 0 or 1.");
             }
+        }
+    }
+}
+
+namespace HellPoker.Core.Game
+{
+    /// <summary>
+    /// The run's events as saved (v=4, every key optional): "event.seen" (ids), "event.since" (hands since the last one),
+    /// "effect.next" (the next hand's modifier), "effect.deferred" / "effect.deferred.hands" (Mammon's ledger), "soul.sold",
+    /// "relics" (the cursed relics carried).
+    /// An event left on screen when the game closed is already seen: it counts as passed.
+    /// </summary>
+    public sealed class RunEventState
+    {
+        public static readonly RunEventState Empty = new RunEventState(null, 0, null, 0, 0, 0);
+
+        /// <summary>The cursed relics the run carries ("relics", optional).</summary>
+        public System.Collections.Generic.IReadOnlyList<string> Relics { get; }
+
+        public System.Collections.Generic.IReadOnlyList<string> Seen { get; }
+        public int HandsSince { get; }
+        public Events.HandModifier Next { get; }
+        public int DeferredYears { get; }
+        public int DeferredHands { get; }
+        public int SoulSold { get; }
+
+        public RunEventState(System.Collections.Generic.IEnumerable<string> seen, int handsSince, Events.HandModifier next, int deferredYears,
+            int deferredHands, int soulSold, System.Collections.Generic.IEnumerable<string> relics = null)
+        {
+            Relics = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(relics ?? new string[0], s => !string.IsNullOrEmpty(s)));
+            if (handsSince < 0 || deferredYears < 0 || deferredHands < 0 || soulSold < 0)
+                throw new System.ArgumentOutOfRangeException(nameof(handsSince));
+            Seen = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(seen ?? new string[0], s => !string.IsNullOrEmpty(s)));
+            HandsSince = handsSince;
+            Next = next ?? Events.HandModifier.None;
+            DeferredYears = deferredYears;
+            DeferredHands = deferredHands;
+            SoulSold = soulSold;
+        }
+
+        internal void Encode(System.Collections.Generic.List<string> lines)
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            if (Seen.Count > 0) lines.Add("event.seen=" + string.Join(",", Seen));
+            if (HandsSince > 0) lines.Add("event.since=" + HandsSince.ToString(c));
+            if (!Next.IsNone) lines.Add("effect.next=" + Next.Encode());
+            if (DeferredYears > 0)
+            {
+                lines.Add("effect.deferred=" + DeferredYears.ToString(c));
+                lines.Add("effect.deferred.hands=" + DeferredHands.ToString(c));
+            }
+            if (SoulSold > 0) lines.Add("soul.sold=" + SoulSold.ToString(c));
+            if (Relics.Count > 0) lines.Add("relics=" + string.Join(",", Relics));
+        }
+
+        internal static RunEventState Decode(System.Collections.Generic.Dictionary<string, string> values)
+        {
+            int Optional(string key) => values.ContainsKey(key) ? KeyValues.Int(values, key) : 0;
+            string seen = values.TryGetValue("event.seen", out string s) ? s : "";
+            string next = values.TryGetValue("effect.next", out string n) ? n : "";
+            return new RunEventState(seen.Split(','), Optional("event.since"), Events.HandModifier.Decode(next), Optional("effect.deferred"),
+                Optional("effect.deferred.hands"), Optional("soul.sold"), (values.TryGetValue("relics", out string r) ? r : "").Split(','));
         }
     }
 }

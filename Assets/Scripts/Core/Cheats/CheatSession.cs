@@ -67,12 +67,13 @@ namespace HellPoker.Core.Cheats
         }
 
         /// <summary>The start of a hand: the gauge grows, and when it is full the demon picks this hand's cheat.</summary>
-        public void BeginHand(GameRules rules, int years)
+        /// <param name="extraGain">More malice this hand (a relic's curse: the Rusty Crown).</param>
+        public void BeginHand(GameRules rules, int years, int extraGain = 0)
         {
             ClearHand();
             if (!IsActive) return;
 
-            int gain = rules.MalicePerHand;
+            int gain = rules.MalicePerHand + Math.Max(0, extraGain);
             if (!rules.IsFinalTable && years <= rules.MaliceLowSentenceYears)
                 gain += rules.MaliceLowSentenceBonus;
             if (Grudge > 0)

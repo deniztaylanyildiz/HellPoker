@@ -9,7 +9,7 @@ namespace HellPoker.Core.Tests
 {
     public class MainMenuPresenterTests
     {
-        private sealed class FakeMenuView : IMainMenuView
+        internal sealed class FakeMenuView : IMainMenuView
         {
             public bool IsVisible { get; private set; }
             public bool ContinueShown { get; private set; }
@@ -20,7 +20,7 @@ namespace HellPoker.Core.Tests
             public event Action ChangeTablePressed;
             public event Action SettingsPressed;
             public event Action RecordsPressed;
-            public event Action NewGameConfirmed;
+            public event Action Confirmed;
             public event Action LanguagePressed;
 
             public void PressLanguage() => LanguagePressed?.Invoke();
@@ -30,18 +30,22 @@ namespace HellPoker.Core.Tests
             public string Taunt { get; private set; }
             public string Warning { get; private set; }
             public bool IsConfirming { get; private set; }
+            public bool IsShowingRules => RulesOpen;
 
-            public void AskToConfirmNewGame(string taunt, string warning)
+            public string ConfirmLabel { get; private set; }
+
+            public void AskToConfirm(string taunt, string warning, string confirmLabel)
             {
                 Taunt = taunt;
                 Warning = warning;
+                ConfirmLabel = confirmLabel;
                 IsConfirming = true;
             }
 
             public void Confirm()
             {
                 IsConfirming = false;
-                NewGameConfirmed?.Invoke();
+                Confirmed?.Invoke();
             }
 
             /// <summary>The rules panel, open over the menu.</summary>
@@ -75,7 +79,7 @@ namespace HellPoker.Core.Tests
             public void PressChangeTable() => ChangeTablePressed?.Invoke();
         }
 
-        private sealed class FakeDealerSelectView : IDealerSelectView
+        internal sealed class FakeDealerSelectView : IDealerSelectView
         {
             public bool IsVisible { get; private set; }
             public IReadOnlyList<DealerChoice> Shown { get; private set; }
@@ -117,7 +121,7 @@ namespace HellPoker.Core.Tests
             }
         }
 
-        private sealed class FakeSession : IRunSession
+        internal sealed class FakeSession : IRunSession
         {
             public bool CanContinue { get; set; }
             public int NewRuns { get; private set; }
@@ -153,8 +157,11 @@ namespace HellPoker.Core.Tests
                 RunEnded?.Invoke(summary);
             }
 
-            public void StartNewRun(Dealer dealer)
+            public HellPoker.Core.Sinners.SinnerClass Class { get; private set; }
+
+            public void StartNewRun(Dealer dealer, HellPoker.Core.Sinners.SinnerClass sinner = null)
             {
+                Class = sinner;
                 NewRuns++;
                 Dealer = dealer;
                 CanContinue = true;
@@ -174,7 +181,7 @@ namespace HellPoker.Core.Tests
             }
         }
 
-        private sealed class FakeQuitter : IApplicationQuitter
+        internal sealed class FakeQuitter : IApplicationQuitter
         {
             public bool QuitRequested { get; private set; }
 
@@ -195,11 +202,19 @@ namespace HellPoker.Core.Tests
             public event Action ResetTipsPressed;
             public event Action BackPressed;
             public event Action LanguagePressed;
+            public event Action MusicPressed;
+            public event Action SfxPressed;
+            public void PressMusic() => MusicPressed?.Invoke();
+            public void PressSfx() => SfxPressed?.Invoke();
+            public string Music { get; private set; }
+            public string SfxVolume { get; private set; }
             public string Language { get; private set; }
             public void PressLanguage() => LanguagePressed?.Invoke();
 
-            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language)
+            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language, string music, string sfx)
             {
+                Music = music;
+                SfxVolume = sfx;
                 Language = language;
                 Speed = speed;
                 Fullscreen = fullscreen;
@@ -217,7 +232,7 @@ namespace HellPoker.Core.Tests
             public void PressBack() => BackPressed?.Invoke();
         }
 
-        private sealed class FakeEndScreen : IEndScreenView
+        internal sealed class FakeEndScreen : IEndScreenView
         {
             public bool IsVisible { get; private set; }
             public RunSummary Summary { get; private set; }
@@ -235,7 +250,7 @@ namespace HellPoker.Core.Tests
             public void PressMenu() => MenuPressed?.Invoke();
         }
 
-        private sealed class FakeRecords : IRecordsView
+        internal sealed class FakeRecords : IRecordsView
         {
             public bool IsVisible { get; private set; }
             public int DealersShown { get; private set; }
@@ -779,6 +794,75 @@ namespace HellPoker.Core.Tests
 
             Assert.IsFalse(_menu.IsConfirming);
             Assert.IsTrue(_dealerSelect.IsVisible);
+        }
+
+        // ------------------------------------------------------------------ Quit over a hand in progress
+
+        [TestCase(AbandonRisk.Hand)]
+        [TestCase(AbandonRisk.Soul)]
+        public void QuitMidHand_AsksFirst_InTheDemonsVoice(AbandonRisk risk)
+        {
+            StartRunWith(0);
+            _session.Risk = risk;
+            _table.PressMenu();
+
+            _menu.PressQuit();
+
+            Assert.IsFalse(_quitter.QuitRequested, "Not before the player answers.");
+            Assert.IsTrue(_menu.IsConfirming);
+            Assert.AreEqual("Leave now and the hand is lost.", _menu.Warning);
+            Assert.AreEqual("QUIT", _menu.ConfirmLabel);
+            CollectionAssert.Contains(new[]
+            {
+                "You walked out mid-hand? The ledger noticed. Debited, with interest.",
+                "Skipping out on an open account? I charged it as forfeit."
+            }, _menu.Taunt);
+
+            _menu.Confirm();
+
+            Assert.IsTrue(_quitter.QuitRequested);
+            Assert.AreEqual(0, _session.Abandoned, "Quitting is not a new game: the hand is forfeited on the next launch.");
+        }
+
+        [Test]
+        public void QuitMidHand_Escape_KeepsPlaying()
+        {
+            StartRunWith(0);
+            _session.Risk = AbandonRisk.Hand;
+            _table.PressMenu();
+            _menu.PressQuit();
+
+            _presenter.GoBack();
+
+            Assert.IsFalse(_menu.IsConfirming);
+            Assert.IsFalse(_quitter.QuitRequested);
+        }
+
+        [Test]
+        public void QuitBetweenHands_GoesAtOnce()
+        {
+            StartRunWith(0);
+            _session.Risk = AbandonRisk.Run;
+            _table.PressMenu();
+
+            _menu.PressQuit();
+
+            Assert.IsTrue(_quitter.QuitRequested);
+            Assert.IsFalse(_menu.IsConfirming);
+        }
+
+        [Test]
+        public void NewGameWarning_StillAbandons_NotQuits()
+        {
+            StartRunWith(0);
+            _table.PressMenu();
+            _menu.PressNewGame();
+            Assert.AreEqual("ABANDON", _menu.ConfirmLabel);
+
+            _menu.Confirm();
+
+            Assert.AreEqual(1, _session.Abandoned);
+            Assert.IsFalse(_quitter.QuitRequested);
         }
 
         [Test]

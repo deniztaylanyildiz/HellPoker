@@ -16,6 +16,9 @@ namespace HellPoker.Presentation.Abstractions
         PactSealed,
 
         /// <summary>A demon's cheat helped the player: the text ("BACKFIRE") blinks over the player's cards it touched.</summary>
-        Backfire
+        Backfire,
+
+        /// <summary>The Warlock warded off a cheat: the text ("WARD") flares over the player's cards.</summary>
+        Ward
     }
 }

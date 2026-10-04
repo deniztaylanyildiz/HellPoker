@@ -1766,3 +1766,264 @@ aynı: simülasyon oyuncusu masa değiştirmiyor, fark sadece düşüşte geri g
 
 ### Sıradaki
 - Oyun testinde Türkçe metinlerin tonu ve uzunlukları; istenirse başlık fontuna özel "İ".
+---
+
+## 2026-10-04 — Türkçe iyelik ekleri (şeytan adları)
+
+**İstek:** Türkçe hile / rekor satırlarında şeytan adı ek almadan yazılıyordu ("MAMMON hilesi", "LILITH dikeni", "BELIAL masasında
+aklanma"). `DealerText.Genitive` (Türkçe elle yazılır, İngilizcede ad + "'s"); sadece gerçekten "-in" isteyen cümleler; sayıya bağlı ekleri
+kaldır; testler; Türkçe hile ekran görüntüsü; CLAUDE.md kuralı.
+
+### Yapılanlar
+- `DealerText.Genitive` (büyük harfli yerler için: "MAMMON'UN", "BELIAL'IN", "LILITH'IN", "SABAH YILDIZI'NIN", "KASANIN") ve cümle içi için
+  `Called` ("Mammon", "Belial", "Lilith", "Sabah Yıldızı", "Kasa") + `CalledGenitive` ("Mammon'un", "Belial'in", "Lilith'in",
+  "Sabah Yıldızı'nın", "Kasanın"). İki büyüklük gerekti: rekorlar adı büyük harfle, hile satırları cümle içinde yazıyor.
+  Türkçe ek adın sesine göre değişip büyük / küçük harfe kurala göre çevrilemediği için (BELIAL'IN ↔ Belial'in) ikisi de elle.
+- Yan hata da kapandı: hile satırındaki ad Türkçede Türkçe küçük harfle çevriliyordu ("LILITH" → "Lılıth"); artık `Called`.
+- `UiText.NameInSentence / GenitiveInSentence / GenitiveOf`. `CheatLog` artık `DealerText` alıyor; iyelik isteyen satırlar `{whose}`:
+  Çatal Dil (dili kaydı / dili ... yaptı), varsayılan geri tepme (hilesi geri tepti), Yılan Takası (yılanı ... çaldı), Diken (üç satır).
+  Özne olanlar aynen ("Mammon haraç aldı", "Mammon, K♠ kartını rehin olarak zincirledi"); Yanan Kart geri tepmesine virgül eklendi.
+- Rekorlar: `RecordsDealerFormat` {0} = `GenitiveOf` → "BELIAL'IN masasında aklanma: 2" / "Freed at BELIAL's table: 2" (İngilizce aynı kaldı).
+- Sayıya bağlı ek: kurallarda "cezanın en fazla %{3}'u" → "en fazla cezanın %{3} kadarı". Diğer ekli sayılar sabit ("0'a", "400'ün").
+- Ödeme tablosu: "Çekil: hep hepsi" → "Çekil: her zaman hepsi".
+- Ekran görüntüsü betikleri dilden bağımsız: "NEXT HAND" / "STAND PAT" yerine `UiText.Next / Stand` ya da oyun fazı (Türkçede bazı
+  adımlar sessizce atlanıyordu, CheatScreenshots Türkçede kırılıyordu). `CheatScreenshots` da `HELLPOKER_LANG=tr` alıyor; Türkçe hile
+  görüntüleri `Screenshots/tr/40–57`. Hile / sonuç satırları sığıyor.
+
+### Testler
+- `LanguageTests`: her şeytanın (Lucifer ve bilinmeyen dahil) Türkçe `Genitive / Called / CalledGenitive` dolu; İngilizcede `Genitive`
+  boş, metinler "'s" ile ("Freed at BELIAL's table", "Lilith's thorn", "The Morning Star's cheat"); Türkçede iyelik isteyen satırlar ekli,
+  özne olanlar eksiz; "Lilith", asla "Lılıth".
+- **605 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+---
+
+## 2026-10-04 — İş 1/7: dil sadece ana menüden değişir
+
+**İstek:** Dil oyun sırasında değiştirilmiyor; masadaki dil butonu ve her ekranda çalışan L gereksiz. Masadaki butonu kaldır, ipucu
+satırını eski yerine al; L sadece ana menünün kökünde; köşe butonu ve Ayarlar satırı kalsın. Masa görünmezken dil değiştiği için
+`OnLanguageChanged` sadeleşsin: metinler sessizce yenilensin, şeytan yeniden konuşmasın (son replik animasyonsuz), kapı / settle / kayıt
+çalışmasın. Testler, ekran görüntüleri, CLAUDE.md.
+
+### Yapılanlar
+- Masadaki "TR"/"EN" butonu kaldırıldı; `ITableView` artık `ILanguageButton` değil. İpucu satırı x 126 / 350 px'e döndü, "L lang" /
+  "L dil" silindi. Bootstrap `SettingsPresenter`'a sadece menüyü dil butonu olarak veriyor.
+- `IMenuCommands.IsAtMenuRoot` (menü görünür, uyarı / kurallar açık değil; `IMainMenuView.IsShowingRules` eklendi). `KeyboardInput`
+  L'yi sadece orada işliyor. Ayarlar satırının ipucu: "Ana menüde L tuşu da değiştirir."
+- `IDealerView.SetLine`: ekrandaki satırı yeni sözlerle tamamen yazılmış olarak koyar (yazma animasyonu ve bakış yok; satır yoksa
+  hiçbir şey). `OnLanguageChanged` artık `Say` değil `SetLine` kullanıyor.
+- `Refresh` `_relabelling` iken `PassThroughGate`, `SettleHand`, `SaveRun` çağırmıyor; `Say` ve `Tip` de susuyor.
+
+### Testler
+- `LanguageTests`: masa `ILanguageButton` değil, `LanguagePressed` yok; L yalnızca menü kökünde (seçim, masa, el ortası, kurallar,
+  uyarıda değil); menüde dil değiştir → Continue → Drawing'de faz / yıl / bahis / kartlar / seçili kart aynı, mesaj ve buton Türkçe,
+  `LinesSaid` artmadı (konuşma yok), son satır `SetLine` ile Türkçe, sadece dil kaydedildi; sonuç ekranında hiçbir an tekrar
+  oynamıyor; Lucifer eşiğinde (250, Betting) dil değişimi çağırmıyor, Attempts aynı, kayıt yazılmıyor.
+- PlayMode `TheMenusLanguageButton_BringsThePlayerBackToATurkishTable_MidHand`: masada dil butonu yok; menüde köşe butonu → "YENİ OYUN",
+  Continue → "MENÜ" / "PAS", el sürüyor, ayar kaydedildi; geri İngilizce.
+- **608 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.** Masa ekran görüntüleri (EN / TR) yenilendi.
+---
+
+## 2026-10-04 — İş 2/7: Quit el ortasında onay soruyor
+
+**İstek:** Menüden Quit el sürerken onaysız çıkıyordu; el sonraki açılışta forfeit ediliyor ama oyuncu bilmeden kaybediyordu. New Game
+uyarısının kutusunu kullan: Hand / Soul'da şeytanın Fled repliği + "Leave now and the hand is lost." / "Şimdi gidersen el kaybedilir.",
+QUIT / BACK, Esc kapatır; eller arasında onaysız.
+
+### Yapılanlar
+- Onay kutusu genelleşti: `IMainMenuView.AskToConfirm(taunt, warning, confirmLabel)` ve `Confirmed` (eskiden `AskToConfirmNewGame` /
+  `NewGameConfirmed`). Butonlar `MenuConfirmButton` / `MenuCancelButton` (PlayMode yardımcıları ve FpsTour güncellendi); onay butonunun
+  yazısı artık presenter'dan (ABANDON / QUIT).
+- `MainMenuPresenter.AskToQuit`: `AbandonRisk` Hand ya da Soul ise sorar (taunt = şeytanın `Fled` repliği), değilse doğrudan çıkar.
+  `GoAhead` hangi uyarının açık olduğuna göre (`Asking`) ya koşuyu bırakır ya çıkar. Dil değişiminde açık uyarı yeni dilde yeniden sorulur.
+- `UiText.QuitHandWarning` iki dilde. Kısa, kutuya rahat sığıyor (Fled replikleri New Game alaylarıyla aynı uzunlukta).
+
+### Testler
+- `MainMenuPresenterTests`: el ortasında ve ruhta Quit soruyor (quitter çağrılmıyor, uyarı, QUIT, Mammon'un Fled repliği), onay
+  çıkarıyor (koşu bırakılmıyor); Esc kapatıyor, çıkmıyor; eller arasında doğrudan çıkıyor; New Game uyarısı hâlâ bırakıyor, çıkmıyor.
+- **613 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+---
+
+## 2026-10-04 — İş 3/7: başlık fontuna Türkçe "İ"
+
+**İstek:** Press Start 2P "İ"yi noktaya yer açmak için 4 satıra kısaltıyor, büyük başlıklarda "i" gibi duruyor ("LANETLENDİN").
+`fonts.py`'de normal I yüksekliğinde, noktası tek piksel boşlukla üstte bir glif; atlası yeniden üret; Türkçe son ekran ve menü görüntüleri.
+
+### Yapılanlar
+- `Tools/ArtGen/fonts.py`: `TITLE_DOTTED_I` (U+0130): 7 sütun × 10 satır bitmap — nokta, boşluk, tam boy I (çubuk, 5 satır gövde,
+  çubuk), boş taban satırı. I gibi 8 px ilerler; sol boşluk glifin xMin'inden (`add_glyphs` artık lsb'yi glyph'ten alıyor).
+- Nokta em'in (1000 birim) üstünde, 1125–1250 aralığında: satır yüksekliğini artırmak yerine noktayı satır kutusunun üstüne taşırdım,
+  böylece hiçbir yerleşim kaymadı. Unity kırpmıyor: menüde "YENİ OYUN", son ekranda "LANETLENDİN" doğru görünüyor.
+- `py Tools/ArtGen/fonts.py` ile `HellPokerPixelTitle.ttf` yeniden üretildi. Türkçe ekran görüntüleri yenilendi (`Screenshots/tr/`).
+
+### Testler
+- **613 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+---
+
+## 2026-10-04 — İş 4/7: Günahkâr sınıfları (Köylü, Büyücü, Kral) — açık soruyla durdu
+
+**İstek:** Oyuncu sınıfları: Köylü (kolay, ilk çekilme bedava), Büyücü (Belial'in yalanını görür, masa başına bir küçük hileyi engeller,
+büyükleri ve Düşüş'ü engelleyemez), Kral (1250 yıl, kazançta ante çarpanı +1, bir kez bir kartı her hileden korur). `Core/Sinners`,
+kayıt v=4 (`class`, `class.charges`), rekorlarda sınıf başına aklanma, New Game → şeytan → sınıf seçimi, masada rozet, Kral'ın K'sı,
+görseller, metinler iki dilde, şeytanlara sınıf selamları, SINNERS sayfası, simülasyonda 3 × 3 tablo (Köylü bugüne yakın, Büyücü
+Belial'de belirgin avantajlı, Kral Lilith'te ~%50), testler.
+
+### Yapılanlar — Core
+- `Core/Sinners/`: `SinnerClass` (soyut; Id, `StartingYears`, `WinAntePercent`, `Ability`, `ChargesPerRun` / `ChargesPerTable`,
+  `SeesLies`, `Allows`), `Sinner` (koşunun sınıfı + kalan hak; `ICheatGuard`; `SitDown`, `TrySpend`, `CanUse`, `WardsUsed`),
+  `Peasant.cs`, `Warlock.cs`, `King.cs` (her biri kendi dosyası, sayılar yapıcıda), `SinnerRoster` (Peasant, Warlock, King).
+- `HellPokerGame(…, sinner)`: Köylü'nün bedava çekilmesi (`Finish`, `RoundResult.FreeFold`), Kral'ın tacı (`Forgiven` ve
+  `LeastYearsForgiven`'a ante'nin %'si), `CanProtect / Protect / IsPlayerCardProtected`, `PendingCheatTruth`. Fabrika `sinner`'ı
+  hem oyuna hem `CheatSession`'a guard olarak veriyor.
+- `CheatMarks.Protected` + `CheatTable.IsUntouchable(i)`: `PlayerTargets` korunan kartı atlıyor; Yanan Kart ve Aysız Gece de.
+  Bütün hileler hedefi buradan seçtiği için koruma tek noktadan.
+- `RunSnapshot` v=4: `class`, `class.charges` (v1–v3 Köylü, hak dolu). `RecordBook`: `free.class.<id>` (şeytanlarınkiyle karışmaz).
+
+### Yapılanlar — sunum
+- `TablePresenter`: `Func<Dealer, Sinner, IHellPokerGame>` (eski tek parametreli yapıcı sınıfsız oyun kurar, eski testler değişmedi);
+  `StartNewRun(dealer, class)` sınıfın başlangıç cezası ve şeytanın sınıf selamı (`DealerText.GreetingAs…`); yeni masada / Lucifer'de
+  `SitDown`; kayıt ve devamda hak korunur. Büyücü: duyuruda `RevealLie` (bir kez), vuruşta tekrar kırılmaz. `Blocked` → WARD anı,
+  `Blocked` repliği (kızgın). Kral: `ToggleProtect` (K / rozet) → koruma modu → kart tıklaması korur (kartlar karar anında da
+  tıklanabilir olur); kartta taç işareti. Bedava çekilmede "Dürüst kalp" satırı.
+- `MainMenuPresenter`: şeytan seçiminden sonra `ISinnerSelectView` (yoksa Köylü), Esc / GERİ şeytan seçimine döner, dil değişiminde
+  perdesiz yenilenir. `SinnerSelectView`: 3 kart (portre ×2, ad, unvan, başlangıç, yetenek, bedeli, SEÇ). `SinnerBadgeView`
+  (rozet + hover). How to Play'de 4. sayfa SINNERS / GÜNAHKÂRLAR (sayfa butonu 104 px). Rekorlarda tek satır: "Sınıfa göre aklanma: …".
+- Metinler `UiText.Sinners.cs` (iki dilde); her şeytana (Lucifer ve bilinmeyen dahil) `Blocked`, üç şeytana üç sınıf selamı
+  ("Bir kral! Ne şans. Taç da teminat sayılır.").
+- Görseller: `Tools/ArtGen/pixel_sinners.py` (`generate_art.py sinners`): 48×48 portreler (hasır şapkalı, yabalı köylü; kukuletalı,
+  asalı büyücü; taçlı, sakallı, kürk yakalı kral), `Ui/sinner_icons.png` (yaba, göz, taç); `card_marks.png`'ye 5. kare: taç + altın çerçeve.
+- PlayMode yardımcıları şeytan seçiminden sonra Köylü'yü seçiyor; `FpsTour` da. Ekran görüntüsünde `03c_sinners`, masada Kral rozeti.
+
+### Denge (2000 koşu × 9)
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %79.3 | %76.0 | %52.3 |
+| Büyücü | %81.1 | %76.9 | %55.1 |
+| Kral (taç %25) | %76.3 | %71.6 | %49.2 |
+
+Denemeler: Kral taç %100 → 84.8 / 77.0 / 64.2; koruma koşu başına → neredeyse aynı (64.0); başlangıç 1450 → Lilith 55.0; taç %50 → 79.7 /
+73.0 / 54.8; **taç %25 → Lilith 49.2 (seçilen)**. Büyücü koruma 3 → 84.1 / 78.1 / 59.1; sınırsız → 86.2 / 78.7 / 60.8.
+
+### Kararlar
+- Kral'ın koruması "bir kere" → masa başına bir kez (Büyücü gibi; Lucifer de yeni masa). Draw'dan önceki her kararda kullanılabilir;
+  yoksa draw'a girerken vuran hilelere (Yanan Kart) karşı koruyamazdı.
+- Kral'ın tacı spesifikasyondaki "+1 ante çarpanı" (%100) yerine **%25**: %100'de Kral her masada en güçlü sınıftı (Lilith %64),
+  hedef "Lilith'te bile ~%50". Sayı `King(crownPercent)`'te; geri almak tek satır.
+- Büyücü boşa gidecek hileye hakkını harcamaz.
+
+### AÇIK SORU (iş burada durdu; 5., 6., 7. işlere geçilmedi)
+- **Büyücü Belial'de belirgin avantajlı olamıyor.** Belial'in hileleri simülasyonda zayıf (hilesiz Belial ~%79; hileli %76): hile
+  engellemekle kazanılabilecek en fazla ~3 puan. Büyücü sınırsız korumayla bile Belial'de %78.7 (+2.7), Mammon'da +7, Lilith'te +8.5.
+  Seçenekler: (a) Büyücü Belial'in sakladığı kartları görür: Belial masasında kasa 1 yerine 2 kart açar (Belial'e özgü, "yalanın
+  içini görür" temasına uygun); (b) Sahte Yüz Büyücü'ye işlemez (gerçek oyuncuda fark eder, simülasyon oyuncusu zaten kanmıyor);
+  (c) koruma sayısını artırmak (her masada güçlenir, Belial'de yine az); (d) hedefi bırakmak; (e) Belial'in hilelerini sertleştirmek
+  (eski açık soru).
+
+### Testler
+- `SinnerTests` (24): roster; Köylü bedava çekilme (bir kez, yeni masada dolmaz); Büyücü küçük hileyi engeller ve **gösterge boşalır**,
+  masa başına bir kez / yeni masada dolar, büyük hileyi ve Düşüş'ü engellemez (hak harcanmaz), boşa gidecek hileye hak harcamaz; Kral'ın
+  tacı (%25 ve %100), korunan karta **Yanan Kart, Rewrite, Yılan Takası ve Düşüş** dokunmuyor, koruma kuralları (sadece draw'dan önce,
+  görünen kart, masa başına bir), başkası koruyamaz; kayıt v=4 gidiş-dönüş, **v=3 kayıt Köylü**; rekorlar sınıf başına; masada: Kral
+  1250 + selam + rozet, Büyücü yalanı duyuruda görür, WARD anı + kızgın replik, Kral K + kart, Köylü'nün satırı, sınıf masadan masaya
+  (hak masa başına dolar, kayıttan dönüşte dolmaz).
+- **637 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+### Açık sorunun cevabı (kullanıcı: "a") — 2026-10-04
+- Büyücü saklanan eli görür: sıradan bir masada kasa 2'den az kart gösteriyorsa Büyücü 2 görür (pratikte yalnızca Belial; Lucifer'in
+  "kart göstermez"i korunur). `SinnerClass.HouseCardsShownAt(rules)` (varsayılan masanın sayısı), `Warlock(seenHouseCards: 2)`,
+  `HellPokerGame.HouseCardsShown` / `IHellPokerGame.HouseCardsShown` (Advance bunu kullanıyor). Metinler: "Yalanları ve saklanan elleri
+  görür…", "Belial'de kasanın 2 kartını görür. Büyük hileler geçer."
+- Testler: Büyücü Belial'de 2, Mammon / Lilith'te 2, Lucifer'de 0, Köylü Belial'de 1; Belial masasında Büyücü'nün elinde HouseReveal'da
+  2 kart açık. **639 EditMode geçiyor.**
+- Simülasyon (Büyücü): Mammon %81.1, **Belial %77.4** (önce 76.9; Köylü 76.0), Lilith %55.1. Avantaj +1.4: simülasyon oyuncusu açık
+  kasa kartlarını sadece "Yüksek Kart'la kasada çift görürsem çekilirim" diye kullanıyor; fazladan görülen kart gerçek oyuncuya daha çok
+  yarar. Oyuncu modelini zenginleştirmek bütün tabloyu kaydırır; yapılmadı.
+---
+
+## 2026-10-04 — İş 5/7: eller arası olaylar
+
+**İstek:** Eller arası olaylar: sadece Betting'de, Lucifer'de yok, her olay en az 2 seçenek (biri hep geç); derinde riskli teklifler;
+%12 şans, aynı olay koşuda bir kez, en az 4 el arayla, ayrı zar akışı. İlk 5 olay (Kayıkçı, Ruh Simsarı, Kayıp Ruh, Şeytanın Defteri,
+Yanan Köprü). `Core/Events` (IHellEvent, EventDeck, EventSession), kancalar, kayıt (v=4 isteğe bağlı anahtarlar), açıkken kapatma =
+geç, olay paneli (portre, perde, Esc = Geç, şeytan tepkisi), ruhta sayı yok, simülasyon (EV > 0 ise kabul, ±3 puan), testler, CLAUDE.md.
+
+### Yapılanlar — Core
+- `HandModifier` (ante %, ante birimi, kazanç %, kayıp %, tavan yok, kasa kart sayısı, kazanınca ceza, hayalet tohumu; Encode/Decode)
+  ve `RunEffects` (sonraki el, ertelenmiş ceza + kalan el, satılan ruh) — koşuya ait, her masanın oyunu paylaşıyor.
+- `HellPokerGame`: `UseEffects`, `ThisHand` (dağıtımda `NextHand` alınır), ante / tavan / kasa kartı / kazanç / kayıp değiştiricileri,
+  hayalet el (desteden İki Çift ya da Üçlü), `NextRound`'da ertelenmiş ceza (`DeferredPaid`, lanete götürebilir), `DamnationYears`
+  (satılan ruh kadar erken; bütün lanet kontrolleri buna geçti), `IEventTable` (`ForgiveYears` son yılı bırakır, `AddYears`, `EmptyMalice`).
+- `IHellEvent`, `EventOptions`, `Events.cs` (5 sınıf, `EventDeck.Standard`), `EventSession` (soğuma, görülenler, `Roll`).
+  `GameRules.EventChancePercent` (12), `EventCooldownHands` (4). `HellPokerGameFactory.EventStream` = 3.
+- `RunSnapshot` v=4 + `RunEventState` (`event.seen`, `event.since`, `effect.next`, `effect.deferred(.hands)`, `soul.sold`).
+
+### Yapılanlar — sunum
+- `TablePresenter(…, EventSession events)`: her "eller arası"nda bir kez `OfferEvent` (Refresh'te, relabel değilken); olay gösterilince
+  görüldü kaydedilir; açıkken DEAL gizli, bütün masa girdisi yok sayılır; `ChooseEventOption` / Esc (`CloseOverlay` = geç); şeytan
+  tepkisi; dil değişiminde panel yeni dilde (perdesiz). Devamda olay yeniden sunulmaz (o "eller arası" zar atmış sayılır).
+- `ITableView.ShowEvent / HideEvent / EventOptionPressed`, `EventCard`, `EventPanelView` (iki siyah perde ortadan, 16 px adım).
+- Metinler `UiText.Events` (iki dilde, ruh varyantları sayısız), şeytanlara `EventAccepted` / `EventDeclined`.
+- Görseller `pixel_events.py` (`generate_art.py events`): Kayıkçı (fenerli, kukuletalı), Ruh Simsarı (silindir şapkalı, ruh kavanozu),
+  Kayıp Ruh (beş kart tutan hayalet), Yanan Köprü.
+- Bootstrap: koşu başına `EventSession` (akış 3); **batchmode'da olay şansı 0** (düğmelere basarak oynayan testler rastgele bir teklife
+  takılmasın; kurallar EditMode testlerinde). Ekran görüntüsünde `08f_event_*` (panel doğrudan çiziliyor).
+
+### Denge
+- İlk deneme (Kayıp Ruh kaybı ×2): Köylü 83.2 / 79.8 / 56.9 — olaysıza göre +3.9 / +3.8 / +4.6 (sınır ±3). Kayıp Ruh her seferinde
+  kabul ediliyordu.
+- Şans %8: +2.5 / +2.6 / +3.6 (Lilith yine fazla). **Kayıp Ruh kaybı ×3 (seçilen)**: Köylü 80.6 / 77.6 / 53.0 (+1.3 / +1.6 / +0.7),
+  Büyücü 82.3 / 78.9 / 55.9, Kral 77.7 / 72.9 / 49.9. Şans %12 kaldı.
+- Simülasyon oyuncusu: Kayıkçı (EV 0) ve Kayıp Ruh (×3'te EV 0) reddediliyor; Simsar, Köprü, Belial'in gösterisi kabul; Mammon'un
+  ertelemesi (−100) ve Lilith'in pazarlığı reddediliyor.
+
+### Kararlar
+- Kayıp Ruh'un kaybı spesifikasyondaki ×2 yerine ×3 (±3 puan kuralı). Sayı `LostSoulEvent(lossPercent)`'te.
+- Olaylar koşuya ait (`RunEffects`): masa değişiminde ve Lucifer'e çağrılmada kaybolmaz (ertelenmiş borç da gelir).
+- Olay hiçbir zaman cezayı bitirmez (affedilen yıllar son yılı bırakır).
+
+### Testler
+- `EventTests` (23): Kayıkçı (ante ve kazanç yarı, tek el), geçmek hiçbir şeyi değiştirmez; Simsar sadece ruhta ve kalan ruh yetiyorsa,
+  1/4 ruh + 300 yıl, lanet erkene çekilir; Kayıp Ruh hazır el (İki Çift / Üçlü), kayıp ×3, ×2 değiştiricisi tam iki kat; Mammon'un
+  defteri (şimdi −200, beşinci elde +300, aynı anda bir borç), Belial'in gösterisi (kasa 0 kart, kazanç ×2), Lilith'in pazarlığı
+  (gösterge boşalır +100, gösterge boşsa çıkmaz), defter Lucifer'de yok; Yanan Köprü (2500 altında yok, 3 birim ante, tavan yok, kazanınca
+  1000, ruh geri); oturum (soğuma, koşuda bir kez, Lucifer'de yok, şans 0); standart kurallar; kayıt gidiş-dönüş ve eski kayıt;
+  değiştirici gidiş-dönüş; masada: olay cevap bekler (DEAL yok, girdi yok), kabul + tepki, Esc = geç, ruhta metinde rakam yok, açıkken
+  kapatılan olay devamda geçilmiş sayılır, koşunun izleri yeni masaya gider, ertelenmiş borcun gelişi söylenir.
+- **662 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+---
+
+## 2026-10-04 — İş 6/7: ses ve müzik
+
+**İstek:** Oyunda hiç ses yoktu. Tools/AudioGen (numpy + wave, chiptune sentezi) ile efektler (kart dağıtma / çevirme, fiş, kazanç küçük /
+büyük, kayıp, mühür gongu, hile, geri tepme, ruh, çağrılma, düşüş, tık, geçiş) ve müzik (şeytan başına 30-60 sn döngü, menü teması, ruh
+katmanı). `IAudio` (+ Unity havuzu, testlerde sahte), presenter'lar sesi tarif etsin, atlama uzun sesleri kessin, hız ayarı SFX'i
+hızlandırmasın. Müzik / Efekt düzeyi (0-10), batchmode'da ses yok. Testler, build boyutu, CLAUDE.md.
+
+### Yapılanlar
+- `Tools/AudioGen/synth.py` (pulse, triangle, basamaklı gürültü, ADSR / üstel sönüm, sarmalı karıştırma — döngüde taşan ses başa sarılır,
+  `loop_lowpass` — süzgecin durumu dikişte tutar, `fade_edges`), `sounds.py` (14 efekt, 6 döngü), `generate_audio.py`. Üretim ~3 sn, 10.3 MB wav.
+  - Müzik: Mammon 68 BPM, Am-F-Dm-E, %12.5 darbeli bas + örs vuruşları (56.5 sn); Belial 116 BPM swing, Dm7-G7-Cmaj7-A7, yürüyen üçgen bas,
+    fırça, vibratolu solo (33 sn); Lilith 60 BPM Dm-Bb-Gm-A, üçgen arpej + ped + seyrek solo (48 sn); Lucifer 48 BPM Cm-Ab-Fm-G org +
+    pedal (40 sn); menü 76 BPM Em-C-Am-B arpej + uzak çan (38 sn); ruh katmanı uğultu + kalp atışı (16 sn).
+  - Döngü dikişleri sayısal olarak denetlendi (son → ilk örnek farkı, ardışık örneklerin %99'luk farkıyla aynı düzeyde).
+- Unity: `IAudio` + `SfxIds` + `NullAudio`, `UnityAudio` (8 efekt sesi, müzik, ruh katmanı; Resources/Audio), `HellPokerAudioImporter`.
+  - `ITableView.PlaySfx` (masanın kuyruğunda), `TableView.Audio`; `TablePresenter(…, audio)`: dağıt, kart değiştir, fiş (artır / gör),
+    çevirme, mühür, hile, geri tepme, ruh (+ katman), çağrılma (+ Lucifer müziği), düşüş (+ geri dönülen şeytanın müziği), kazanç
+    (İki Çift ve üstü büyük), kayıp (bedava çekilme hariç); Hurry → `CutLong`; yeni masada ruh katmanı sıfırlanır.
+  - `MainMenuPresenter(…, audio)`: her perde geçişinde whoosh; müzik ekrana göre (menü / masadaki şeytan, ruh katmanı).
+  - `UiFactory.ButtonClicked` → tık sesi (bootstrap bağlar, sahne kapanınca bırakır).
+  - Ayarlar: `GameSettings.MusicVolume / SfxVolume` (0-10, varsayılan 7, döngüsel, bozuk → 7), ayarlar ekranında MÜZİK / EFEKTLER
+    (satırlar 26 px'e sıkıştı), `SettingsPresenter(…, audio)` düzeyleri hemen uygular. Batchmode'da `NullAudio`.
+
+### Build boyutu
+- Release build 114.2 MB (önce ~117), zip 35.5 MB (0.1.1: 34.6). Ses: efektler 0.95 MB (Vorbis, DecompressOnLoad), müzik akışı
+  `resources.resource` 0.92 MB (Vorbis 0.5, Streaming) — sesin toplam payı ~1.9 MB. FPS turu: her ekran 60, Player.log temiz.
+
+### Testler
+- `AudioTests` (10): düzeyler kaydedilip okunuyor ve döngüsel (10 → KAPALI), bozuk değer varsayılan; ayarlar ekranı düzeyi gösterir ve
+  uygular; el boyunca dağıt / fiş / çevir / büyük kazanç; kayıp; mühür, hile, ruh (+ katman); Hurry uzun sesleri keser; çağrılma sesi ve
+  Lucifer müziği; menü teması ↔ masada şeytanın müziği, geçiş sesi.
+- **672 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+
+### Kararlar
+- Efektler `IAudio`'ya doğrudan değil, masanın animasyon kuyruğuyla gidiyor (kazanç sesi kartlar açılmadan çalmasın); testler bunu
+  `FakeTableView.Sfx` ile, müziği / kesmeyi `FakeAudio` ile görüyor.
+- Sesleri dinleyemedim: tını ve denge oyun testinde kulakla kontrol edilmeli (`generate_audio.py` sayıları değiştirip yeniden üretmek tek komut).

@@ -67,7 +67,31 @@ namespace HellPoker.Presentation.Views
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
-        public event Action LanguagePressed;
+        public event Action SinnerPressed;
+        public event Action<int> EventOptionPressed;
+        public event Action<string> RelicPressed;
+
+        private RelicBarView _relics;
+
+        public void SetRelics(System.Collections.Generic.IReadOnlyList<RelicBadge> relics) => _relics.Set(relics);
+
+        private EventPanelView _event;
+
+        /// <summary>The event panel (for tests and screenshots).</summary>
+        public EventPanelView EventPanel => _event;
+
+        public void ShowEvent(EventCard card) => _event.Show(card);
+
+        /// <summary>Where the table's effects sound (silent until the bootstrap gives it the game's audio).</summary>
+        public IAudio Audio { get; set; } = NullAudio.Instance;
+
+        public void PlaySfx(string sfxId) => _sequencer.Do(() => Audio.PlaySfx(sfxId));
+
+        public void HideEvent() => _event.Hide();
+
+        private SinnerBadgeView _sinner;
+
+        public void SetSinner(SinnerBadge badge) => _sinner.Set(badge);
 
         public bool HandRanksOpen => _handRanks.IsOpen;
 
@@ -116,12 +140,6 @@ namespace HellPoker.Presentation.Views
             ((RectTransform)hands.transform).PlaceTL(64, 248, 56, 18);
             hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
 
-            // The language: shows the one a press switches to ("TR" / "EN"); L does the same.
-            Button language = UiFactory.CreateButton("LanguageButton", screen, "", 8, out Text languageLabel, ButtonSkin.Ash);
-            languageLabel.Localized(() => UiText.LanguageButton);
-            ((RectTransform)language.transform).PlaceTL(124, 248, 28, 18);
-            language.onClick.AddListener(() => LanguagePressed?.Invoke());
-
             _leaveButton = UiFactory.CreateButton("LeaveButton", screen, "", 8, out _leaveLabel, ButtonSkin.Ash);
             ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
             _leaveButton.onClick.AddListener(() => LeavePressed?.Invoke());
@@ -167,14 +185,20 @@ namespace HellPoker.Presentation.Views
             ApplyBetControls(BetControls.Hidden);
 
             UiFactory.CreateText("Hint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline().Localized(() => UiText.Hint)
-                .rectTransform.PlaceTL(156, 253, 320, 9);
+                .rectTransform.PlaceTL(126, 253, 350, 9);
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
             // The malice gauge and the announced cheat ride on the portrait box (4, 4, 104 × 104).
             _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
+            // The class badge in the portrait box's lower right corner (the malice pips run along the lower left).
+            _sinner = SinnerBadgeView.Create(screen, 4 + DealerView.PortraitSize + 8 - 34, 4 + DealerView.PortraitSize + 8 - 22, _sequencer,
+                () => SinnerPressed?.Invoke());
             _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56));
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
+            // The relics down the portrait box's right edge, under the intent sign.
+            _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
+            _event = EventPanelView.Create(screen, Middle, 60, _sequencer, dealers, index => EventOptionPressed?.Invoke(index));
             _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, () => UiText.HandRanksTableFooter);
             _stage = new Stage(this);
         }
@@ -220,6 +244,8 @@ namespace HellPoker.Presentation.Views
             private bool _finalTable;
 
             public void Relabel(DealerCard dealer) => _table._dealer.Relabel(dealer);
+
+            public void SetLine(string line) => _table._dealer.SetLine(line);
 
             public void Say(string line, DealerMood mood)
             {
@@ -396,6 +422,7 @@ namespace HellPoker.Presentation.Views
         /// <summary>Everything queued jumps to its end: cards land, counters arrive, the dealer finishes the sentence.</summary>
         public void SkipAnimations()
         {
+            Audio.CutLong();   // long effects stop with the animations they belong to
             _scenes.End();
             _sequencer.Complete();
             _dealer.FinishLine();
@@ -409,8 +436,8 @@ namespace HellPoker.Presentation.Views
 
         public void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null)
         {
-            // A backfire belongs to the cheat's effects (it lands on the cards the cheat touched).
-            if (moment == TableMoment.Backfire)
+            // A backfire (and the Warlock's ward) belongs to the cheat's effects: it lands on the player's cards.
+            if (moment == TableMoment.Backfire || moment == TableMoment.Ward)
                 _cheatEffects.PlayBackfire(text, playerCards);
             else
                 _moments.Play(moment, text, playerCards);

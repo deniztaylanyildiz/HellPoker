@@ -12,14 +12,18 @@ namespace HellPoker.Presentation.Abstractions
         event Action RecordsPressed;
 
 
-        /// <summary>The player accepted the New Game warning (walk away from the run in progress).</summary>
-        event Action NewGameConfirmed;
+        /// <summary>The player accepted the warning open over the menu (New Game or Quit over a run in progress).</summary>
+        event Action Confirmed;
 
-        /// <summary>True while the New Game warning is open.</summary>
+        /// <summary>True while the rules (How to Play) are open over the menu.</summary>
+        bool IsShowingRules { get; }
+
+        /// <summary>True while a warning (New Game, Quit) is open.</summary>
         bool IsConfirming { get; }
 
-        /// <summary>Opens the New Game warning: the demon's word on it, and what walking away costs. BACK (or Esc) closes it.</summary>
-        void AskToConfirmNewGame(string taunt, string warning);
+        /// <summary>Opens a warning: the demon's word on it, what it costs, and the button that goes ahead
+        /// (<paramref name="confirmLabel"/>: ABANDON, QUIT). BACK (or Esc) closes it.</summary>
+        void AskToConfirm(string taunt, string warning, string confirmLabel);
 
         bool IsVisible { get; }
 

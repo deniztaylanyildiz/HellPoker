@@ -7,7 +7,10 @@ using HellPoker.Core.Cheats;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
+using HellPoker.Core.Events;
 using HellPoker.Core.Game;
+using HellPoker.Core.Randomness;
+using HellPoker.Core.Sinners;
 using NUnit.Framework;
 
 namespace HellPoker.Core.Tests
@@ -74,6 +77,10 @@ namespace HellPoker.Core.Tests
                 malicePerWin: EnvInt("HELLPOKER_MALICE_WIN", GameRules.Default.MalicePerWin),
                 maliceLowSentenceBonus: EnvInt("HELLPOKER_MALICE_LOW", GameRules.Default.MaliceLowSentenceBonus));
             bool cheats = EnvInt("HELLPOKER_CHEATS", 1) != 0;
+            // HELLPOKER_EVENTS=0 plays without events between hands.
+            bool eventsOn = EnvInt("HELLPOKER_EVENTS", 1) != 0;
+            var offered = new Dictionary<string, int>();
+            var accepted = new Dictionary<string, int>();
             int[] malice = (Environment.GetEnvironmentVariable("HELLPOKER_MALICE") ?? "")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
             Dealer Tune(Dealer dealer, int slot)
@@ -93,13 +100,33 @@ namespace HellPoker.Core.Tests
                 ? $"Cheats on. Malice: {string.Join(" / ", DealerRoster.All.Select((d, i) => $"{d.Id} {Tune(d, i).MaliceMax}"))} / lucifer {lucifer.MaliceMax}; " +
                   $"+{table.MalicePerHand} a hand, +{table.MalicePerWin} a win, +{table.MaliceLowSentenceBonus} at or below {table.MaliceLowSentenceYears}."
                 : "Cheats off.");
-            report.AppendLine("dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved" +
+            // HELLPOKER_CLASSES ("peasant,warlock,king" by default): which sinner classes to play, each against every demon.
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null)
+                .Select(c =>
+                {
+                    // HELLPOKER_WARDS (the Warlock's wards per table); HELLPOKER_KING ("start,crown%,protects,perRun01") try other classes.
+                    if (c.Id == Warlock.ClassId && Environment.GetEnvironmentVariable("HELLPOKER_WARDS") != null)
+                        return new Warlock(wardsPerTable: EnvInt("HELLPOKER_WARDS", 1));
+                    string king = Environment.GetEnvironmentVariable("HELLPOKER_KING");
+                    if (c.Id == King.ClassId && king != null)
+                    {
+                        int[] k = king.Split(',').Select(int.Parse).ToArray();
+                        return new King(k[0], k[1], k[2], k.Length > 3 && k[3] != 0);
+                    }
+                    return c;
+                }).ToArray();
+            report.AppendLine("Classes: " + string.Join(", ", classes.Select(c => $"{c.Id} (start {c.StartingYears}, crown {c.WinAntePercent}%, " +
+                                                                                     $"charges {c.ChargesPerTable}/table {c.ChargesPerRun}/run)")));
+
+            report.AppendLine("class    dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved" +
                               "  | reached lucifer  beat him 1st try  avg attempts  cast downs  wild bill");
 
             var tallies = new Dictionary<string, CheatTally>();
             CheatTally TallyFor(string id) => tallies.TryGetValue(id, out CheatTally t) ? t : tallies[id] = new CheatTally();
             var luciferTally = new CheatTally();
 
+            foreach (SinnerClass sinnerClass in classes)
             for (int slot = 0; slot < DealerRoster.All.Count; slot++)
             {
                 Dealer dealer = Tune(DealerRoster.All[slot], slot);
@@ -111,7 +138,14 @@ namespace HellPoker.Core.Tests
                     int seed = run * 7919 + 13;
                     int sittings = 0;
                     Dealer seat = dealer;
-                    HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed);
+                    var sinner = new Sinner(sinnerClass);
+                    var effects = new RunEffects();
+                    foreach (string relic in ForcedRelics ?? new string[0]) effects.AddRelic(relic);
+                    var events = new EventSession(Deck(), new SystemRandomSource(RandomSeeds.Derive(seed, HellPokerGameFactory.EventStream)),
+                        eventsOn ? EnvInt("HELLPOKER_EVENT_CHANCE", table.EventChancePercent) : 0, table.EventCooldownHands);
+                    HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed, sinner: sinner);
+                    game.UseEffects(effects);
+                    if (game.Years != sinnerClass.StartingYears) game.TakeOver(sinnerClass.StartingYears, 0);
                     var gate = new LuciferGate(table);
                     (int, int, int)? originMalice = null;
                     int played = 0;
@@ -136,7 +170,9 @@ namespace HellPoker.Core.Tests
                                 seat = dealer;
                             }
                             HellPokerGame previous = game;
-                            game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings);
+                            sinner.SitDown();   // a new table: a per-table ability is full again
+                            game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings, sinner: sinner);
+                            game.UseEffects(effects);
                             game.TakeOver(years, played);
                             if (game.IsGameOver) break;
                             // As at the real table: the demons' malice goes along with the player.
@@ -145,6 +181,17 @@ namespace HellPoker.Core.Tests
                                 ? originMalice.Value
                                 : (previous.Malice, previous.MaliceMax, previous.Grudge);
                             game.RestoreMalice(CheatSession.Carry(carried, carriedMax, game.MaliceMax), false, grudge);
+                        }
+
+                        // Between hands: perhaps an event; the player takes it when it looks worth it.
+                        IHellEvent offer = events.Roll(game, seat.Id, seat.IsFinalTable);
+                        if (offer != null)
+                        {
+                            bool take = offer.ExpectedYears(game, seat.Id) > 0;
+                            offered[offer.Id] = offered.TryGetValue(offer.Id, out int o) ? o + 1 : 1;
+                            if (take) accepted[offer.Id] = accepted.TryGetValue(offer.Id, out int a) ? a + 1 : 1;
+                            offer.Apply(take ? EventOptions.Accept : EventOptions.Pass, game, seat.Id, events.Random);
+                            if (game.IsGameOver) break;
                         }
 
                         if (PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), seat.Payouts))
@@ -172,11 +219,15 @@ namespace HellPoker.Core.Tests
 
                 string reRaiseShare = (100.0 * reRaised / Math.Max(1, hands)).ToString("0.0") + "%";
                 string firstTryShare = (100.0 * firstTry / Math.Max(1, reached)).ToString("0.0") + "%";
-                report.AppendLine($"{dealer.Id,-8} {Percent(absolved),7}  {Percent(damned),6}  {Percent(Runs - absolved - damned),10}  " +
+                report.AppendLine($"{sinnerClass.Id,-8} {dealer.Id,-8} {Percent(absolved),7}  {Percent(damned),6}  {Percent(Runs - absolved - damned),10}  " +
                                   $"{hands / (double)Runs,9:0.0}  {reRaiseShare,15}  {deadMan,6}  {Percent(soulStaked),11}  {Percent(soulSaved),10}" +
                                   $"  | {Percent(reached),15}  {firstTryShare,16}  {attempts / (double)Math.Max(1, reached),12:0.00}" +
                                   $"  {castDowns,10}  {wildBill,9}");
             }
+
+            report.AppendLine();
+            report.AppendLine(eventsOn ? "Events (offered / taken): " + string.Join("  ", offered.OrderBy(p => p.Key)
+                .Select(p => $"{p.Key} {p.Value}/{(accepted.TryGetValue(p.Key, out int a) ? a : 0)}")) : "Events off.");
 
             if (cheats)
             {
@@ -199,6 +250,25 @@ namespace HellPoker.Core.Tests
                              (tally.BackfiresById.TryGetValue(p.Key, out int b) ? $" (bf {100.0 * b / p.Value:0.0}%)" : "")));
             string backfires = $"{tally.Backfires} ({100.0 * tally.Backfires / Math.Max(1, tally.Played):0.0}%)";
             report.AppendLine($"{id,-8} {tally.Hands,6}  {perHand,11}  {tally.Fizzled,7}  {tally.Lies,4}  {backfires,9} | {types}");
+        }
+
+        /// <summary>The events, with HELLPOKER_GHOST_LOSS (the lost soul's loss multiplier, percent) to try other numbers.</summary>
+        private static IReadOnlyList<IHellEvent> Deck()
+        {
+            int ghost = EnvInt("HELLPOKER_GHOST_LOSS", 0);
+            IEnumerable<IHellEvent> deck = EventDeck.Standard;
+            if (ForcedRelics != null) deck = deck.Where(e => !(e is RelicEvent));   // the relics are given, not offered
+            return ghost <= 0 ? deck.ToArray() : deck.Select(e => e.Id == EventIds.LostSoul ? new LostSoulEvent(ghost) : e).ToArray();
+        }
+
+        /// <summary>HELLPOKER_RELICS ("bone_die,rusty_crown", or "none"): every run carries these from the start, and no relic is offered.</summary>
+        private static string[] ForcedRelics
+        {
+            get
+            {
+                string relics = Environment.GetEnvironmentVariable("HELLPOKER_RELICS");
+                return relics == null ? null : relics.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Where(id => id != "none").ToArray();
+            }
         }
 
         private static int EnvInt(string name, int fallback)
@@ -226,9 +296,11 @@ namespace HellPoker.Core.Tests
             game.PlaceBet();
             while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
             {
+                ProtectIfThreatened(game);
                 switch (game.Phase)
                 {
                     case GamePhase.Drawing:
+                        RollTheBoneDie(game);
                         game.Draw(Discards(game, drawing));
                         break;
 
@@ -243,6 +315,16 @@ namespace HellPoker.Core.Tests
                 }
             }
             return reRaised;
+        }
+
+        /// <summary>The Bone Die, at the draw: the lowest card that pairs nothing goes back first (it would be thrown anyway).</summary>
+        private static void RollTheBoneDie(HellPokerGame game)
+        {
+            if (game.RedrawsLeft <= 0) return;
+            var paired = new HashSet<Rank>(Enumerable.Range(0, Hand.Size).GroupBy(i => game.PlayerHand[i].Rank).Where(g => g.Count() >= 2).Select(g => g.Key));
+            int[] lone = Enumerable.Range(0, Hand.Size).Where(i => game.CanRedraw(i) && !paired.Contains(game.PlayerHand[i].Rank))
+                .OrderBy(i => game.PlayerHand[i].Rank).ToArray();
+            if (lone.Length > 0) game.Redraw(lone[0]);
         }
 
         /// <summary>
@@ -271,7 +353,7 @@ namespace HellPoker.Core.Tests
         private static BetAction Choose(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
         {
             bool raise, fold;
-            bool fallAwaits = game.PendingCheat?.Id == CheatIds.TheFall;
+            bool fallAwaits = IntentOf(game)?.Id == CheatIds.TheFall;
             if (!game.IsAfterDraw)
             {
                 bool allSeen = game.PlayerCardsRevealed == Hand.Size && Enumerable.Range(0, Hand.Size).All(i => !game.IsPlayerCardHidden(i));
@@ -292,6 +374,25 @@ namespace HellPoker.Core.Tests
             if (game.CanBet(BetAction.Pass, out _)) return BetAction.Pass;
             return game.CanBet(BetAction.Raise, out _) ? BetAction.Raise : BetAction.Fold;
         }
+
+        /// <summary>
+        /// The King, when a cheat is coming for the cards (an intent is up, before the draw): the crown goes on the card worth most —
+        /// the highest card of a visible pair, else the highest visible card.
+        /// </summary>
+        private static void ProtectIfThreatened(HellPokerGame game)
+        {
+            if (game.Sinner == null || !game.Sinner.CanUse(SinnerAbility.Protect) || IntentOf(game) == null) return;
+            if (IntentOf(game).Id == CheatIds.Tithe || IntentOf(game).Id == CheatIds.Gaze || IntentOf(game).Id == CheatIds.FalseFace) return;
+            int[] candidates = Enumerable.Range(0, Hand.Size).Where(game.CanProtect).ToArray();
+            if (candidates.Length == 0) return;
+            Hand hand = game.PlayerHand;
+            int best = candidates.OrderByDescending(i => candidates.Count(j => hand[j].Rank == hand[i].Rank)).ThenByDescending(i => hand[i].Rank).First();
+            game.Protect(best);
+        }
+
+        /// <summary>The intent as the player reads it: the truth for a class that sees through lies.</summary>
+        private static ICheat IntentOf(HellPokerGame game) =>
+            game.Sinner != null && game.Sinner.Class.SeesLies ? game.PendingCheatTruth ?? game.PendingCheat : game.PendingCheat;
 
         /// <summary>What the player can read of their hand: visible cards only.</summary>
         private static HandCategory Strength(HellPokerGame game) => game.PlayerHandNow ?? HandCategory.HighCard;

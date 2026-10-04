@@ -112,6 +112,17 @@ namespace HellPoker.Presentation.Views
             });
         }
 
+        public void SetLine(string line)
+        {
+            _sequencer.Do(() =>
+            {
+                if (string.IsNullOrEmpty(_fullLine) || string.IsNullOrEmpty(line)) return;
+                _fullLine = line;
+                _typed = _fullLine.Length;
+                _line.text = _fullLine;
+            });
+        }
+
         /// <summary>True while the demon at the table is the Morning Star (his own dialogue colours).</summary>
         public bool IsFinalTable { get; private set; }
 

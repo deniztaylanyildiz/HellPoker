@@ -220,11 +220,15 @@ namespace HellPoker.Presentation.Ui
         /// Stops a clicked button from staying "selected". Otherwise uGUI fires it again on Space/Enter (Submit),
         /// on top of our own keyboard shortcuts, and one key press triggers two actions.
         /// </summary>
+        /// <summary>Every button click (the bootstrap gives it the click sound).</summary>
+        public static Action ButtonClicked;
+
         public static void MakeClickOnly(Button button)
         {
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(() =>
             {
+                ButtonClicked?.Invoke();
                 if (EventSystem.current != null)
                     EventSystem.current.SetSelectedGameObject(null);
             });

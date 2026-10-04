@@ -59,7 +59,11 @@ namespace HellPoker.PlayMode.Tests
                     yield return Shot("03_dealers_" + id);
             }
 
-            Press("ChooseDealer0");
+            // Who was the player? The class cards (shot), then the King: his crown badge shows on the table.
+            Find<Button>("ChooseDealer0").onClick.Invoke();
+            yield return new WaitForSeconds(1f);
+            yield return Shot("03c_sinners");
+            Press("ChooseSinner2");
             yield return WaitForTable();
             yield return new WaitForSeconds(2.5f);
             yield return Shot("04_table_mammon");
@@ -159,9 +163,21 @@ namespace HellPoker.PlayMode.Tests
             Find<Button>("NewGameButton").onClick.Invoke();
             yield return new WaitForSeconds(0.2f);
             yield return Shot("08e_new_game_warning");
-            Press("CancelNewGameButton");
+            Press("MenuCancelButton");
             Press("ContinueButton");
             yield return new WaitForSeconds(0.4f);
+            // An event between hands: the panel opens like a curtain (shown on the view directly: the dice decide when it comes).
+            foreach (string eventId in new[] { "lost_soul", "devils_ledger" })
+            {
+                string owner = eventId == "devils_ledger" ? "mammon" : eventId;
+                tableView.ShowEvent(new HellPoker.Presentation.Abstractions.EventCard(eventId, owner, HellPoker.Presentation.Ui.UiText.EventOwner(owner),
+                    HellPoker.Presentation.Ui.UiText.EventTitle(eventId, "mammon"), HellPoker.Presentation.Ui.UiText.EventText(eventId, "mammon", false),
+                    new[] { HellPoker.Presentation.Ui.UiText.EventAccept, HellPoker.Presentation.Ui.UiText.EventPass }));
+                yield return new WaitForSeconds(0.6f);
+                yield return Shot("08f_event_" + eventId);
+                tableView.HideEvent();
+                yield return new WaitForSeconds(0.2f);
+            }
 
             // Every hall: betting, a decision, and the final stretch (sentence cut to 200 behind the game's back).
             string[] halls = { "mammon", "belial", "lilith" };
@@ -236,7 +252,7 @@ namespace HellPoker.PlayMode.Tests
             {
                 SetSentence(presenter, 120);
                 yield return WaitForTable();
-                if (ActionLabelIs("NEXT HAND")) Press("ActionButton");
+                if (ActionLabelIs(HellPoker.Presentation.Ui.UiText.Next)) Press("ActionButton");
                 yield return WaitForTable();
                 yield return new WaitForSeconds(1.5f);
                 yield return Shot("29_lucifer_last_moments");
@@ -276,7 +292,7 @@ namespace HellPoker.PlayMode.Tests
                 {
                     SetSentence(presenter, 1000);
                     yield return WaitForTable();
-                    if (ActionLabelIs("NEXT HAND")) Press("ActionButton");
+                    if (ActionLabelIs(HellPoker.Presentation.Ui.UiText.Next)) Press("ActionButton");
                     yield return WaitForTable();
                 }
                 presenter.Game.TakeOver(years, presenter.Game.RoundNumber);
@@ -441,7 +457,7 @@ namespace HellPoker.PlayMode.Tests
                 if (IsActive("PassButton") && !IsLocked("PassButton")) Press("PassButton");
                 else if (IsActive("RaiseButton") && !IsLocked("RaiseButton") && !IsActive("ActionButton")) Press("RaiseButton");
                 else if (IsActive("CallButton")) Press("CallButton");
-                else if (ActionLabelIs("STAND PAT")) Press("ActionButton");
+                else if (ActionLabelIs(HellPoker.Presentation.Ui.UiText.Stand)) Press("ActionButton");
                 else break;
                 yield return WaitForTable();
             }
@@ -523,12 +539,21 @@ namespace HellPoker.PlayMode.Tests
             button.onClick.Invoke();
             // New Game over a run asks first: the tests mean it.
             if (button.name == "NewGameButton") ConfirmNewGame();
+            // A new run asks who the player was: the tests play the Peasant unless they say otherwise.
+            if (button.name.StartsWith("ChooseDealer")) ChooseSinner(0);
+        }
+
+        internal static void ChooseSinner(int index)
+        {
+            Button choose = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.name == "ChooseSinner" + index && b.gameObject.activeInHierarchy);
+            if (choose != null) choose.onClick.Invoke();
         }
 
         internal static void ConfirmNewGame()
         {
             Button confirm = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .FirstOrDefault(b => b.name == "ConfirmNewGameButton" && b.gameObject.activeInHierarchy);
+                .FirstOrDefault(b => b.name == "MenuConfirmButton" && b.gameObject.activeInHierarchy);
             if (confirm != null) confirm.onClick.Invoke();
         }
 

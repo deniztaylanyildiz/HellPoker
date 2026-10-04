@@ -135,6 +135,56 @@ namespace HellPoker.Core.Game
         /// <summary>While the hand is played: throwing this card back costs a betting unit.</summary>
         bool IsPlayerCardThorned(int index);
 
+        // ------------------------------------------------------------------ the sinner's class
+
+        /// <summary>The run's sinner class and what is left of its ability; null for a classless game.</summary>
+        Sinners.Sinner Sinner { get; }
+
+        /// <summary>While the hand is played: this card is under the King's protection — no cheat may touch it.</summary>
+        bool IsPlayerCardProtected(int index);
+
+        /// <summary>The cheat really planned for the hand while it is to come — the truth behind a lie (the Warlock sees it).</summary>
+        Cheats.ICheat PendingCheatTruth { get; }
+
+        // ------------------------------------------------------------------ the run's events
+
+        /// <summary>The run's events and their marks (the next hand's modifier, deferred years, the sold soul).</summary>
+        Events.RunEffects Effects { get; }
+
+        /// <summary>The run's effects are shared by every table's game: a new table's game takes the run's one.</summary>
+        void UseEffects(Events.RunEffects effects);
+
+        /// <summary>How the hand being played differs, by an event; none between hands.</summary>
+        Events.HandModifier ThisHand { get; }
+
+        /// <summary>The cursed relics' combined effects on the hand being played.</summary>
+        Relics.RelicEffects Relic { get; }
+
+        /// <summary>Cards that may still be redrawn this hand (the Bone Die).</summary>
+        int RedrawsLeft { get; }
+
+        /// <summary>True when this card may be redrawn now: before the draw, seen, not chained, thorned or protected.</summary>
+        bool CanRedraw(int index);
+
+        /// <summary>Throws the card back and deals the next one in its place; the new card, or null when it cannot be done.</summary>
+        Cards.Card? Redraw(int index);
+
+        /// <summary>Years that came due between the last hand and this one (Mammon's ledger); 0 for none.</summary>
+        int DeferredPaid { get; }
+
+        /// <summary>Damnation comes at this sentence: the soul line plus what is left of the soul's worth.</summary>
+        int DamnationYears { get; }
+
+        /// <summary>How many House cards turn before the last decision at this table, for this sinner (the Warlock sees more at a
+        /// table that hides them).</summary>
+        int HouseCardsShown { get; }
+
+        /// <summary>True when the King may put this card under protection now: before the draw, a card the player sees, a charge left.</summary>
+        bool CanProtect(int index);
+
+        /// <summary>Puts the card under protection for the hand, spending a charge; false when it cannot be done.</summary>
+        bool Protect(int index);
+
         /// <summary>While the hand is played: this House card shows a false face.</summary>
         bool IsHouseCardFalse(int index);
 

@@ -69,7 +69,7 @@ namespace HellPoker.PlayMode.Tests
             if (!Presenter.IsAtFinalTable && Presenter.Game.Phase == GamePhase.RoundOver)
                 SetSentence(Presenter, 1000);
             yield return WaitForTable();
-            if (ActionLabelIs("NEXT HAND")) Press("ActionButton");
+            if (Presenter.Game.Phase == GamePhase.RoundOver) Press("ActionButton");   // any language
             yield return WaitForTable();
         }
 
@@ -77,6 +77,9 @@ namespace HellPoker.PlayMode.Tests
         public IEnumerator CaptureCheats()
         {
             HellPokerBootstrap.BatchStore.Clear();
+            // HELLPOKER_LANG=tr: the same shots in Turkish.
+            if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
 

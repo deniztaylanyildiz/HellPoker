@@ -95,13 +95,18 @@ namespace HellPoker.Core.Game
 
         public int GrudgeMalicePerHand { get; }
 
+        /// <summary>Between hands, an event happens this often (percent), at least <see cref="EventCooldownHands"/> hands apart.</summary>
+        public int EventChancePercent { get; }
+
+        public int EventCooldownHands { get; }
+
         public GameRules(int startingYears = 1000, int soulThreshold = 2000, int maxDiscards = MaxDiscardPolicy.ClassicLimit,
             int forcedRaiseYears = 250, int houseCardsShown = 2, StakeScale stakes = null, int openingCardsShown = 2,
             int raiseUnitsBeforeDraw = 1, int raiseUnitsAfterDraw = 2, int houseReRaiseUnits = 1,
             int soulWorthYears = 1000, int soulLossPercent = 150, int luciferGateYears = 250, int luciferCastDownYears = 500,
             bool isFinalTable = false, int malicePerHand = 1, int malicePerWin = 1, int maliceLowSentenceYears = 500,
             int maliceLowSentenceBonus = 1, int majorCheatYears = 400, int majorCheatPercent = 50, int grudgeHands = 3,
-            int grudgeMalicePerHand = 1)
+            int grudgeMalicePerHand = 1, int eventChancePercent = 12, int eventCooldownHands = 4)
         {
             if (malicePerHand < 0) throw new ArgumentOutOfRangeException(nameof(malicePerHand));
             if (malicePerWin < 0) throw new ArgumentOutOfRangeException(nameof(malicePerWin));
@@ -117,6 +122,10 @@ namespace HellPoker.Core.Game
             if (grudgeMalicePerHand < 0) throw new ArgumentOutOfRangeException(nameof(grudgeMalicePerHand));
             GrudgeHands = grudgeHands;
             GrudgeMalicePerHand = grudgeMalicePerHand;
+            if (eventChancePercent < 0 || eventChancePercent > 100) throw new ArgumentOutOfRangeException(nameof(eventChancePercent));
+            if (eventCooldownHands < 0) throw new ArgumentOutOfRangeException(nameof(eventCooldownHands));
+            EventChancePercent = eventChancePercent;
+            EventCooldownHands = eventCooldownHands;
             if (luciferGateYears < 0) throw new ArgumentOutOfRangeException(nameof(luciferGateYears));
             if (luciferGateYears > 0 && luciferCastDownYears <= luciferGateYears)
                 throw new ArgumentOutOfRangeException(nameof(luciferCastDownYears), "Being cast down must put the player above the gate.");
@@ -163,7 +172,8 @@ namespace HellPoker.Core.Game
             return new GameRules(StartingYears, soulThreshold, maxDiscards, finalTable ? 0 : ForcedRaiseYears, houseCardsShown,
                 stakes ?? Stakes, OpeningCardsShown, RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits, SoulWorthYears,
                 SoulLossPercent, LuciferGateYears, LuciferCastDownYears, finalTable, MalicePerHand, MalicePerWin, MaliceLowSentenceYears,
-                MaliceLowSentenceBonus, MajorCheatYears, MajorCheatPercent, GrudgeHands, GrudgeMalicePerHand);
+                MaliceLowSentenceBonus, MajorCheatYears, MajorCheatPercent, GrudgeHands, GrudgeMalicePerHand,
+                EventChancePercent, EventCooldownHands);
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Dealers;
+using HellPoker.Core.Sinners;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Ui;
 
@@ -39,14 +40,28 @@ namespace HellPoker.Presentation
         private RunSummary _lastSummary;
 
         private bool _changingTables;
+
+        /// <summary>The class choice of a new run (after the demon); null: every new run is a Peasant's.</summary>
+        private readonly ISinnerSelectView _sinnerSelect;
+
+        /// <summary>The music of the screens (the menu's theme, the demon's at the table) and the curtain's whoosh.</summary>
+        private readonly IAudio _audio;
+        private readonly SinnerClass[] _classes;
+
+        /// <summary>The demon chosen for the new run, while the class is being chosen.</summary>
+        private Dealer _pendingDealer;
         private int _pendingSeat = -1;
 
         /// <param name="dealers">The demons the player may choose.</param>
         /// <param name="finalDealer">Lucifer, shown locked after them; he is never chosen, only met below the gate.</param>
         public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
-            IReadOnlyList<Dealer> dealers, Dealer finalDealer = null)
+            IReadOnlyList<Dealer> dealers, Dealer finalDealer = null, ISinnerSelectView sinnerSelect = null,
+            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null)
         {
+            _audio = audio ?? NullAudio.Instance;
+            _sinnerSelect = sinnerSelect;
+            _classes = (classes ?? SinnerRoster.All).ToArray();
             _finalDealer = finalDealer;
             _finalCard = finalDealer == null ? null : DealerCards.Describe(finalDealer);
             _menu = menu ?? throw new ArgumentNullException(nameof(menu));
@@ -63,12 +78,12 @@ namespace HellPoker.Presentation
             _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
 
             _menu.NewGamePressed += AskForNewGame;
-            _menu.NewGameConfirmed += AbandonAndChoose;
+            _menu.Confirmed += GoAhead;
             _menu.ContinuePressed += OpenTable;
             _menu.ChangeTablePressed += AskToChangeTables;
             _menu.SettingsPressed += OpenSettings;
             _menu.RecordsPressed += OpenRecords;
-            _menu.QuitPressed += _quitter.Quit;
+            _menu.QuitPressed += AskToQuit;
             _dealerSelect.DealerChosen += Choose;
             _dealerSelect.BackPressed += Back;
             _dealerSelect.SeatConfirmed += ConfirmSeat;
@@ -81,17 +96,28 @@ namespace HellPoker.Presentation
             _session.LeaveRequested += OpenTableChoice;
             _session.RunEnded += ShowEnd;
             Lang.Changed += OnLanguageChanged;
+            if (_sinnerSelect != null)
+            {
+                _sinnerSelect.SinnerChosen += ChooseSinner;
+                _sinnerSelect.BackPressed += OpenNewRunChoice;
+            }
 
             OpenMenu();
         }
 
-        public bool IsMenuOpen => _menu.IsVisible || _dealerSelect.IsVisible || _settings.IsVisible || _endScreen.IsVisible || _records.IsVisible;
+        public bool IsMenuOpen => _menu.IsVisible || _dealerSelect.IsVisible || (_sinnerSelect?.IsVisible ?? false) || _settings.IsVisible || _endScreen.IsVisible || _records.IsVisible;
 
         public bool IsTransitioning => _transition.IsPlaying;
 
+        public bool IsAtMenuRoot => _menu.IsVisible && !_menu.IsConfirming && !_menu.IsShowingRules;
+
         public void GoBack()
         {
-            if (_dealerSelect.IsVisible)
+            if (_sinnerSelect != null && _sinnerSelect.IsVisible)
+            {
+                OpenNewRunChoice();
+            }
+            else if (_dealerSelect.IsVisible)
             {
                 if (_dealerSelect.IsConfirming)
                 {
@@ -121,12 +147,12 @@ namespace HellPoker.Presentation
         public void Dispose()
         {
             _menu.NewGamePressed -= AskForNewGame;
-            _menu.NewGameConfirmed -= AbandonAndChoose;
+            _menu.Confirmed -= GoAhead;
             _menu.ContinuePressed -= OpenTable;
             _menu.ChangeTablePressed -= AskToChangeTables;
             _menu.SettingsPressed -= OpenSettings;
             _menu.RecordsPressed -= OpenRecords;
-            _menu.QuitPressed -= _quitter.Quit;
+            _menu.QuitPressed -= AskToQuit;
             _dealerSelect.DealerChosen -= Choose;
             _dealerSelect.BackPressed -= Back;
             _dealerSelect.SeatConfirmed -= ConfirmSeat;
@@ -139,6 +165,11 @@ namespace HellPoker.Presentation
             _session.LeaveRequested -= OpenTableChoice;
             _session.RunEnded -= ShowEnd;
             Lang.Changed -= OnLanguageChanged;
+            if (_sinnerSelect != null)
+            {
+                _sinnerSelect.SinnerChosen -= ChooseSinner;
+                _sinnerSelect.BackPressed -= OpenNewRunChoice;
+            }
         }
 
         /// <summary>
@@ -150,7 +181,11 @@ namespace HellPoker.Presentation
             _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
             _finalCard = _finalDealer == null ? null : DealerCards.Describe(_finalDealer);
 
-            if (_dealerSelect.IsVisible)
+            if (_sinnerSelect != null && _sinnerSelect.IsVisible)
+            {
+                OpenSinnerChoice(curtain: false);
+            }
+            else if (_dealerSelect.IsVisible)
             {
                 if (_choiceForTables)
                     OpenTableChoice(curtain: false);
@@ -167,7 +202,8 @@ namespace HellPoker.Presentation
             }
             else if (_menu.IsVisible && _menu.IsConfirming)
             {
-                AskForNewGame();
+                if (_asking == Asking.Quit) AskToQuit();
+                else AskForNewGame();
             }
         }
 
@@ -190,7 +226,43 @@ namespace HellPoker.Presentation
             string warning = risk == AbandonRisk.Soul ? UiText.AbandonSoulWarning
                 : risk == AbandonRisk.Hand ? UiText.AbandonHandWarning
                 : UiText.AbandonRunWarning;
-            _menu.AskToConfirmNewGame(taunt, warning);
+            _asking = Asking.NewGame;
+            _menu.AskToConfirm(taunt, warning, UiText.AbandonButton);
+        }
+
+        /// <summary>What the open warning is about.</summary>
+        private enum Asking { Nothing, NewGame, Quit }
+
+        private Asking _asking;
+
+        private void GoAhead()
+        {
+            Asking asking = _asking;
+            _asking = Asking.Nothing;
+            if (asking == Asking.Quit)
+                _quitter.Quit();
+            else if (asking == Asking.NewGame)
+                AbandonAndChoose();
+        }
+
+        /// <summary>
+        /// Quit. Between hands it just goes (the run is saved); mid-hand — or with the soul on the table — the player is told
+        /// first that the hand left behind is lost (it is forfeited on the next launch), in the demon's own voice.
+        /// </summary>
+        private void AskToQuit()
+        {
+            AbandonRisk risk = _session.AbandonRisk;
+            if (risk != AbandonRisk.Hand && risk != AbandonRisk.Soul)
+            {
+                _quitter.Quit();
+                return;
+            }
+
+            string id = _session.CurrentDealerId;
+            DealerText dealer = id == null ? null : UiText.Dealer(id);
+            string taunt = dealer?.Fled == null ? null : UiText.Pick(dealer.Fled, Environment.TickCount & int.MaxValue);
+            _asking = Asking.Quit;
+            _menu.AskToConfirm(taunt, UiText.QuitHandWarning, UiText.Quit);
         }
 
         private void AbandonAndChoose()
@@ -233,7 +305,18 @@ namespace HellPoker.Presentation
             if (_finalCard != null)
                 choices = choices.Concat(new[] { new DealerChoice(_finalCard, soulAtStake: false, isCurrent: false, isLocked: true) });
             _dealerSelect.Show(choices.ToArray());
-            if (curtain) _transition.Play();
+            if (curtain) Curtain();
+        }
+
+        /// <summary>The curtain over a screen change, with its whoosh; the music follows the screen: the demon's at the table,
+        /// the menu's theme everywhere else.</summary>
+        private void Curtain()
+        {
+            _transition.Play();
+            _audio.PlaySfx(SfxIds.Transition);
+            bool atTable = !IsMenuOpen;
+            _audio.PlayMusic(atTable ? _session.CurrentDealerId : SfxIds.MenuMusic);
+            _audio.SetSoulLayer(atTable && _session.AbandonRisk == AbandonRisk.Soul);
         }
 
         /// <summary>Every screen goes away; the caller shows the one wanted.</summary>
@@ -241,6 +324,7 @@ namespace HellPoker.Presentation
         {
             _menu.Hide();
             _dealerSelect.Hide();
+            _sinnerSelect?.Hide();
             _settings.Hide();
             _endScreen.Hide();
             _records.Hide();
@@ -252,14 +336,14 @@ namespace HellPoker.Presentation
             _lastSummary = summary;
             HideAll();
             _endScreen.Show(summary);
-            _transition.Play();
+            Curtain();
         }
 
         private void OpenRecords()
         {
             HideAll();
             _records.Show(_session.Records, _dealerCards);
-            _transition.Play();
+            Curtain();
         }
 
         private void Choose(int index)
@@ -276,8 +360,14 @@ namespace HellPoker.Presentation
 
             if (!_changingTables)
             {
-                _session.StartNewRun(dealer);
-                OpenTable();
+                if (_sinnerSelect == null)
+                {
+                    _session.StartNewRun(dealer);
+                    OpenTable();
+                    return;
+                }
+                _pendingDealer = dealer;
+                OpenSinnerChoice(curtain: true);
                 return;
             }
 
@@ -296,6 +386,25 @@ namespace HellPoker.Presentation
             }
 
             _session.SwitchTable(dealer);
+            OpenTable();
+        }
+
+        /// <summary>Who was the player, up there? The class cards, over the chosen demon's hall.</summary>
+        private void OpenSinnerChoice(bool curtain)
+        {
+            HideAll();
+            _sinnerSelect.Show(_classes.Select(c => new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id),
+                UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id), string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
+                _pendingDealer?.Id);
+            if (curtain) Curtain();
+        }
+
+        private void ChooseSinner(int index)
+        {
+            if (_pendingDealer == null || index < 0 || index >= _classes.Length) return;
+            Dealer dealer = _pendingDealer;
+            _pendingDealer = null;
+            _session.StartNewRun(dealer, _classes[index]);
             OpenTable();
         }
 
@@ -326,21 +435,21 @@ namespace HellPoker.Presentation
         {
             HideAll();
             _menu.Show(_session.CanContinue);
-            _transition.Play();
+            Curtain();
         }
 
         private void OpenSettings()
         {
             HideAll();
             _settings.Show();
-            _transition.Play();
+            Curtain();
         }
 
         private void OpenTable()
         {
             HideAll();
             _table.SetVisible(true);
-            _transition.Play();
+            Curtain();
         }
     }
 }

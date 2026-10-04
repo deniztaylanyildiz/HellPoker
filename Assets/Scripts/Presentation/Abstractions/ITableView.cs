@@ -7,7 +7,7 @@ namespace HellPoker.Presentation.Abstractions
     /// The whole table as the presenter sees it: widgets and raw input, no game rules.
     /// Updates are shown in call order; implementations may animate them, and report <see cref="IsBusy"/> meanwhile.
     /// </summary>
-    public interface ITableView : ILanguageButton
+    public interface ITableView
     {
         IHandView House { get; }
         IHandView Player { get; }
@@ -30,6 +30,29 @@ namespace HellPoker.Presentation.Abstractions
         event Action MenuPressed;
         event Action LeavePressed;
         event Action HandRanksPressed;
+
+        /// <summary>An effect, in its place in the table's queue: it sounds when the animation before it has played.</summary>
+        void PlaySfx(string sfxId);
+
+        /// <summary>A button of the event panel was pressed (its index in <see cref="EventCard.Options"/>).</summary>
+        event Action<int> EventOptionPressed;
+
+        /// <summary>Opens the event panel in the middle of the table (it opens like a curtain).</summary>
+        void ShowEvent(EventCard card);
+
+        void HideEvent();
+
+        /// <summary>A relic beside the portrait was clicked (its id): the Bone Die's redraw.</summary>
+        event Action<string> RelicPressed;
+
+        /// <summary>The relics the run carries, beside the portrait; empty for none.</summary>
+        void SetRelics(System.Collections.Generic.IReadOnlyList<RelicBadge> relics);
+
+        /// <summary>The class badge under the portrait was clicked (the King's protection).</summary>
+        event Action SinnerPressed;
+
+        /// <summary>The class badge: the class and what is left of its ability; <see cref="SinnerBadge.Hidden"/> for none.</summary>
+        void SetSinner(SinnerBadge badge);
 
         /// <summary>True while the hand ranking panel is open over the table.</summary>
         bool HandRanksOpen { get; }

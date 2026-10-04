@@ -26,12 +26,16 @@ namespace HellPoker.Core.Game
         /// (<see cref="Folded"/> is set too, as there is no showdown).</summary>
         public bool ThornDamned { get; }
 
+        /// <summary>True when the fold cost nothing (the Peasant's honest heart, once per run).</summary>
+        public bool FreeFold { get; }
+
         /// <summary>Negative when years were forgiven, positive when added.</summary>
         public int YearsChange => YearsAfter - YearsBefore;
 
         public RoundResult(int stake, bool folded, ExchangeResult playerExchange, ExchangeResult houseExchange, ShowdownResult showdown,
-            int yearsBefore, int yearsAfter, GamePhase phaseAfter, bool thornDamned = false)
+            int yearsBefore, int yearsAfter, GamePhase phaseAfter, bool thornDamned = false, bool freeFold = false)
         {
+            FreeFold = freeFold;
             ThornDamned = thornDamned;
             Stake = stake;
             Folded = folded;

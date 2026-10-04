@@ -9,6 +9,8 @@ namespace HellPoker.Presentation.Abstractions
         event Action FullscreenPressed;
         event Action HandGuidePressed;
         event Action ResetTipsPressed;
+        event Action MusicPressed;
+        event Action SfxPressed;
         event Action BackPressed;
 
         bool IsVisible { get; }
@@ -16,7 +18,8 @@ namespace HellPoker.Presentation.Abstractions
         /// <param name="speed">The speed's name ("NORMAL").</param>
         /// <param name="tipsLeft">True when there are seen tips that a reset would bring back.</param>
         /// <param name="language">The language's own name ("TÜRKÇE").</param>
-        void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language);
+        /// <param name="music">, <paramref name="sfx"/>: the volumes as shown ("7 / 10", "OFF").</param>
+        void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language, string music, string sfx);
 
         void Show();
         void Hide();

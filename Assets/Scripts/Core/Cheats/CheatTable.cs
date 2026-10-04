@@ -36,6 +36,9 @@ namespace HellPoker.Core.Cheats
         /// <summary>Gaze: the House re-raises knowing the player's hand.</summary>
         public bool Gaze { get; set; }
 
+        /// <summary>The King's protection: these cards of the player's are beyond every cheat this hand.</summary>
+        public HashSet<Card> Protected { get; } = new HashSet<Card>();
+
         public void Clear()
         {
             Chained.Clear();
@@ -44,6 +47,7 @@ namespace HellPoker.Core.Cheats
             FakeHouseIndex = -1;
             Tithe = false;
             Gaze = false;
+            Protected.Clear();
         }
     }
 
@@ -107,9 +111,12 @@ namespace HellPoker.Core.Cheats
         /// <summary>The Dead Man's Hand cards are beyond any cheat.</summary>
         public static bool IsImmune(Card card) => CheatRules.IsImmune(card);
 
-        /// <summary>Positions in the player's hand a cheat may touch (not immune, and passing the extra test).</summary>
+        /// <summary>True for a player's card no cheat may touch: a Dead Man's Hand card, or one under the King's protection.</summary>
+        public bool IsUntouchable(int index) => IsImmune(PlayerHand[index]) || Marks.Protected.Contains(PlayerHand[index]);
+
+        /// <summary>Positions in the player's hand a cheat may touch (not untouchable, and passing the extra test).</summary>
         public IEnumerable<int> PlayerTargets(Func<int, bool> also = null) =>
-            Enumerable.Range(0, Hand.Size).Where(i => !IsImmune(PlayerHand[i]) && (also == null || also(i)));
+            Enumerable.Range(0, Hand.Size).Where(i => !IsUntouchable(i) && (also == null || also(i)));
 
         public IEnumerable<int> HouseTargets(Func<int, bool> also = null) =>
             Enumerable.Range(0, Hand.Size).Where(i => !IsImmune(HouseHand[i]) && (also == null || also(i)));

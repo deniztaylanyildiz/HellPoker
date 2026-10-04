@@ -43,5 +43,9 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>The same demon under the words of another language: name and title only, nothing replayed.</summary>
         void Relabel(DealerCard dealer);
+
+        /// <summary>The line already on screen, in other words: shown whole at once — no typing, no look, nothing replayed.
+        /// Nothing happens when no line is showing.</summary>
+        void SetLine(string line);
     }
 }

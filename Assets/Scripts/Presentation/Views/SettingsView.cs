@@ -10,8 +10,8 @@ namespace HellPoker.Presentation.Views
     public sealed class SettingsView : MonoBehaviour, ISettingsView
     {
         private const int SortingOrder = 105;
-        private const int RowsTop = 48;
-        private const int RowHeight = 32;
+        private const int RowsTop = 44;
+        private const int RowHeight = 26;
         private const int LabelX = 64;
         private const int ValueX = 288;
         private const int ValueWidth = 128;
@@ -22,6 +22,8 @@ namespace HellPoker.Presentation.Views
         private Text _handGuide;
         private Text _tips;
         private Text _language;
+        private Text _music;
+        private Text _sfx;
         private ButtonFeel _tipsFeel;
 
         public event Action SpeedPressed;
@@ -29,6 +31,8 @@ namespace HellPoker.Presentation.Views
         public event Action HandGuidePressed;
         public event Action ResetTipsPressed;
         public event Action LanguagePressed;
+        public event Action MusicPressed;
+        public event Action SfxPressed;
         public event Action BackPressed;
 
         public bool IsVisible => _canvas.enabled;
@@ -63,10 +67,12 @@ namespace HellPoker.Presentation.Views
             _tipsFeel = tips.GetComponent<ButtonFeel>();
             _language = Row(screen, 4, () => UiText.SettingLanguage, () => UiText.SettingLanguageHint, "SettingsLanguageButton",
                 () => LanguagePressed?.Invoke(), out _);
+            _music = Row(screen, 5, () => UiText.SettingMusic, () => UiText.SettingMusicHint, "MusicButton", () => MusicPressed?.Invoke(), out _);
+            _sfx = Row(screen, 6, () => UiText.SettingSfx, () => UiText.SettingSfxHint, "SfxButton", () => SfxPressed?.Invoke(), out _);
 
             Button back = UiFactory.CreateButton("SettingsBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Blood);
             backLabel.Localized(() => UiText.Back);
-            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 48, 80, 20);
+            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 44, 80, 20);
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
@@ -84,8 +90,10 @@ namespace HellPoker.Presentation.Views
             return value;
         }
 
-        public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language)
+        public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language, string music, string sfx)
         {
+            _music.text = music;
+            _sfx.text = sfx;
             _language.text = language;
             _speed.text = speed;
             _fullscreen.text = fullscreen ? UiText.On : UiText.Off;

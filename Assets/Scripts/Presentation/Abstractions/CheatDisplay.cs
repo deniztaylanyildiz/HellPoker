@@ -71,6 +71,9 @@ namespace HellPoker.Presentation.Abstractions
         Veiled,
 
         /// <summary>A House card showing a false face (the faintest silver sheen).</summary>
-        FalseFace
+        FalseFace,
+
+        /// <summary>The King's protection: a small crown, no cheat may touch the card this hand.</summary>
+        Protected
     }
 }

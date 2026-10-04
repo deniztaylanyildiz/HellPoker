@@ -25,6 +25,12 @@ namespace HellPoker.Presentation.Settings
         private const string HandGuideKey = "settings.handGuide";
         private const string TipsKey = "settings.tipsSeen";
         private const string LanguageKey = "settings.language";
+        private const string MusicKey = "settings.music";
+        private const string SfxKey = "settings.sfx";
+
+        /// <summary>Volumes go from 0 (silent) to this.</summary>
+        public const int MaxVolume = 10;
+        public const int DefaultVolume = 7;
 
         /// <summary>The language of a first launch, before the player ever chose one (from the system, or English).</summary>
         private readonly Language _firstLanguage;
@@ -37,6 +43,13 @@ namespace HellPoker.Presentation.Settings
         public bool HandGuide { get; private set; } = true;
         public IReadOnlyCollection<string> TipsSeen => _tipsSeen;
         public Language Language { get; private set; } = Language.English;
+        public int MusicVolume { get; private set; } = DefaultVolume;
+        public int SfxVolume { get; private set; } = DefaultVolume;
+
+        /// <summary>The next music volume, round and round (10 → 0).</summary>
+        public void CycleMusic() => Set(() => MusicVolume = (MusicVolume + 1) % (MaxVolume + 1));
+
+        public void CycleSfx() => Set(() => SfxVolume = (SfxVolume + 1) % (MaxVolume + 1));
 
         /// <summary>Raised after any setting changed (and was saved).</summary>
         public event Action Changed;
@@ -107,12 +120,17 @@ namespace HellPoker.Presentation.Settings
             Changed?.Invoke();
         }
 
+        /// <summary>A saved volume, or the default when it is out of range.</summary>
+        private static int Volume(int saved) => saved >= 0 && saved <= MaxVolume ? saved : DefaultVolume;
+
         private void Load()
         {
             int speed = _store.GetInt(SpeedKey, (int)AnimationSpeed.Normal);
             Speed = Enum.IsDefined(typeof(AnimationSpeed), speed) ? (AnimationSpeed)speed : AnimationSpeed.Normal;
             Fullscreen = _store.GetInt(FullscreenKey, 1) != 0;
             HandGuide = _store.GetInt(HandGuideKey, 1) != 0;
+            MusicVolume = Volume(_store.GetInt(MusicKey, DefaultVolume));
+            SfxVolume = Volume(_store.GetInt(SfxKey, DefaultVolume));
             // Saved by name; never saved yet: the first launch's language; anything unreadable: English.
             string language = _store.GetString(LanguageKey, null);
             Language = language == null ? _firstLanguage
@@ -133,6 +151,8 @@ namespace HellPoker.Presentation.Settings
             _store.SetInt(FullscreenKey, Fullscreen ? 1 : 0);
             _store.SetInt(HandGuideKey, HandGuide ? 1 : 0);
             _store.SetString(LanguageKey, Language.ToString());
+            _store.SetInt(MusicKey, MusicVolume);
+            _store.SetInt(SfxKey, SfxVolume);
             _store.SetString(TipsKey, string.Join(",", _tipsSeen.OrderBy(t => t)));
             _store.Save();
         }

@@ -217,7 +217,7 @@ namespace HellPoker.Presentation.Views
         /// <summary>The mark's overlay from the card_marks strip; nothing when the art is missing or there is no mark.</summary>
         private void ShowMark(CardMark mark)
         {
-            int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3 : -1;
+            int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3 : mark == CardMark.Protected ? 4 : -1;
             Sprite[] marks = UiArt.Strip(UiArt.CardMarks, Size.x);
             _mark.sprite = frame >= 0 && marks != null && frame < marks.Length ? marks[frame] : null;
             _mark.enabled = _mark.sprite != null;

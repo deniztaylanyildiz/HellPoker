@@ -90,10 +90,13 @@ namespace HellPoker.Presentation.Ui
         public static string BackfireFlash => L("BACKFIRE", "GERİ TEPTİ");
 
         /// <summary>The result screen's line about the hand's cheat. Never a number while the soul is on the table.</summary>
-        public static string CheatLog(string dealerName, CheatResult result, bool soul, int thornYears, int titheYears)
+        /// <remarks>"{who}" is the demon as the subject ("Lilith, ... zincirledi"); "{whose}" the possessive ("Lilith'in dikeni",
+        /// "Lilith's thorn") — Turkish needs the suffix written per demon (<see cref="DealerText.CalledGenitive"/>).</remarks>
+        public static string CheatLog(DealerText dealer, CheatResult result, bool soul, int thornYears, int titheYears)
         {
             if (result == null || result.Outcome != CheatOutcome.Played) return null;
-            string who = Capitalised(dealerName);
+            string who = NameInSentence(dealer);
+            string whose = GenitiveInSentence(dealer);
             string lost = result.Lost.HasValue ? result.Lost.Value.ToString() : L("a card", "bir kart");
             string gained = result.Gained.HasValue ? result.Gained.Value.ToString() : L("a card", "bir kart");
             bool tr = Lang.IsTurkish;
@@ -102,13 +105,13 @@ namespace HellPoker.Presentation.Ui
                 // The cheat turned on its demon: said so, plainly.
                 switch (result.CheatId)
                 {
-                    case CheatIds.ForkedTongue: return tr ? $"{who} dili kaydı: {lost} kartın {gained} oldu. Geri tepti!"
-                        : $"{who}'s tongue slipped: your {lost} became the {gained}. It backfired!";
-                    case CheatIds.BurningCard: return tr ? $"{who} {lost} kartını yaktı — küllerden {gained} doğdu. Geri tepti!"
+                    case CheatIds.ForkedTongue: return tr ? $"{whose} dili kaydı: {lost} kartın {gained} oldu. Geri tepti!"
+                        : $"{whose} tongue slipped: your {lost} became the {gained}. It backfired!";
+                    case CheatIds.BurningCard: return tr ? $"{who}, {lost} kartını yaktı — küllerden {gained} doğdu. Geri tepti!"
                         : $"{who} burned your {lost} — the {gained} rose from the ashes. It backfired!";
                     case CheatIds.TheFall: return tr ? $"{who}: {lost} düştü, {gained} yükseldi. Geri tepti!"
                         : $"{who}: the {lost} fell, and the {gained} rose. It backfired!";
-                    default: return tr ? $"{who} hilesi geri tepti!" : $"{who}'s cheat backfired!";
+                    default: return tr ? $"{whose} hilesi geri tepti!" : $"{whose} cheat backfired!";
                 }
             }
             switch (result.CheatId)
@@ -119,13 +122,13 @@ namespace HellPoker.Presentation.Ui
                     return tr ? $"{who} haraç aldı: kazancından {titheYears} yıl." : $"{who} kept a tithe: {titheYears} years of your win.";
                 case CheatIds.Buyout: return tr ? $"{who}, {lost} kartını {gained} karşılığında aldı." : $"{who} took your {lost} for a {gained}.";
                 case CheatIds.FalseFace: return tr ? $"{who} sana sahte bir yüz gösterdi." : $"{who} showed you a false face.";
-                case CheatIds.ForkedTongue: return tr ? $"{who} dili {lost} kartını {gained} yaptı." : $"{who}'s tongue turned your {lost} into the {gained}.";
-                case CheatIds.SerpentSwap: return tr ? $"{who} yılanı {lost} kartını çaldı." : $"{who}'s serpent stole your {lost}.";
+                case CheatIds.ForkedTongue: return tr ? $"{whose} dili {lost} kartını {gained} yaptı." : $"{whose} tongue turned your {lost} into the {gained}.";
+                case CheatIds.SerpentSwap: return tr ? $"{whose} yılanı {lost} kartını çaldı." : $"{whose} serpent stole your {lost}.";
                 case CheatIds.NightVeil: return tr ? $"{who} kartlarından birini örttü." : $"{who} veiled one of your cards.";
                 case CheatIds.Thorn:
-                    if (thornYears <= 0) return tr ? $"{who} dikeni batacak el bulamadı." : $"{who}'s thorn found no hand to prick.";
-                    if (soul) return tr ? $"{who} dikeni ruhunu kanattı." : $"{who}'s thorn drew blood from your soul.";
-                    return tr ? $"{who} dikeni sana {thornYears} yıla mal oldu." : $"{who}'s thorn cost you {thornYears} years.";
+                    if (thornYears <= 0) return tr ? $"{whose} dikeni batacak el bulamadı." : $"{whose} thorn found no hand to prick.";
+                    if (soul) return tr ? $"{whose} dikeni ruhunu kanattı." : $"{whose} thorn drew blood from your soul.";
+                    return tr ? $"{whose} dikeni sana {thornYears} yıla mal oldu." : $"{whose} thorn cost you {thornYears} years.";
                 case CheatIds.Moonless: return tr ? $"{who} yeni kartlarını karanlıkta tuttu." : $"{who} kept your new cards in the dark.";
                 case CheatIds.Gaze: return tr ? $"{who} kartlarını gördü." : $"{who} saw your cards.";
                 case CheatIds.Rewrite: return tr ? $"{who}, {lost} kartını {gained} olarak yeniden yazdı." : $"{who} rewrote your {lost} as the {gained}.";
@@ -135,16 +138,27 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        private static string Capitalised(string name)
+        /// <summary>The demon inside a sentence: their own spelling if they have one (Turkish), else the name with each word
+        /// capitalised ("THE MORNING STAR" → "The Morning Star").</summary>
+        public static string NameInSentence(DealerText dealer)
         {
+            if (!string.IsNullOrEmpty(dealer?.Called)) return dealer.Called;
+            string name = dealer?.Name;
             if (string.IsNullOrEmpty(name)) return L("The House", "Kasa");
-            // Every word: "THE MORNING STAR" → "The Morning Star" ("SABAH YILDIZI" → "Sabah Yıldızı").
             string[] words = name.Split(' ');
             for (int i = 0; i < words.Length; i++)
                 if (words[i].Length > 0)
-                    words[i] = words[i].Substring(0, 1) + Lower(words[i].Substring(1));
+                    words[i] = words[i].Substring(0, 1) + words[i].Substring(1).ToLowerInvariant();
             return string.Join(" ", words);
         }
+
+        /// <summary>The demon's, inside a sentence: "Lilith'in" (written per demon in Turkish), "Lilith's".</summary>
+        public static string GenitiveInSentence(DealerText dealer) =>
+            !string.IsNullOrEmpty(dealer?.CalledGenitive) ? dealer.CalledGenitive : NameInSentence(dealer) + "'s";
+
+        /// <summary>The demon's, in capitals like their name plate: "BELIAL'IN" (Turkish, by hand), "BELIAL's".</summary>
+        public static string GenitiveOf(DealerText dealer) =>
+            !string.IsNullOrEmpty(dealer?.Genitive) ? dealer.Genitive : (dealer?.Name ?? "") + "'s";
 
         /// <summary>Lower case that knows Turkish (I → ı, İ → i) without ever changing the current culture.</summary>
         public static string Lower(string text)

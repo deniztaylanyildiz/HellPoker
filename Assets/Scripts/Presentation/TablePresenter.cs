@@ -5,7 +5,10 @@ using HellPoker.Core.Cards;
 using HellPoker.Core.Cheats;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Evaluation;
+using HellPoker.Core.Events;
 using HellPoker.Core.Game;
+using HellPoker.Core.Relics;
+using HellPoker.Core.Sinners;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Settings;
 using HellPoker.Presentation.Ui;
@@ -29,7 +32,40 @@ namespace HellPoker.Presentation
         /// <summary>A loss of this many betting units or more is felt (<see cref="TableMoment.BigLoss"/>).</summary>
         public const int BigLossUnits = 4;
 
-        private readonly Func<Dealer, IHellPokerGame> _createGame;
+        private readonly Func<Dealer, Sinner, IHellPokerGame> _createGame;
+
+        /// <summary>The music (a loop per demon, the soul's layer) and the cutting of long effects; effects themselves go through
+        /// the view's queue (<see cref="ITableView.PlaySfx"/>) so they sound with their animation.</summary>
+        private readonly IAudio _audio;
+
+        /// <summary>When the run's events happen (null: a run without events — old callers, tests).</summary>
+        private readonly EventSession _events;
+
+        /// <summary>The run's marks from events (the next hand, deferred years, the sold soul): every table's game shares it.</summary>
+        private RunEffects _effects = new RunEffects();
+
+        /// <summary>The event on the table, waiting for the player's answer; null when none. The table takes no other input meanwhile.</summary>
+        private IHellEvent _pendingEvent;
+
+        /// <summary>The hand whose "between hands" has already rolled for an event.</summary>
+        private int _rolledRound = -1;
+
+        /// <summary>The event on the table now (for tests); null when none.</summary>
+        public IHellEvent PendingEvent => _pendingEvent;
+
+        /// <summary>The run's sinner: the class and what is left of its ability. Every table's game is built with it.</summary>
+        private Sinner _sinner = new Sinner(SinnerRoster.Peasant);
+
+        /// <summary>The sinner of the current run.</summary>
+        public Sinner Sinner => _sinner;
+
+        /// <summary>The King is picking the card to protect: the next card clicked is protected instead of picked to throw back.</summary>
+        private bool _protecting;
+        /// <summary>The Bone Die was pressed: the next card clicked is thrown back and redealt.</summary>
+        private bool _redrawing;
+
+        /// <summary>The hand whose lie the Warlock has already seen through (it breaks once, at the announcement).</summary>
+        private int _lieSeenRound = -1;
         private readonly ITableView _view;
         private readonly IGuideSettings _guide;
         private readonly RunArchive _archive;
@@ -65,8 +101,18 @@ namespace HellPoker.Presentation
         /// <param name="finalDealer">Lucifer: below the gate the player is summoned to his table. Without him every table can
         /// set the player free.</param>
         public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null, RunArchive archive = null,
-            Dealer finalDealer = null)
+            Dealer finalDealer = null, EventSession events = null, IAudio audio = null)
+            : this(createGame == null ? null : (Func<Dealer, Sinner, IHellPokerGame>)((dealer, _) => createGame(dealer)), view, guide, archive,
+                finalDealer, events, audio)
         {
+        }
+
+        /// <param name="createGame">Builds a fresh game for a run at this dealer's table, for this sinner (its class, its guard).</param>
+        public TablePresenter(Func<Dealer, Sinner, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null,
+            RunArchive archive = null, Dealer finalDealer = null, EventSession events = null, IAudio audio = null)
+        {
+            _events = events;
+            _audio = audio ?? NullAudio.Instance;
             _createGame = createGame ?? throw new ArgumentNullException(nameof(createGame));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _guide = guide;
@@ -79,6 +125,9 @@ namespace HellPoker.Presentation
             _view.CheckToDrawPressed += CheckToDraw;
             _view.LeavePressed += RequestLeave;
             _view.HandRanksPressed += ToggleHandRanks;
+            _view.SinnerPressed += ToggleProtect;
+            _view.RelicPressed += PressRelic;
+            _view.EventOptionPressed += ChooseEventOption;
             _view.Player.CardClicked += ToggleDiscard;
             Lang.Changed += OnLanguageChanged;
         }
@@ -127,7 +176,7 @@ namespace HellPoker.Presentation
 
             if (soul || _game.IsSoulAtStake || _game.Phase == GamePhase.Damned)
                 _records.RunEnded(false, _dealer.IsFinalTable && _origin != null ? _origin.Id : _dealer.Id, _stats.HandsPlayed,
-                    _gate.Attempts);
+                    _gate.Attempts, classId: _sinner.Id);
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
             _abandoned = true;
@@ -145,14 +194,32 @@ namespace HellPoker.Presentation
 
         public bool IsAtFinalTable => _dealer != null && _dealer.IsFinalTable;
 
-        public void StartNewRun(Dealer dealer)
+        public void StartNewRun(Dealer dealer) => StartNewRun(dealer, null);
+
+        /// <summary>A fresh run at <paramref name="dealer"/>'s table, as a <paramref name="sinnerClass"/> (the Peasant if none):
+        /// the class's own sentence, its ability full.</summary>
+        public void StartNewRun(Dealer dealer, SinnerClass sinnerClass)
         {
+            _sinner = new Sinner(sinnerClass ?? SinnerRoster.Peasant);
+            _effects = new RunEffects();
+            _events?.Reset();
+            _pendingEvent = null;
+            _rolledRound = -1;
             SeatAt(dealer, carriedYears: null, roundsPlayed: 0);
+            // A chosen class starts at its own sentence; without a choice (an old caller) the table's own sentence stands.
+            if (sinnerClass != null && _game.Years != sinnerClass.StartingYears && _game.Phase == GamePhase.Betting)
+            {
+                _game.TakeOver(_sinner.Class.StartingYears, 0);   // a heavier sin starts deeper
+                if (!_game.IsSoulAtStake)
+                    _view.Sentence.SetYears(_game.Years, animate: false);
+            }
             _gate = NewGate();
             _origin = null;
             _originMalice = null;
             BeginRun();
-            Say(d => d.Greeting, 0, DealerMood.Neutral);
+            // The demon sizes up who sits down: a greeting for the class, the usual one otherwise.
+            string classId = sinnerClass?.Id;
+            Say(d => d.GreetingFor(classId) ?? UiText.Pick(d.Greeting, 0), DealerMood.Neutral);
             Refresh();
         }
 
@@ -164,7 +231,16 @@ namespace HellPoker.Presentation
         public void Resume(Dealer dealer, RunSnapshot snapshot, Dealer origin = null)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+            // The same sinner, with what was left of the ability (a closed game does not refill it).
+            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharges);
+            // The run's events: the marks they left, and which were seen (an event on screen when the game closed is passed).
+            RunEventState saved = snapshot.Events;
+            _effects = new RunEffects();
+            _effects.Restore(saved.Next, saved.DeferredYears, saved.DeferredHands, saved.SoulSold, saved.Relics);
+            _events?.Restore(saved.Seen, saved.HandsSince);
+            _pendingEvent = null;
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
+            _rolledRound = _game.RoundNumber;   // this "between hands" has rolled already
             if (_game.Phase == GamePhase.Betting)
                 _game.RestoreMalice(snapshot.Malice, snapshot.MajorCheatUsed, snapshot.Grudge);   // the demon has not forgotten
             GameRules rules = _game.Rules;
@@ -241,7 +317,7 @@ namespace HellPoker.Presentation
         {
             // A run that ends at Lucifer's table is credited to the demon it came from.
             string credited = _dealer.IsFinalTable && _origin != null ? _origin.Id : _dealer.Id;
-            _records.RunEnded(_game.Phase == GamePhase.Absolved, credited, _stats.HandsPlayed, _gate.Attempts, BeatLucifer, WildBill);
+            _records.RunEnded(_game.Phase == GamePhase.Absolved, credited, _stats.HandsPlayed, _gate.Attempts, BeatLucifer, WildBill, _sinner.Id);
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
         }
@@ -270,7 +346,9 @@ namespace HellPoker.Presentation
         private RunSnapshot Snapshot(HandInProgress hand = null)
         {
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
-                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge);
+                _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge, _sinner.Id,
+                _sinner.Charges, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
+                    _effects.DeferredHands, _effects.SoulSold, _effects.Relics));
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -328,6 +406,7 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            _sinner.SitDown();   // a new table: a per-table ability is full again
             SeatAt(dealer, _game.Years, _game.RoundNumber);
             _settledRound = _game.RoundNumber;
             if (_stats == null)
@@ -342,7 +421,7 @@ namespace HellPoker.Presentation
 
         public void RequestLeave()
         {
-            if (!Playing || Hurry() || _game.IsGameOver) return;
+            if (!Playing || _pendingEvent != null || Hurry() || _game.IsGameOver) return;
 
             // A finished hand counts as "between hands": move on to the next one first.
             if (_game.Phase == GamePhase.RoundOver)
@@ -390,7 +469,10 @@ namespace HellPoker.Presentation
             // Lucifer's gauge is tiny; the demon below keeps theirs for when the player falls back.
             _originMalice = (_game.Malice, _game.MaliceMax, _game.Grudge);
             _gate.Summon(_dealer.Id);
+            _sinner.SitDown();   // his table is a new table too
+            _view.PlaySfx(SfxIds.Summoned);
             SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
+            _audio.PlayMusic(_finalDealer.Id);
             _settledRound = _game.RoundNumber;
             _stats.SatWith(_finalDealer.Id);
 
@@ -416,7 +498,10 @@ namespace HellPoker.Presentation
             Say(d => d.CastDown, _gate.Attempts, DealerMood.Gloating);
             int years = _gate.CastDown(_game.Years);
             Dealer origin = _origin;
+            _sinner.SitDown();
+            _view.PlaySfx(SfxIds.Fall);
             SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
+            _audio.PlayMusic(origin.Id);
             if (_originMalice.HasValue && _game.Phase == GamePhase.Betting)
             {
                 var (malice, max, grudge) = _originMalice.Value;
@@ -434,7 +519,8 @@ namespace HellPoker.Presentation
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
-            IHellPokerGame game = _createGame(dealer) ?? throw new InvalidOperationException("The game factory returned no game.");
+            IHellPokerGame game = _createGame(dealer, _sinner) ?? throw new InvalidOperationException("The game factory returned no game.");
+            game.UseEffects(_effects);   // the run's marks go to every table
             if (carriedYears.HasValue)
             {
                 game.TakeOver(carriedYears.Value, roundsPlayed);
@@ -451,6 +537,7 @@ namespace HellPoker.Presentation
             _discards.Clear();
             _finalStretchAnnounced = false;
             _soulShown = false;
+            _audio.SetSoulLayer(false);   // a new table: the layer comes back if the soul is on this one too
             _dealerText = UiText.Dealer(dealer.Id);
 
             _view.Dealer.SetDealer(DealerCards.Describe(dealer), change);
@@ -488,18 +575,22 @@ namespace HellPoker.Presentation
             _view.CheckToDrawPressed -= CheckToDraw;
             _view.LeavePressed -= RequestLeave;
             _view.HandRanksPressed -= ToggleHandRanks;
+            _view.SinnerPressed -= ToggleProtect;
+            _view.RelicPressed -= PressRelic;
+            _view.EventOptionPressed -= ChooseEventOption;
             _view.Player.CardClicked -= ToggleDiscard;
             Lang.Changed -= OnLanguageChanged;
         }
 
         public void PerformAction()
         {
-            if (!Playing || Hurry()) return;
+            if (!Playing || _pendingEvent != null || Hurry()) return;
 
             TableState before = CaptureState();
             switch (_game.Phase)
             {
                 case GamePhase.Betting:
+                    _view.PlaySfx(SfxIds.Deal);
                     _game.PlaceBet();
                     _discards.Clear();
                     PlayOutSealedHand(before);
@@ -518,6 +609,7 @@ namespace HellPoker.Presentation
                     Bet(BetAction.Call);
                     return;
                 case GamePhase.Drawing:
+                    if (_discards.Count > 0) _view.PlaySfx(SfxIds.Deal);
                     _game.Draw(_discards.ToArray());
                     _discards.Clear();
                     PlayOutSealedHand(before);
@@ -557,7 +649,7 @@ namespace HellPoker.Presentation
 
         public void Bet(BetAction action)
         {
-            if (!Playing || Hurry()) return;
+            if (!Playing || _pendingEvent != null || Hurry()) return;
 
             if (!_game.CanBet(action, out _))
             {
@@ -568,7 +660,10 @@ namespace HellPoker.Presentation
             }
 
             TableState before = CaptureState();
+            if (action == BetAction.Raise || action == BetAction.Call) _view.PlaySfx(SfxIds.Chip);
             _game.Bet(action);
+            if (_game.PlayerCardsRevealed > before.PlayerCards || _game.HouseCardsRevealed > before.HouseCards)
+                _view.PlaySfx(SfxIds.Flip);
             if (_game.Phase == GamePhase.HouseReRaise && !Tip(UiText.TipFirstReRaise))
                 Say(d => d.ReRaise, _game.RoundNumber, DealerMood.Scheming);
             PlayOutSealedHand(before);
@@ -578,7 +673,7 @@ namespace HellPoker.Presentation
 
         public void CheckToDraw()
         {
-            if (!Playing || Hurry()) return;
+            if (!Playing || _pendingEvent != null || Hurry()) return;
 
             if (!_game.CanCheckToDraw(out _))
             {
@@ -589,6 +684,7 @@ namespace HellPoker.Presentation
             }
 
             TableState before = CaptureState();
+            _view.PlaySfx(SfxIds.Flip);
             _game.CheckToDraw();
             PlayCheatStrikes(before);
             Refresh();
@@ -640,10 +736,20 @@ namespace HellPoker.Presentation
             for (int k = before.Cheats; k < results.Count; k++)
             {
                 CheatResult result = results[k];
+                if (result.Outcome == CheatOutcome.Blocked)
+                {
+                    // Warded off: the sign shows what was coming, the ward flares over the cards, the demon fumes.
+                    _view.SetIntent(CardOf(result.CheatId));
+                    _view.PlayMoment(TableMoment.Ward, UiText.WardFlash, Enumerable.Range(0, Math.Max(1, _game.PlayerCardsRevealed)).ToArray());
+                    Say(d => d.Blocked, _game.RoundNumber, DealerMood.Annoyed);
+                    ShowSinner();
+                    continue;
+                }
                 if (result.Outcome != CheatOutcome.Played) continue;
 
-                _view.SetIntent(CardOf(result.ShownId));
-                if (result.WasLie)
+                bool seen = _game.Sinner != null && _game.Sinner.Class.SeesLies;
+                _view.SetIntent(CardOf(seen ? result.CheatId : result.ShownId));
+                if (result.WasLie && !seen)
                 {
                     _view.RevealLie(CardOf(result.CheatId));
                     Say(_ => UiText.LiarLine, DealerMood.Gloating);
@@ -654,6 +760,7 @@ namespace HellPoker.Presentation
                 if (result.Lost.HasValue && at >= 0 && _game.PlayerHand != null)
                     _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value, keepHidden: true));
 
+                _view.PlaySfx(SfxIds.Cheat);
                 _view.PlayCheat(new CheatImpact(result.CheatId, result.PlayerCards, result.HouseCards));
                 string cheatId = result.CheatId;
                 Say(_ => UiText.CheatLine(cheatId), DealerMood.Scheming);
@@ -661,6 +768,7 @@ namespace HellPoker.Presentation
                 if (result.Backfired && _game.PlayerHand != null)
                 {
                     _view.Player.Show(PlayerSlots(faceUp, keepHidden: true));
+                    _view.PlaySfx(SfxIds.Backfire);
                     _view.PlayMoment(TableMoment.Backfire, UiText.BackfireFlash, result.PlayerCards);
                     Say(d => d.Backfire, _game.RoundNumber, DealerMood.Annoyed);
                 }
@@ -671,7 +779,94 @@ namespace HellPoker.Presentation
         private void ShowMalice()
         {
             _view.SetMalice(new MaliceGauge(_dealer.Id, _game.Malice, _game.MaliceMax));
-            _view.SetIntent(_game.PendingCheat == null ? null : CardOf(_game.PendingCheat.Id));
+            ShowSinner();
+            ShowRelics();
+
+            ICheat shown = _game.PendingCheat;
+            ICheat truth = _game.PendingCheatTruth;
+            bool seesLies = _game.Sinner != null && _game.Sinner.Class.SeesLies;
+            if (shown != null && truth != null && truth.Id != shown.Id && seesLies)
+            {
+                // The Warlock sees through it the moment it is told: the sign breaks into the truth at once.
+                if (_lieSeenRound != _game.RoundNumber)
+                {
+                    _lieSeenRound = _game.RoundNumber;
+                    _view.SetIntent(CardOf(shown.Id));
+                    _view.RevealLie(CardOf(truth.Id));
+                }
+                else
+                {
+                    _view.SetIntent(CardOf(truth.Id));
+                }
+                return;
+            }
+            _view.SetIntent(shown == null ? null : CardOf(shown.Id));
+        }
+
+        /// <summary>The class badge under the portrait: the class and what is left of its ability (hover: what it does).</summary>
+        private void ShowSinner()
+        {
+            Sinner sinner = _game.Sinner;
+            if (sinner == null)
+            {
+                _view.SetSinner(SinnerBadge.Hidden);
+                return;
+            }
+            string id = sinner.Id;
+            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charges, sinner.Class.FullCharges));
+        }
+
+        /// <summary>The run's relics beside the portrait (hover: the gift and the curse; the Bone Die: rolls left this hand).</summary>
+        private void ShowRelics()
+        {
+            var badges = new List<RelicBadge>();
+            foreach (string id in _effects.Relics)
+            {
+                IRelic relic = RelicRoster.Find(id);
+                if (relic == null) continue;
+                int perHand = relic.Effects.RedrawsPerHand;
+                int uses = perHand <= 0 ? -1 : _game.Phase == GamePhase.Betting ? perHand : _game.RedrawsLeft;
+                badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses));
+            }
+            _view.SetRelics(badges);
+        }
+
+        /// <summary>
+        /// A relic was clicked: the Bone Die starts (or stops) picking the card it throws back. The others only show what they do.
+        /// </summary>
+        public void PressRelic(string id)
+        {
+            if (id != RelicIds.BoneDie || !Playing || _pendingEvent != null || Hurry()) return;
+            if (_redrawing)
+            {
+                _redrawing = false;
+                Refresh();
+                return;
+            }
+            if (!Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
+            {
+                _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);
+                return;
+            }
+            _protecting = false;
+            _redrawing = true;
+            _view.Player.SetInteractable(true);
+            _view.SetMessage(UiText.RedrawPrompt, Tone.Warning);
+        }
+
+        private void RedrawCard(int index)
+        {
+            _redrawing = false;
+            Card? card = _game.Redraw(index);
+            if (card == null)
+            {
+                _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);
+                return;
+            }
+            _discards.Remove(index);
+            _view.PlaySfx(SfxIds.Flip);
+            Refresh();
+            _view.SetMessage(string.Format(UiText.RedrawnFormat, card.Value), Tone.Good);
         }
 
         /// <summary>The first time a demon shows a cheat, they explain the gauge and the sign, once.</summary>
@@ -685,7 +880,7 @@ namespace HellPoker.Presentation
         private string WithCheatLog(string message, bool soul)
         {
             CheatResult played = _game.CheatsThisHand.FirstOrDefault(r => r.Outcome == CheatOutcome.Played);
-            string log = UiText.CheatLog(_dealerText.Name, played, soul, _game.ThornYearsThisHand, _game.TitheYearsThisHand);
+            string log = UiText.CheatLog(_dealerText, played, soul, _game.ThornYearsThisHand, _game.TitheYearsThisHand);
             return log == null ? message : message + "\n" + log;
         }
 
@@ -763,14 +958,69 @@ namespace HellPoker.Presentation
         private void AnnounceSeal()
         {
             _view.SetBetControls(BetControls.Hidden);
+            _view.PlaySfx(SfxIds.Sealed);
             _view.PlayMoment(TableMoment.PactSealed, UiText.PactSealed);
             _view.SetMessage(UiText.SealedMessage, Tone.Warning);
             Say(d => d.Sealed, _game.RoundNumber, DealerMood.Gloating);
         }
 
+        /// <summary>
+        /// K, or the class badge: the King picks a card to put under the crown's protection (the next card clicked), or stops
+        /// picking. Anyone else — or a King with no charge left, or past the draw — hears why not.
+        /// </summary>
+        public void ToggleProtect()
+        {
+            if (!Playing || _pendingEvent != null || Hurry()) return;
+            Sinner sinner = _game.Sinner;
+            if (sinner == null || sinner.Ability != SinnerAbility.Protect) return;
+
+            if (_protecting)
+            {
+                _protecting = false;
+                Refresh();
+                return;
+            }
+            if (!sinner.CanUse(SinnerAbility.Protect))
+            {
+                _view.SetMessage(UiText.ProtectSpent, Tone.Warning);
+                return;
+            }
+            if (!Enumerable.Range(0, Hand.Size).Any(_game.CanProtect))
+            {
+                _view.SetMessage(UiText.ProtectNotNow, Tone.Warning);
+                return;
+            }
+            _protecting = true;
+            _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
+            _view.SetMessage(UiText.ProtectPrompt, Tone.Warning);
+        }
+
+        private void ProtectCard(int index)
+        {
+            _protecting = false;
+            if (!_game.Protect(index))
+            {
+                _view.SetMessage(UiText.ProtectNotNow, Tone.Warning);
+                return;
+            }
+            _discards.Remove(index);
+            Refresh();
+            _view.SetMessage(string.Format(UiText.ProtectedFormat, _game.PlayerHand[index]), Tone.Good);
+        }
+
         public void ToggleDiscard(int index)
         {
-            if (!Playing || Hurry() || _game.Phase != GamePhase.Drawing) return;
+            if (Playing && _protecting && !_view.IsBusy)
+            {
+                ProtectCard(index);
+                return;
+            }
+            if (Playing && _redrawing && !_view.IsBusy)
+            {
+                RedrawCard(index);
+                return;
+            }
+            if (!Playing || _pendingEvent != null || Hurry() || _game.Phase != GamePhase.Drawing) return;
 
             if (!_discards.Remove(index))
             {
@@ -801,6 +1051,7 @@ namespace HellPoker.Presentation
         private bool Hurry()
         {
             if (!_view.IsBusy) return false;
+            _audio.CutLong();
             _view.SkipAnimations();
             return true;
         }
@@ -816,6 +1067,12 @@ namespace HellPoker.Presentation
 
         public bool CloseOverlay()
         {
+            // Esc over an event: let it pass.
+            if (_pendingEvent != null)
+            {
+                ChooseEventOption(_pendingEvent.Options.Count - 1);
+                return true;
+            }
             if (!_view.HandRanksOpen) return false;
             _view.HideHandRanks();
             return true;
@@ -827,7 +1084,7 @@ namespace HellPoker.Presentation
         /// <returns>True when a tip was told.</returns>
         private bool Tip(string tip)
         {
-            if (_guide == null || _guide.HasSeenTip(tip)) return false;
+            if (_relabelling || _guide == null || _guide.HasSeenTip(tip)) return false;
             string text = UiText.TipText(tip, _game.Rules.ForcedRaiseYears, _game.Rules.LuciferGateYears);
             if (text == null) return false;
             _guide.MarkTipSeen(tip);
@@ -850,6 +1107,7 @@ namespace HellPoker.Presentation
         /// </summary>
         private void Say(Func<DealerText, string> line, DealerMood mood)
         {
+            if (_relabelling) return;   // a language change never makes the demon speak
             string dealerId = _dealer?.Id;
             Func<string> text = () => line(UiText.Dealer(dealerId)) ?? "";
             _lastLine = text;
@@ -860,8 +1118,10 @@ namespace HellPoker.Presentation
         private bool _relabelling;
 
         /// <summary>
-        /// The language changed: the table says what it already says, in the new words. Whatever was animating finishes first;
-        /// the game, the hand, the save, the cheats and the deck are not touched — only the words on the screen are.
+        /// The language changed (on the title menu: the table is out of sight). The table quietly rewrites its words — the
+        /// demon's name and title, the payouts, the sentence line, the message, the buttons — and the line on screen is
+        /// swapped for the same line in the new words, whole, with no typing and no look. Nothing else moves: no gate check,
+        /// no settling, no save, and the game, the hand, the cheats and the deck are untouched.
         /// </summary>
         private void OnLanguageChanged()
         {
@@ -887,7 +1147,9 @@ namespace HellPoker.Presentation
             if (_view.HandRanksOpen)
                 _view.ShowHandRanks(_dealer.Payouts, IntentFootnote());
             if (_lastLine != null)
-                _view.Dealer.Say(_lastLine(), DealerMood.Neutral);
+                _view.Dealer.SetLine(_lastLine());
+            if (_pendingEvent != null)
+                _view.ShowEvent(EventCardOf(_pendingEvent));
         }
 
         /// <summary>The player's caption: what the face-up cards make right now (hand guide), or just "YOUR HAND".</summary>
@@ -927,7 +1189,13 @@ namespace HellPoker.Presentation
 
         private void Refresh()
         {
-            PassThroughGate();
+            // A language change only rewrites words: the gate is not passed again, nothing is settled or saved.
+            if (!_relabelling)
+            {
+                _protecting = false;   // whatever happened, the King picks again with K
+                _redrawing = false;
+                PassThroughGate();
+            }
 
             switch (_game.Phase)
             {
@@ -954,8 +1222,12 @@ namespace HellPoker.Presentation
                     break;
             }
 
-            SettleHand();
-            SaveRun();
+            if (!_relabelling)
+            {
+                OfferEvent();
+                SettleHand();
+                SaveRun();
+            }
             ShowMalice();
             _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
                 : _game.Rules.IsFinalTable ? LeaveState.Summoned
@@ -992,12 +1264,15 @@ namespace HellPoker.Presentation
             if (_game.IsSoulAtStake && !_soulShown)
             {
                 _soulShown = true;
+                _view.PlaySfx(SfxIds.Soul);
+                _audio.SetSoulLayer(true);
                 if (!Tip(UiText.TipSoul))
                     Say(d => d.SoulTaken, _game.RoundNumber, DealerMood.Gloating);
             }
             else if (!_game.IsSoulAtStake && _soulShown)
             {
                 _soulShown = false;
+                _audio.SetSoulLayer(false);
                 _view.SetSoul(SoulGauge.Hidden);
                 _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
                 _view.Sentence.SetYears(_game.Years, animate: true);
@@ -1032,7 +1307,61 @@ namespace HellPoker.Presentation
                 _view.SetAnte(_game.UpcomingAnte);
                 _view.SetMessage(string.Format(UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
             }
-            _view.SetAction(UiText.Deal);
+            _view.SetAction(_pendingEvent == null ? UiText.Deal : null);   // an event waits for its answer first
+
+            // A sentence deferred to later (Mammon's ledger) came due as this hand opened.
+            if (_game.DeferredPaid > 0)
+                _view.SetMessage(SoulMode ? UiText.DeferredDueSoul : string.Format(UiText.DeferredDueFormat, _game.DeferredPaid), Tone.Bad);
+        }
+
+        // ------------------------------------------------------------------ events between hands
+
+        /// <summary>
+        /// Once between every two hands (never at Lucifer's table): perhaps an event — a stranger or the demon makes an offer.
+        /// It is seen (and saved as seen) the moment it shows; the table waits for the answer.
+        /// </summary>
+        private void OfferEvent()
+        {
+            if (_events == null || _pendingEvent != null || _game.Phase != GamePhase.Betting || _game.IsGameOver) return;
+            if (_rolledRound == _game.RoundNumber || !(_game is IEventTable table)) return;
+            _rolledRound = _game.RoundNumber;
+
+            IHellEvent offered = _events.Roll(table, _dealer.Id, _game.Rules.IsFinalTable);
+            if (offered == null) return;
+            _pendingEvent = offered;
+            _view.SetAction(null);
+            _view.ShowEvent(EventCardOf(offered));
+        }
+
+        private EventCard EventCardOf(IHellEvent e)
+        {
+            string owner = e.OwnerId(_dealer.Id);
+            bool soul = _game.IsSoulAtStake;
+            return new EventCard(e.Id, owner, UiText.EventOwner(owner), UiText.EventTitle(e.Id, _dealer.Id), UiText.EventText(e.Id, _dealer.Id, soul),
+                e.Options.Select(o => o == EventOptions.Accept ? UiText.EventAccept : UiText.EventPass).ToArray());
+        }
+
+        /// <summary>The player answered the event (Esc: let it pass). The demon has a word on it either way.</summary>
+        public void ChooseEventOption(int index)
+        {
+            IHellEvent e = _pendingEvent;
+            if (e == null || !(_game is IEventTable table)) return;
+            if (_view.IsBusy) _view.SkipAnimations();
+            string option = e.Options[Math.Max(0, Math.Min(index, e.Options.Count - 1))];
+            _pendingEvent = null;
+            _view.HideEvent();
+            e.Apply(option, table, _dealer.Id, _events.Random);
+            bool accepted = option != EventOptions.Pass;
+            Say(d => accepted ? d.EventAccepted : d.EventDeclined, _game.RoundNumber, accepted ? DealerMood.Scheming : DealerMood.Neutral);
+            if (!_game.IsSoulAtStake && !_game.IsGameOver)
+                _view.Sentence.SetYears(_game.Years, animate: true);
+            Refresh();
+            // A relic came with the answer: what it gives, and what it takes.
+            if (accepted && e is RelicEvent relicEvent && relicEvent.LastGiven != null)
+            {
+                string id = relicEvent.LastGiven;
+                _view.SetMessage(string.Format(UiText.RelicTakenFormat, UiText.RelicName(id), UiText.RelicGift(id), UiText.RelicCurse(id)), Tone.Warning);
+            }
         }
 
         /// <summary>Cards were just turned: animate them, then offer Raise / Pass / Fold.</summary>
@@ -1200,7 +1529,13 @@ namespace HellPoker.Presentation
 
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
             if (round != null && !_relabelling)
+            {
+                if (playerWon)
+                    _view.PlaySfx(showdown.Player.Category >= HandCategory.TwoPair ? SfxIds.WinBig : SfxIds.WinSmall);
+                else if (houseWon || (round.Folded && !round.FreeFold))
+                    _view.PlaySfx(SfxIds.Loss);
                 PlayMoments(round, playerWon);
+            }
             if (soulHand)
             {
                 _view.SetPot(0);
@@ -1292,6 +1627,8 @@ namespace HellPoker.Presentation
 
         private static string ResultMessage(RoundResult round, bool soulHand)
         {
+            if (round.Folded && round.FreeFold)
+                return UiText.FreeFoldMessage;
             if (round.Folded)
                 return soulHand ? UiText.SoulFold : string.Format(UiText.FoldFormat, round.YearsChange);
 
@@ -1341,6 +1678,8 @@ namespace HellPoker.Presentation
                     slots[i] = slots[i].WithMark(CardMark.Chained);
                 else if (_game.IsPlayerCardThorned(i) && i < faceUp)
                     slots[i] = slots[i].WithMark(CardMark.Thorned);
+                else if (_game.IsPlayerCardProtected(i) && i < faceUp)
+                    slots[i] = slots[i].WithMark(CardMark.Protected);
             }
             return slots;
         }

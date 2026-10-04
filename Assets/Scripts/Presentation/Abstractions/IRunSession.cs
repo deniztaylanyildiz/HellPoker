@@ -44,8 +44,8 @@ namespace HellPoker.Presentation.Abstractions
         /// a staked soul counts as damned. Nothing to continue afterwards.</summary>
         void AbandonRun();
 
-        /// <summary>Starts a fresh sentence at the table of <paramref name="dealer"/>.</summary>
-        void StartNewRun(Dealer dealer);
+        /// <summary>Starts a fresh sentence at the table of <paramref name="dealer"/>, as a <paramref name="sinner"/> (the Peasant if none).</summary>
+        void StartNewRun(Dealer dealer, Core.Sinners.SinnerClass sinner = null);
 
         /// <summary>The player wants to change tables: raises <see cref="LeaveRequested"/>, or the dealer refuses (soul bound).</summary>
         void RequestLeave();

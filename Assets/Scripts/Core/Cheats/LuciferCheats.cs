@@ -97,7 +97,7 @@ namespace HellPoker.Core.Cheats
 
         private static int Target(CheatTable table)
         {
-            int index = CheatTable.Highest(table.PlayerHand, table.CombinationCards().Where(i => !CheatTable.IsImmune(table.PlayerHand[i])));
+            int index = CheatTable.Highest(table.PlayerHand, table.CombinationCards().Where(i => !table.IsUntouchable(i)));
             return index >= 0 ? index : CheatTable.Highest(table.PlayerHand, table.PlayerTargets());
         }
     }

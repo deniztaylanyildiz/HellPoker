@@ -6,6 +6,10 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>True on any screen but the table (the table is not taking input).</summary>
         bool IsMenuOpen { get; }
 
+        /// <summary>True on the title menu itself, with nothing open over it (no warning, no rules): the only place the
+        /// language changes (L).</summary>
+        bool IsAtMenuRoot { get; }
+
         /// <summary>True while a screen change plays; all input waits.</summary>
         bool IsTransitioning { get; }
 
@@ -22,7 +26,7 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Alt+Enter.</summary>
         void ToggleFullscreen();
 
-        /// <summary>L, or a language button: the next language, saved, and the screen speaks it at once.</summary>
+        /// <summary>L on the title menu, or a language button (the menu's corner, the settings row): the next language, saved.</summary>
         void CycleLanguage();
     }
 }

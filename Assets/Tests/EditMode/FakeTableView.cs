@@ -60,7 +60,28 @@ namespace HellPoker.Core.Tests
         public event Action MenuPressed;
         public event Action LeavePressed;
         public event Action HandRanksPressed;
-        public event Action LanguagePressed;
+        public event Action SinnerPressed;
+        public event Action<int> EventOptionPressed;
+        public event Action<string> RelicPressed;
+        public void PressRelic(string id) => RelicPressed?.Invoke(id);
+
+        /// <summary>The relics as last shown.</summary>
+        public IReadOnlyList<RelicBadge> Relics { get; private set; } = new RelicBadge[0];
+        public void SetRelics(IReadOnlyList<RelicBadge> relics) => Relics = relics;
+        /// <summary>Every effect asked for, in order.</summary>
+        public List<string> Sfx { get; } = new List<string>();
+        public void PlaySfx(string sfxId) => Sfx.Add(sfxId);
+        public void PressEventOption(int index) => EventOptionPressed?.Invoke(index);
+
+        /// <summary>The event panel as shown; null when closed.</summary>
+        public EventCard Event { get; private set; }
+        public void ShowEvent(EventCard card) => Event = card;
+        public void HideEvent() => Event = null;
+        public void PressSinner() => SinnerPressed?.Invoke();
+
+        /// <summary>The class badge as last shown.</summary>
+        public SinnerBadge Sinner { get; private set; } = SinnerBadge.Hidden;
+        public void SetSinner(SinnerBadge badge) => Sinner = badge;
 
         public bool HandRanksOpen { get; private set; }
         public IPayoutInfo HandRanksPayouts { get; private set; }
@@ -97,7 +118,6 @@ namespace HellPoker.Core.Tests
 
         public void HideHandRanks() => HandRanksOpen = false;
         public void PressHandRanks() => HandRanksPressed?.Invoke();
-        public void PressLanguage() => LanguagePressed?.Invoke();
 
         /// <summary>Every row of cards either hand was told to show, in the order the table was told (house or player).</summary>
         public List<(bool house, CardSlot[] slots)> ShowLog { get; } = new List<(bool, CardSlot[])>();
@@ -287,6 +307,11 @@ namespace HellPoker.Core.Tests
         public DealerCard Relabelled { get; private set; }
 
         public void Relabel(DealerCard dealer) => Relabelled = dealer;
+
+        /// <summary>Lines swapped in place, without being said again (a language change).</summary>
+        public List<string> LinesSet { get; } = new List<string>();
+
+        public void SetLine(string line) => LinesSet.Add(line);
 
         public void Say(string line, DealerMood mood)
         {

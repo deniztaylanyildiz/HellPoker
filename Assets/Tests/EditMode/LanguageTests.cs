@@ -87,11 +87,11 @@ namespace HellPoker.Core.Tests
             var store = new MemoryStore();
             var settings = new GameSettings(store);
             var settingsView = new MainMenuPresenterTests.FakeSettingsView();
-            var table = new FakeTableView();
-            using var presenter = new SettingsPresenter(settings, settingsView, new NoDisplay(), table);
+            var menu = new MainMenuPresenterTests.FakeMenuView();
+            using var presenter = new SettingsPresenter(settings, settingsView, new NoDisplay(), menu);
             Assert.AreEqual("ENGLISH", settingsView.Language);
 
-            table.PressLanguage();
+            menu.PressLanguage();
 
             Assert.AreEqual(Language.Turkish, settings.Language);
             Assert.AreEqual("Turkish", store.GetString("settings.language", null));
@@ -246,75 +246,218 @@ namespace HellPoker.Core.Tests
             Assert.IsEmpty(missing, string.Join(", ", missing));
         }
 
-        // ------------------------------------------------------------------ the table changes language mid-hand
+        // ------------------------------------------------------------------ the demon's (Turkish suffixes, by hand)
 
-        private FakeTableView _view;
-        private HellPokerGame _game;
+        private static IEnumerable<string> EveryDemonId() => DealerRoster.All.Select(d => d.Id).Append(DealerRoster.LuciferId).Append("nobody");
 
-        private TablePresenter Table()
+        [Test]
+        public void EveryDemon_HasTheirTurkishPossessive_WrittenByHand()
         {
-            _view = new FakeTableView();
-            return new TablePresenter(d => _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000)),
-                TestDecks.Stacked("2C 9C JC 4C KC 2D 2H 5S 7H 9D 3S 6C JD QC 10S 2S 4H 5C 6D 7S"), HandEvaluator.CreateDefault(),
-                new CardExchanger(new MaxDiscardPolicy()), new HouseDrawStrategy(), d.Payouts), _view);
+            Lang.Set(Language.Turkish);
+            foreach (string id in EveryDemonId())
+            {
+                DealerText demon = UiText.Dealer(id);
+                Assert.IsFalse(string.IsNullOrWhiteSpace(demon.Genitive), id + " Genitive");
+                Assert.IsFalse(string.IsNullOrWhiteSpace(demon.Called), id + " Called");
+                Assert.IsFalse(string.IsNullOrWhiteSpace(demon.CalledGenitive), id + " CalledGenitive");
+            }
+
+            Assert.AreEqual("MAMMON'UN", UiText.GenitiveOf(UiText.Dealer(DealerRoster.MammonId)));
+            Assert.AreEqual("Belial'in", UiText.GenitiveInSentence(UiText.Dealer(DealerRoster.BelialId)));
+            Assert.AreEqual("Lilith", UiText.NameInSentence(UiText.Dealer(DealerRoster.LilithId)), "Never \"Lılıth\".");
+            Assert.AreEqual("Sabah Yıldızı'nın", UiText.GenitiveInSentence(UiText.Dealer(DealerRoster.LuciferId)));
         }
 
         [Test]
-        public void ChangingLanguage_MidDraw_RewritesTheWords_AndTouchesNothingElse()
+        public void English_NeedsNoHandWrittenPossessive_ItAddsApostropheS()
         {
-            using TablePresenter presenter = Table();
-            presenter.StartNewRun(DealerRoster.Mammon);
-            _view.PressAction();
-            presenter.CheckToDraw();
-            presenter.ToggleDiscard(1);
-            Assert.AreEqual(GamePhase.Drawing, _game.Phase);
-            int years = _game.Years, stake = _game.CurrentStake, round = _game.RoundNumber;
-            string hand = _game.PlayerHand.ToString();
-            int lines = _view.DealerView.LinesSaid;
+            foreach (string id in EveryDemonId())
+                Assert.IsNull(UiText.Dealer(id).Genitive, id);
 
+            Assert.AreEqual("Freed at BELIAL's table: 2",
+                string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)), 2));
+            StringAssert.Contains("Lilith's thorn cost you 100 years.", Log(DealerRoster.LilithId, CheatIds.Thorn, thornYears: 100));
+            StringAssert.Contains("The Morning Star's cheat backfired!", Log(DealerRoster.LuciferId, CheatIds.Gaze, backfired: true));
+        }
+
+        [Test]
+        public void Turkish_PossessiveWhereTheSentenceNeedsIt_PlainNameWhereItDoesNot()
+        {
             Lang.Set(Language.Turkish);
 
+            Assert.AreEqual("BELIAL'IN masasında aklanma: 2",
+                string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)), 2));
+            Assert.AreEqual("Lilith'in dikeni sana 100 yıla mal oldu.", Log(DealerRoster.LilithId, CheatIds.Thorn, thornYears: 100));
+            Assert.AreEqual("Belial'in yılanı K♠ kartını çaldı.", Log(DealerRoster.BelialId, CheatIds.SerpentSwap));
+            Assert.AreEqual("Sabah Yıldızı'nın hilesi geri tepti!", Log(DealerRoster.LuciferId, CheatIds.Gaze, backfired: true));
+            StringAssert.StartsWith("Belial'in dili kaydı:", Log(DealerRoster.BelialId, CheatIds.ForkedTongue, backfired: true));
+            Assert.AreEqual("Mammon, K♠ kartını rehin olarak zincirledi.", Log(DealerRoster.MammonId, CheatIds.Collateral), "The doer: no suffix.");
+            Assert.AreEqual("Mammon haraç aldı: kazancından 25 yıl.", Log(DealerRoster.MammonId, CheatIds.Tithe, titheYears: 25));
+        }
+
+        private static string Log(string dealerId, string cheatId, int thornYears = 0, int titheYears = 0, bool backfired = false)
+        {
+            var result = new CheatResult(cheatId, CheatOutcome.Played, new[] { 0 }, null,
+                new HellPoker.Core.Cards.Card(HellPoker.Core.Cards.Rank.King, HellPoker.Core.Cards.Suit.Spades),
+                new HellPoker.Core.Cards.Card(HellPoker.Core.Cards.Rank.Two, HellPoker.Core.Cards.Suit.Hearts), backfired: backfired);
+            return UiText.CheatLog(UiText.Dealer(dealerId), result, false, thornYears, titheYears);
+        }
+        // ------------------------------------------------------------------ the language changes on the title menu only
+
+        private FakeTableView _view;
+        private HellPokerGame _game;
+        private MemoryStore _store;
+        private MainMenuPresenterTests.FakeMenuView _menu;
+        private MainMenuPresenterTests.FakeDealerSelectView _choice;
+        private TablePresenter _table;
+        private MainMenuPresenter _menus;
+        private SettingsPresenter _settings;
+
+        private TablePresenter Table(RunArchive archive = null, Dealer finalDealer = null)
+        {
+            _view = new FakeTableView();
+            return new TablePresenter(d => _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000, luciferGateYears: finalDealer == null ? 0 : 250)),
+                TestDecks.Stacked("2C 9C JC 4C KC 2D 2H 5S 7H 9D 3S 6C JD QC 10S 2S 4H 5C 6D 7S"), HandEvaluator.CreateDefault(),
+                new CardExchanger(new MaxDiscardPolicy()), new HouseDrawStrategy(), d.Payouts), _view, null, archive, finalDealer);
+        }
+
+        /// <summary>The whole game as the player meets it: the title menu, the table, the settings (language buttons on the menu).</summary>
+        private void Game()
+        {
+            _store = new MemoryStore();
+            _table = Table(new RunArchive(_store));
+            _menu = new MainMenuPresenterTests.FakeMenuView();
+            _choice = new MainMenuPresenterTests.FakeDealerSelectView();
+            var settingsView = new MainMenuPresenterTests.FakeSettingsView();
+            _menus = new MainMenuPresenter(_menu, _choice, settingsView, new MainMenuPresenterTests.FakeEndScreen(),
+                new MainMenuPresenterTests.FakeRecords(), _view, _table, new MainMenuPresenterTests.FakeQuitter(),
+                new MainMenuPresenterTests.FakeTransition(), DealerRoster.All);
+            _settings = new SettingsPresenter(new GameSettings(_store), settingsView, new NoDisplay(), _menu);
+        }
+
+        [TearDown]
+        public void DisposeGame()
+        {
+            _settings?.Dispose();
+            _menus?.Dispose();
+            _table?.Dispose();
+            _settings = null;
+            _menus = null;
+            _table = null;
+        }
+
+        [Test]
+        public void TheTable_HasNoLanguageButton()
+        {
+            Assert.IsFalse(typeof(ILanguageButton).IsAssignableFrom(typeof(ITableView)));
+            Assert.IsNull(typeof(ITableView).GetEvent("LanguagePressed"));
+        }
+
+        [Test]
+        public void TheLanguageKey_WorksOnTheTitleMenuOnly()
+        {
+            Game();
+            Assert.IsTrue(_menus.IsAtMenuRoot, "The title menu.");
+
+            _menu.PressNewGame();
+            Assert.IsFalse(_menus.IsAtMenuRoot, "The dealer choice.");
+            _choice.Choose(0);
+            Assert.IsFalse(_menus.IsAtMenuRoot, "The table.");
+            _view.PressAction();
+            Assert.IsFalse(_menus.IsAtMenuRoot, "Mid-hand.");
+
+            _view.PressMenu();
+            Assert.IsTrue(_menus.IsAtMenuRoot);
+            _menu.RulesOpen = true;
+            Assert.IsFalse(_menus.IsAtMenuRoot, "Not under the rules.");
+            _menu.RulesOpen = false;
+            _menu.PressNewGame();
+            Assert.IsTrue(_menu.IsConfirming);
+            Assert.IsFalse(_menus.IsAtMenuRoot, "Not under a warning.");
+        }
+
+        [Test]
+        public void OnTheMenu_MidDraw_TheLanguageChanges_AndTheTableComesBackInIt_Untouched()
+        {
+            Game();
+            _menu.PressNewGame();
+            _choice.Choose(0);
+            _view.PressAction();
+            _table.CheckToDraw();
+            _table.ToggleDiscard(1);
+            Assert.AreEqual(GamePhase.Drawing, _game.Phase);
+            int years = _game.Years, stake = _game.CurrentStake, round = _game.RoundNumber, saves = _store.Saves;
+            string hand = _game.PlayerHand.ToString();
+            int lines = _view.DealerView.LinesSaid;
+            _view.PressMenu();
+
+            _menu.PressLanguage();
+            _menu.PressContinue();
+
+            Assert.AreEqual(Language.Turkish, Lang.Current);
+            Assert.IsTrue(_view.Visible);
             Assert.AreEqual(GamePhase.Drawing, _game.Phase);
             Assert.AreEqual(years, _game.Years);
             Assert.AreEqual(stake, _game.CurrentStake);
             Assert.AreEqual(round, _game.RoundNumber);
             Assert.AreEqual(hand, _game.PlayerHand.ToString(), "The same cards: nothing dealt again.");
-            CollectionAssert.AreEqual(new[] { 1 }, presenter.SelectedDiscards.ToArray(), "The chosen card stays chosen.");
+            CollectionAssert.AreEqual(new[] { 1 }, _table.SelectedDiscards.ToArray(), "The chosen card stays chosen.");
             StringAssert.Contains("Ateşe atmak için", _view.Message);
             Assert.AreEqual("KART DEĞİŞ 1", _view.ActionLabel);
-            Assert.AreEqual("MAMMON", _view.DealerView.Relabelled.Name);
             Assert.AreEqual("Dokuzuncu Kasanın Tefecisi", _view.DealerView.Relabelled.Title);
-            Assert.AreEqual(lines + 1, _view.DealerView.LinesSaid, "The last line, once, in the new words.");
-            Assert.AreEqual("Otur, otur. Borçlu olduğun her yıl burada yazılı. Bakalım kaçını geri alabileceksin.", _view.DealerView.LastLine);
+            Assert.AreEqual(lines, _view.DealerView.LinesSaid, "The demon does not speak again: no typing.");
+            Assert.AreEqual("Otur, otur. Borçlu olduğun her yıl burada yazılı. Bakalım kaçını geri alabileceksin.",
+                _view.DealerView.LinesSet.Last(), "The line on screen, swapped in place.");
+            Assert.AreEqual(saves + 1, _store.Saves, "Only the language was saved: not the run.");
 
-            presenter.PerformAction();   // the draw still works
+            _table.PerformAction();   // the draw still works
             Assert.AreEqual(GamePhase.DrawReveal, _game.Phase);
         }
 
         [Test]
-        public void ChangingLanguage_OnTheResult_ReplaysNothing()
+        public void OnTheMenu_AfterAResult_NothingReplays()
         {
-            using TablePresenter presenter = Table();
-            presenter.StartNewRun(DealerRoster.Mammon);
+            Game();
+            _menu.PressNewGame();
+            _choice.Choose(0);
             _view.PressAction();
             _view.PressBet(BetAction.Fold);
             Assert.AreEqual(GamePhase.RoundOver, _game.Phase);
-            int moments = _view.Moments.Count, hands = presenter.Stats.HandsPlayed, years = _game.Years;
+            int moments = _view.Moments.Count, hands = _table.Stats.HandsPlayed, years = _game.Years;
+            _view.PressMenu();
 
-            Lang.Set(Language.Turkish);
+            _menu.PressLanguage();
+            _menu.PressContinue();
 
             Assert.AreEqual(moments, _view.Moments.Count, "No moment plays again.");
-            Assert.AreEqual(hands, presenter.Stats.HandsPlayed, "The hand is not counted twice.");
+            Assert.AreEqual(hands, _table.Stats.HandsPlayed, "The hand is not counted twice.");
             Assert.AreEqual(years, _game.Years);
             StringAssert.Contains("Çekilip masadan sıvışıyorsun", _view.Message);
             Assert.AreEqual("SONRAKİ EL", _view.ActionLabel);
         }
 
         [Test]
+        public void AtLucifersGate_ALanguageChange_SummonsNobody_AndSavesNothing()
+        {
+            var store = new MemoryStore();
+            _table = Table(new RunArchive(store), DealerRoster.Lucifer);
+            _table.StartNewRun(DealerRoster.Mammon);
+            _game.TakeOver(250, 3);   // at the gate, between hands, before the table looked again
+            int saves = store.Saves, attempts = _table.Gate.Attempts;
+
+            Lang.Set(Language.Turkish);
+
+            Assert.AreEqual(DealerRoster.MammonId, _table.CurrentDealerId, "No summons from a language change.");
+            Assert.AreEqual(attempts, _table.Gate.Attempts);
+            Assert.AreEqual(saves, store.Saves, "Nothing written to the save.");
+            Assert.AreEqual(GamePhase.Betting, _game.Phase);
+        }
+
+        [Test]
         public void ChangingLanguage_WhileAnimating_LetsTheAnimationFinishFirst()
         {
-            using TablePresenter presenter = Table();
-            presenter.StartNewRun(DealerRoster.Mammon);
+            _table = Table();
+            _table.StartNewRun(DealerRoster.Mammon);
             _view.IsBusy = true;
             int skips = _view.Skips;
 

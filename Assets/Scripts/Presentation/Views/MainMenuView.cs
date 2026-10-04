@@ -28,10 +28,11 @@ namespace HellPoker.Presentation.Views
         private GameObject _rulesPanel;
         private GameObject _rulesBody;
         private GameObject _cheatsBody;
+        private GameObject _sinnersBody;
         private HandRanksPanel _handRanks;
 
         /// <summary>The pages of How to Play, in the order the page button cycles them.</summary>
-        private enum Page { Rules, Hands, Cheats }
+        private enum Page { Rules, Hands, Cheats, Sinners }
 
         private Page _page;
         private Text _pageLabel;
@@ -44,7 +45,7 @@ namespace HellPoker.Presentation.Views
         public event Action ChangeTablePressed;
         public event Action SettingsPressed;
         public event Action RecordsPressed;
-        public event Action NewGameConfirmed;
+        public event Action Confirmed;
         public event Action LanguagePressed;
 
         public bool IsVisible => _canvas.enabled;
@@ -54,8 +55,11 @@ namespace HellPoker.Presentation.Views
         private GameObject _confirm;
         private Text _taunt;
         private Text _warning;
+        private Text _confirmLabel;
 
         public bool IsConfirming => _confirm != null && _confirm.activeSelf;
+
+        public bool IsShowingRules => _rulesPanel != null && _rulesPanel.activeSelf;
 
         /// <summary>The demon's mocking line in the New Game warning (for tests).</summary>
         public string LastTaunt => _taunt.text;
@@ -64,17 +68,17 @@ namespace HellPoker.Presentation.Views
         /// <param name="cheats">The Cheats page of How to Play (every demon's cheats); null for none.</param>
         /// <param name="tagline">, <paramref name="rules"/>, <paramref name="cheats"/>: read again whenever the language changes.</param>
         public static MainMenuView Create(Transform parent, Func<string> tagline, Func<string> rules, Core.Game.IPayoutInfo payouts,
-            Func<string> cheats = null)
+            Func<string> cheats = null, Func<string> sinners = null)
         {
             Canvas canvas = UiFactory.CreateScreen("MainMenuCanvas", parent, SortingOrder, out RectTransform screen);
             var view = canvas.gameObject.AddComponent<MainMenuView>();
             view._canvas = canvas;
             view._payouts = payouts;
-            view.Build(screen, tagline, rules, cheats);
+            view.Build(screen, tagline, rules, cheats, sinners);
             return view;
         }
 
-        private void Build(RectTransform screen, Func<string> tagline, Func<string> rules, Func<string> cheats)
+        private void Build(RectTransform screen, Func<string> tagline, Func<string> rules, Func<string> cheats, Func<string> sinners)
         {
             // The bottom of Hell, animated; opaque, so it also blocks clicks from reaching the table underneath.
             // It stays behind the rules panel too.
@@ -130,7 +134,7 @@ namespace HellPoker.Presentation.Views
                 TextAnchor.MiddleRight).WithOutline();
             version.rectTransform.PlaceTL(PixelScreen.Width - 84, 258, 80, 9);
 
-            _rulesPanel = BuildRulesPanel(screen, rules, cheats);
+            _rulesPanel = BuildRulesPanel(screen, rules, cheats, sinners);
             ShowRules(false);
             BuildConfirm(screen);
         }
@@ -150,16 +154,15 @@ namespace HellPoker.Presentation.Views
             _warning = UiFactory.CreateText("Warning", box.transform, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
             _warning.rectTransform.PlaceTL(8, 36, ConfirmWidth - 16, 26);
 
-            Button abandon = UiFactory.CreateButton("ConfirmNewGameButton", box.transform, "", 8, out Text abandonLabel, ButtonSkin.Blood);
-            abandonLabel.Localized(() => UiText.AbandonButton);
+            Button abandon = UiFactory.CreateButton("MenuConfirmButton", box.transform, "", 8, out _confirmLabel, ButtonSkin.Blood);
             ((RectTransform)abandon.transform).PlaceTL(16, ConfirmHeight - 28, 104, 18);
             abandon.onClick.AddListener(() =>
             {
                 _confirm.SetActive(false);
-                NewGameConfirmed?.Invoke();
+                Confirmed?.Invoke();
             });
 
-            Button back = UiFactory.CreateButton("CancelNewGameButton", box.transform, "", 8, out Text backLabel, ButtonSkin.Ash);
+            Button back = UiFactory.CreateButton("MenuCancelButton", box.transform, "", 8, out Text backLabel, ButtonSkin.Ash);
             backLabel.Localized(() => UiText.Back);
             ((RectTransform)back.transform).PlaceTL(ConfirmWidth - 16 - 104, ConfirmHeight - 28, 104, 18);
             back.onClick.AddListener(() => _confirm.SetActive(false));
@@ -167,15 +170,16 @@ namespace HellPoker.Presentation.Views
             _confirm.SetActive(false);
         }
 
-        public void AskToConfirmNewGame(string taunt, string warning)
+        public void AskToConfirm(string taunt, string warning, string confirmLabel)
         {
+            _confirmLabel.text = confirmLabel ?? "";
             _taunt.text = taunt ?? "";
             _warning.text = warning ?? "";
             _confirm.SetActive(true);
             _confirm.transform.SetAsLastSibling();
         }
 
-        private GameObject BuildRulesPanel(Transform screen, Func<string> rules, Func<string> cheats)
+        private GameObject BuildRulesPanel(Transform screen, Func<string> rules, Func<string> cheats, Func<string> sinners)
         {
             Image panel = UiFactory.CreatePanel("RulesPanel", screen);
             panel.raycastTarget = true;
@@ -196,12 +200,18 @@ namespace HellPoker.Presentation.Views
             _cheatsBody = cheatsText.gameObject;
             _cheatsBody.SetActive(false);
 
+            Text sinnersText = UiFactory.CreateText("Sinners", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(sinners ?? (() => ""));
+            sinnersText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            sinnersText.lineSpacing = 1f;
+            _sinnersBody = sinnersText.gameObject;
+            _sinnersBody.SetActive(false);
+
             _handRanks = HandRanksPanel.Create(panel.transform, (PixelScreen.Width - 16 - HandRanksPanel.Width) / 2, 30);
 
-            // RULES → HANDS → CHEATS page switch (the label names the next page), then BACK.
+            // RULES → HANDS → CHEATS → SINNERS page switch (the label names the next page), then BACK.
             int buttonsY = PixelScreen.Height - 16 - 26;
             Button page = UiFactory.CreateButton("HandRanksPageButton", panel.transform, "", 8, out _pageLabel, ButtonSkin.Ash);
-            ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 84, buttonsY, 80, ButtonHeight);
+            ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 108, buttonsY, 104, ButtonHeight);
             page.onClick.AddListener(() => ShowPage(Next(_page)));
 
             Button back = UiFactory.CreateButton("BackButton", panel.transform, "", 8, out Text rulesBackLabel, ButtonSkin.Blood);
@@ -255,10 +265,18 @@ namespace HellPoker.Presentation.Views
 
         private Page Next(Page page)
         {
-            Page next = page == Page.Rules ? Page.Hands : page == Page.Hands ? Page.Cheats : Page.Rules;
-            bool hasCheats = _cheatsBody != null && !string.IsNullOrEmpty(_cheatsBody.GetComponent<Text>().text);
-            return next == Page.Cheats && !hasCheats ? Page.Rules : next;
+            Page next = page;
+            for (int i = 0; i < 4; i++)
+            {
+                next = next == Page.Rules ? Page.Hands : next == Page.Hands ? Page.Cheats : next == Page.Cheats ? Page.Sinners : Page.Rules;
+                if (next == Page.Cheats && !HasText(_cheatsBody)) continue;
+                if (next == Page.Sinners && !HasText(_sinnersBody)) continue;
+                return next;
+            }
+            return Page.Rules;
         }
+
+        private static bool HasText(GameObject body) => body != null && !string.IsNullOrEmpty(body.GetComponent<Text>().text);
 
         private void ShowPage(Page page)
         {
@@ -269,8 +287,10 @@ namespace HellPoker.Presentation.Views
                 _handRanks.Hide();
             _rulesBody.SetActive(page == Page.Rules);
             _cheatsBody.SetActive(page == Page.Cheats);
+            _sinnersBody.SetActive(page == Page.Sinners);
             Page next = Next(page);
-            _pageLabel.text = next == Page.Hands ? UiText.HandsButton : next == Page.Cheats ? UiText.CheatsButton : UiText.RulesButton;
+            _pageLabel.text = next == Page.Hands ? UiText.HandsButton : next == Page.Cheats ? UiText.CheatsButton
+                : next == Page.Sinners ? UiText.SinnersButton : UiText.RulesButton;
         }
 
         private void ShowRules(bool show)
