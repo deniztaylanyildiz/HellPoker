@@ -2253,3 +2253,21 @@ numarayla build.
 - 0.1.3 arkadaşlara gönderildiyse bu build 0.1.4 olmalı (söylersen numarayı çıkarıp yeniden alırım).
 - Masa zıplamak hâlâ bedava ve malice'i oranla taşıyor (yukarı yuvarlanarak); simülasyonda zararsız, ama kasıtlı zıplamayı tamamen
   anlamsız kılmak istenirse (ör. aynı el arası ikinci masa değişimi yasak) ayrı bir karar.
+---
+
+## 2026-10-05 — Oyun testine hazırlık: test belgeleri ve 0.1.3 zip'i
+
+**İstek:** Geliştirme bitti, oyun test edilecek. Kod ve oyun kurallarına dokunma; sadece test belgelerini güncelle, zip'i yeniden al.
+GERI_BILDIRIM.txt'deki soruları koru, sınıf / olay / emanet (Kemik Zar) / ses-müzik / dil sorularını ekle. DEVLOG'a kısa kayıt.
+
+### Yapılanlar (kod değişmedi)
+- `Docs/Release/GERI_BILDIRIM.txt`: 1–10 aynen; yeni 11 Sınıf, 12 Eller arası olaylar, 13 Emanetler (Kemik Zar özellikle), 14 Ses ve müzik, 15 Dil.
+- `Docs/Release/OKUBENI.txt`: sınıf seçimi, olay paneli ve emanetler (iki cümle), How to Play / Nasıl Oynanır sayfaları, dil (ilk açılış
+  Windows diline göre; TR / EN butonu, L), kontrollere K (Kral) ve L, ayarlarda müzik / efekt düzeyi, Kemik Zar'ın kullanımı.
+- `Docs/PLAYTEST.md`: başlıkta dil / sınıf / hız / ses alanları ve K, L kısayolları; sınıf seçimi izlenimi; zorluk tablosuna sınıf sütunu;
+  yeni bölümler 5 Sınıflar, 6 Olaylar ve emanetler (Kemik Zar ayrıca), 7 Ses ve dil; eski 5–7 → 8–10 (içerik aynı, SINNERS sayfası eklendi).
+- Build: "Build Finished, Result: Success"; zip'teki OKUBENI / GERI_BILDIRIM yeni hali, `{VERSION}` → 0.1.3 (kontrol edildi).
+
+### Durum
+- Zip: `Builds/HellPoker-0.1.3-win64.zip`, 35.5 MB (174 dosya).
+- Testler: kod son test turundan beri değişmedi — **703 EditMode (+1 explicit) + 25 PlayMode (+2 explicit)** geçiyor.

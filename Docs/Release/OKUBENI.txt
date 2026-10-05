@@ -18,7 +18,12 @@ OYUN NE?
 Cehennemde 1000 yıl cezan var. Kasaya, yani bir şeytana karşı 5 kartlık poker (5 Card Draw) oynayarak cezanı sıfıra
 indirmeye çalışıyorsun. Kazanınca ceza azalır, kaybedince artar.
 
-Kurallar oyunun içinde: Ana menü → HOW TO PLAY (RULES / HANDS / CHEATS sayfaları).
+Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü ya da Kral. Her sınıfın bir yeteneği var.
+Eller arasında bazen ortada bir teklif paneli açılır (bir olay): kabul et ya da geç. Bazı teklifler lanetli bir emanet verir;
+emanetler portrenin yanında küçük kutularda durur, üstüne gelince ne yaptıkları yazar.
+
+Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR (kurallar, eller, hileler, günahkârlar sayfaları).
+Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüde sağ üstteki TR / EN butonuyla ya da L tuşuyla değiştirirsin.
 Poker bilmiyorsan dert etme:
   - H tuşu hangi elin hangisini yendiğini gösterir.
   - Oyun elinin adını söyler ("NOW: ONE PAIR").
@@ -35,11 +40,14 @@ KONTROLLER
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
   H               el sıralaması
+  K               Kral: bir kartı hilelere karşı koru (sonra karta tıkla)
+  L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
 
   Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
-  Ayarlardan (SETTINGS) animasyon hızını değiştirebilirsin.
+  Ayarlardan (SETTINGS / AYARLAR) animasyon hızını, müzik ve efekt ses düzeyini değiştirebilirsin.
+  Kemik Zar emanetini taşıyorsan: zarın kutusuna tıkla, sonra yeniden çekmek istediğin karta tıkla.
   Fareyle de oynanır: butonlara ve kartlara tıkla.
 
 

@@ -75,6 +75,36 @@ Poker biliyor musun? (hiç / biraz / iyi):
     >
 
 
+11. SINIF
+    Hangi sınıfı seçtin (Köylü / Büyücü / Kral)? Yeteneğini anladın / kullandın mı, adil miydi?
+
+    >
+
+
+12. ELLER ARASI OLAYLAR
+    Eller arası bir olay çıktı mı (ortada açılan bir teklif paneli)? Hangisi, ne seçtin, neden?
+
+    >
+
+
+13. EMANETLER
+    Emanet aldın mı, hangisi? İşe yaradı mı, laneti hissettin mi? (Kemik Zar özellikle)
+
+    >
+
+
+14. SES VE MÜZİK
+    Rahatsız eden ya da çok sessiz kalan bir şey var mıydı?
+
+    >
+
+
+15. DİL
+    Hangi dilde oynadın? Garip / bozuk okunan bir Türkçe cümle gördün mü?
+
+    >
+
+
 Eklemek istediğin başka bir şey:
 
 >
