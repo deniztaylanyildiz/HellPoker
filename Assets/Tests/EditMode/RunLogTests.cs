@@ -145,12 +145,13 @@ namespace HellPoker.Core.Tests
             Table(Nothing, HouseFullHouse)
                 .Resume(DealerRoster.Mammon, new RunSnapshot("mammon", 1000, 3, new RunStats(1000, "mammon"), classId: "peasant", classCharge: 5));
             _view.PressAction();     // deal
-            _presenter.UsePower();   // the honest heart: walk away
+            _presenter.UsePower();   // the honest heart, switched on
+            _view.PressBet(BetAction.Fold);   // and the fold costs nothing
             _presenter.CloseLog();
 
             string text = OnlyLog;
             StringAssert.Contains("resumed:  from a save after hand 3, at 1000 years", text);
-            StringAssert.Contains("-- power: free fold (hand 4)", text);
+            StringAssert.Contains("-- power: free fold switched on (hand 4)", text);
             StringAssert.Contains("#4 mammon 1000 -> 1000  free fold", text);
             StringAssert.Contains("== UNFINISHED: the game was closed at", text);
         }
@@ -210,6 +211,49 @@ namespace HellPoker.Core.Tests
             {
                 if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
             }
+        }
+
+        [Test]
+        public void TwoRunsInTheSameSecond_NeverWriteOverEachOther_ARunWrittenAgainKeepsItsFile()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "hellpoker-runs-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var sink = new FileRunLogSink(folder, "0.1.5");
+                var second = new DateTime(2026, 10, 5, 21, 0, 0);
+                var left = new RunLog("0.1.5", "English", "mammon", "peasant", 1000, second);
+                left.End("ABANDONED (a new game)", 1000, 3);
+                var next = new RunLog("0.1.5", "English", "belial", "king", 1250, second);   // begun in that same second
+
+                sink.Write(left);
+                sink.Write(next);
+                next.End("DAMNED", 3000, 9);
+                sink.Write(next);   // written again: its own file
+                sink.Write(left);
+
+                string[] files = Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+                CollectionAssert.AreEqual(new[] { "run-20261005-210000-2.txt", "run-20261005-210000.txt" }, files);
+                StringAssert.Contains("demon:    mammon", File.ReadAllText(Path.Combine(folder, "run-20261005-210000.txt")));
+                StringAssert.Contains("== DAMNED", File.ReadAllText(Path.Combine(folder, "run-20261005-210000-2.txt")));
+
+                // A file left by an earlier session is never written over either.
+                var fresh = new FileRunLogSink(folder, "0.1.5");
+                fresh.Write(new RunLog("0.1.5", "English", "lilith", "warlock", 1000, second));
+                Assert.IsTrue(File.Exists(Path.Combine(folder, "run-20261005-210000-3.txt")));
+            }
+            finally
+            {
+                if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+            }
+
+            var memory = new MemoryRunLogSink();
+            var at = new DateTime(2026, 10, 5, 21, 0, 0);
+            var a = new RunLog("0.1.5", "English", "mammon", "peasant", 1000, at);
+            var b = new RunLog("0.1.5", "English", "belial", "peasant", 1000, at);
+            memory.Write(a);
+            memory.Write(b);
+            memory.Write(a);
+            Assert.AreEqual(2, memory.Files.Count, "The memory sink names them the same way.");
         }
 
         [TestCase(0, 0, 1920, 1040, 1440, 810, 240, 115)]

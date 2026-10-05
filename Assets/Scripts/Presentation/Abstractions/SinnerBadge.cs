@@ -24,10 +24,18 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The Warlock's ward is up and waiting for the cheat.</summary>
         public bool WardRaised { get; }
 
+        /// <summary>The power is switched on and waiting for the player's move (the Peasant's free fold, the King's protection).</summary>
+        public bool Armed { get; }
+
+        /// <summary>Switched on or a ward up: the badge pulses and says POWER ON.</summary>
+        public bool PowerOn => Armed || WardRaised;
+
         public bool Visible => ClassId != null;
 
-        public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false)
+        public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false,
+            bool armed = false)
         {
+            Armed = armed;
             ClassId = classId;
             Name = name ?? "";
             Description = description ?? "";

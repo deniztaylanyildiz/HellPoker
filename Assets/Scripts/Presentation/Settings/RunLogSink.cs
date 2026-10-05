@@ -27,6 +27,9 @@ namespace HellPoker.Presentation.Settings
 
         private readonly string _folder;
 
+        /// <summary>Where each run's log went: the same run written again goes to the same file.</summary>
+        private readonly Dictionary<RunLog, string> _paths = new Dictionary<RunLog, string>();
+
         public string Version { get; }
 
         public FileRunLogSink(string folder, string version)
@@ -43,13 +46,28 @@ namespace HellPoker.Presentation.Settings
             try
             {
                 Directory.CreateDirectory(_folder);
-                File.WriteAllText(Path.Combine(_folder, log.FileName), log.ToText(), new UTF8Encoding(true));
+                File.WriteAllText(PathFor(log), log.ToText(), new UTF8Encoding(true));
                 Prune();
             }
             catch (Exception exception)
             {
                 Debug.LogWarning($"Hell Poker: the run log could not be written ({exception.GetType().Name}: {exception.Message}).");
             }
+        }
+
+        /// <summary>
+        /// The file for this run: its own if it was written before; otherwise run-&lt;time&gt;.txt — or, when another run already has that
+        /// name (one ended and the next began within the same second), run-&lt;time&gt;-2.txt, -3...: never over another run's log.
+        /// </summary>
+        private string PathFor(RunLog log)
+        {
+            if (_paths.TryGetValue(log, out string known)) return known;
+            string stem = Path.GetFileNameWithoutExtension(log.FileName);
+            string path = Path.Combine(_folder, log.FileName);
+            for (int n = 2; File.Exists(path) || _paths.ContainsValue(path); n++)
+                path = Path.Combine(_folder, stem + "-" + n + ".txt");
+            _paths[log] = path;
+            return path;
         }
 
         /// <summary>Only the newest <see cref="Kept"/> logs stay (the names sort by time).</summary>
@@ -67,6 +85,7 @@ namespace HellPoker.Presentation.Settings
     public sealed class MemoryRunLogSink : IRunLogSink
     {
         public readonly Dictionary<string, string> Files = new Dictionary<string, string>();
+        private readonly Dictionary<RunLog, string> _names = new Dictionary<RunLog, string>();
 
         public string Version { get; set; } = "test";
 
@@ -76,7 +95,15 @@ namespace HellPoker.Presentation.Settings
         public void Write(RunLog log)
         {
             if (Broken) throw new IOException("The disk is full of the damned.");
-            Files[log.FileName] = log.ToText();
+            // As the file sink names them: the same run keeps its name, another run in the same second gets "-2", "-3"...
+            if (!_names.TryGetValue(log, out string name))
+            {
+                name = log.FileName;
+                for (int n = 2; Files.ContainsKey(name); n++)
+                    name = Path.GetFileNameWithoutExtension(log.FileName) + "-" + n + ".txt";
+                _names[log] = name;
+            }
+            Files[name] = log.ToText();
         }
     }
 }

@@ -28,6 +28,8 @@ namespace HellPoker.Presentation.Views
         private Text _message;
         private Text _pot;
         private Text _stakeInfo;
+        private Text _powerHint;
+        private Text _foldLabel;
         private Text _actionLabel;
         private Button _actionButton;
         private Button _raiseButton;
@@ -163,6 +165,11 @@ namespace HellPoker.Presentation.Views
             _stakeInfo = UiFactory.CreateText("StakeInfo", screen, "", 8, Palette.BoneMid).WithOutline();
             _stakeInfo.rectTransform.PlaceTL(Middle, 123, MiddleWidth, 9);
             _stakeInfo.horizontalOverflow = HorizontalWrapMode.Overflow;
+            // A power switched on: what to do stays on this line (in place of the win / lose outlook) until it is used or off.
+            _powerHint = UiFactory.CreateText("PowerHint", screen, "", 8, Palette.GoldLight).WithOutline();   // the text font: the title font overflows the column
+            _powerHint.rectTransform.PlaceTL(Middle, 123, MiddleWidth, 9);
+            _powerHint.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _powerHint.gameObject.SetActive(false);
 
             BuildAnte(screen);
 
@@ -173,8 +180,10 @@ namespace HellPoker.Presentation.Views
             _raiseButton = CreateBetButton(screen, "RaiseButton", "", BetAction.Raise, Middle, 96, ButtonSkin.Ember, out _raiseLabel);
             _passButton = CreateBetButton(screen, "PassButton", "", BetAction.Pass, Middle + 104, 72, ButtonSkin.Blood, out Text passLabel);
             passLabel.Localized(() => UiText.Pass);
-            _foldButton = CreateBetButton(screen, "FoldButton", "", BetAction.Fold, Middle + 184, 72, ButtonSkin.Ash, out Text foldLabel);
-            foldLabel.Localized(() => UiText.Fold);
+            // FOLD, or FREE / FOLD on two short lines while the Peasant's power is on (the label comes with the bet controls).
+            _foldButton = CreateBetButton(screen, "FoldButton", "", BetAction.Fold, Middle + 184, 72, ButtonSkin.Ash, out _foldLabel);
+            _foldLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            _foldLabel.lineSpacing = 1f;
             _callButton = CreateBetButton(screen, "CallButton", "", BetAction.Call, Middle + 24, 112, ButtonSkin.Ember, out _callLabel);
             // Two short lines, so four buttons fit the row in the 8 px title font.
             _checkToDrawButton = UiFactory.CreateButton("CheckToDrawButton", screen, "", 8, out Text checkLabel, ButtonSkin.Blood);
@@ -291,6 +300,19 @@ namespace HellPoker.Presentation.Views
             GetComponent<GraphicRaycaster>().enabled = visible;
         }
 
+        /// <summary>The power line (it stands where the win / lose outlook is, which comes back when it is off) and the ward's shield.</summary>
+        public void SetPower(PowerDisplay power)
+        {
+            power = power ?? PowerDisplay.None;
+            _sequencer.Do(() =>
+            {
+                _powerHint.text = power.Hint ?? "";
+                _powerHint.gameObject.SetActive(power.Hint != null);
+                _stakeInfo.enabled = power.Hint == null;
+                _malice.SetWard(power.WardUp);
+            });
+        }
+
         public void SetMessage(string text, Tone tone)
         {
             _sequencer.Do(() =>
@@ -326,6 +348,7 @@ namespace HellPoker.Presentation.Views
             _foldButton.gameObject.SetActive(controls.Visible);
             _raiseLabel.text = controls.RaiseLabel ?? "";
             _callLabel.text = controls.CallLabel ?? "";
+            _foldLabel.text = controls.FoldLabel ?? UiText.Fold;
             // Locked buttons stay clickable: the presenter answers with the reason.
             _raiseButton.GetComponent<ButtonFeel>().Locked = !controls.CanRaise;
             _passButton.GetComponent<ButtonFeel>().Locked = !controls.CanPass;

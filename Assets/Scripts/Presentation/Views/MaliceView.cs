@@ -95,8 +95,42 @@ namespace HellPoker.Presentation.Views
             AddTrigger(hover, EventTriggerType.PointerEnter, () => _tooltip.SetActive(Intent != null));
             AddTrigger(hover, EventTriggerType.PointerExit, () => _tooltip.SetActive(false));
 
+            _ward = BuildShield(root, 4, 22);
+            _ward.SetActive(false);
+
             ApplyGauge(MaliceGauge.Hidden);
             ApplyIntent(null);
+        }
+
+        private GameObject _ward;
+
+        /// <summary>Whether the Warlock's shield shows (for tests and screenshots).</summary>
+        public bool WardShown => _ward.activeSelf;
+
+        /// <summary>The Warlock's ward is up: a small shield under the intent sign, until the cheat is warded off.</summary>
+        public void SetWard(bool up) => _ward.SetActive(up);
+
+        /// <summary>A 9×10 heater shield in whole pixels — a lilac rim round a dark plum face, on a black edge so it reads over the portrait.</summary>
+        private static GameObject BuildShield(Transform root, int x, int y)
+        {
+            RectTransform shield = UiFactory.CreateRect("WardShield", root).PlaceTL(x, y, 11, 12);
+            // Each row: (left, width) of the shield at that row, 9 wide at the top, pointed at the bottom.
+            (int left, int width)[] rows = { (0, 9), (0, 9), (0, 9), (0, 9), (0, 9), (1, 7), (1, 7), (2, 5), (3, 3), (4, 1) };
+            void Row(string name, int row, int left, int width, Color color)
+            {
+                Image pixel = UiFactory.CreateImage(name + row, shield, color);
+                pixel.raycastTarget = false;
+                pixel.rectTransform.PlaceTL(1 + left, 1 + row, width, 1);
+            }
+            for (int r = 0; r < rows.Length; r++)   // the black edge one pixel round it
+            {
+                Image edge = UiFactory.CreateImage("Edge" + r, shield, Palette.Black);
+                edge.raycastTarget = false;
+                edge.rectTransform.PlaceTL(rows[r].left, r, rows[r].width + 2, 3);
+            }
+            for (int r = 0; r < rows.Length; r++) Row("Rim", r, rows[r].left, rows[r].width, Palette.LilacLight);
+            for (int r = 1; r < rows.Length - 2; r++) Row("Face", r, rows[r].left + 1, rows[r].width - 2, Palette.Plum);
+            return shield.gameObject;
         }
 
         private static void AddTrigger(EventTrigger trigger, EventTriggerType type, System.Action action)

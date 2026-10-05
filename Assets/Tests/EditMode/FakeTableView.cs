@@ -83,6 +83,9 @@ namespace HellPoker.Core.Tests
         public SinnerBadge Sinner { get; private set; } = SinnerBadge.Hidden;
         public void SetSinner(SinnerBadge badge) => Sinner = badge;
 
+        public PowerDisplay Power { get; private set; } = PowerDisplay.None;
+        public void SetPower(PowerDisplay power) => Power = power ?? PowerDisplay.None;
+
         public bool HandRanksOpen { get; private set; }
         public IPayoutInfo HandRanksPayouts { get; private set; }
 
@@ -234,6 +237,10 @@ namespace HellPoker.Core.Tests
         }
 
         public void SetInteractable(bool interactable) => Interactable = interactable;
+
+        /// <summary>The cards a power may pick now (null: no picking).</summary>
+        public IReadOnlyCollection<int> Picking { get; private set; }
+        public void SetPicking(ICollection<int> pickable) => Picking = pickable == null || pickable.Count == 0 ? null : pickable.ToList();
 
         public void SetHints(ICollection<int> keepIndices)
         {

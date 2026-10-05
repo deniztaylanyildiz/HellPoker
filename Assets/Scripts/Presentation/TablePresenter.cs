@@ -60,7 +60,11 @@ namespace HellPoker.Presentation
         public Sinner Sinner => _sinner;
 
         /// <summary>The King is picking the card to protect: the next card clicked is protected instead of picked to throw back.</summary>
-        private bool _protecting;
+        /// <summary>The King is picking the card his protection goes on (his power is switched on; the state lives in the game).</summary>
+        private bool KingPicking => _game != null && _game.PowerArmed && _game.Sinner?.Ability == SinnerAbility.Protect;
+
+        /// <summary>The Peasant's free fold is switched on and waits for his fold.</summary>
+        private bool FreeFoldOn => _game != null && _game.PowerArmed && _game.Sinner?.Ability == SinnerAbility.FreeFold;
         /// <summary>The Bone Die was pressed: the next card clicked is thrown back and redealt.</summary>
         private bool _redrawing;
 
@@ -580,6 +584,9 @@ namespace HellPoker.Presentation
             // there (changing seats refills nothing). Lucifer's table is full at every summons; a fall lands on the demon's own count.
             bool fresh = change == SeatChange.Summoned;
             _effects.SitAt(dealer.Id, fresh);
+            // A new table closes a pick in progress (the Bone Die's, the King's); the Peasant's free fold waits for his fold.
+            _redrawing = false;
+            if (_sinner.Ability == SinnerAbility.Protect) _sinner.Disarm();
             IHellPokerGame game = _createGame(dealer, _sinner) ?? throw new InvalidOperationException("The game factory returned no game.");
             game.UseEffects(_effects);   // the run's marks go to every table
             if (carriedYears.HasValue)
@@ -880,7 +887,7 @@ namespace HellPoker.Presentation
             string id = sinner.Id;
             bool usable = sinner.IsCharged && _game.WhyNoPower() == PowerRefusal.None;
             _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charge, sinner.Rules.Full, usable,
-                sinner.WardRaised));
+                sinner.WardRaised, _game.PowerArmed));
             if (sinner.IsCharged && !_relabelling)
                 Tip(UiText.TipPowerReady);
         }
@@ -895,7 +902,8 @@ namespace HellPoker.Presentation
                 if (relic == null) continue;
                 int perTable = relic.Effects.RedrawsPerTable;
                 int uses = perTable <= 0 ? -1 : _effects.RedrawsLeft;
-                badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses));
+                badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses,
+                    selecting: perTable > 0 && _redrawing));
             }
             _view.SetRelics(badges);
         }
@@ -908,7 +916,7 @@ namespace HellPoker.Presentation
             if (id != RelicIds.BoneDie || !Playing || _pendingEvent != null || Hurry()) return;
             if (_redrawing)
             {
-                _redrawing = false;
+                _redrawing = false;   // the die again: put away
                 Refresh();
                 return;
             }
@@ -917,21 +925,21 @@ namespace HellPoker.Presentation
                 _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);
                 return;
             }
-            _protecting = false;
+            if (KingPicking) _game.DisarmPower();   // one pick at a time
             _redrawing = true;
-            _view.Player.SetInteractable(true);
+            Refresh();
             _view.SetMessage(UiText.RedrawPrompt, Tone.Warning);
         }
 
         private void RedrawCard(int index)
         {
-            _redrawing = false;
             Card? card = _game.Redraw(index);
             if (card == null)
             {
-                _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);
+                _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);   // not that card: the pick stays open
                 return;
             }
+            _redrawing = false;
             _discards.Remove(index);
             _view.PlaySfx(SfxIds.Flip);
             Refresh();
@@ -1044,10 +1052,13 @@ namespace HellPoker.Presentation
             Sinner sinner = _game.Sinner;
             if (sinner == null || sinner.Ability == SinnerAbility.None) return;
 
-            if (_protecting)
+            // K again (or the badge) while the power waits: switched off, the gauge stays full.
+            if (_game.PowerArmed)
             {
-                _protecting = false;
+                _game.DisarmPower();
+                LogNote($"power: switched off (hand {_game.RoundNumber})");
                 Refresh();
+                _view.SetMessage(UiText.PowerOffMessage, Tone.Neutral);
                 return;
             }
             PowerRefusal refusal = _game.WhyNoPower();
@@ -1060,23 +1071,22 @@ namespace HellPoker.Presentation
             switch (sinner.Ability)
             {
                 case SinnerAbility.Protect:
-                    _protecting = true;
-                    _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
+                    _redrawing = false;   // one pick at a time
+                    _game.ArmPower();
+                    LogNote($"power: protection switched on (hand {_game.RoundNumber})");
+                    Refresh();
                     _view.SetMessage(UiText.ProtectPrompt, Tone.Warning);
                     return;
                 case SinnerAbility.FreeFold:
-                {
-                    TableState before = CaptureState();
-                    LogNote($"power: free fold (hand {_game.RoundNumber})");
-                    _game.UsePower();   // the honest heart: a fold that costs nothing
-                    PlayOutSealedHand(before);
-                    PlayCheatStrikes(before);
+                    // Switched on, not spent: the next fold — this hand or a later one — costs nothing, then the gauge empties.
+                    _game.ArmPower();
+                    LogNote($"power: free fold switched on (hand {_game.RoundNumber})");
                     Refresh();
+                    _view.SetMessage(UiText.FreeFoldHint, Tone.Good);
                     return;
-                }
                 case SinnerAbility.Ward:
                     LogNote($"power: ward raised against {_game.PendingCheatTruth?.Id} (hand {_game.RoundNumber})");
-                    _game.UsePower();
+                    _game.ArmPower();
                     Refresh();
                     _view.SetMessage(UiText.WardRaisedMessage, Tone.Good);
                     return;
@@ -1085,10 +1095,9 @@ namespace HellPoker.Presentation
 
         private void ProtectCard(int index)
         {
-            _protecting = false;
             if (!_game.Protect(index))
             {
-                _view.SetMessage(UiText.ProtectNotNow, Tone.Warning);
+                _view.SetMessage(UiText.ProtectNotNow, Tone.Warning);   // not that card: the pick stays open
                 return;
             }
             _discards.Remove(index);
@@ -1099,7 +1108,7 @@ namespace HellPoker.Presentation
 
         public void ToggleDiscard(int index)
         {
-            if (Playing && _protecting && !_view.IsBusy)
+            if (Playing && KingPicking && !_view.IsBusy)
             {
                 ProtectCard(index);
                 return;
@@ -1280,11 +1289,11 @@ namespace HellPoker.Presentation
         {
             // A language change only rewrites words: the gate is not passed again, nothing is settled or saved.
             if (!_relabelling)
-            {
-                _protecting = false;   // whatever happened, the King picks again with K
-                _redrawing = false;
                 PassThroughGate();
-            }
+            // A power switched on stays on through bets, turned cards and the draw prompt — it closes only when used, switched off,
+            // or when its moment has gone. The Bone Die's pick goes when no card may be rolled any more (the draw passed, the hand ended).
+            if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
+                _redrawing = false;
 
             switch (_game.Phase)
             {
@@ -1337,6 +1346,31 @@ namespace HellPoker.Presentation
                 if (finalTable || !Tip(UiText.TipFinalStretch))
                     Say(d => d.FinalStretch, _game.RoundNumber, DealerMood.Menacing);
             }
+
+            ShowPower();
+            // The King's protection was switched on but the draw passed without a card picked: it closed, the gauge still full.
+            if (_game.TakePowerLapsed())
+            {
+                LogNote($"power: protection not used before the draw (hand {_game.RoundNumber}); still full");
+                _view.SetMessage(UiText.ProtectUnused, Tone.Warning);
+            }
+        }
+
+        /// <summary>
+        /// A power switched on, as the screen shows it until it is used or off: the line under the message, the Warlock's shield,
+        /// and the cards a pick may take (framed; the others dim; clicks go through).
+        /// </summary>
+        private void ShowPower()
+        {
+            Sinner sinner = _game.Sinner;
+            string hint = KingPicking ? UiText.ProtectHint : FreeFoldOn ? UiText.FreeFoldHint : _redrawing ? UiText.RedrawPrompt : null;
+            _view.SetPower(new PowerDisplay(hint, sinner != null && sinner.WardRaised));
+            int[] pickable = KingPicking ? Enumerable.Range(0, Hand.Size).Where(_game.CanProtect).ToArray()
+                : _redrawing ? Enumerable.Range(0, Hand.Size).Where(_game.CanRedraw).ToArray()
+                : null;
+            _view.Player.SetPicking(pickable);
+            if (pickable != null && pickable.Length > 0)
+                _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
         }
 
         /// <summary>
@@ -1465,7 +1499,7 @@ namespace HellPoker.Presentation
             bool beforeDraw = _game.Phase == GamePhase.PlayerReveal;
             _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice), mustRaise ? Tone.Warning : Tone.Neutral);
             _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise,
-                showCheckToDraw: beforeDraw, canCheckToDraw: beforeDraw && _game.CanCheckToDraw(out _)));
+                showCheckToDraw: beforeDraw, canCheckToDraw: beforeDraw && _game.CanCheckToDraw(out _), foldLabel: FoldLabel));
             if (_game.Phase == GamePhase.PlayerReveal)
                 Tip(UiText.TipFirstDecision);
         }
@@ -1479,14 +1513,17 @@ namespace HellPoker.Presentation
             {
                 ShowSoul(_game.CurrentStake + _game.HouseReRaiseAmount);
                 _view.SetMessage(UiText.SoulPromptReRaise, Tone.Warning);
-                _view.SetBetControls(BetControls.Answer(UiText.MatchIt));
+                _view.SetBetControls(BetControls.Answer(UiText.MatchIt, FoldLabel));
             }
             else
             {
                 _view.SetMessage(string.Format(UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
-                _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount)));
+                _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount), FoldLabel));
             }
         }
+
+        /// <summary>FREE / FOLD while the Peasant's power is on (his next fold costs nothing); null: the usual FOLD.</summary>
+        private string FoldLabel => FreeFoldOn ? UiText.FreeFoldButton : null;
 
         /// <summary>Common to every decision: cards as the game shows them, the stake on the table, no ante or discards.</summary>
         private void ShowHandInPlay()

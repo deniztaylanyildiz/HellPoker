@@ -116,6 +116,17 @@ namespace HellPoker.Presentation.Views
                 _cards[index].SetHint(on, bright: true);
         }
 
+        public void SetPicking(ICollection<int> pickable)
+        {
+            int[] take = pickable?.ToArray() ?? new int[0];
+            _sequencer.Do(() =>
+            {
+                for (int i = 0; i < _cards.Count; i++)
+                    _cards[i].SetPick(take.Length == 0 ? CardView.PickState.None
+                        : take.Contains(i) ? CardView.PickState.Pickable : CardView.PickState.Dimmed);
+            });
+        }
+
         public void SetInteractable(bool interactable)
         {
             _sequencer.Do(() =>

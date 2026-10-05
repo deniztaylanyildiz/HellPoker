@@ -18,5 +18,11 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Softly marks the cards worth keeping (a suggestion only); null or empty clears the marks.</summary>
         void SetHints(ICollection<int> keepIndices);
         void SetInteractable(bool interactable);
+
+        /// <summary>
+        /// A power is picking a card (the King's protection, the Bone Die): the cards it may take blink in a gold frame, the others
+        /// dim, and clicks go through. Null (or empty): no picking.
+        /// </summary>
+        void SetPicking(ICollection<int> pickable);
     }
 }

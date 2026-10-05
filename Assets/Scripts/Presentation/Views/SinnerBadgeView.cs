@@ -22,6 +22,7 @@ namespace HellPoker.Presentation.Views
         private const int PipSize = 4;
         private const int PipStep = 5;
         private const float PulseSeconds = 0.5f;
+        private const float PowerBeat = 1f;
 
         private AnimationSequencer _sequencer;
         private Image _strip;
@@ -104,7 +105,7 @@ namespace HellPoker.Presentation.Views
         {
             Badge = badge;
             _strip.gameObject.SetActive(badge.Visible);
-            _hint.gameObject.SetActive(badge.Visible && (badge.Usable || badge.WardRaised));
+            _hint.gameObject.SetActive(badge.Visible && (badge.Usable || badge.PowerOn));
             if (!badge.Visible)
             {
                 _tooltip.SetActive(false);
@@ -117,19 +118,26 @@ namespace HellPoker.Presentation.Views
                 _pips[i].enabled = i < badge.Full;
                 _pips[i].color = i < badge.Charge ? Palette.GoldLight : Palette.Plum;
             }
-            _hint.text = badge.Usable ? UiText.PowerReadyHint : badge.WardRaised ? UiText.WardUpHint : "";
+            _hint.text = badge.PowerOn ? UiText.PowerOnLabel : badge.Usable ? UiText.PowerReadyHint : "";
+            if (!badge.PowerOn) _strip.color = Palette.Black;
             _tooltipText.text = badge.Name + "\n" + badge.Description + "\n" +
-                                (badge.WardRaised ? UiText.WardUpHint : string.Format(UiText.SinnerChargeFormat, badge.Charge, badge.Full));
+                                (badge.WardRaised ? UiText.WardUpHint : UiText.SinnerCharge(badge.Charge, badge.Full));
             // As tall as the words, whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 180, textHeight);
             ((RectTransform)_tooltip.transform).PlaceTL(Width + 6, -2, 188, textHeight + 4);
         }
 
-        /// <summary>A full gauge glows: the lit pips switch between gold and ember (whole sprites, no blending).</summary>
+        /// <summary>
+        /// A full gauge glows: the lit pips switch between gold and ember. A power switched on (or a ward up) pulses the whole badge
+        /// too, slowly — a one-second beat — so it cannot be missed (whole colours, no blending).
+        /// </summary>
         private void Update()
         {
-            if (!Badge.Visible || !Badge.IsCharged) return;
+            if (!Badge.Visible) return;
+            if (Badge.PowerOn)
+                _strip.color = Mathf.Repeat(Time.unscaledTime, PowerBeat) < PowerBeat / 2f ? Palette.Plum : Palette.Black;
+            if (!Badge.IsCharged) return;
             _pulse += Time.unscaledDeltaTime;
             bool bright = (int)(_pulse / PulseSeconds) % 2 == 0;
             for (int i = 0; i < _pips.Count && i < Badge.Charge; i++)

@@ -262,12 +262,11 @@ namespace HellPoker.Core.Game
         {
             if (Sinner == null || Sinner.Ability == SinnerAbility.None) return PowerRefusal.NoPower;
             if (!Sinner.IsCharged) return PowerRefusal.NotCharged;
+            // The Peasant's power is switched on at any time and waits for his next fold (this hand or a later one).
+            if (Sinner.Ability == SinnerAbility.FreeFold) return PowerRefusal.None;
             if (!InPlay) return PowerRefusal.NoHand;
             switch (Sinner.Ability)
             {
-                case SinnerAbility.FreeFold:
-                    // Walking away needs a moment where folding is possible: not in a sealed hand.
-                    return CanBet(BetAction.Fold, out _) ? PowerRefusal.None : PowerRefusal.CannotFold;
                 case SinnerAbility.Ward:
                     if (Sinner.WardRaised) return PowerRefusal.WardAlreadyRaised;
                     ICheat coming = PendingCheatTruth;
@@ -284,8 +283,25 @@ namespace HellPoker.Core.Game
         }
 
         /// <summary>
-        /// Uses the full charge: the Peasant walks away from the hand for nothing (a fold that costs no years), the Warlock raises a
-        /// ward against the minor cheat announced. The King's power picks a card: <see cref="Protect"/>. False when it cannot be used.
+        /// Switches the power on: the Peasant's free fold and the King's protection wait, switched on, for the player's move (the
+        /// gauge is spent only when it is used); the Warlock's ward goes up at once (it waits for the cheat itself). False when the
+        /// power cannot be used now (<see cref="WhyNoPower"/>).
+        /// </summary>
+        public bool ArmPower()
+        {
+            if (WhyNoPower() != PowerRefusal.None) return false;
+            return Sinner.Ability == SinnerAbility.Ward ? Sinner.TryUse(SinnerAbility.Ward) : Sinner.Arm();
+        }
+
+        /// <summary>Switches a waiting power off again (the player changed their mind); the gauge stays full.</summary>
+        public void DisarmPower() => Sinner?.Disarm();
+
+        /// <summary>The power is switched on and waiting for the player's move.</summary>
+        public bool PowerArmed => Sinner != null && Sinner.PowerArmed;
+
+        /// <summary>
+        /// Uses the power in one go: the Peasant walks away from this hand for nothing (switched on, then folded), the Warlock raises
+        /// a ward. The King's power picks a card: <see cref="Protect"/>. False when it cannot be used now.
         /// </summary>
         public bool UsePower()
         {
@@ -293,8 +309,8 @@ namespace HellPoker.Core.Game
             switch (Sinner.Ability)
             {
                 case SinnerAbility.FreeFold:
-                    Sinner.TryUse(SinnerAbility.FreeFold);
-                    _freeFold = true;
+                    if (!CanBet(BetAction.Fold, out _)) return false;
+                    Sinner.Arm();
                     Bet(BetAction.Fold);
                     return true;
                 case SinnerAbility.Ward:
@@ -304,7 +320,26 @@ namespace HellPoker.Core.Game
             }
         }
 
-        private bool _freeFold;
+        private bool _powerLapsed;
+
+        /// <summary>
+        /// True once (then cleared) when a switched-on protection was never used before the draw passed: the King's mode closed
+        /// on its own, the gauge still full — the player should hear it.
+        /// </summary>
+        public bool TakePowerLapsed()
+        {
+            bool lapsed = _powerLapsed;
+            _powerLapsed = false;
+            return lapsed;
+        }
+
+        /// <summary>The King's switched-on protection only lives before the draw: past it (or at the hand's end) it closes, unspent.</summary>
+        private void LapseProtection(bool tell)
+        {
+            if (Sinner == null || !Sinner.PowerArmed || Sinner.Ability != SinnerAbility.Protect) return;
+            Sinner.Disarm();
+            if (tell) _powerLapsed = true;
+        }
 
         private bool IsBeforeDraw => Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
 
@@ -479,6 +514,7 @@ namespace HellPoker.Core.Game
 
             int yearsBefore = _ledger.Years;
             _ledger.Add(penalty);
+            LapseProtection(tell: false);
             Phase = _ledger.Years >= DamnationYears ? GamePhase.Damned : GamePhase.Betting;
             LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
             // A hand left behind counts as the fold it was — or, sealed, as the loss.
@@ -540,6 +576,7 @@ namespace HellPoker.Core.Game
             HouseHand = _houseExchange.Hand;
             _drawnIndices = _playerExchange.ReplacedIndices;
             IsAfterDraw = true;
+            LapseProtection(tell: true);
 
             // The thorn took the last of the soul: there is no hand left to play.
             if (_ledger.Years >= DamnationYears)
@@ -815,8 +852,8 @@ namespace HellPoker.Core.Game
             bool freeFold = false;
             if (showdown == null)
             {
-                // The Peasant's honest heart (his power, used for this hand): the fold costs nothing.
-                freeFold = _freeFold;
+                // The Peasant's honest heart (his power, switched on): the fold costs nothing, and the gauge is spent now.
+                freeFold = Sinner != null && Sinner.PowerArmed && Sinner.Ability == SinnerAbility.FreeFold && Sinner.TryUse(SinnerAbility.FreeFold);
                 if (!freeFold)
                     _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             }
@@ -844,7 +881,9 @@ namespace HellPoker.Core.Game
 
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
                 yearsBefore, _ledger.Years, Phase, freeFold: freeFold);
-            Sinner?.HandSettled(showdown == null, showdown?.Outcome);   // the power charges with every settled hand
+            // The power charges with every settled hand — but not the one the Peasant walked away from with it (his gauge is empty).
+            if (!freeFold) Sinner?.HandSettled(showdown == null, showdown?.Outcome);
+            LapseProtection(tell: false);
         }
 
         /// <summary>
@@ -873,7 +912,6 @@ namespace HellPoker.Core.Game
         private void ClearHand()
         {
             ThisHand = HandModifier.None;
-            _freeFold = false;
             PlayerHand = null;
             HouseHand = null;
             Unit = 0;

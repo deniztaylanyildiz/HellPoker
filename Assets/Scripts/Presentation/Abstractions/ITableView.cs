@@ -54,6 +54,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The class badge: the class and what is left of its ability; <see cref="SinnerBadge.Hidden"/> for none.</summary>
         void SetSinner(SinnerBadge badge);
 
+        /// <summary>A power switched on and waiting: the line that stays under the message, the Warlock's shield (<see cref="PowerDisplay.None"/>: off).</summary>
+        void SetPower(PowerDisplay power);
+
         /// <summary>True while the hand ranking panel is open over the table.</summary>
         bool HandRanksOpen { get; }
 

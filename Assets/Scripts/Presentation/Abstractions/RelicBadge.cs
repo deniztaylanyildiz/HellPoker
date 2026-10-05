@@ -12,8 +12,12 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Uses left this hand; -1 for a relic that is not used, only carried.</summary>
         public int Uses { get; }
 
-        public RelicBadge(string id, string name, string description, int uses = -1)
+        /// <summary>The relic is being used: the player is picking its card (the Bone Die) — its tile pulses.</summary>
+        public bool Selecting { get; }
+
+        public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false)
         {
+            Selecting = selecting;
             Id = id;
             Name = name ?? "";
             Description = description ?? "";

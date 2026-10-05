@@ -19,10 +19,10 @@ namespace HellPoker.Core.Tests
 {
     /// <summary>
     /// The sinner classes: passive traits (the Warlock's sight, the King's crown), and the power each one buys with the run's
-    /// charge gauge — a hand won or lost +1, a fold or a tie nothing, up to 5; full, it waits for the player (nothing is
+    /// charge gauge — a win +1, a loss +2, a fold +1, a tie nothing, up to 5; full, it waits for the player (nothing is
     /// spent on its own) and empties when used: the Peasant's free fold, the Warlock's ward (minor cheats only), the King's
     /// protection (before the draw). The gauge follows the run to every table; the save (v=4 "class.charge"); records per class.
-    /// (The rule as tuned: a hand won or lost +1, a fold or a tie nothing — see ChargeRules.)
+    /// (The designer's rule: a win +1, a loss +2, a fold +1, a tie nothing; a hand the Peasant walks away from with his power, nothing.)
     /// </summary>
     public class SinnerTests
     {
@@ -94,7 +94,7 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the charge
 
         [Test]
-        public void TheCharge_WinOne_LossOne_FoldAndTieNothing_UpToFive()
+        public void TheCharge_WinOne_LossTwo_FoldOne_TieNothing_UpToFive()
         {
             var sinner = new Sinner(new Peasant());
             Assert.AreEqual(0, sinner.Charge, "A run starts empty.");
@@ -102,29 +102,29 @@ namespace HellPoker.Core.Tests
             sinner.HandSettled(false, ShowdownOutcome.PlayerWins);
             Assert.AreEqual(1, sinner.Charge);
             sinner.HandSettled(false, ShowdownOutcome.HouseWins);
-            Assert.AreEqual(2, sinner.Charge);
+            Assert.AreEqual(3, sinner.Charge);
             sinner.HandSettled(true, null);
-            Assert.AreEqual(2, sinner.Charge, "A fold pays nothing: folding cannot be farmed.");
+            Assert.AreEqual(4, sinner.Charge, "A fold is a loss, but pays one: folding cannot be farmed.");
             sinner.HandSettled(false, ShowdownOutcome.Push);
-            Assert.AreEqual(2, sinner.Charge);
-            for (int i = 0; i < 2; i++) sinner.HandSettled(false, ShowdownOutcome.HouseWins);
+            Assert.AreEqual(4, sinner.Charge);
             Assert.IsFalse(sinner.IsCharged);
-            sinner.HandSettled(false, ShowdownOutcome.PlayerWins);
-            Assert.IsTrue(sinner.IsCharged);
             sinner.HandSettled(false, ShowdownOutcome.HouseWins);
             Assert.AreEqual(5, sinner.Charge, "Never past five.");
+            Assert.IsTrue(sinner.IsCharged);
         }
 
         [Test]
         public void TheChargeRules_CanBeTuned()
         {
-            var sinner = new Sinner(new Peasant(), rules: new ChargeRules(full: 5, perWin: 1, perLoss: 2, perFold: 1));
+            var sinner = new Sinner(new Peasant(), rules: new ChargeRules(full: 6, perWin: 1, perLoss: 1, perFold: 0));
             sinner.HandSettled(false, ShowdownOutcome.HouseWins);
             sinner.HandSettled(true, null);
-            Assert.AreEqual(3, sinner.Charge);
-            Assert.AreEqual(new ChargeRules().Full, ChargeRules.Default.Full);
-            Assert.AreEqual(1, ChargeRules.Default.PerLoss);
-            Assert.AreEqual(0, ChargeRules.Default.PerFold);
+            Assert.AreEqual(1, sinner.Charge);
+            Assert.AreEqual(5, ChargeRules.Default.Full);
+            Assert.AreEqual(1, ChargeRules.Default.PerWin);
+            Assert.AreEqual(2, ChargeRules.Default.PerLoss);
+            Assert.AreEqual(1, ChargeRules.Default.PerFold);
+            Assert.AreEqual(0, ChargeRules.Default.PerTie);
         }
 
         [Test]
@@ -141,8 +141,8 @@ namespace HellPoker.Core.Tests
             }
 
             Assert.AreEqual(1, After(Flush, HouseTwos, fold: false), "A win.");
-            Assert.AreEqual(1, After(Nothing, HouseFullHouse, fold: false), "A loss.");
-            Assert.AreEqual(0, After(Nothing, HouseFullHouse, fold: true), "A fold.");
+            Assert.AreEqual(2, After(Nothing, HouseFullHouse, fold: false), "A loss.");
+            Assert.AreEqual(1, After(Nothing, HouseFullHouse, fold: true), "A fold.");
         }
 
         [Test]
@@ -150,11 +150,11 @@ namespace HellPoker.Core.Tests
         {
             var folded = new Sinner(new Peasant());
             Game(Nothing, HouseFullHouse, null, folded).ForfeitHand(new HandInProgress(100, 100, false, false, false));
-            Assert.AreEqual(0, folded.Charge, "A fold.");
+            Assert.AreEqual(1, folded.Charge, "A fold.");
 
             var sealedHand = new Sinner(new Peasant());
             Game(Nothing, HouseFullHouse, null, sealedHand).ForfeitHand(new HandInProgress(300, 100, true, false, true));
-            Assert.AreEqual(1, sealedHand.Charge, "The loss of a sealed hand.");
+            Assert.AreEqual(2, sealedHand.Charge, "The loss of a sealed hand.");
         }
 
         [Test]
@@ -205,12 +205,12 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1000, game.Years, "The honest heart: nothing added.");
             Assert.IsTrue(game.LastRound.Folded);
             Assert.IsTrue(game.LastRound.FreeFold);
-            Assert.AreEqual(0, sinner.Charge, "Emptied (and a fold pays nothing).");
+            Assert.AreEqual(0, sinner.Charge, "Emptied — the hand walked away from with the power charges nothing.");
             Assert.AreEqual(1, sinner.PowersUsed);
         }
 
         [Test]
-        public void ThePeasant_CannotWalkAwayFromASealedHand()
+        public void ThePeasant_CannotWalkAwayFromASealedHand_HisPowerWaits()
         {
             var sinner = Charged(new Peasant());
             HellPokerGame game = Game(Nothing, HouseFullHouse, null, sinner);
@@ -218,16 +218,23 @@ namespace HellPoker.Core.Tests
             game.PlaceBet();
             Assert.IsTrue(game.IsCommitted);
 
-            Assert.AreEqual(PowerRefusal.CannotFold, game.WhyNoPower());
-            Assert.IsFalse(game.UsePower());
+            Assert.IsFalse(game.UsePower(), "No fold in a sealed hand.");
             Assert.IsTrue(sinner.IsCharged);
+            Assert.IsTrue(game.ArmPower(), "But it can wait, switched on, for a later fold.");
+            Assert.AreEqual(5, sinner.Charge);
         }
 
         [Test]
-        public void NoPower_BetweenHands()
+        public void BetweenHands_ThePeasantMaySwitchOn_TheKingHasNothingToPick()
         {
-            HellPokerGame game = Game(Nothing, HouseFullHouse, null, Charged(new Peasant()));
-            Assert.AreEqual(PowerRefusal.NoHand, game.WhyNoPower());
+            HellPokerGame peasant = Game(Nothing, HouseFullHouse, null, Charged(new Peasant()));
+            Assert.AreEqual(PowerRefusal.None, peasant.WhyNoPower(), "His power waits for his next fold.");
+            Assert.IsTrue(peasant.ArmPower());
+            Assert.IsTrue(peasant.PowerArmed);
+
+            HellPokerGame king = Game(KingsPair, HouseTwos, null, Charged(new King()));
+            Assert.AreEqual(PowerRefusal.NoHand, king.WhyNoPower());
+            Assert.IsFalse(king.ArmPower());
         }
 
         // ------------------------------------------------------------------ the Warlock
@@ -595,14 +602,14 @@ namespace HellPoker.Core.Tests
 
             _presenter.UsePower();
 
-            Assert.AreEqual("Your power charges: 0 / 5. Every hand won or lost +1; a fold nothing.", _view.Message);
+            Assert.AreEqual("Your power charges: 0 / 5. Win +1, lose +2, fold +1.", _view.Message);
             Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase, "Nothing happened.");
         }
 
         [Test]
         public void TheReasons_AreToldInBothLanguages()
         {
-            Assert.AreEqual("Gücün doluyor: 2 / 5. Kazanılan ya da kaybedilen her el +1; çekilme 0.",
+            Assert.AreEqual("Gücün doluyor: 2 / 5. Kazanç +1, kayıp +2, çekilme +1.",
                 WithTurkish(() => UiText.PowerRefused(SinnerAbility.FreeFold, PowerRefusal.NotCharged, 2, 5)));
             Assert.AreEqual("Mühür vuruldu: bu el bırakılamaz.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.FreeFold, PowerRefusal.CannotFold, 5, 5)));
             Assert.AreEqual("Büyük bir hileye koruma işlemez.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.Ward, PowerRefusal.MajorCheat, 5, 5)));
@@ -622,15 +629,17 @@ namespace HellPoker.Core.Tests
         {
             ChargedRun(SinnerRoster.Peasant, DealerRoster.Mammon);
             Assert.IsTrue(_view.Sinner.IsCharged, "A full gauge glows.");
-            Assert.IsFalse(_view.Sinner.Usable, "Between hands there is nothing to walk away from.");
+            Assert.IsTrue(_view.Sinner.Usable, "READY: K — his power can wait for a fold even between hands.");
             _view.PressAction();
-            Assert.IsTrue(_view.Sinner.Usable, "READY: K.");
+            Assert.IsTrue(_view.Sinner.Usable);
 
-            _view.PressSinner();
+            _view.PressSinner();   // switched on: the next fold is free
+            Assert.AreEqual(5, _view.Sinner.Charge, "Not spent yet.");
+            _view.PressBet(BetAction.Fold);
 
             Assert.AreEqual(1000, _game.Years);
             StringAssert.Contains("honest heart", _view.Message);
-            Assert.AreEqual(0, _view.Sinner.Charge, "Emptied.");
+            Assert.AreEqual(0, _view.Sinner.Charge, "Spent at the fold.");
         }
 
         [Test]
@@ -728,16 +737,16 @@ namespace HellPoker.Core.Tests
             _view.PressAction();
             _presenter.CheckToDraw();
             _view.PressAction();
-            while (_game.Phase != GamePhase.RoundOver) _view.PressBet(BetAction.Pass);   // lost: +1
+            while (_game.Phase != GamePhase.RoundOver) _view.PressBet(BetAction.Pass);   // lost: +2
             _view.PressAction();
 
             RunSnapshot saved = archive.LoadRun();
-            Assert.AreEqual(1, saved.ClassCharge);
+            Assert.AreEqual(2, saved.ClassCharge);
             _presenter.Dispose();
             Table(null).Resume(DealerRoster.Belial, saved);
             Assert.AreEqual("warlock", _game.Sinner.Id);
-            Assert.AreEqual(1, _game.Sinner.Charge);
-            Assert.AreEqual(1, _view.Sinner.Charge);
+            Assert.AreEqual(2, _game.Sinner.Charge);
+            Assert.AreEqual(2, _view.Sinner.Charge);
         }
     }
 }

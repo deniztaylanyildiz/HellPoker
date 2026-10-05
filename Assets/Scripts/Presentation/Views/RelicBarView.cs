@@ -112,6 +112,15 @@ namespace HellPoker.Presentation.Views
                 _tiles[i].uses.text = relics[i].Uses >= 0 ? relics[i].Uses.ToString() : "";
             }
             if (relics.Count == 0) _tooltip.SetActive(false);
+            for (int i = 0; i < _tiles.Count; i++) _tiles[i].tile.GetComponent<Image>().color = Palette.Black;
+        }
+
+        /// <summary>A relic being used (the Bone Die picking its card) pulses on a one-second beat until it is used or put away.</summary>
+        private void Update()
+        {
+            for (int i = 0; i < _tiles.Count && i < _relics.Count; i++)
+                if (_relics[i].Selecting)
+                    _tiles[i].tile.GetComponent<Image>().color = Mathf.Repeat(Time.unscaledTime, 1f) < 0.5f ? Palette.Plum : Palette.Black;
         }
     }
 }

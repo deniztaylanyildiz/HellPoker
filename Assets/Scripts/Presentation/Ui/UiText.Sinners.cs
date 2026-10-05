@@ -59,8 +59,23 @@ namespace HellPoker.Presentation.Ui
         public static string ChooseSinnerSubtitle => L("Who were you, up there?", "Yukarıda kimdin?");
         public static string ChooseSinner => L("CHOOSE", "SEÇ");
 
-        /// <summary>The badge's hover box: the power's charge. {0} now, {1} full.</summary>
-        public static string SinnerChargeFormat => L("Power: {0} / {1}  (a hand won or lost +1)", "Güç: {0} / {1}  (kazanılan ya da kaybedilen el +1)");
+        /// <summary>The badge's hover box: the power's charge. {0} now, {1} full, {2} a win, {3} a loss, {4} a fold.</summary>
+        public static string SinnerChargeFormat => L("Power: {0} / {1}  (win +{2}, lose +{3}, fold +{4})", "Güç: {0} / {1}  (kazanç +{2}, kayıp +{3}, çekilme +{4})");
+
+        /// <summary>The badge's charge line, with the rules the gauge really charges by.</summary>
+        public static string SinnerCharge(int charge, int full) =>
+            string.Format(SinnerChargeFormat, charge, full, ChargeRules.Default.PerWin, ChargeRules.Default.PerLoss, ChargeRules.Default.PerFold);
+
+        /// <summary>Over the badge while a power is switched on (or a ward is up).</summary>
+        public static string PowerOnLabel => L("POWER ON", "GÜÇ AÇIK");
+        /// <summary>The line that stays on screen while the King picks.</summary>
+        public static string ProtectHint => L("Pick a card to protect (K: cancel)", "Korumak için bir kart seç (K: vazgeç)");
+        public static string ProtectUnused => L("You did not use the protection; your power is still full.", "Korumayı kullanmadın, gücün dolu duruyor.");
+        /// <summary>The line that stays on screen while the Peasant's power is on.</summary>
+        public static string FreeFoldHint => L("Power on: your next FOLD is free (K: switch off)", "Güç açık: sıradaki ÇEKİL bedava (K: kapat)");
+        /// <summary>The Fold button while the Peasant's power is on: two short lines.</summary>
+        public static string FreeFoldButton => L("FREE\nFOLD", "BEDAVA\nÇEKİL");
+        public static string PowerOffMessage => L("Power switched off; the gauge stays full.", "Güç kapandı; gösterge dolu duruyor.");
 
         /// <summary>Over the badge when the power can be used now.</summary>
         public static string PowerReadyHint => L("READY: K", "HAZIR: K");
@@ -70,9 +85,9 @@ namespace HellPoker.Presentation.Ui
         public static string WardFlash => L("WARD", "KORUMA");
         public static string FreeFoldMessage => L("An honest heart: you walk away for nothing.", "Dürüst kalp: bu eli bedelsiz bıraktın.");
 
-        /// <summary>{0} the charge, {1} full.</summary>
-        public static string PowerChargingFormat => L("Your power charges: {0} / {1}. Every hand won or lost +1; a fold nothing.",
-            "Gücün doluyor: {0} / {1}. Kazanılan ya da kaybedilen her el +1; çekilme 0.");
+        /// <summary>{0} the charge, {1} full, {2} a win, {3} a loss, {4} a fold.</summary>
+        public static string PowerChargingFormat => L("Your power charges: {0} / {1}. Win +{2}, lose +{3}, fold +{4}.",
+            "Gücün doluyor: {0} / {1}. Kazanç +{2}, kayıp +{3}, çekilme +{4}.");
         public static string PowerNoHand => L("The power waits for a hand to be played.", "Güç, oynanan bir eli bekler.");
         public static string PowerCannotFold => L("The pact is sealed: this hand cannot be left.", "Mühür vuruldu: bu el bırakılamaz.");
         public static string PowerNoCheat => L("No cheat is announced: the ward waits for one.", "Duyurulan bir hile yok: koruma bir hile bekler.");
@@ -85,7 +100,8 @@ namespace HellPoker.Presentation.Ui
         {
             switch (refusal)
             {
-                case HellPoker.Core.Game.PowerRefusal.NotCharged: return string.Format(PowerChargingFormat, charge, full);
+                case HellPoker.Core.Game.PowerRefusal.NotCharged:
+                    return string.Format(PowerChargingFormat, charge, full, ChargeRules.Default.PerWin, ChargeRules.Default.PerLoss, ChargeRules.Default.PerFold);
                 case HellPoker.Core.Game.PowerRefusal.CannotFold: return PowerCannotFold;
                 case HellPoker.Core.Game.PowerRefusal.NoCheatAnnounced: return PowerNoCheat;
                 case HellPoker.Core.Game.PowerRefusal.MajorCheat: return PowerMajorCheat;
@@ -112,14 +128,15 @@ namespace HellPoker.Presentation.Ui
             string Block(SinnerClass c) =>
                 $"{SinnerName(c.Id)} — {SinnerTitle(c.Id)}  ({string.Format(SinnerStartFormat, c.StartingYears)})\n" +
                 $"   {SinnerAbility(c.Id)}\n   {SinnerDetail(c.Id)}\n";
-            string page = L("Before the first hand you choose who you were. The class stays for the whole run, at every table.\n" +
-                            "Every class has a power and a gauge of five pips under the portrait: every hand won or lost +1, a fold nothing. " +
-                            "The gauge belongs to the run (new tables and Lucifer keep it). Full, the power waits until you use it — " +
-                            "K or the badge — and the gauge empties.\n\n",
+            ChargeRules charge = ChargeRules.Default;
+            string page = string.Format(L("Before the first hand you choose who you were. The class stays for the whole run, at every table.\n" +
+                            "Every class has a power and a gauge of {0} pips under the portrait: a won hand +{1}, a lost one +{2}, a fold +{3}. " +
+                            "The gauge belongs to the run (new tables and Lucifer keep it). Full, K or the badge switches the power on; it " +
+                            "stays on until it is used (the gauge empties) or switched off with K again.\n\n",
                 "İlk elden önce kim olduğunu seçersin. Sınıf bütün koşu boyunca, her masada seninledir.\n" +
-                "Her sınıfın bir gücü ve portrenin altında beş pipli bir göstergesi var: kazanılan ya da kaybedilen her el +1, çekilme 0. " +
-                "Gösterge koşuya aittir (yeni masa ve Lucifer onu korur). Dolunca güç, sen kullanana kadar bekler — " +
-                "K ya da rozet — ve gösterge boşalır.\n\n");
+                "Her sınıfın bir gücü ve portrenin altında {0} pipli bir göstergesi var: kazanılan el +{1}, kaybedilen +{2}, çekilme +{3}. " +
+                "Gösterge koşuya aittir (yeni masa ve Lucifer onu korur). Dolunca K ya da rozet gücü açar; güç kullanılana " +
+                "(gösterge boşalır) ya da yine K ile kapatılana kadar açık kalır.\n\n"), charge.Full, charge.PerWin, charge.PerLoss, charge.PerFold);
             foreach (SinnerClass c in SinnerRoster.All)
                 page += Block(c) + "\n";
             return page.TrimEnd();

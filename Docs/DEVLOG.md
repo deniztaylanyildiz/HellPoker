@@ -2412,3 +2412,61 @@ OKUBENI / GERI_BILDIRIM, DEVLOG. Ara mesaj: iş bitince eski build'leri sil.
 - Şarj kuralı spesifikasyondan saptı (kayıp +2 → +1, çekilme +1 → 0); spesifikasyondaki hâli istenirse eşik 7 ile ±3 içinde ama 7 pip gerekir.
 - Kurulu koruma boşa giden hilede bekliyor (bir sonraki küçük hileye kadar); duyurulan hileye özel kalması istenirse kolay değişir.
 - Simülasyon oyuncusunun Kral'ı sadece hile beklenirken koruyor; gerçek oyuncu gücü farklı kullanabilir (oyun testi gösterecek).
+## 2026-10-05 — Açık kalan güç, görünürlük, tasarımcının şarj kuralı, pencere ortalama (0.1.5, aynı numara)
+
+### İstek (kullanıcı)
+Sınıf gücü bir sonraki hamlede kendi kendine kapanıyordu: kullanılana ya da kapatılana kadar açık kalsın, çok görünür olsun;
+oyun kuralı / denge sayısı değişmesin. Köylü de aynı "açılan güç" modeline geçsin (BEDAVA ÇEKİL). Şarj kuralı benim istediğime dönsün
+(kazanç +1, kayıp +2, çekilme +1, beraberlik 0, dolu 5), telafi için başka hiçbir ayar değişmesin. Günlük dosya adı çakışması,
+pencere ortalamanın gerçek build'de denenmesi. Tüm testler, TR/EN ekran görüntüsü, 0.1.5 build (dağıtılmadı), duman testi.
+
+### Hatanın nedeni
+Mod bayrakları (`_protecting`, Kemik Zar seçimi) presenter'da tutuluyor ve her `Refresh` başında sıfırlanıyordu; Pas / kart açılması
+`Refresh` çağırınca güç sessizce kapanıyordu.
+
+### Yapılanlar
+- **Durum Core'a taşındı:** `Sinner.PowerArmed / Arm / Disarm`; `IHellPokerGame.ArmPower / DisarmPower / PowerArmed / TakePowerLapsed`.
+  `Refresh` artık hiçbir şeyi sıfırlamıyor. Mod sadece şunlarla kapanır: kart seçildi, K / rozet (Kemik Zar'da zar) tekrar, el bitti,
+  masa değişti, an geçti (Kral'da draw).
+- **Kral:** seçmeden draw'ı geçerse hak harcanmaz, gösterge 5 kalır, mesaj: "Korumayı kullanmadın, gücün dolu duruyor." /
+  "You did not use the protection; your power is still full." Yanlış karta tık modu kapatmaz.
+- **Köylü:** K gücü açar (harcamaz), ÇEKİL düğmesi "BEDAVA ÇEKİL" / "FREE FOLD" olur; çekilme bedava, gösterge 0. Açık güç eller
+  boyunca bekler (oynanan el bitince de kapanmaz). Re-raise'e çekilme de bedava. K tekrar: kapanır, normal çekilme bedelli.
+  Bedava çekilen el gösterge doldurmaz.
+- **Büyücü (doğrulandı, değişmedi):** K = koruma kalkar, hak o an harcanır (geri verilmez). Kalkan bir sonraki **gerçekten vuracak**
+  küçük hileyi bekler: el bitse de, hile hiç gelmese de sonraki ellere taşınır; büyük hile / Düşüş onu harcamaz. Testle sabit.
+- **Görünürlük:** rozet 1 sn nabızla yanıp söner, üstünde "GÜÇ AÇIK" / "POWER ON"; Kral'da seçilebilen kartlar yanıp sönen altın
+  çerçeve, diğerleri soluk (renk tonu, alfa yok); ortada kalıcı satır "Korumak için bir kart seç (K: vazgeç)" (metin fontu — başlık fontu
+  sütundan taşıyordu, ekran görüntüsünde görüldü); Büyücü'de niyet şeridinin üstünde küçük kalkan; Kemik Zar kutusu seçimdeyken
+  aynı nabız + satır. `ITableView.SetPower(PowerDisplay)`, `IHandView.SetPicking`, `BetControls.FoldLabel`, `SinnerBadge.Armed`,
+  `RelicBadge.Selecting`.
+- **Şarj kuralı** 5,1,2,1,0'a döndü (`ChargeRules.Default`); rozet hover'ı, SINNERS sayfası, OKUBENI, PLAYTEST, CLAUDE.md güncel.
+- **Günlük adı:** aynı saniyede ikinci koşu `run-<zaman>-2.txt`, `-3`...; aynı koşu kendi dosyasında kalır (test).
+- **Pencere ortalama (4b):** gerçek build'de, %125 ölçekli 1920×1080 ekranda (çalışma alanı 1920×1020 fiziksel) denendi.
+  - İlk ölçüm yanlış görünüyordu (alt boşluk −138): ölçen script DPI-unaware'di, çalışma alanını mantıksal (1536×816), çerçeveyi
+    fiziksel aldı. Script DPI-aware yapılınca asıl hata göründü: oyun **istemci alanını** ortalıyordu, `MoveMainWindowTo` ise
+    **çerçeveyi** taşıyor → pencere başlık çubuğu yüksekliğinin yarısı kadar (~20 px) aşağıdaydı. Aynı karede taşıma çalışıyordu.
+  - Düzeltme: `WindowCentering` (MonoBehaviour) `SetResolution`'dan iki kare sonra çerçevenin gerçek boyutunu (DWM, başlık + kenar)
+    ölçer ve **çerçeveyi** ortalar, çalışma alanından taşırmaz.
+  - Sonuç: ×2 çerçeve (479,220)-(1441,799): sol / sağ 479, üst 220 / alt 221. ×3 çerçeve (239,85)-(1681,934): sol / sağ 239, üst 85 /
+    alt 86. Görev çubuğu açıkta.
+
+### Denge (tasarımcının şarj kuralı, telafi yok; 2000 koşu × 9; parantezde Lucifer'e ulaşan / ilk denemede yenme)
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %82.7 (%88 / %31) | %78.7 (%84 / %41) | %51.7 (%65 / %32) |
+| Büyücü | %85.0 (%89 / %37) | %78.2 (%83 / %44) | %55.2 (%66 / %37) |
+| Kral | %77.3 (%82 / %33) | %72.2 (%76 / %43) | %49.0 (%58 / %35) |
+
+Masa başına haklı eski tabloya göre: Köylü +3.3 / +1.1 / +0.8, Büyücü +3.5 / −0.3 / +0.3, Kral +0.2 / +0.1 / +0.2. Koşu başına güç:
+Köylü 3.8, Büyücü 5.7, Kral 5.5. Mammon'da Köylü / Büyücü hedefin (~80) ~3 üstünde; kullanıcı kararıyla dokunulmadı.
+
+### Testler / build
+- EditMode 757 geçti (+1 explicit), 0 hata; PlayMode 27 geçti (+2 explicit), 0 hata. Yeni: `PowerModeTests` (11), günlük adı testi.
+- Ekran görüntüsü turuna `05c_power_on` eklendi (Kral, güç açık; TR / EN kontrol edildi).
+- 0.1.5 dağıtılmadığı için aynı numara: `Builds/HellPoker-0.1.5-win64.zip` (~35.5 MB). Zip'ten 3 duman turu (`-fpstour`): çıkış 0,
+  Player.log'da hata yok, 13 FPS satırı. Duman kopyası ve duman günlükleri silindi.
+
+### Açık sorular / sıradaki
+- Oyun testi: güç modu anlaşılıyor mu (GÜÇ AÇIK, BEDAVA ÇEKİL, kalkan)? Mammon'da Köylü / Büyücü kolay mı?
+- Köylü BEDAVA ÇEKİL ve Büyücü kalkanının ekran görüntüsü turda yok (Kral'ınki var).

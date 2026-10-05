@@ -122,8 +122,11 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   hileler duyurulan / vuran / engellenen / boşa giden / geri tepen; masa değişimi, çağrılma, düşüş, olay ve seçimi, emanet, sınıf gücü; sonuç).
   Presentation'da `IRunLogSink`: `FileRunLogSink` (en yeni 50 dosya, her hata Player.log'a uyarı), `MemoryRunLogSink` (testler); batchmode'da
   günlük yok. `TablePresenter.CloseLog` bootstrap kapanırken çağrılır; devam eden koşu yeni bir dosyada `resumed` diye sürer.
-- **Pencere:** pencere moduna geçince / boyut değişince ekranın çalışma alanında ortalanır, dışına taşmaz (`WindowScales.Centered`,
-  `Screen.MoveMainWindowTo`; editörde atlanır). Açılışta pencere öne gelir (`WindowFocus`, Windows `SetForegroundWindow`).
+  Aynı saniyede başlayan ikinci koşu `run-<zaman>-2.txt`, `-3`... alır; aynı koşu yeniden yazılınca kendi dosyasında kalır.
+- **Pencere:** pencere moduna geçince / boyut değişince **çerçevesiyle birlikte** (başlık çubuğu + kenarlık, Windows'ta DWM'den ölçülür)
+  ekranın çalışma alanında ortalanır, dışına / görev çubuğunun altına taşmaz (`WindowCentering`: `SetResolution`'dan iki kare sonra
+  `WindowScales.Centered` + `Screen.MoveMainWindowTo`; editörde atlanır). Gerçek build'de %125 ekranda ×2 / ×3 ile ölçüldü (her yanda
+  eşit boşluk). Ölçen script DPI-aware olmalı (yoksa çalışma alanı mantıksal, çerçeve fiziksel piksel gelir). Açılışta pencere öne gelir (`WindowFocus`, Windows `SetForegroundWindow`).
   `runInBackground` açık (Player Settings + bootstrap): alt-tab'da oyun ve müzik durmaz.
 - **Oyuncu zorla tutulmaz:** Quit eller arasında onaysız (koşu kayıtlı). El ortasında ya da ruh masadayken (`AbandonRisk` Hand / Soul)
   önce sorar: şeytanın `Fled` repliği + "Leave now and the hand is lost." / "Şimdi gidersen el kaybedilir.", QUIT / BACK, Esc kapatır
@@ -235,16 +238,17 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   oyuncu sadece gördüğüyle oynar, niyete tepki verir; gösterge doluyken Köylü kötü elden çekilirken gücüyle bedava çekilir, Büyücü ilk
   küçük hile duyurusunda korumayı kurar (yalanın arkasını görür), Kral hile beklenirken draw'dan önce en değerli çift / kartı korur; **olaylarda** beklenen değer pozitifse kabul eder, emanet tekliflerini de; Kemik Zar'ı
   draw'da, çift ya da daha iyi bir elde eşleşmeyen en düşük karta atar). Aklanma (Lucifer'e ulaşan / ilk denemede yenme), olaylar ve emanetlerle
-  (2026-10-05, sınıf güçleri şarj göstergesiyle: kazanç / kayıp +1, çekilme 0, dolu 5):
+  (2026-10-05, sınıf güçleri tasarımcının şarj kuralıyla: kazanç +1, kayıp +2, çekilme +1, beraberlik 0, dolu 5; güç K ile açılır,
+  kullanılana kadar açık kalır):
   | Sınıf | Mammon | Belial | Lilith |
   |---|---|---|---|
-  | Köylü | %81.8 (%87 / %32) | %77.1 (%83 / %40) | %51.6 (%65 / %32) |
-  | Büyücü | %82.2 (%87 / %36) | %77.6 (%82 / %43) | %54.6 (%65 / %38) |
-  | Kral | %77.6 (%82 / %33) | %72.1 (%76 / %43) | %48.9 (%58 / %35) |
+  | Köylü | %82.7 (%88 / %31) | %78.7 (%84 / %41) | %51.7 (%65 / %32) |
+  | Büyücü | %85.0 (%89 / %37) | %78.2 (%83 / %44) | %55.2 (%66 / %37) |
+  | Kral | %77.3 (%82 / %33) | %72.2 (%76 / %43) | %49.0 (%58 / %35) |
 
-  Önceki (masa başına haklar) tabloya göre: Köylü +2.4 / −0.5 / +0.7, Büyücü +0.7 / −0.9 / −0.3, Kral +0.5 / 0.0 / +0.1. Koşu başına
-  güç kullanımı Köylü 2.4, Büyücü 3.6 (vuran koruma 3.6), Kral 3.4. Planlanan şarj (kazanç +1 / kayıp +2 / çekilme +1) Köylü +3.7 / Büyücü
-  +3.5 (Mammon) veriyordu; dolu 6: +3.2 / +2.7; dolu 7: +2.7 / +2.4 (pip sayısı bozulur); 5,1,1,1: +3.2 / +3.0; 5,1,2,0: +3.1 / +1.3.
+  Önceki (masa başına haklar) tabloya göre: Köylü +3.3 / +1.1 / +0.8, Büyücü +3.5 / −0.3 / +0.3, Kral +0.2 / +0.1 / +0.2. Koşu başına
+  güç kullanımı Köylü 3.8, Büyücü 5.7 (vuran koruma 5.7), Kral 5.5. Kullanıcı kararıyla telafi yok: eşikler, sınıf güçleri, başlangıç
+  cezaları aynı (Mammon'da Büyücü / Köylü hedefin ~3 üstünde; oyun testinden sonra bakılacak).
   Emanetsiz (`HELLPOKER_RELICS=none`: emanet teklifi yok): Köylü 80.6 / 77.6 / 53.0, Büyücü 82.3 / 78.9 / 55.9, Kral 77.7 / 72.9 / 49.9
   — emanetler −2.1..0.0 (sınır ±3; oyuncu teklifleri ~%85 alıyor).
   **Masa zıplayan oyuncu** (`HELLPOKER_HOP=1`: bir masa başına hakkı harcayınca başka bir sıradan şeytana geçip hemen döner):
@@ -270,25 +274,34 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (`Peasant.cs`, `Warlock.cs`, `King.cs`), `SinnerRoster.All` listesinde. **Yeni sınıf = yeni dosya + roster'a bir satır**
     (+ UiText.Sinners metinleri, `pixel_sinners.py` portre ve ikon, şeytanlara `GreetingAs...` repliği; gerekirse `HellPokerGame.WhyNoPower / UsePower`).
   - **Güç ve şarj göstergesi** (`Sinner` + `ChargeRules`): pasifler hep açık, aktif güç göstergeye bağlı. Gösterge **koşuya ait** (masa
-    değişimi, Lucifer'e çağrılma ve düşüş aynı göstergeyle sürer), koşu 0 ile başlar. Her kazanılan ya da kaybedilen el **+1**, çekilme ve
-    beraberlik **0**, en fazla **5** (`HandSettled`; yarım bırakılan el çekilme, mühürlüyse kayıp sayılır). 5'te güç kullanılabilir;
-    kullanmak isteğe bağlı, **hiçbir şey kendiliğinden harcanmaz**, kullanınca 0. (Plan kazanç +1 / kayıp +2 / çekilme +1 idi: Köylü
-    Mammon'da +3.7, Büyücü +3.5 çıktı; eşik 6–7 de denendi ama 5 pip bozulurdu — bkz. DEVLOG.) `HELLPOKER_CHARGE="dolu,kazanç,kayıp,çekilme"`.
-    `HellPokerGame.WhyNoPower()` → `PowerRefusal` (NotCharged, NoHand, CannotFold, NoCheatAnnounced, MajorCheat, WardAlreadyRaised,
-    NotBeforeDraw, NoCardToProtect), `UsePower()`; presenter nedeni iki dilde söyler (`UiText.PowerRefused`).
-  - **Köylü:** 1000 yıl. Güç "Dürüst kalp": bu eli bedelsiz bırak (çekilme bedeli 0, `RoundResult.FreeFold`); sadece çekilmenin mümkün
-    olduğu anda (mühürlü elde değil). Otomatik bedava çekilme yok.
+    değişimi, Lucifer'e çağrılma ve düşüş aynı göstergeyle sürer), koşu 0 ile başlar. **Kazanç +1, kayıp +2, çekilme +1, beraberlik 0, en fazla 5**
+    (`ChargeRules.Default`; metinler oradan okur). Yarım bırakılan el çekilme, mühürlüyse kayıp sayılır; Köylü'nün güçle bedava bıraktığı el
+    şarj vermez. `HELLPOKER_CHARGE="dolu,kazanç,kayıp,çekilme"` ile denenebilir. `HellPokerGame.WhyNoPower()` → `PowerRefusal`.
+  - **Açık kalan güç** (`Sinner.PowerArmed`; `ArmPower` / `DisarmPower` / `PowerArmed`): K ya da rozet gücü **açar**, şarj henüz
+    harcanmaz; mod bahislerde, açılan kartlarda, draw ekranında **açık kalır** (`Refresh` artık hiçbir modu sıfırlamaz). Kapanır: güç
+    kullanılınca (şarj 0), K / rozete yeniden basınca (`PowerOffMessage`, şarj dolu), ya da anı geçince. Kral'ın modu draw geçince ve el
+    bitince kapanır, şarj harcanmaz; draw'da kaçırılan koruma iki dilde söylenir (`TakePowerLapsed` → `UiText.ProtectUnused`).
+    Masa değişimi Kral'ın ve Kemik Zar'ın seçimini kapatır. Kayda yazılmaz (el ortasında kapatma eli zaten forfeit eder).
+  - **Köylü:** 1000 yıl. Güç "Dürüst kalp": K açar (eller arasında da), ÇEKİL "FREE / FOLD" / "BEDAVA / ÇEKİL" olur; açıkken yapılan ilk
+    çekilme (yeniden artırmaya cevap dahil) bedelsizdir ve gösterge o anda 0 olur. Çekilmezse sonraki ellerde de açık kalır. Mühürlü elde
+    ÇEKİL yok. Otomatik bedava çekilme yok.
   - **Büyücü:** 1000 yıl. Pasif: yalanları görür (niyet şeridi duyuruda "LIAR" diye kırılır), kasanın 2'den az kart gösterdiği sıradan
     masada 2 kart görür — pratikte Belial (`HouseCardsShownAt`; Lucifer'in karanlığı kalır). Güç "Koruma": duyurulan **küçük** hile
-    varken kurulur (`Sinner.WardRaised`), o hile vurmaya gelince reddedilir (`ICheatGuard` → `CheatOutcome.Blocked`, şeytanın göstergesi
-    boşalır, kartta "WARD"/"KORUMA", şeytan kızgın + `Blocked`). Boşa gidecek hile korumayı harcamaz (bir sonraki küçük hileyi bekler).
-    Büyük hilelere ve Düşüş'e kurulamaz. Otomatik engel yok.
+    varken K korumayı hemen kurar (`Sinner.WardRaised`) ve **şarj o anda harcanır**; koruma hile vurmaya gelince reddeder
+    (`CheatOutcome.Blocked`, şeytanın göstergesi boşalır, kartta "WARD"/"KORUMA", şeytan kızgın). Hile hiç vurmazsa (çekildi, boşa gitti)
+    şarj iade edilmez, koruma bir sonraki küçük hileyi bekler (eller ve masalar boyunca). Büyük hilelere ve Düşüş'e kurulamaz.
   - **Kral:** 1250 yıl (1500 olsa Lilith'te ruh hemen masada olurdu). Pasif: taç, kazanç ante'nin %25'i kadar fazla siler
-    (`King.crownPercent`). Güç: draw'dan önce (kartlar açılırken ya da draw ekranında) görünen bir kartı korur — `K` / rozet → kart seç;
-    o el hiçbir hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`; kartta taç işareti).
-  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`, 44 px: ikon + 5 pip; dolunca pipler altın / kor arasında parlar;
-    güç şu an kullanılabilirse üstünde "READY: K" / "HAZIR: K", kurulu korumada "KORUMA HAZIR"; hover'da ad, ne yaptığı, gösterge). **K**
-    tuşu ve rozete tık her sınıf için "gücü kullan" (`ITableCommands.UsePower`). Gösterge ilk dolduğunda şeytan ipucu söyler (`tip.power`).
+    (`King.crownPercent`). Güç: draw'dan önce (kartlar açılırken ya da draw ekranında) K açar, kart seçilince korur (şarj 0); o el hiçbir
+    hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`; kartta taç işareti).
+  - **Görünürlük** (güç açıkken ya da koruma kalkmışken): rozet 1 sn nabızla parlar, üstünde "POWER ON" / "GÜÇ AÇIK" (`SinnerBadge.Armed /
+    PowerOn`); kullanılabilir ama kapalıyken "READY: K" / "HAZIR: K". Mesajın altındaki satır (kazanç / kayıp satırının yerinde) güç açıkken
+    ne yapılacağını söyler (`ITableView.SetPower(PowerDisplay)`: "Korumak için bir kart seç (K: vazgeç)", "Güç açık: sıradaki ÇEKİL bedava
+    (K: kapat)", Kemik Zar'ın satırı). Seçilebilir kartlar yanıp sönen 2 px altın çerçeveli, diğerleri soluk (`IHandView.SetPicking`,
+    `CardView.PickState`). Büyücü'nün koruması kalkınca niyet şeridinin altında 9×10 piksel kalkan (`MaliceView.SetWard`), vurunca gider.
+    Kemik Zar'ın kutusu seçim boyunca nabızla parlar (`RelicBadge.Selecting`).
+  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`, 44 px: ikon + 5 pip; dolunca pipler altın / kor arasında parlar; hover'da
+    ad, ne yaptığı, gösterge ve kuralı). **K** tuşu ve rozete tık her sınıf için "gücü aç / kapat" (`ITableCommands.UsePower`). Gösterge
+    ilk dolduğunda şeytan ipucu söyler (`tip.power`).
   - Kayıt: `class`, `class.charge` (0–5, isteğe bağlı; yoksa 0), `class.ward` (kurulu koruma, isteğe bağlı). Eski `class.charges` /
     `class.charges.tables` okunmaz, yok sayılır. Rekorlarda sınıf başına aklanma (`free.class.<id>`). How to Play'de SINNERS sayfası.
   - **Masa başına haklar** (artık sadece Kemik Zar; `Core/Game/TableCharges`): şeytan başına tutulur, harcanan hak o masaya dönünce dolu

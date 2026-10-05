@@ -100,6 +100,14 @@ namespace HellPoker.PlayMode.Tests
             yield return Shot("05b_power_ready");
             ((GameObject)typeof(SinnerBadgeView).GetField("_tooltip", Flags).GetValue(badge)).SetActive(false);
 
+            // K: the power on — the badge pulses "POWER ON", the pickable cards blink gold, the others dim, the hint line stays.
+            presenter.UsePower();
+            yield return WaitForTable();
+            yield return new WaitForSeconds(0.3f);
+            yield return Shot("05c_power_on");
+            presenter.UsePower();   // K again: off, the gauge stays full
+            yield return WaitForTable();
+
             for (int guard = 0; guard < 10 && IsActive("PassButton"); guard++)
             {
                 Press("PassButton");

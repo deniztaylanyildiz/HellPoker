@@ -20,10 +20,9 @@ namespace HellPoker.Core.Sinners
     }
 
     /// <summary>
-    /// How a sinner's power charges: every hand won or lost adds a pip; a fold (a loss, but a cheap one) and a tie add nothing,
-    /// so folding cannot be farmed. Up to <see cref="Full"/>; a full gauge waits until the player uses the power.
-    /// (Planned as win +1 / loss +2 / fold +1: the Peasant's free fold at Mammon's long runs then rose +3.7 points over the
-    /// balance line; loss +1 / fold 0 keeps every class within ±3 — see CLAUDE.md.)
+    /// How a sinner's power charges: a won hand +1, a lost one +2, a fold +1 (a fold is a loss, but pays less, so folding
+    /// cannot be farmed), a tie nothing — up to <see cref="Full"/>; a full gauge waits until the player uses the power.
+    /// (The designer's numbers. A hand the Peasant walks away from with his power charges nothing.)
     /// </summary>
     public sealed class ChargeRules
     {
@@ -36,7 +35,7 @@ namespace HellPoker.Core.Sinners
         public int PerFold { get; }
         public int PerTie { get; }
 
-        public ChargeRules(int full = 5, int perWin = 1, int perLoss = 1, int perFold = 0, int perTie = 0)
+        public ChargeRules(int full = 5, int perWin = 1, int perLoss = 2, int perFold = 1, int perTie = 0)
         {
             if (full <= 0) throw new ArgumentOutOfRangeException(nameof(full));
             if (perWin < 0 || perLoss < 0 || perFold < 0 || perTie < 0) throw new ArgumentOutOfRangeException(nameof(perWin));
@@ -99,6 +98,23 @@ namespace HellPoker.Core.Sinners
         /// <summary>The Warlock's ward is up: the next minor cheat that would strike is refused.</summary>
         public bool WardRaised { get; private set; }
 
+        /// <summary>
+        /// The power is switched on and waiting (the Peasant's free fold until he folds, the King's protection until he picks a
+        /// card) — the gauge is spent only when it is used. Off again with <see cref="Disarm"/>, or when it is used.
+        /// </summary>
+        public bool PowerArmed { get; private set; }
+
+        /// <summary>Switches the power on (a full gauge, a power that waits for a move: the free fold, the protection).</summary>
+        public bool Arm()
+        {
+            if (!IsCharged || (Class.Ability != SinnerAbility.FreeFold && Class.Ability != SinnerAbility.Protect)) return false;
+            PowerArmed = true;
+            return true;
+        }
+
+        /// <summary>Switches the power off again; the gauge stays as it is.</summary>
+        public void Disarm() => PowerArmed = false;
+
         /// <summary>How many times the power was used, and how many cheats were warded off (the whole run).</summary>
         public int PowersUsed { get; private set; }
         public int WardsUsed { get; private set; }
@@ -117,7 +133,7 @@ namespace HellPoker.Core.Sinners
 
         public SinnerAbility Ability => Class.Ability;
 
-        /// <summary>A hand was settled: the gauge fills (a win or a loss a pip; a fold or a tie nothing), up to full.</summary>
+        /// <summary>A hand was settled: the gauge fills (a win +1, a loss +2, a fold +1, a tie nothing), up to full.</summary>
         public void HandSettled(bool folded, Game.ShowdownOutcome? outcome)
         {
             int gain = folded ? Rules.PerFold
@@ -132,6 +148,7 @@ namespace HellPoker.Core.Sinners
         {
             if (ability == SinnerAbility.None || Class.Ability != ability || !IsCharged) return false;
             Charge = 0;
+            PowerArmed = false;
             PowersUsed++;
             if (ability == SinnerAbility.Ward) WardRaised = true;
             return true;

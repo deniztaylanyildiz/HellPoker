@@ -38,6 +38,17 @@ namespace HellPoker.Presentation.Views
         private bool _selected;
         private Image _hint;
         private bool _bright;
+        private Image _pick;
+        private PickState _picking = PickState.None;
+        private static readonly Color DimTint = new Color(0.45f, 0.45f, 0.45f);
+
+        /// <summary>A power picking a card: this one may be taken (a blinking gold frame), or may not (dimmed).</summary>
+        public enum PickState
+        {
+            None,
+            Pickable,
+            Dimmed
+        }
         private Image _mark;
         private float _sheen;
 
@@ -77,6 +88,12 @@ namespace HellPoker.Presentation.Views
             _button.transition = Selectable.Transition.None;
             UiFactory.MakeClickOnly(_button);
             _button.onClick.AddListener(() => Clicked?.Invoke());
+
+            // A power picking: a two-pixel gold frame round a card it may take, blinking (no blending).
+            _pick = UiFactory.CreateImage("PickFrame", root, Palette.GoldLight);
+            _pick.raycastTarget = false;
+            _pick.rectTransform.PlaceTL(-2, -2, Size.x + 4, Size.y + 4);
+            _pick.enabled = false;
 
             // The keep hint: a gold frame one pixel round the card, behind it, glinting slowly (no blending).
             _hint = UiFactory.CreateImage("KeepHint", root, Palette.Gold);
@@ -294,6 +311,19 @@ namespace HellPoker.Presentation.Views
 
         public bool IsHinted => _hint.enabled;
 
+        /// <summary>A power picking a card: pickable (framed, blinking), dimmed, or neither.</summary>
+        public void SetPick(PickState state)
+        {
+            _picking = state;
+            _pick.enabled = state == PickState.Pickable;
+            // Dimmed by tinting what the card draws (as a locked button is), never by blending over it.
+            Color tint = state == PickState.Dimmed ? DimTint : Color.white;
+            foreach (Graphic graphic in _content.GetComponentsInChildren<Graphic>(true))
+                graphic.canvasRenderer.SetColor(tint);
+        }
+
+        public PickState Picking => _picking;
+
         /// <summary>The mark the card carries (for tests and screenshots).</summary>
         public bool HasMark => _mark != null && _mark.sprite != null;
 
@@ -302,6 +332,11 @@ namespace HellPoker.Presentation.Views
             // The false face's sheen comes and goes, very faintly (a glint, then nothing for a moment).
             if (_sheen > 0f && _mark.sprite != null)
                 _mark.enabled = Mathf.Repeat(Time.unscaledTime, 1.6f) < 1.1f;
+            if (_pick.enabled)
+            {
+                _pick.color = Mathf.Repeat(Time.unscaledTime, 0.8f) < 0.4f ? Palette.GoldLight : Palette.Gold;
+                _pick.rectTransform.PlaceTL(-2, -2 - Mathf.RoundToInt(_content.anchoredPosition.y), Size.x + 4, Size.y + 4);
+            }
             if (!_hint.enabled) return;
             _hint.color = _bright ? (Mathf.Repeat(Time.unscaledTime, 0.2f) < 0.1f ? Palette.Bone : Palette.GoldLight)
                 : Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.6f ? Palette.Gold : Palette.GoldLight;

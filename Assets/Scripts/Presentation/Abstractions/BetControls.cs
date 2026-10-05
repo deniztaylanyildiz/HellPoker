@@ -20,11 +20,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>CHECK TO DRAW may be pressed; when shown but not allowed it looks locked.</summary>
         public bool CanCheckToDraw { get; }
 
+        /// <summary>The Fold button's label when it is not the usual one (the Peasant's power on: FREE FOLD); null: FOLD.</summary>
+        public string FoldLabel { get; }
+
         public bool IsAnswer => CallLabel != null;
 
         public BetControls(bool visible, string raiseLabel, bool canRaise, bool canPass, string callLabel = null,
-            bool showCheckToDraw = false, bool canCheckToDraw = false)
+            bool showCheckToDraw = false, bool canCheckToDraw = false, string foldLabel = null)
         {
+            FoldLabel = foldLabel;
             Visible = visible;
             RaiseLabel = raiseLabel;
             CanRaise = canRaise;
@@ -36,6 +40,6 @@ namespace HellPoker.Presentation.Abstractions
 
         public static BetControls Hidden => new BetControls(false, null, false, false);
 
-        public static BetControls Answer(string callLabel) => new BetControls(true, null, false, false, callLabel);
+        public static BetControls Answer(string callLabel, string foldLabel = null) => new BetControls(true, null, false, false, callLabel, foldLabel: foldLabel);
     }
 }

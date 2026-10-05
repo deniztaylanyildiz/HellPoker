@@ -143,8 +143,21 @@ namespace HellPoker.Core.Game
         /// <summary>Why the class's power (a full charge gauge) cannot be used right now; <see cref="PowerRefusal.None"/> when it can.</summary>
         PowerRefusal WhyNoPower();
 
-        /// <summary>Uses the power: the Peasant folds this hand for nothing, the Warlock raises a ward (the King picks a card: Protect).</summary>
+        /// <summary>Uses the power at once: the Peasant folds this hand for nothing, the Warlock raises a ward (the King picks a card: Protect).</summary>
         bool UsePower();
+
+        /// <summary>Switches the power on to wait for the player's move (the Peasant's next fold is free, the King picks a card); the
+        /// Warlock's ward goes up at once. The gauge is spent only when the power is used.</summary>
+        bool ArmPower();
+
+        /// <summary>Switches a waiting power off; the gauge stays full.</summary>
+        void DisarmPower();
+
+        /// <summary>The power is switched on and waiting (it stays on through bets and turned cards until used or switched off).</summary>
+        bool PowerArmed { get; }
+
+        /// <summary>True once when a switched-on protection closed unspent because the draw passed.</summary>
+        bool TakePowerLapsed();
 
         /// <summary>While the hand is played: this card is under the King's protection — no cheat may touch it.</summary>
         bool IsPlayerCardProtected(int index);

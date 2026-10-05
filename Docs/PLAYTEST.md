@@ -81,7 +81,7 @@ Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral) · Hız ayarı
 | Büyücü (yalanı görür, Belial'de 2 kasa kartı; güç: duyurulan küçük hileyi engelle) | | | | |
 | Kral (1250 yıl, taç; güç: draw'dan önce bir kartı koru) | | | | |
 
-- Rozetteki 5 pipli gösterge (kazanılan / kaybedilen el +1, çekilme 0; dolunca parlar, "HAZIR: K") anlaşıldı mı?
+- Rozetteki 5 pipli gösterge (kazanç +1, kayıp +2, çekilme +1, beraberlik 0; dolunca parlar, "HAZIR: K"; K ile açılan güç "GÜÇ AÇIK" yazar ve kullanılana kadar açık kalır) anlaşıldı mı?
 -
 - Gücü kullanmak istediğim an kullanabildim mi? Reddedildiğinde nedeni (mesaj) anlaşılır mıydı?
 -

@@ -31,23 +31,7 @@ namespace HellPoker.Presentation
             int scale = Mathf.Max(1, windowScale);
             int width = PixelScreen.Width * scale, height = PixelScreen.Height * scale;
             Screen.SetResolution(width, height, FullScreenMode.Windowed);
-            Center(width, height);
-        }
-
-        /// <summary>The window goes to the middle of its display's work area, never outside it (where the platform allows moving it).</summary>
-        private static void Center(int width, int height)
-        {
-            try
-            {
-                DisplayInfo display = Screen.mainWindowDisplayInfo;
-                RectInt area = display.workArea.width > 0 ? display.workArea : new RectInt(0, 0, display.width, display.height);
-                (int x, int y) = WindowScales.Centered(area.x, area.y, area.width, area.height, width, height);
-                Screen.MoveMainWindowTo(display, new Vector2Int(x, y));
-            }
-            catch (System.Exception exception)
-            {
-                Debug.LogWarning($"Hell Poker: the window could not be centred ({exception.Message}).");
-            }
+            WindowCentering.Schedule(width, height);   // the whole frame to the middle of the work area, once the resize has landed
         }
     }
 }
