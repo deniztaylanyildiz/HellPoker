@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using HellPoker.Core.Betting;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Cheats;
@@ -10,9 +11,11 @@ using HellPoker.Core.Events;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
 using HellPoker.Core.Relics;
+using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Settings;
+using HellPoker.Presentation.Ui;
 using NUnit.Framework;
 
 namespace HellPoker.Core.Tests
@@ -44,14 +47,14 @@ namespace HellPoker.Core.Tests
         }
 
         private static HellPokerGame Game(string player = Flush, string house = HouseTwos, int years = 1000, IHouseBettingStrategy betting = null,
-            ICheat cheat = null, int maliceMax = 10, params string[] relics)
+            ICheat cheat = null, int maliceMax = 10, Sinner sinner = null, params string[] relics)
         {
             Dealer dealer = DealerRoster.Mammon;
             var random = new FirstChoice();
             GameRules rules = dealer.ApplyTo(new GameRules(1000, 5000, luciferGateYears: 0));
             var game = new HellPokerGame(rules, TestDecks.Stacked($"{player} {house} {Blanks}"), HandEvaluator.CreateDefault(),
                 new CardExchanger(new MaxDiscardPolicy(rules.MaxDiscards)), new HouseDrawStrategy(rules.MaxDiscards), dealer.Payouts, betting,
-                new CheatSession(cheat == null ? null : new OnlyCheat(cheat), maliceMax, random), random);
+                new CheatSession(cheat == null ? null : new OnlyCheat(cheat), maliceMax, random, sinner), random, sinner);
             if (years != 1000) game.TakeOver(years, 3);
             foreach (string id in relics) Assert.IsTrue(game.Effects.AddRelic(id));
             return game;
@@ -100,7 +103,7 @@ namespace HellPoker.Core.Tests
         public void TwoRelics_Combine_PercentsMultiply_CountsAdd()
         {
             RelicEffects both = RelicRoster.Combined(new[] { RelicIds.RustyCrown, RelicIds.ThornedRosary });
-            Assert.AreEqual(99, both.WinPercent, "110% of 90%.");
+            Assert.AreEqual(94, both.WinPercent, "105% of 90%.");
             Assert.AreEqual(1, both.MaliceExtraPerHand);
             Assert.AreEqual(125, both.SoulLossPercent);
             Assert.AreSame(RelicEffects.None, RelicRoster.Combined(null));
@@ -109,9 +112,9 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ each relic at the table
 
         [Test]
-        public void TheRustyCrown_ForgivesATenthMore_AndTheMaliceGrowsFaster()
+        public void TheRustyCrown_ForgivesATwentiethMore_AndTheMaliceGrowsFaster()
         {
-            Assert.AreEqual(Forgiven() * 110 / 100, Forgiven(RelicIds.RustyCrown));
+            Assert.AreEqual(Forgiven() * 105 / 100, Forgiven(RelicIds.RustyCrown));
 
             HellPokerGame plain = Game(cheat: new CollateralCheat());
             HellPokerGame crowned = Game(cheat: new CollateralCheat(), relics: RelicIds.RustyCrown);
@@ -134,6 +137,37 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void ACutWin_StillEndsTheLastYears()
+        {
+            // Regression: the percent was taken of a win already capped at the sentence, so 30 years left became 3, then 1,
+            // then 1 for ever (90% of 1 is 0) — with the Rosary nobody could beat Lucifer.
+            HellPokerGame rosary = Game(years: 30, relics: RelicIds.ThornedRosary);
+            PlayOut(rosary);
+            Assert.AreEqual(GamePhase.Absolved, rosary.Phase);
+            Assert.AreEqual(0, rosary.Years);
+
+            HellPokerGame charon = Game(years: 20);   // the flush wins 50: half of it still covers 20 (capped first: only 10)
+            charon.Effects.NextHand = new HandModifier(winPercent: 50);
+            PlayOut(charon);
+            Assert.AreEqual(0, charon.Years, "Charon's half win too.");
+        }
+
+        [Test]
+        public void TheOutlook_KnowsTheRelics_TheAnteAndTheLeastWin()
+        {
+            HellPokerGame plain = Game();
+            HellPokerGame coin = Game(relics: RelicIds.FerrymansCoin);
+            HellPokerGame rosary = Game(relics: RelicIds.ThornedRosary);
+
+            Assert.AreEqual(100, plain.UpcomingAnte);
+            Assert.AreEqual(80, coin.UpcomingAnte, "The DEAL button tells the ante that will be placed.");
+            Assert.AreEqual(plain.LeastYearsForgiven * 90 / 100, rosary.LeastYearsForgiven);
+            rosary.PlaceBet();
+            plain.PlaceBet();
+            Assert.AreEqual(plain.LeastYearsForgiven * 90 / 100, rosary.LeastYearsForgiven, "In the hand too.");
+        }
+
+        [Test]
         public void TheFerrymansCoin_CutsTheAnte_ButTheHouseShowsACardFewer()
         {
             HellPokerGame plain = Game();
@@ -142,7 +176,7 @@ namespace HellPoker.Core.Tests
             coin.PlaceBet();
 
             Assert.AreEqual(100, plain.Ante);
-            Assert.AreEqual(75, coin.Ante);
+            Assert.AreEqual(80, coin.Ante);
             Assert.AreEqual(2, plain.HouseCardsShown);
             Assert.AreEqual(1, coin.HouseCardsShown);
         }
@@ -214,6 +248,43 @@ namespace HellPoker.Core.Tests
             Assert.IsFalse(game.CanRedraw(chained));
         }
 
+        [Test]
+        public void TheBoneDie_CannotShakeOffAThorn()
+        {
+            HellPokerGame game = Game(Nothing, HouseFullHouse, cheat: new ThornCheat(), maliceMax: 1, relics: RelicIds.BoneDie);
+            game.PlaceBet();
+            game.CheckToDraw();   // the thorn strikes as the draw opens
+            int thorned = Enumerable.Range(0, Hand.Size).Single(game.IsPlayerCardThorned);
+
+            Assert.IsFalse(game.CanRedraw(thorned));
+            Assert.IsNull(game.Redraw(thorned));
+            Assert.IsTrue(game.CanRedraw(Enumerable.Range(0, Hand.Size).First(i => i != thorned)), "The other cards still may.");
+        }
+
+        [Test]
+        public void TheBoneDie_CannotRollAVeiledCard()
+        {
+            HellPokerGame game = Game(Nothing, HouseFullHouse, cheat: new NightVeilCheat(), maliceMax: 1, relics: RelicIds.BoneDie);
+            game.PlaceBet();      // the veil falls at the deal
+            game.CheckToDraw();
+            int veiled = Enumerable.Range(0, Hand.Size).Single(game.IsPlayerCardHidden);
+
+            Assert.IsFalse(game.CanRedraw(veiled), "A card never seen cannot be thrown back this way.");
+            Assert.AreEqual(1, game.RedrawsLeft);
+        }
+
+        [Test]
+        public void TheBoneDie_LeavesTheKingsProtectedCardAlone()
+        {
+            var sinner = new Sinner(new King());
+            HellPokerGame game = Game(Nothing, HouseFullHouse, sinner: sinner, relics: RelicIds.BoneDie);
+            game.PlaceBet();
+            Assert.IsTrue(game.Protect(0));
+
+            Assert.IsFalse(game.CanRedraw(0), "Protected from everything — the die too.");
+            Assert.IsTrue(game.CanRedraw(1));
+        }
+
         // ------------------------------------------------------------------ the offers and the save
 
         [Test]
@@ -265,16 +336,72 @@ namespace HellPoker.Core.Tests
         [TearDown]
         public void TearDown() => _presenter?.Dispose();
 
-        private void Table(EventSession events, RunArchive archive = null)
+        private void Table(EventSession events, RunArchive archive = null, Dealer finalDealer = null)
         {
             _view = new FakeTableView();
             _presenter = new TablePresenter((d, sinner) =>
             {
                 var random = new FirstChoice();
-                return _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000, luciferGateYears: 0)),
+                return _game = new HellPokerGame(d.ApplyTo(new GameRules(1000, 5000, luciferGateYears: finalDealer == null ? 0 : 250)),
                     TestDecks.Stacked($"{Nothing} {HouseFullHouse} {Blanks}"), HandEvaluator.CreateDefault(), new CardExchanger(new MaxDiscardPolicy()),
                     new HouseDrawStrategy(), d.Payouts, null, new CheatSession(null, 0, random), random, sinner);
-            }, _view, null, archive, null, events);
+            }, _view, null, archive, finalDealer, events);
+        }
+
+        [Test]
+        public void TheRelics_StayWithTheRun_AtANewTable()
+        {
+            Table(null);
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.Effects.AddRelic(RelicIds.FerrymansCoin);
+            _game.Effects.AddRelic(RelicIds.RustyCrown);
+            HellPokerGame first = _game;
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+
+            Assert.AreNotSame(first, _game, "A new table, a new game.");
+            CollectionAssert.AreEqual(new[] { RelicIds.FerrymansCoin, RelicIds.RustyCrown }, _game.Effects.Relics);
+            Assert.AreEqual(2, _view.Relics.Count);
+            _view.PressAction();
+            Assert.AreEqual(80, _game.Relic.AntePercent, "And they work there.");
+        }
+
+        [Test]
+        public void TheRelics_GoDownToLucifer_AndWorkAtHisTable()
+        {
+            Table(null, finalDealer: DealerRoster.Lucifer);
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.Effects.AddRelic(RelicIds.BoneDie);
+            _game.TakeOver(200, 3);
+
+            _presenter.SwitchTable(DealerRoster.Mammon);   // between hands below the gate: summoned
+
+            Assert.IsTrue(_game.Rules.IsFinalTable, "At Lucifer's table.");
+            CollectionAssert.AreEqual(new[] { RelicIds.BoneDie }, _game.Effects.Relics);
+            Assert.AreEqual(1, _view.Relics.Count);
+            _view.PressAction();
+            Assert.AreEqual(1, _game.RedrawsLeft, "The die rolls at his table too.");
+        }
+
+        [Test]
+        public void WithTheSoulOnTheTable_TheRelicsSpeakNoNumbers()
+        {
+            Table(new EventSession(new IHellEvent[] { new RelicEvent(EventIds.CursedChest) }, new FirstChoice(), 100, 1));
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.TakeOver(2200, 3);
+            _presenter.SwitchTable(DealerRoster.Mammon);   // the table looks again: between hands, soul on the table
+            Assert.IsNotNull(_view.Event);
+            Assert.IsFalse(Regex.IsMatch(_view.Event.Text, @"\d"), _view.Event.Text);
+
+            _view.PressEventOption(0);
+
+            Assert.AreEqual(1, _view.Relics.Count);
+            Assert.IsFalse(Regex.IsMatch(_view.Message, @"\d"), _view.Message);
+            foreach (IRelic relic in RelicRoster.All)
+            {
+                string words = UiText.RelicGift(relic.Id) + UiText.RelicCurse(relic.Id);
+                Assert.IsFalse(Regex.IsMatch(words, @"\d"), words);
+            }
         }
 
         [Test]

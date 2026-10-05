@@ -121,7 +121,15 @@ namespace HellPoker.Core.Game
 
         private int AvailableForNextHand => IsSoulAtStake ? SoulRemaining : _ledger.Years;
 
-        public int UpcomingAnte => Math.Min(Rules.Stakes.AnteFor(StakeBase), AvailableForNextHand);
+        /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
+        public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, RelicRoster.Combined(Effects.Relics)),
+            AvailableForNextHand);
+
+        /// <summary>The ante for a sentence (or soul) of <paramref name="stakeBase"/>: units an event sets, or the rule's ante
+        /// scaled by the event's and the relics' percents (rounded up, at least 1).</summary>
+        private int AnteUnder(int stakeBase, HandModifier hand, RelicEffects relic) =>
+            hand.AnteUnits > 0 ? hand.AnteUnits * Rules.Stakes.UnitFor(stakeBase)
+                : Math.Max(1, (Rules.Stakes.AnteFor(stakeBase) * hand.AntePercent * relic.AntePercent / 100 + 99) / 100);
 
         public int RaiseAmount
         {
@@ -133,8 +141,20 @@ namespace HellPoker.Core.Game
             }
         }
 
-        public int LeastYearsForgiven =>
-            Math.Min(_ledger.Years, _payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, _ledger.Years) + CrownBonus(AnteForOutlook));
+        public int LeastYearsForgiven
+        {
+            get
+            {
+                // In a hand: its own marks; between hands: the ones the next hand will be dealt under.
+                bool inHand = CurrentStake > 0;
+                int eventPercent = inHand ? ThisHand.WinPercent : (Effects.NextHand ?? HandModifier.None).WinPercent;
+                int relicPercent = (inHand ? Relic : RelicRoster.Combined(Effects.Relics)).WinPercent;
+                return Math.Min(_ledger.Years, Scaled(_payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, int.MaxValue) + CrownBonus(AnteForOutlook),
+                    eventPercent, relicPercent));
+            }
+        }
+
+        private static int Scaled(int years, int eventPercent, int relicPercent) => (int)((long)years * eventPercent / 100 * relicPercent / 100);
         public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake));
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
@@ -192,9 +212,7 @@ namespace HellPoker.Core.Game
             // The relics the run carries: their gifts and curses on every hand.
             Relic = RelicRoster.Combined(Effects.Relics);
             RedrawsLeft = Relic.RedrawsPerHand;
-            int ante = ThisHand.AnteUnits > 0 ? ThisHand.AnteUnits * Unit
-                : Math.Max(1, (Rules.Stakes.AnteFor(stakeBase) * ThisHand.AntePercent * Relic.AntePercent / 100 + 99) / 100);
-            Ante = Math.Min(ante, _handPurse);
+            Ante = Math.Min(AnteUnder(stakeBase, ThisHand, Relic), _handPurse);
             TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
             PlayerHand = _deck.DealHand();
@@ -783,11 +801,13 @@ namespace HellPoker.Core.Game
         {
             int forgiven = _payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, _ledger.Years);
             if (!_payouts.IsAbsolution(playerCategory))
-                forgiven = Math.Min(_ledger.Years, forgiven + CrownBonus(Ante));   // the King's crown
-            if (!_payouts.IsAbsolution(playerCategory))
             {
-                // An event's mark: Charon halves a win, Belial's show doubles it, the burning bridge brings the sentence down to its line.
-                forgiven = Math.Min(_ledger.Years, forgiven * ThisHand.WinPercent / 100 * Relic.WinPercent / 100);
+                // The whole win first (with the King's crown), then an event's and the relics' percents (Charon halves it, Belial's
+                // show doubles it, the Rosary takes a tenth), and only then the sentence's cap: a percent of a capped win would
+                // never bring the last years down to zero.
+                forgiven = Math.Min(_ledger.Years, Scaled(_payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, int.MaxValue) + CrownBonus(Ante),
+                    ThisHand.WinPercent, Relic.WinPercent));
+                // The burning bridge brings the sentence down to its line.
                 if (ThisHand.WinSetsYears >= 0 && _ledger.Years > ThisHand.WinSetsYears)
                     forgiven = Math.Max(forgiven, _ledger.Years - ThisHand.WinSetsYears);
             }

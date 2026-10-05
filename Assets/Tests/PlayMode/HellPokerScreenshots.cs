@@ -167,7 +167,7 @@ namespace HellPoker.PlayMode.Tests
             Press("ContinueButton");
             yield return new WaitForSeconds(0.4f);
             // An event between hands: the panel opens like a curtain (shown on the view directly: the dice decide when it comes).
-            foreach (string eventId in new[] { "lost_soul", "devils_ledger" })
+            foreach (string eventId in new[] { "lost_soul", "devils_ledger", "grave_robber", "cursed_chest" })
             {
                 string owner = eventId == "devils_ledger" ? "mammon" : eventId;
                 tableView.ShowEvent(new HellPoker.Presentation.Abstractions.EventCard(eventId, owner, HellPoker.Presentation.Ui.UiText.EventOwner(owner),
@@ -178,6 +178,18 @@ namespace HellPoker.PlayMode.Tests
                 tableView.HideEvent();
                 yield return new WaitForSeconds(0.2f);
             }
+
+            // Two cursed relics beside the portrait, the first one hovered (its name, gift and curse).
+            presenter.Game.Effects.AddRelic(HellPoker.Core.Relics.RelicIds.BoneDie);
+            presenter.Game.Effects.AddRelic(HellPoker.Core.Relics.RelicIds.RustyCrown);
+            typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+            yield return WaitForTable();
+            var relicBar = Object.FindFirstObjectByType<RelicBarView>();
+            typeof(RelicBarView).GetMethod("ShowTip", Flags).Invoke(relicBar, new object[] { 0 });
+            yield return new WaitForSeconds(0.2f);
+            yield return Shot("08g_relics");
+            typeof(RelicBarView).GetMethod("ShowTip", Flags).Invoke(relicBar, new object[] { 1 });
+            yield return Shot("08g_relics_crown");
 
             // Every hall: betting, a decision, and the final stretch (sentence cut to 200 behind the game's back).
             string[] halls = { "mammon", "belial", "lilith" };

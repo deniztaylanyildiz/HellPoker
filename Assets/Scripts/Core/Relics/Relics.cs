@@ -13,10 +13,10 @@ namespace HellPoker.Core.Relics
     {
         public static readonly RelicEffects None = new RelicEffects();
 
-        /// <summary>The ante, in percent (the Ferryman's Coin: 75).</summary>
+        /// <summary>The ante, in percent (the Ferryman's Coin: 80).</summary>
         public int AntePercent { get; }
 
-        /// <summary>What a win forgives, in percent (the Rusty Crown: 110, the Thorned Rosary: 90).</summary>
+        /// <summary>What a win forgives, in percent (the Rusty Crown: 105, the Thorned Rosary: 90).</summary>
         public int WinPercent { get; }
 
         /// <summary>House cards turned before the last decision, more or fewer (the Ferryman's Coin: −1; never below 0).</summary>
@@ -89,19 +89,20 @@ namespace HellPoker.Core.Relics
         public int ExpectedYears => 60;
     }
 
-    /// <summary>The Rusty Crown: a win forgives a tenth more — but the demon's malice grows one more every hand.</summary>
+    /// <summary>The Rusty Crown: a win forgives a twentieth more — but the demon's malice grows one more every hand.
+    /// (110% put the relics over the balance line: Lilith +3.4 with the Warlock.)</summary>
     public sealed class RustyCrown : IRelic
     {
         public string Id => RelicIds.RustyCrown;
-        public RelicEffects Effects { get; } = new RelicEffects(winPercent: 110, maliceExtraPerHand: 1);
+        public RelicEffects Effects { get; } = new RelicEffects(winPercent: 105, maliceExtraPerHand: 1);
         public int ExpectedYears => 0;
     }
 
-    /// <summary>The Ferryman's Coin: the ante is three quarters — but the House shows one card fewer.</summary>
+    /// <summary>The Ferryman's Coin: the ante is four fifths — but the House shows one card fewer. (Three quarters: see the crown.)</summary>
     public sealed class FerrymansCoin : IRelic
     {
         public string Id => RelicIds.FerrymansCoin;
-        public RelicEffects Effects { get; } = new RelicEffects(antePercent: 75, houseCardsDelta: -1);
+        public RelicEffects Effects { get; } = new RelicEffects(antePercent: 80, houseCardsDelta: -1);
         public int ExpectedYears => 20;
     }
 

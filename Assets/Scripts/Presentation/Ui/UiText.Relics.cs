@@ -23,8 +23,8 @@ namespace HellPoker.Presentation.Ui
             switch (id)
             {
                 case RelicIds.BoneDie: return L("Once a hand, before the draw, redraw a card.", "Her elde bir kez, değişten önce bir kartı yeniden çek.");
-                case RelicIds.RustyCrown: return L("A win forgives a tenth more.", "Kazanç onda bir fazla siler.");
-                case RelicIds.FerrymansCoin: return L("The ante is three quarters.", "Ante dörtte üç.");
+                case RelicIds.RustyCrown: return L("A win forgives a twentieth more.", "Kazanç yirmide bir fazla siler.");
+                case RelicIds.FerrymansCoin: return L("The ante is four fifths.", "Ante beşte dört.");
                 case RelicIds.ThornedRosary: return L("The soul burns slower when you lose.", "Kaybedince ruhun daha yavaş yanar.");
                 default: return "";
             }
@@ -66,7 +66,7 @@ namespace HellPoker.Presentation.Ui
         }
 
         public static string RelicEventTitle(string eventId) =>
-            eventId == EventIds.GraveRobber ? L("SOMETHING DUG UP", "TOPRAKTAN ÇIKAN") : L("A LID THAT WANTS OPENING", "AÇILMAK İSTEYEN KAPAK");
+            eventId == EventIds.GraveRobber ? L("SOMETHING DUG UP", "TOPRAKTAN ÇIKAN") : L("A LID THAT KNOCKS", "AÇILMAK İSTEYEN KAPAK");   // "...WANTS OPENING" ran past the panel
 
         public static string RelicEventText(string eventId) =>
             eventId == EventIds.GraveRobber

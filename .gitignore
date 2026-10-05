@@ -59,7 +59,9 @@ Thumbs.db
 /*.xml
 /*.log
 /Screenshots/
-Tools/ArtGen/__pycache__/
+# Python bytecode, anywhere (ArtGen, AudioGen, ...)
+__pycache__/
+*.pyc
 # Temporary scenes the Unity Test Runner leaves behind
 /Assets/InitTestScene*.unity*
 # Art preview pages (py Tools/ArtGen/preview.py)

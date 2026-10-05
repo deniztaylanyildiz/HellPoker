@@ -2027,3 +2027,115 @@ hızlandırmasın. Müzik / Efekt düzeyi (0-10), batchmode'da ses yok. Testler,
 - Efektler `IAudio`'ya doğrudan değil, masanın animasyon kuyruğuyla gidiyor (kazanç sesi kartlar açılmadan çalmasın); testler bunu
   `FakeTableView.Sfx` ile, müziği / kesmeyi `FakeAudio` ile görüyor.
 - Sesleri dinleyemedim: tını ve denge oyun testinde kulakla kontrol edilmeli (`generate_audio.py` sayıları değiştirip yeniden üretmek tek komut).
+---
+
+## 2026-10-05 — "Rebuild errorr": build log'undaki derleme hataları
+
+**İstek:** Önceki oturum terminal kapanınca yarıda kaldı; son commit "Day 5.01 / Rebuild errorr". Önce derleme / build hatasını bul, düzelt,
+testleri ve release build'i çalıştır, nedenini yaz.
+
+### Bulgular
+- Editör derlemesi temiz: 0 `error CS`, 0 `warning CS`. EditMode 687/688 (1 explicit), PlayMode 25/27 (2 explicit), kırmızı yok.
+- 2026-10-04 23:09'daki `build.log`'da `HellPoker.Core.Events` / `HellPoker.Core.Sinners` için `error CS0234 / CS0246` satırları vardı.
+  Ama build aynı log'da **"Build Finished, Result: Success."** ile bitmiş ve zip paketlenmiş. Hata gerçek değildi.
+- **Neden:** Bee (Unity'nin derleme sistemi) player build'de önce **bir önceki player build'in DAG'ını** (`Library/Bee/artifacts/1900b0aP.dag`)
+  kullanıyor. O build'den sonra eklenen script klasörleri (o gün Events, Sinners; bugün Relics) ilk `csc` çağrısının dosya listesinde yok,
+  derleme düşüyor (ExitCode 4). Bee değişikliği görüp DAG'ı yeniliyor, ikinci turda doğru listeyle derliyor. Yeniden ürettim: bugünkü ilk
+  build'de aynı hatalar `Core/Relics` için çıktı, sonuç yine Success; hemen ardından ikinci build 0 hata. Exe'deki `HellPoker.Core.dll`
+  emanet kodunu içeriyor (`RelicEffects`).
+- Kod değişikliği gerekmedi. CLAUDE.md'nin Komutlar bölümüne not düştüm: hüküm "Build Finished, Result" satırı ve çıkış kodu.
+- Duman testi (`HellPoker.exe -fpstour`): her ekran 60 FPS, Player.log temiz.
+
+## 2026-10-05 — İş 7/7: lanetli emanetler (kapanış)
+
+**İstek:** İş 7 kodda vardı ama kapanmamıştı (DEVLOG kaydı yoktu). CLAUDE.md'deki "Emanetler" bölümüyle karşılaştır, yarım kalanı
+tamamla; RelicTests'i doğrula / eksik testleri ekle; emanetlerle denge (3 × 3, emanetsiz haline göre ±3); `08g_relics` ve iki emanet
+olayının ekran görüntüleri (TR + EN, taşan metni kısalt); DEVLOG kaydı.
+
+### Önceki oturumda yapılmış olanlar (kodda bulunan)
+- `Core/Relics/Relics.cs`: `RelicEffects` (ante %, kazanç %, kasa kart ±, re-raise +birim, her el +kötülük, yeniden çekme, ruh kaybı %;
+  `With` = iki emanet birleşir), `IRelic`, `RelicIds`, Kemik Zar / Paslı Taç / Kayıkçı Sikkesi / Dikenli Tespih, `RelicRoster`
+  (`MaxCarried` = 2, `Find`, `Combined`).
+- `RelicEvent` (Mezar Soyguncusu, Lanetli Sandık) `EventDeck.Standard`'da; `RunEffects.AddRelic / Relics` (tekrar yok, ikiden fazla yok,
+  bilinmeyen yok), kayıt `relics` (v=4, isteğe bağlı; bozuk liste temizlenir).
+- `HellPokerGame`: `Relic` dağıtımda sabitlenir; ante, kazanç, kasa kart sayısı, re-raise, kötülük, ruh kaybı kancaları; `CanRedraw / Redraw`
+  (zincirli, dikenli, korunan, gizli, görülmemiş kart olmaz; draw'dan sonra olmaz; el başına).
+- Sunum: `RelicBarView` (20×20 kutular, hover, Kemik Zar'da kalan hak), `TablePresenter.PressRelic` (zar → kart seç → yeniden çek, tekrar tık
+  vazgeç, Refresh seçimi sıfırlar), alınca mesaj, `UiText.Relics` (iki dilde), `pixel_relics.py` → `Ui/relic_icons.png`, olay portreleri.
+- `BalanceSimulation`: emanet teklifleri olay destesinde; `HELLPOKER_RELICS` (`none` / zorla verilen id'ler); oyuncu Kemik Zar'ı draw'da atar.
+- 23:50'deki son simülasyon `HELLPOKER_RELICS=ferrymans_coin`, sadece Köylü ile koşmuştu (Mammon %85.3); tablo güncellenmemişti.
+
+### Bulunan hatalar ve düzeltmeler
+1. **Kazanç yüzdesi sınırlanmış kazanca uygulanıyordu (ciddi).** `Forgiven` önce kazancı kalan cezayla sınırlıyor, sonra olayın / emanetin
+   yüzdesini alıyordu. Dikenli Tespih (%90) ile 30 yıl kalınca 27 silinir, 3 kalınca 2, 1 kalınca 0: ceza 1'de takılıyor. Tespih'le
+   simülasyonda aklanma **%1.4 / %0.9 / %0.7**, Lucifer'e ulaşan %84 ama ilk denemede yenen %0.1. Aynı hata Kayıkçı'nın yarım kazancında da
+   vardı (tek el olduğu için görünmüyordu). Düzeltme: yüzdeler sınırsız kazanca (+ Kral'ın tacı) uygulanır, sınır en son
+   (`HellPokerGame.Scaled`). Tespih'le aklanma 72.1 / 71.2 / 41.5'e çıktı (bir lanet olarak beklenen düzey).
+2. **DEAL butonundaki ante emaneti bilmiyordu.** `UpcomingAnte` kuralın ante'sini gösteriyordu; Kayıkçı Sikkesi'yle "ANTE 100" yazıp 75 koyuyordu
+   (olayın ante'si için de aynı). Dağıtımdaki formül `AnteUnder(stakeBase, el, emanet)`'e taşındı, ikisi de onu kullanıyor.
+3. **"Win: at least" satırı** (`LeastYearsForgiven`) olayın / emanetlerin kazanç yüzdesini hiç hesaba katmıyordu: elde o elin, eller arasında
+   sıradaki elin yüzdeleriyle hesaplanıyor.
+4. **Taşan başlık:** Lanetli Sandık'ın İngilizce başlığı "A LID THAT WANTS OPENING" panelin sağ kenarını aşıyordu → "A LID THAT KNOCKS".
+   (Türkçe "AÇILMAK İSTEYEN KAPAK" sığıyor; hover kutuları iki dilde de sığıyor.)
+
+### Denge (2000 koşu × 9, olaylar ve emanetlerle)
+Emanetsiz taban (`HELLPOKER_RELICS=none`) = CLAUDE.md'deki eski tablo: Köylü 80.6 / 77.6 / 53.0, Büyücü 82.3 / 78.9 / 55.9, Kral 77.7 / 72.9 / 49.9.
+
+Tek emanet koşu başından (Köylü; Mammon / Belial / Lilith, tabana göre):
+| Emanet | Fark |
+|---|---|
+| Kemik Zar | +11.7 / +11.1 / +21.8 |
+| Paslı Taç (%110) | +2.6 / +3.6 / +3.0 |
+| Kayıkçı Sikkesi (%75) | +4.7 / +4.1 / +3.3 |
+| Dikenli Tespih (düzeltmeden sonra) | −8.5 / −6.4 / −11.5 |
+
+Hata düzeltildikten sonra emanetli tablo: Köylü +2.1 / +0.8 / +2.6, Büyücü +1.4 / +0.5 / **+3.4**, Kral +1.7 / +0.4 / +2.6 → Büyücü-Lilith sınırı aştı.
+Denenenler (Büyücü, Lilith): Kemik Zar re-raise 3 birim → 59.4 (etkisiz: re-raise ellerin %4'ünde); Kemik Zar +1 kötülük → 58.8 (ikinci bir
+lanet olurdu, tasarım değişir); **Paslı Taç %105 + Sikke ante %80 → 58.6 (seçilen)**.
+
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %81.6 (+1.0) | %78.1 (+0.5) | %54.8 (+1.8) |
+| Büyücü | %83.3 (+1.0) | %79.1 (+0.2) | %58.6 (+2.7) |
+| Kral | %78.4 (+0.7) | %73.0 (+0.1) | %51.4 (+1.5) |
+
+Oyuncu teklifleri neredeyse her zaman alıyor (Sandık 6549/6943, Soyguncu 6418/6832): `ExpectedYears` kalan emanetlerin ortalaması (+10).
+Ort. el (Köylü) ~54 / ~27 / ~31; hile / el 0.30 / 0.47 / 0.40, Lucifer 0.84.
+
+### Kararlar
+- Sayılar ayarlandı, tasarım değil: Paslı Taç kazanç %110 → **%105** ("yirmide bir fazla"), Kayıkçı Sikkesi ante %75 → **%80** ("beşte dört").
+  Kemik Zar en güçlü emanet ama ona ikinci bir lanet eklemek yerine diğer iki pozitif emaneti hafiflettim.
+- Kayıkçı'nın yarım kazancı da düzeltmeden etkilendi (artık son yılları silebiliyor); olaysız tabloya dokunmuyor.
+
+### Testler
+- `RelicTests` 15 → **23**: Kemik Zar dikenli karta, örtülü (gizli) karta ve Kral'ın koruduğu karta atılamaz; emanetler masa değişiminde
+  kalır ve orada çalışır; Lucifer'e çağrılınca kalır, zar onun masasında da atılır; ruh masadayken emanet olayı / mesajı / lütuf-lanet
+  metinlerinde rakam yok; kesilmiş kazanç son yılları siler (Tespih, Kayıkçı — regresyon); DEAL'daki ante ve "en az" satırı emanetleri bilir.
+- Ekran görüntüleri: `08f_event_grave_robber`, `08f_event_cursed_chest`, `08g_relics` (Kemik Zar hover), `08g_relics_crown` (Paslı Taç hover);
+  TR (`HELLPOKER_LANG=tr`) ve EN, `Screenshots/en`, `Screenshots/tr`.
+- **695 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.** Release build 114 MB, zip 35 MB; duman turu 60 FPS, log temiz.
+
+### Temizlik
+- `Tools/AudioGen/__pycache__/` git'ten çıkarıldı (`git rm -r --cached`); `.gitignore`'da `Tools/ArtGen/__pycache__/` yerine genel
+  `__pycache__/` ve `*.pyc`.
+
+### Açık sorular
+- Kemik Zar tek başına çok güçlü (Lilith +22). Tek emanet olarak oyunda hissedilir; oyun testinde "zar her eli kurtarıyor" denirse seçenekler:
+  sadece kart açılırken (5. karttan önce) atılabilsin, ya da el başına değil masa başına bir kez.
+- Simülasyon oyuncusu emanet tekliflerini kör kabul ediyor (beklenen değer ortalaması). Gerçek oyuncu Tespih'i istemeyebilir; teklif
+  "zarla bir emanet" olduğu için bunu bilemez. Bilinçli tercih mi, yoksa teklif emaneti önceden göstermeli mi?
+- Kemik Zar'ın rozeti el bitince 0 gösteriyor (bu elde kalan hak); sıradaki DEAL'da 1'e döner. Kafa karıştırırsa sonuç ekranında da dolu gösterilebilir.
+---
+
+## 2026-10-05 — 7 işlik oturumun kapanışı
+
+İş 1–7 tamam: dil sadece ana menüden; Quit el ortasında onay; başlık fontunda Türkçe "İ"; günahkâr sınıfları (Köylü, Büyücü, Kral);
+eller arası olaylar; ses ve müzik; lanetli emanetler. Bu oturumda ayrıca: build log'undaki sahte derleme hatalarının nedeni bulundu,
+kazanç yüzdesinin sınır sırası (Tespih / Kayıkçı) ve DEAL ante'si düzeltildi, `__pycache__` temizlendi.
+
+**Durum:** 695 EditMode + 25 PlayMode yeşil; release build 0.1.2 (sürüm numarası değişmedi) temiz.
+
+**Sıradaki adımlar:**
+- Oyun testi (Docs/PLAYTEST.md): sınıflar, olaylar, emanetler (özellikle Kemik Zar), ses dengesi kulakla.
+- Yeni test build'i için Player Settings ▸ Version'ı 0.1.3'e çıkarıp build (zip adı sürümden geliyor).
+- Açık sorular: Belial'in hilelerinin sertliği (eski), Kemik Zar'ın gücü, emanet teklifinin içeriğini gösterme.
