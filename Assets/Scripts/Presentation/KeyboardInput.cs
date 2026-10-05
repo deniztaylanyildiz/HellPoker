@@ -7,7 +7,8 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keyboard shortcuts: Esc one screen up, Alt+Enter full screen; at the table Space/Enter main action, pass or call,
-    /// R raise, D check to draw, K protect a card (the King), C call, F fold, 1-5 pick cards, H hand ranks; L the language, on the title menu only. While the table animates any of them hurries the animation instead.
+    /// R raise, D check to draw, K protect a card (the King), C call, F fold, 1-5 pick cards, H hand ranks; L the language, on the title menu only;
+    /// Q / E or the arrows switch the settings' tabs. While the table animates any of them hurries the animation instead.
     /// Nothing is read while a screen change plays.
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
@@ -43,6 +44,14 @@ namespace HellPoker.Presentation
                 // A panel over the table closes first; only then does Esc leave the table.
                 if (_menu.IsMenuOpen || !_table.CloseOverlay())
                     _menu.GoBack();
+                return;
+            }
+
+            // The settings' tabs: Q / E or the arrows walk them round.
+            if (_settings != null && _settings.IsSettingsOpen)
+            {
+                if (keyboard.qKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame) _settings.PreviousTab();
+                else if (keyboard.eKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame) _settings.NextTab();
                 return;
             }
 

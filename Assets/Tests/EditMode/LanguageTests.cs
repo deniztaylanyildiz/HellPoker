@@ -105,7 +105,9 @@ namespace HellPoker.Core.Tests
 
         private sealed class NoDisplay : IDisplayMode
         {
-            public void SetFullscreen(bool fullscreen) { }
+            public int DisplayWidth => 1920;
+            public int DisplayHeight => 1080;
+            public void Apply(bool fullscreen, int windowScale, bool fill, bool vSync) { }
         }
 
         // ------------------------------------------------------------------ the words

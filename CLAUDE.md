@@ -131,8 +131,18 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Rekorlar** (`RecordBook`, `run.records`):
   - koşu, aklanma, lanet, şeytan başına aklanma (Lucifer'de biten koşu gelinen şeytana yazılır), en hızlı aklanma;
   - Lucifer'e ulaşma, Lucifer'i yenme, en az denemede yenme, Wild Bill kaçışları (satırlar isteğe bağlı, eski defter okunur).
-- **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): müzik ve efekt ses düzeyi, animasyon hızı, tam ekran (Alt+Enter; pencere 480×270'in tam katı),
-  el rehberi, ipuçları, **dil** (`settings.language`, adıyla). Batchmode'da (testler) ayar / kayıt / rekor süreç boyu tek bir bellek deposunda
+- **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): üç sekme, sekme butonları ya da **Q / E** (sol / sağ ok) ile döner, Esc menüye döner,
+  satırlar 32 px (`SettingsView`, `SettingsPresenter.Tab`, `ISettingsCommands.NextTab / PreviousTab / IsSettingsOpen`):
+  - **OYUN:** animasyon hızı, el rehberi, ipuçları, **dil** (`settings.language`, adıyla).
+  - **GÖRÜNTÜ:** GÖRÜNTÜ MODU tam ekran (kenarlıksız) / pencere (Alt+Enter; `settings.display.mode` 0 / 1; eski `settings.fullscreen`
+    taşınır ve hâlâ yazılır); PENCERE BOYUTU OTOMATİK (varsayılan, ekranın %85'ine sığan en büyük kat) ya da ×2'den ekrana sığan en büyük
+    kata kadar (`WindowScales`: yükseklik %92 — başlık çubuğu ve görev çubuğu; sığmayan kat listede yok, kaydedilmiş ama sığmayan kat
+    otomatik sayılır; `settings.display.scale`, 0 = otomatik, 1 / bozuk → 0); tam ekranda kilitli. PİKSEL ÖLÇEĞİ TAM PİKSEL (varsayılan) /
+    EKRANI DOLDUR (`settings.display.fill`; `PixelScreen.FillScreen`: oran korunur, ölçek kesirli, pikseller hafif eşitsiz olabilir;
+    tıklama alanları canvas ölçeğiyle gelir); pencerede kilitli. DİKEY SENKRON açık / kapalı (`settings.vsync`; kapalıyken
+    `Application.targetFrameRate` = 60). `IDisplayMode` (`DisplayWidth / Height`, `Apply`) sadece görüntü ayarı değişince çağrılır;
+    editörde 1920×1080 sayılır ve pencere boyutu değişmez.
+  - **SES:** ANA SES (`settings.master`, 0-10, varsayılan 10, bozuk → 10) × MÜZİK / EFEKTLER (`IAudio.SetVolumes(master, music, sfx)`). Batchmode'da (testler) ayar / kayıt / rekor süreç boyu tek bir bellek deposunda
   (`HellPokerBootstrap.BatchStore`); PlayMode testleri her testte onu temizler.
 - **Dil** (İngilizce varsayılan, Türkçe):
   - `Ui/Lang` (`Language` enum, `Lang.Current / Set / Changed / Pick(en, tr)`). Oyuncuya görünen **her** metin `UiText`'te
@@ -313,8 +323,8 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     çalar. Müziği `MainMenuPresenter` ekrana göre seçer (menü teması / masadaki şeytanınki); çağrılma ve düşüşte `TablePresenter`.
     Atlama (`SkipAnimations` / Hurry) uzun efektleri keser (`CutLong`). Hız ayarı sesi hızlandırmaz. Her buton tıklaması `UiFactory.ButtonClicked`.
   - İçe aktarma (`HellPokerAudioImporter`): mono, Vorbis; efektler DecompressOnLoad (kalite 0.7), müzik Streaming (0.5).
-  - Ayarlar: MÜZİK / EFEKTLER (0-10, varsayılan 7, 10'dan sonra KAPALI; `settings.music`, `settings.sfx`, bozuk → 7); ayarlar ekranında
-    6. ve 7. satır.
+  - Ayarlar: ANA SES (varsayılan 10) × MÜZİK / EFEKTLER (0-10, varsayılan 7, 10'dan sonra KAPALI; `settings.music`, `settings.sfx`, bozuk → 7);
+    ayarlar ekranının SES sekmesinde.
 - **Dead Man's Hand** (A♠ A♣ 8♠ 8♣ + herhangi bir 5. kart) **yenilmez**: Royal Flush dahil her eli yener (testlerle sabit)
   ve oyuncu kazanırsa **tüm cezayı siler**. Kasa onunla kazanırsa en yüksek çarpan sayılır.
 - Standart çarpanlar: High Card/Pair ×1, Two Pair ×2, Trips ×3, Straight ×4, Flush ×5, Full House ×8, Quads ×10, Straight Flush ×15, Royal ×20.
@@ -356,7 +366,8 @@ Assets/Scripts/
                    MenuBackdrop, BackdropMotionView (katmanlar + piksel parçacıkları, kendi Canvas'ı), FpsCounter (F3, dev build),
                    SettingsView, EndScreenView, RecordsView, SinnerBadgeView / SinnerSelectView, EventPanelView, RelicBarView,
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
-    Settings/      GameSettings (+ IGuideSettings), ISettingsStore (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
+    Settings/      GameSettings (+ IGuideSettings, WindowMode), WindowScales (pencere katları, saf aritmetik), ISettingsStore
+                   (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
     Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
                    + UiText.Cheats (iki dilli), Lang (dil), LocalizedText (`Localized()`: dille değişen sabit etiket), PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
@@ -529,7 +540,7 @@ Builds\WindowsDev\HellPoker.exe -fpstour -screen-fullscreen 0 -screen-width 1920
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K kartı koru (Kral), C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (sadece ana menüde), Esc bir üst ekran,
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K kartı koru (Kral), C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (sadece ana menüde), Q / E (ya da oklar) ayar sekmeleri, Esc bir üst ekran,
 Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

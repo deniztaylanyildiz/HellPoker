@@ -2271,3 +2271,66 @@ GERI_BILDIRIM.txt'deki soruları koru, sınıf / olay / emanet (Kemik Zar) / ses
 ### Durum
 - Zip: `Builds/HellPoker-0.1.3-win64.zip`, 35.5 MB (174 dosya).
 - Testler: kod son test turundan beri değişmedi — **703 EditMode (+1 explicit) + 25 PlayMode (+2 explicit)** geçiyor.
+---
+
+## 2026-10-05 — Ayarlar: üç sekme, görüntü seçenekleri, ana ses (0.1.4)
+
+**İstek:** Ayarlar ekranına görüntü seçenekleri; oyun kurallarına ve oyun içi ekranlara dokunma. Sekmeler (buton + Q / E ya da sol / sağ ok,
+Esc geri, satırlar 32 px); GÖRÜNTÜ: pencere boyutu (ekranın sığdırabildiği en büyük kata kadar + OTOMATİK, varsayılan; sığmayan kat
+listede yok), PİKSEL ÖLÇEĞİ (tam ekranda) TAM PİKSEL (varsayılan) / EKRANI DOLDUR (ipucu: pikseller hafif eşitsiz olabilir; `PixelScreen`'e
+mod, tıklama alanları doğru kalsın), DİKEY SENKRON (kapalıyken 60 FPS); SES: ANA SES (müzik ve efekt onun çarpanı, `IAudio.SetVolumes`'a
+gitsin); kayıt `settings.display.mode / .scale (0 = otomatik) / .fill`, `settings.vsync`, `settings.master`; testler; TR / EN ekran
+görüntüleri; build (0.1.3 dağıtıldıysa 0.1.4), zip'ten duman testi; DEVLOG; CLAUDE.md. Mesaj parça parça geldi (1., 2. maddenin başı,
+5. ve 6. madde eksikti); kullanıcı: "sen nasıl uygun görüyorsan öyle yap".
+
+### Kararlar (eksik parçalar için)
+- Sekmeler: **OYUN** (hız, el rehberi, ipuçları, dil), **GÖRÜNTÜ** (görüntü modu, pencere boyutu, piksel ölçeği, dikey senkron), **SES** (ana ses,
+  müzik, efektler). Son açık sekme hatırlanır; Esc her sekmeden menüye.
+- GÖRÜNTÜ MODU: TAM EKRAN (bugünkü kenarlıksız) / PENCERE. Özel (exclusive) tam ekran eklenmedi.
+- PENCERE BOYUTU: OTOMATİK + **×2'den** sığan en büyük kata (×1 = 480×270 çok küçük). "Sığmak": genişlik ≤ ekran, yükseklik ≤ ekranın %92'si
+  (başlık + görev çubuğu); 1080p'de ×2, ×3 (×4 = ekranın kendisi, sığmaz).
+- Kilitli satırlar (soluk, basınca bir şey olmaz): tam ekranda PENCERE BOYUTU, pencerede PİKSEL ÖLÇEĞİ (pencere zaten tam kat).
+- ANA SES varsayılan **10** (eski müzik / efekt düzeyleri aynı duyulsun). 5. ve 6. madde için ek bir şey yapılmadı.
+- Sürüm **0.1.4**: 0.1.3 test belgeleriyle birlikte dağıtılmak üzere hazırlanmıştı.
+
+### Yapılanlar
+- `GameSettings`: `WindowMode` (Fullscreen / Windowed; `Fullscreen` artık ondan), `WindowScale` (0 = otomatik), `FillScreen`, `VSync`,
+  `MasterVolume`; anahtarlar `settings.display.mode / scale / fill`, `settings.vsync`, `settings.master`. Eski `settings.fullscreen` yeni anahtar
+  yokken taşınır ve hâlâ yazılır (eski build okusun). Bozuk: mod → tam ekran, kat (<2, >32) → otomatik, fill ≠ 1 → kapalı, master → 10.
+- `Settings/WindowScales` (saf aritmetik): `Largest`, `Choices`, `Auto` (eski %85 kuralı), `Resolve` (kayıtlı kat bu ekrana sığmıyorsa otomatik).
+- `IDisplayMode`: `DisplayWidth / Height` + `Apply(fullscreen, windowScale, fill, vSync)`; `UnityDisplayMode` vSync + `targetFrameRate` (kapalıyken 60),
+  `PixelScreen.FillScreen` (sadece tam ekranda), çözünürlük (editörde 1920×1080 sayılır, pencere değişmez). Presenter görüntüyü sadece bir görüntü
+  ayarı değişince uygular (otomatik ile aynı kat iki kez uygulanmaz).
+- `PixelScreen.FillScreen`: ölçek `min(w/480, h/270)` (kesirli); tıklama alanları RectTransform'larla ölçeklendiği için iki modda da doğru;
+  başka kod `Scale`'i konum hesabında kullanmıyor (kontrol edildi).
+- `IAudio.SetVolumes(master, music, sfx)`; `UnityAudio` müzik / ruh katmanı / efektleri ana sesle çarpar.
+- `ISettingsView`: sekme olayı + yeni satır olayları, `Render(SettingsScreen)` (ekranın bütün kelimeleri tek nesnede). `SettingsView`: üstte üç sekme
+  (etkin olmayan soluk), her sekme ayrı kapta, satırlar 32 px, altta "Q / E ya da ok tuşları sekmeyi değiştirir. Esc: geri.".
+- `ISettingsCommands.IsSettingsOpen / NextTab / PreviousTab`; `KeyboardInput`: ayarlar açıkken Q / E ve oklar.
+- Metinler iki dilde (`UiText`): sekmeler, GÖRÜNTÜ MODU / PENCERE, PENCERE BOYUTU / OTOMATİK / "×3  1440×810", PİKSEL ÖLÇEĞİ / TAM PİKSEL /
+  EKRANI DOLDUR, DİKEY SENKRON, ANA SES ve ipuçları. Ekran görüntüsünde PİKSEL ÖLÇEĞİ ipucu iki satıra kayıp alttaki başlığa yapışıyordu → tek satıra
+  kısaltıldı ("Tam ekranda. Doldur: pikseller hafif eşitsiz olabilir.").
+- OKUBENI.txt (ayarların üç sekmesi) ve PLAYTEST.md (ayarlar satırı) güncellendi; sürüm 0.1.4.
+
+### Testler
+- `SettingsTests` 7 → 26: kayıt / geri okuma (yeni anahtarlar, eski anahtar da yazılıyor), bozuk değerler, bozuk pencere katı (−3, 1, 99) otomatik,
+  eski `settings.fullscreen` taşınır (0 / 1), yeni anahtar eskisine üstün; sahte ekranlarla pencere listesi (1080p → oto, ×2, ×3; 1440p → ×4'e kadar;
+  4K → ×7; 1366×768 / 1280×720 → ×2; 800×600 ve 0×0 → sadece oto), otomatik = eski davranış, sığmayan kayıtlı kat otomatik; presenter: tam ekranda
+  pencere boyutu kilitli (basınca değişmez), pencerede döner (×2 → ×3 → ×4 → OTO) ve her yeni boyut uygulanır, pencerede doldur kilitli; doldur ve vSync
+  uygulanır; ana sesin çarpanı; sekmeler (buton, ileri / geri döner, ayar değişince sekme kalır); görüntü kelimeleri iki dilde; Alt+Enter.
+  (Yeniden yazarken düşen iki eski test — hız döngüsü, ipuçlarını sıfırlama — geri eklendi.)
+- `MainMenuPresenterTests`: Esc her sekmeden menüye; ayarlar kapalıyken `IsSettingsOpen` yanlış (Q / E bir şey yapmaz).
+- PlayMode `TheSettings_DisplayTab_WindowSize_IsSaved`: AYARLAR → GÖRÜNTÜ sekmesi (oyun sekmesi gizli) → PENCERE → PENCERE BOYUTU → ×2,
+  `settings.display.scale = 2` kaydedildi → GERİ.
+- Ekran görüntüleri: `01b_settings`, `01c_settings_display`, `01d_settings_sound`, TR ve EN — taşma yok.
+- **723 EditMode (+1 explicit) + 26 PlayMode (+2 explicit) geçiyor.**
+
+### Build 0.1.4
+- "Build Finished, Result: Success"; `Builds/HellPoker-0.1.4-win64.zip` 35.5 MB. Zip `Builds/Smoke-0.1.4-*` altına açıldı, oradaki exe ile `-fpstour`:
+  Player.log'da hata yok. İlk koşu "choose a demon"dan sonra ilerlemedi (240 sn'de kesildi); sonraki 4 koşu normal (her biri 44 sn, 60 FPS).
+  Olası neden: Player Settings'te `runInBackground: 0` — pencere ilk açılışta odak alamazsa oyun duraklar, tur da bekler. Kod / kural değil, ayara
+  dokunulmadı; o koşunun log'u bir sonraki açılışta üzerine yazıldı.
+
+### Açık sorular
+- `runInBackground` açılsın mı? (Arka planda müzik çalmaya devam eder; testçi alt-tab yapınca oyun durmaz.)
+- 5. ve 6. maddeler mesajda hiç gelmedi; bir şey isteniyorduysa sonra eklenir.

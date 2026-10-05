@@ -93,11 +93,12 @@ namespace HellPoker.Presentation
                     source.Stop();
         }
 
-        public void SetVolumes(float music, float sfx)
+        public void SetVolumes(float master, float music, float sfx)
         {
-            _sfxVolume = Mathf.Clamp01(sfx);
-            _music.volume = Mathf.Clamp01(music);
-            _soul.volume = Mathf.Clamp01(music);
+            float all = Mathf.Clamp01(master);
+            _sfxVolume = all * Mathf.Clamp01(sfx);
+            _music.volume = all * Mathf.Clamp01(music);
+            _soul.volume = all * Mathf.Clamp01(music);
         }
     }
 }

@@ -297,6 +297,29 @@ namespace HellPoker.Presentation.Ui
         public static string SettingSpeedHint => L("Any key or click also hurries an animation along.", "Herhangi bir tuş ya da tık da animasyonu hızlandırır.");
         public static string SettingFullscreen => L("FULL SCREEN", "TAM EKRAN");
         public static string SettingFullscreenHint => L("Alt+Enter switches at any time.", "Alt+Enter ile her an değişir.");
+
+        public static string SettingsTabGame => L("GAME", "OYUN");
+        public static string SettingsTabDisplay => L("DISPLAY", "GÖRÜNTÜ");
+        public static string SettingsTabSound => L("SOUND", "SES");
+        public static string SettingsTabsHint => L("Q / E or the arrow keys switch tabs. Esc: back.", "Q / E ya da ok tuşları sekmeyi değiştirir. Esc: geri.");
+
+        public static string SettingWindowMode => L("DISPLAY MODE", "GÖRÜNTÜ MODU");
+        public static string WindowModeWindow => L("WINDOW", "PENCERE");
+        public static string SettingWindowScale => L("WINDOW SIZE", "PENCERE BOYUTU");
+        public static string SettingWindowScaleHint => L("In a window only: multiples of 480×270 that fit your display.",
+            "Sadece pencerede: ekranına sığan 480×270 katları.");
+        public static string WindowScaleAuto => L("AUTO", "OTOMATİK");
+        /// <summary>A window size: {0} the multiple, {1}×{2} the pixels.</summary>
+        public static string WindowScaleFormat => L("×{0}  {1}×{2}", "×{0}  {1}×{2}");
+        public static string SettingPixelScale => L("PIXEL SCALE", "PİKSEL ÖLÇEĞİ");
+        public static string SettingPixelScaleHint => L("Full screen only. Fill: pixels may be slightly uneven.",
+            "Tam ekranda. Doldur: pikseller hafif eşitsiz olabilir.");
+        public static string PixelScaleWhole => L("WHOLE PIXELS", "TAM PİKSEL");
+        public static string PixelScaleFill => L("FILL SCREEN", "EKRANI DOLDUR");
+        public static string SettingVSync => L("VERTICAL SYNC", "DİKEY SENKRON");
+        public static string SettingVSyncHint => L("Off: the frame rate is held at 60.", "Kapalıyken kare hızı 60'a sabitlenir.");
+        public static string SettingMaster => L("MASTER VOLUME", "ANA SES");
+        public static string SettingMasterHint => L("Music and effects are each a share of it.", "Müzik ve efektler bunun payıdır.");
         public static string SettingHandGuide => L("HAND GUIDE", "EL REHBERİ");
         public static string SettingHandGuideHint => L("Names your hand as it stands and hints which cards to keep.",
             "Elinin adını söyler, hangi kartları tutacağını gösterir.");

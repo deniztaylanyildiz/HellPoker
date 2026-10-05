@@ -73,6 +73,30 @@ namespace HellPoker.PlayMode.Tests
             Press("MenuLanguageButton");
             Assert.AreEqual("NEW GAME", Find<Button>("NewGameButton").GetComponentInChildren<Text>().text);
         }
+
+        [UnityTest]
+        public IEnumerator TheSettings_DisplayTab_WindowSize_IsSaved()
+        {
+            Press("SettingsButton");
+            yield return new WaitForSeconds(0.4f);
+            Assert.IsFalse(IsActive("WindowScaleButton"), "The settings open on the game tab.");
+
+            Press("SettingsTabDisplay");
+            Assert.IsTrue(IsActive("WindowScaleButton"));
+            Assert.IsFalse(IsActive("SpeedButton"), "One tab at a time.");
+
+            Press("FullscreenButton");   // a window: the size row comes alive (the editor's Game view keeps its size)
+            Assert.AreEqual(1, HellPokerBootstrap.BatchStore.GetInt("settings.display.mode", -1));
+            Press("WindowScaleButton");
+
+            Assert.AreEqual(2, HellPokerBootstrap.BatchStore.GetInt("settings.display.scale", -1), "Saved.");
+            StringAssert.StartsWith("×2", Find<Button>("WindowScaleButton").GetComponentInChildren<Text>().text);
+
+            Press("SettingsBackButton");
+            yield return new WaitForSeconds(0.4f);
+            Assert.IsTrue(Object.FindFirstObjectByType<MainMenuView>().IsVisible);
+        }
+
         [UnityTest]
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {

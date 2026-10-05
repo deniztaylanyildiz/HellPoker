@@ -39,6 +39,11 @@ namespace HellPoker.PlayMode.Tests
             Press("SettingsButton");
             yield return new WaitForSeconds(0.4f);
             yield return Shot("01b_settings");
+            Press("SettingsTabDisplay");
+            yield return Shot("01c_settings_display");
+            Press("SettingsTabSound");
+            yield return Shot("01d_settings_sound");
+            Press("SettingsTabGame");
             Press("SettingsBackButton");
             yield return new WaitForSeconds(0.4f);
 

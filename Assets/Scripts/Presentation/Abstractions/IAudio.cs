@@ -19,8 +19,8 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Animations were hurried along: long effects (the gong, the summons...) stop with them.</summary>
         void CutLong();
 
-        /// <summary>Volumes, 0 (silent) to 1.</summary>
-        void SetVolumes(float music, float sfx);
+        /// <summary>Volumes, 0 (silent) to 1. The music and the effects are each multiplied by <paramref name="master"/>.</summary>
+        void SetVolumes(float master, float music, float sfx);
     }
 
     /// <summary>The effects (and the menu's music) by id: the file names under Resources/Audio.</summary>
@@ -57,6 +57,6 @@ namespace HellPoker.Presentation.Abstractions
         public void PlayMusic(string trackId) { }
         public void SetSoulLayer(bool on) { }
         public void CutLong() { }
-        public void SetVolumes(float music, float sfx) { }
+        public void SetVolumes(float master, float music, float sfx) { }
     }
 }

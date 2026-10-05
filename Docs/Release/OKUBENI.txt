@@ -46,7 +46,9 @@ KONTROLLER
   Alt+Enter       tam ekran aç / kapat
 
   Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
-  Ayarlardan (SETTINGS / AYARLAR) animasyon hızını, müzik ve efekt ses düzeyini değiştirebilirsin.
+  Ayarlarda (SETTINGS / AYARLAR) üç sekme var, Q / E ya da ok tuşlarıyla geçersin:
+    OYUN: animasyon hızı, el rehberi, ipuçları, dil · GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği
+    (ekranı doldur), dikey senkron · SES: ana ses, müzik, efektler.
   Kemik Zar emanetini taşıyorsan: zarın kutusuna tıkla, sonra yeniden çekmek istediğin karta tıkla.
   Fareyle de oynanır: butonlara ve kartlara tıkla.
 

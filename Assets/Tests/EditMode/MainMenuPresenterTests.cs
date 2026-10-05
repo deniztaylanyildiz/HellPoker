@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HellPoker.Core.Dealers;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Abstractions;
+using HellPoker.Presentation.Settings;
 using NUnit.Framework;
 
 namespace HellPoker.Core.Tests
@@ -191,36 +192,42 @@ namespace HellPoker.Core.Tests
         internal sealed class FakeSettingsView : ISettingsView
         {
             public bool IsVisible { get; private set; }
-            public string Speed { get; private set; }
-            public bool Fullscreen { get; private set; }
-            public bool HandGuide { get; private set; }
-            public bool TipsLeft { get; private set; }
 
+            /// <summary>The last screen rendered.</summary>
+            public SettingsScreen Screen { get; private set; }
+            public string Speed => Screen?.Speed;
+            public bool Fullscreen => Screen != null && Screen.Fullscreen;
+            public bool HandGuide => Screen != null && Screen.HandGuide;
+            public bool TipsLeft => Screen != null && Screen.TipsLeft;
+            public string Music => Screen?.Music;
+            public string SfxVolume => Screen?.Sfx;
+            public string Master => Screen?.Master;
+            public string Language => Screen?.Language;
+            public SettingsTab Tab => Screen?.Tab ?? SettingsTab.Game;
+
+            public event Action<SettingsTab> TabPressed;
             public event Action SpeedPressed;
             public event Action FullscreenPressed;
+            public event Action WindowScalePressed;
+            public event Action PixelScalePressed;
+            public event Action VSyncPressed;
             public event Action HandGuidePressed;
             public event Action ResetTipsPressed;
             public event Action BackPressed;
             public event Action LanguagePressed;
+            public event Action MasterPressed;
             public event Action MusicPressed;
             public event Action SfxPressed;
             public void PressMusic() => MusicPressed?.Invoke();
             public void PressSfx() => SfxPressed?.Invoke();
-            public string Music { get; private set; }
-            public string SfxVolume { get; private set; }
-            public string Language { get; private set; }
+            public void PressMaster() => MasterPressed?.Invoke();
             public void PressLanguage() => LanguagePressed?.Invoke();
+            public void PressTab(SettingsTab tab) => TabPressed?.Invoke(tab);
+            public void PressWindowScale() => WindowScalePressed?.Invoke();
+            public void PressPixelScale() => PixelScalePressed?.Invoke();
+            public void PressVSync() => VSyncPressed?.Invoke();
 
-            public void Render(string speed, bool fullscreen, bool handGuide, bool tipsLeft, string language, string music, string sfx)
-            {
-                Music = music;
-                SfxVolume = sfx;
-                Language = language;
-                Speed = speed;
-                Fullscreen = fullscreen;
-                HandGuide = handGuide;
-                TipsLeft = tipsLeft;
-            }
+            public void Render(SettingsScreen screen) => Screen = screen;
 
             public void Show() => IsVisible = true;
             public void Hide() => IsVisible = false;
@@ -609,6 +616,25 @@ namespace HellPoker.Core.Tests
 
             Assert.IsFalse(_settings.IsVisible);
             Assert.IsTrue(_menu.IsVisible);
+        }
+
+        [Test]
+        public void Escape_OnAnySettingsTab_ReturnsToMenu_AndTheTabsWaitForTheScreen()
+        {
+            using var tabs = new SettingsPresenter(new GameSettings(new MemoryStore()), _settings, new SettingsTests.FakeDisplay());
+            Assert.IsFalse(tabs.IsSettingsOpen, "Q / E do nothing while the settings are closed.");
+            _menu.PressSettings();
+            Assert.IsTrue(tabs.IsSettingsOpen);
+
+            tabs.NextTab();
+            tabs.NextTab();
+            Assert.AreEqual(SettingsTab.Sound, _settings.Tab);
+
+            _presenter.GoBack();
+
+            Assert.IsFalse(_settings.IsVisible, "Esc leaves the settings from any tab.");
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsFalse(tabs.IsSettingsOpen);
         }
 
         [Test]

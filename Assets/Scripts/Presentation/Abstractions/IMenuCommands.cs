@@ -28,5 +28,14 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>L on the title menu, or a language button (the menu's corner, the settings row): the next language, saved.</summary>
         void CycleLanguage();
+
+        /// <summary>True while the settings screen is up (Q / E and the arrows switch its tabs).</summary>
+        bool IsSettingsOpen { get; }
+
+        /// <summary>E or the right arrow: the next tab (round and round).</summary>
+        void NextTab();
+
+        /// <summary>Q or the left arrow: the previous tab.</summary>
+        void PreviousTab();
     }
 }

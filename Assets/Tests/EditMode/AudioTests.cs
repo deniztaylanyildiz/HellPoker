@@ -34,14 +34,16 @@ namespace HellPoker.Core.Tests
             public int Cuts { get; private set; }
             public float MusicVolume { get; private set; } = -1f;
             public float SfxVolume { get; private set; } = -1f;
+            public float MasterVolume { get; private set; } = -1f;
 
             public void PlaySfx(string id) => Sfx.Add(id);
             public void PlayMusic(string trackId) => Music.Add(trackId);
             public void SetSoulLayer(bool on) => SoulLayer = on;
             public void CutLong() => Cuts++;
 
-            public void SetVolumes(float music, float sfx)
+            public void SetVolumes(float master, float music, float sfx)
             {
+                MasterVolume = master;
                 MusicVolume = music;
                 SfxVolume = sfx;
             }
@@ -118,7 +120,9 @@ namespace HellPoker.Core.Tests
 
         private sealed class NoDisplay : IDisplayMode
         {
-            public void SetFullscreen(bool fullscreen) { }
+            public int DisplayWidth => 1920;
+            public int DisplayHeight => 1080;
+            public void Apply(bool fullscreen, int windowScale, bool fill, bool vSync) { }
         }
 
         // ------------------------------------------------------------------ at the table

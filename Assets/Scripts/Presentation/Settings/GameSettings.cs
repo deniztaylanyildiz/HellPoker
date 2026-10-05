@@ -13,8 +13,18 @@ namespace HellPoker.Presentation.Settings
         VeryFast
     }
 
+    /// <summary>How the game sits on the display (saved as its number: "settings.display.mode").</summary>
+    public enum WindowMode
+    {
+        /// <summary>Covering the display, borderless.</summary>
+        Fullscreen = 0,
+
+        /// <summary>A window at a whole multiple of 480×270.</summary>
+        Windowed = 1
+    }
+
     /// <summary>
-    /// The player's preferences: animation speed, full screen, the hand guide (current hand name and draw hints), which
+    /// The player's preferences: animation speed, the display (mode, window scale, fill, vertical sync), the volumes, the hand guide (current hand name and draw hints), which
     /// first-game tips were already shown, and the language (applied to <see cref="Lang"/> on load and on every change). Loads from and saves to an <see cref="ISettingsStore"/>; a missing or garbled
     /// value falls back to its default.
     /// </summary>
@@ -27,6 +37,17 @@ namespace HellPoker.Presentation.Settings
         private const string LanguageKey = "settings.language";
         private const string MusicKey = "settings.music";
         private const string SfxKey = "settings.sfx";
+        private const string MasterKey = "settings.master";
+        private const string WindowModeKey = "settings.display.mode";
+        private const string WindowScaleKey = "settings.display.scale";
+        private const string FillKey = "settings.display.fill";
+        private const string VSyncKey = "settings.vsync";
+
+        /// <summary>A window's scale: 0 is automatic (the largest multiple that fits comfortably), otherwise ×this.</summary>
+        public const int AutoWindowScale = 0;
+
+        /// <summary>No display is this big; a larger saved scale is garbage.</summary>
+        private const int MaxSavedWindowScale = 32;
 
         /// <summary>Volumes go from 0 (silent) to this.</summary>
         public const int MaxVolume = 10;
@@ -39,7 +60,21 @@ namespace HellPoker.Presentation.Settings
         private readonly HashSet<string> _tipsSeen = new HashSet<string>();
 
         public AnimationSpeed Speed { get; private set; } = AnimationSpeed.Normal;
-        public bool Fullscreen { get; private set; } = true;
+        public WindowMode WindowMode { get; private set; } = WindowMode.Fullscreen;
+        public bool Fullscreen => WindowMode == WindowMode.Fullscreen;
+
+        /// <summary>The window's scale (×2, ×3...), or <see cref="AutoWindowScale"/>. Kept while full screen, used in a window.</summary>
+        public int WindowScale { get; private set; } = AutoWindowScale;
+
+        /// <summary>Full screen fills the display keeping the shape (pixels may be slightly uneven) instead of a whole-number
+        /// scale with black bars.</summary>
+        public bool FillScreen { get; private set; }
+
+        /// <summary>Vertical sync; without it the frame rate is held at 60.</summary>
+        public bool VSync { get; private set; } = true;
+
+        /// <summary>The master volume: music and effects are each a share of it.</summary>
+        public int MasterVolume { get; private set; } = MaxVolume;
         public bool HandGuide { get; private set; } = true;
         public IReadOnlyCollection<string> TipsSeen => _tipsSeen;
         public Language Language { get; private set; } = Language.English;
@@ -50,6 +85,26 @@ namespace HellPoker.Presentation.Settings
         public void CycleMusic() => Set(() => MusicVolume = (MusicVolume + 1) % (MaxVolume + 1));
 
         public void CycleSfx() => Set(() => SfxVolume = (SfxVolume + 1) % (MaxVolume + 1));
+
+        public void CycleMaster() => Set(() => MasterVolume = (MasterVolume + 1) % (MaxVolume + 1));
+
+        /// <summary>
+        /// The next window scale among <paramref name="choices"/> (what the display fits: automatic first, then ×2, ×3...). A saved
+        /// scale the display no longer fits counts as automatic.
+        /// </summary>
+        public void CycleWindowScale(IReadOnlyList<int> choices)
+        {
+            if (choices == null || choices.Count == 0) return;
+            int at = -1;
+            for (int i = 0; i < choices.Count; i++)
+                if (choices[i] == WindowScale) at = i;
+            int next = choices[(at + 1) % choices.Count];
+            if (next != WindowScale) Set(() => WindowScale = next);
+        }
+
+        public void ToggleFill() => Set(() => FillScreen = !FillScreen);
+
+        public void ToggleVSync() => Set(() => VSync = !VSync);
 
         /// <summary>Raised after any setting changed (and was saved).</summary>
         public event Action Changed;
@@ -91,11 +146,11 @@ namespace HellPoker.Presentation.Settings
 
         public void CycleSpeed() => Set(() => Speed = (AnimationSpeed)(((int)Speed + 1) % 3));
 
-        public void ToggleFullscreen() => Set(() => Fullscreen = !Fullscreen);
+        public void ToggleFullscreen() => SetFullscreen(!Fullscreen);
 
         public void SetFullscreen(bool fullscreen)
         {
-            if (Fullscreen != fullscreen) Set(() => Fullscreen = fullscreen);
+            if (Fullscreen != fullscreen) Set(() => WindowMode = fullscreen ? WindowMode.Fullscreen : WindowMode.Windowed);
         }
 
         public void ToggleHandGuide() => Set(() => HandGuide = !HandGuide);
@@ -121,13 +176,21 @@ namespace HellPoker.Presentation.Settings
         }
 
         /// <summary>A saved volume, or the default when it is out of range.</summary>
-        private static int Volume(int saved) => saved >= 0 && saved <= MaxVolume ? saved : DefaultVolume;
+        private static int Volume(int saved, int fallback = DefaultVolume) => saved >= 0 && saved <= MaxVolume ? saved : fallback;
 
         private void Load()
         {
             int speed = _store.GetInt(SpeedKey, (int)AnimationSpeed.Normal);
             Speed = Enum.IsDefined(typeof(AnimationSpeed), speed) ? (AnimationSpeed)speed : AnimationSpeed.Normal;
-            Fullscreen = _store.GetInt(FullscreenKey, 1) != 0;
+            // The display mode; an older save only knew "settings.fullscreen" (1 / 0), and that carries over.
+            int mode = _store.GetInt(WindowModeKey, -1);
+            WindowMode = mode == -1 ? (_store.GetInt(FullscreenKey, 1) != 0 ? WindowMode.Fullscreen : WindowMode.Windowed)
+                : Enum.IsDefined(typeof(WindowMode), mode) ? (WindowMode)mode : WindowMode.Fullscreen;
+            int scale = _store.GetInt(WindowScaleKey, AutoWindowScale);
+            WindowScale = scale >= 2 && scale <= MaxSavedWindowScale ? scale : AutoWindowScale;
+            FillScreen = _store.GetInt(FillKey, 0) == 1;
+            VSync = _store.GetInt(VSyncKey, 1) != 0;
+            MasterVolume = Volume(_store.GetInt(MasterKey, MaxVolume), MaxVolume);
             HandGuide = _store.GetInt(HandGuideKey, 1) != 0;
             MusicVolume = Volume(_store.GetInt(MusicKey, DefaultVolume));
             SfxVolume = Volume(_store.GetInt(SfxKey, DefaultVolume));
@@ -148,7 +211,12 @@ namespace HellPoker.Presentation.Settings
         private void Save()
         {
             _store.SetInt(SpeedKey, (int)Speed);
-            _store.SetInt(FullscreenKey, Fullscreen ? 1 : 0);
+            _store.SetInt(FullscreenKey, Fullscreen ? 1 : 0);   // still written: an older build reads only this
+            _store.SetInt(WindowModeKey, (int)WindowMode);
+            _store.SetInt(WindowScaleKey, WindowScale);
+            _store.SetInt(FillKey, FillScreen ? 1 : 0);
+            _store.SetInt(VSyncKey, VSync ? 1 : 0);
+            _store.SetInt(MasterKey, MasterVolume);
             _store.SetInt(HandGuideKey, HandGuide ? 1 : 0);
             _store.SetString(LanguageKey, Language.ToString());
             _store.SetInt(MusicKey, MusicVolume);

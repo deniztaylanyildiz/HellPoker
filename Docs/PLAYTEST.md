@@ -118,6 +118,8 @@ Mezar Soyguncusu, Lanetli Sandık):
 -
 - Efektler (dağıtma, çevirme, fiş, kazanç / kayıp, mühür gongu, hile, geri tepme): rahatsız eden ya da çok sessiz kalan?
 -
+- Ayarlar (sekmeler, Q / E; görüntü modu, pencere boyutu, EKRANI DOLDUR, dikey senkron, ana ses): hepsi beklediğim gibi çalıştı mı?
+-
 - Oynadığım dil; garip / bozuk okunan cümle (ekran ve tam metin):
 -
 -
