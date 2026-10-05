@@ -171,6 +171,7 @@ namespace HellPoker.Core.Tests
                             }
                             HellPokerGame previous = game;
                             sinner.SitDown();   // a new table: a per-table ability is full again
+                            effects.SitDown();  // and the Bone Die's roll
                             game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings, sinner: sinner);
                             game.UseEffects(effects);
                             game.TakeOver(years, played);
@@ -317,11 +318,15 @@ namespace HellPoker.Core.Tests
             return reRaised;
         }
 
-        /// <summary>The Bone Die, at the draw: the lowest card that pairs nothing goes back first (it would be thrown anyway).</summary>
+        /// <summary>
+        /// The Bone Die (once a table), at the draw, kept for a hand worth helping: a pair or better. The lowest seen card that
+        /// pairs nothing goes back (it would be thrown anyway).
+        /// </summary>
         private static void RollTheBoneDie(HellPokerGame game)
         {
-            if (game.RedrawsLeft <= 0) return;
-            var paired = new HashSet<Rank>(Enumerable.Range(0, Hand.Size).GroupBy(i => game.PlayerHand[i].Rank).Where(g => g.Count() >= 2).Select(g => g.Key));
+            if (game.RedrawsLeft <= 0 || Strength(game) < HandCategory.OnePair) return;
+            var paired = new HashSet<Rank>(Enumerable.Range(0, Hand.Size).Where(i => !game.IsPlayerCardHidden(i))
+                .GroupBy(i => game.PlayerHand[i].Rank).Where(g => g.Count() >= 2).Select(g => g.Key));
             int[] lone = Enumerable.Range(0, Hand.Size).Where(i => game.CanRedraw(i) && !paired.Contains(game.PlayerHand[i].Rank))
                 .OrderBy(i => game.PlayerHand[i].Rank).ToArray();
             if (lone.Length > 0) game.Redraw(lone[0]);

@@ -41,8 +41,8 @@ namespace HellPoker.Core.Game
         /// <summary>The relics' combined effects on this hand (fixed at the deal).</summary>
         public RelicEffects Relic { get; private set; } = RelicEffects.None;
 
-        /// <summary>Cards that may still be redrawn this hand (the Bone Die).</summary>
-        public int RedrawsLeft { get; private set; }
+        /// <summary>Cards that may still be redrawn at this table (the Bone Die; the run's, full again at a new table).</summary>
+        public int RedrawsLeft => Effects.RedrawsLeft;
 
         public bool CanRedraw(int index)
         {
@@ -56,8 +56,7 @@ namespace HellPoker.Core.Game
         /// <summary>The Bone Die: the card goes back, the next card of the deck takes its place. Returns the new card, or null.</summary>
         public Card? Redraw(int index)
         {
-            if (!CanRedraw(index)) return null;
-            RedrawsLeft--;
+            if (!CanRedraw(index) || !Effects.SpendRedraw()) return null;
             Card card = _deck.Draw();
             PlayerHand = PlayerHand.With(index, card);
             return card;
@@ -211,7 +210,6 @@ namespace HellPoker.Core.Game
             Effects.NextHand = HandModifier.None;
             // The relics the run carries: their gifts and curses on every hand.
             Relic = RelicRoster.Combined(Effects.Relics);
-            RedrawsLeft = Relic.RedrawsPerHand;
             Ante = Math.Min(AnteUnder(stakeBase, ThisHand, Relic), _handPurse);
             TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
@@ -819,7 +817,6 @@ namespace HellPoker.Core.Game
         private void ClearHand()
         {
             ThisHand = HandModifier.None;
-            RedrawsLeft = 0;
             PlayerHand = null;
             HouseHand = null;
             Unit = 0;

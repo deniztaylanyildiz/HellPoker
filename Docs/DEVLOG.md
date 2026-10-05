@@ -2139,3 +2139,59 @@ kazanç yüzdesinin sınır sırası (Tespih / Kayıkçı) ve DEAL ante'si düze
 - Oyun testi (Docs/PLAYTEST.md): sınıflar, olaylar, emanetler (özellikle Kemik Zar), ses dengesi kulakla.
 - Yeni test build'i için Player Settings ▸ Version'ı 0.1.3'e çıkarıp build (zip adı sürümden geliyor).
 - Açık sorular: Belial'in hilelerinin sertliği (eski), Kemik Zar'ın gücü, emanet teklifinin içeriğini gösterme.
+---
+
+## 2026-10-05 — Kemik Zar zayıflatıldı (masa başına 1) ve 0.1.3 build'i
+
+**İstek:** Kemik Zar tek başına çok güçlü (Köylü: Lilith +21.8, Mammon / Belial +11). Zayıflat. (1) A: sadece kartlar açılırken
+(5. kart görünmeden) atılabilsin; (2) Lilith'te fark hâlâ +8 ya da üstündeyse A'yı geri al, B: masa başına 1 kez (yeni masada ve
+Lucifer'e çağrılınca dolar), kalan hak kayda (v=4 isteğe bağlı anahtar, eski kayıtta dolu). RelicTests'e yeni kuralın testleri; tam 3 × 3
+denge, CLAUDE.md; sürüm 0.1.3, release build, zip'ten açıp duman testi, Player.log; build hükmü "Build Finished, Result" satırından.
+(Not: 1. maddenin metni bana ulaşmadı; A'yı önceki kayıttaki açık sorudaki seçenek olarak uyguladım. 3. maddenin sonu kesikti:
+"hiçbir hücre" → emanetsiz haline göre ±3'ten fazla oynamasın diye okudum.)
+
+### A: sadece kartlar açılırken — yetmedi, geri alındı
+- `CanRedraw` yalnız `PlayerReveal`'da, 5 kart açılmadan; simülasyon oyuncusu son fırsatta (4 kart açık) gördüğü kartlardan eşleşmeyen en
+  düşüğünü atıyor. Köylü, Kemik Zar baştan: **91.9 / 86.8 / 68.7 → +11.3 / +9.2 / +15.7**. Lilith +15.7 ≥ 8 → A geri alındı.
+  Gücün kaynağı bilgi değil, fazladan kart değişimi: 4 kart görmek ile 5 kart görmek arasında fark yok.
+
+### B: masa başına 1 kez (seçilen)
+- Core: `RelicEffects.RedrawsPerHand` → `RedrawsPerTable`. Hak koşuya ait: `RunEffects.RedrawsLeft`, `SitDown()` (yeni masada doldurur),
+  `SpendRedraw()`; `AddRelic` yeni zarı dolu getirir; `Restore(..., redrawsLeft)` (-1 = dolu). `HellPokerGame.RedrawsLeft` buradan okur,
+  elde artık sıfırlanmaz / dolmaz. Zar yine draw'dan önce (kart açılırken ya da draw ekranında) atılır.
+- Presenter: masa değişimi, Lucifer'e çağrılma ve düşüş `_effects.SitDown()` (sınıfın `SitDown`'ı ile aynı yerlerde). Rozet bu masada
+  kalan hakkı gösteriyor (el bitince "0"ın kafa karıştırma sorunu da gitti: hak gerçekten 0).
+- Kayıt: `relics.redraws` (v=4, isteğe bağlı; sadece emanet varken yazılır; yoksa dolu). Kapatıp açmak hakkı doldurmaz.
+- Metinler (iki dilde): "Once a table, before the draw, redraw a card." / "Masa başına bir kez, değişten önce bir kartı yeniden çek.";
+  uyarı "rolls once a table (a new table fills it)" / "masa başına bir kez (yeni masada dolar)".
+- Simülasyon oyuncusu tek hakkı saklıyor: draw'da, çift ya da daha iyi bir elde atıyor. `BoneDie.ExpectedYears` 60 → 25.
+- Ölçüm (Köylü, Kemik Zar baştan): **82.3 / 80.2 / 56.9 → +1.7 / +2.6 / +3.9** (diğer emanetlerle aynı düzey).
+
+### Denge (2000 koşu × 9, olaylar ve emanetlerle; parantezde emanetsiz tabana göre)
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %79.4 (−1.2) | %77.6 (0.0) | %51.1 (−1.9) |
+| Büyücü | %82.4 (+0.1) | %78.7 (−0.2) | %55.9 (0.0) |
+| Kral | %77.0 (−0.7) | %72.2 (−0.7) | %49.1 (−0.8) |
+
+Hiçbir hücre ±3'ü aşmıyor. Emanetler artık ortalamada hafif eksi (Tespih'in laneti ağır basıyor); oyuncu teklifleri ~%85 alıyor
+(Sandık 5986/7032, Soyguncu 5752/6960; zar bir kez alınınca kalanların beklenen değeri eksiye düşüyor, ikinci teklifi reddediyor).
+
+### Testler
+- `RelicTests` 23 → **26**: zar bir kez atılınca masa boyunca harcanmış (sonraki eller dolmaz), atılmayan hak sonraki ele kalır,
+  `SitDown` doldurur (emanetsiz koşuda 0); masada: at → sonraki elde "once a table" → kayıt `relics.redraws=0` → devamda hâlâ 0 →
+  yeni masada 1; Lucifer'e çağrılınca dolu; kayıt gidiş-dönüş, anahtarı olmayan eski kayıtta dolu, zarsız kayıtta sayı anlamsız.
+- **698 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+
+### 0.1.3 build'i
+- `bundleVersion` 0.1.2 → **0.1.3**. `HellPokerBuild.Windows`: "Build Finished, Result: Success", 114 MB, `Builds/HellPoker-0.1.3-win64.zip` 35 MB
+  (bu sefer Bee'nin ilk tur CS satırları da yok: yeni klasör eklenmedi).
+- Zip açıldı (`HellPoker-0.1.3/`: exe, _Data, MonoBleedingEdge, D3D12, OKUBENI.txt, GERI_BILDIRIM.txt) ve oradaki exe ile `-fpstour`:
+  Player.log'da hata / istisna yok. İlk açılışta menüde 4 takılma (en yavaş 8.6 FPS) ve salonlarda birer tane; ikinci açılışta her ekran
+  60.0, 0 takılma → yeni açılmış klasörün soğuk açılışı (diskten ilk okuma), oyunla ilgili değil.
+
+### Açık sorular
+- 1. maddenin (A) tam metni ulaşmadı; yorumum yanlışsa söyle. Sonuç değişmez: A ölçüldü, yetmedi, B uygulandı.
+- Kemik Zar'ın laneti (kasa re-raise'i 2 birim) simülasyonda neredeyse etkisiz (re-raise ellerin ~%4'ü). Masa başına tek hakla
+  zar artık dengeli; lanet hissedilmiyorsa oyun testinden sonra düşünülebilir.
+- Emanet teklifinin içeriği gizli (zarla): oyuncu Tespih'i istemeyebilir — önceki kayıttaki soru duruyor.

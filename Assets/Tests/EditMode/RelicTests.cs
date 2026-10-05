@@ -198,7 +198,7 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the Bone Die's redraw
 
         [Test]
-        public void TheBoneDie_RedrawsOneSeenCard_OnceAHand_BeforeTheDraw()
+        public void TheBoneDie_RedrawsOneSeenCard_OnceATable_BeforeTheDraw()
         {
             HellPokerGame plain = Game(Nothing, HouseFullHouse);
             plain.PlaceBet();
@@ -217,12 +217,12 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(TestCards.Card("3S"), card);
             Assert.AreEqual(TestCards.Card("3S"), game.PlayerHand[0]);
             Assert.AreEqual(0, game.RedrawsLeft);
-            Assert.IsFalse(game.CanRedraw(1), "Once a hand.");
+            Assert.IsFalse(game.CanRedraw(1), "Once a table.");
             Assert.IsNull(game.Redraw(1));
         }
 
         [Test]
-        public void TheBoneDie_IsNotRolledAfterTheDraw_AndComesBackNextHand()
+        public void TheBoneDie_IsNotRolledAfterTheDraw_AndAnUnusedRollWaits()
         {
             HellPokerGame game = Game(Nothing, HouseFullHouse, relics: RelicIds.BoneDie);
             game.PlaceBet();
@@ -234,7 +234,31 @@ namespace HellPoker.Core.Tests
             while (game.Phase == GamePhase.DrawReveal || game.Phase == GamePhase.HouseReveal) game.Bet(BetAction.Pass);
             game.NextRound();
             game.PlaceBet();
-            Assert.AreEqual(1, game.RedrawsLeft, "A new hand, a new roll.");
+            Assert.AreEqual(1, game.RedrawsLeft, "Not rolled: still there next hand.");
+        }
+
+        [Test]
+        public void TheBoneDie_RolledOnce_StaysSpentForTheTable_AndANewTableFillsIt()
+        {
+            HellPokerGame game = Game(Nothing, HouseFullHouse, relics: RelicIds.BoneDie);
+            game.PlaceBet();
+            Assert.IsNotNull(game.Redraw(0));
+            PlayOut(game);
+            for (int hand = 0; hand < 3 && !game.IsGameOver; hand++)
+            {
+                game.NextRound();
+                game.PlaceBet();
+                Assert.AreEqual(0, game.RedrawsLeft, "No new roll at a new hand.");
+                Assert.IsFalse(game.CanRedraw(0));
+                PlayOut(game);
+            }
+
+            game.Effects.SitDown();   // a new table (the presenter calls it on every change of seat)
+
+            Assert.AreEqual(1, game.Effects.RedrawsLeft);
+            var plain = new RunEffects();
+            plain.SitDown();
+            Assert.AreEqual(0, plain.RedrawsLeft, "No die, nothing to fill.");
         }
 
         [Test]
@@ -327,6 +351,30 @@ namespace HellPoker.Core.Tests
             CollectionAssert.AreEqual(new[] { RelicIds.BoneDie, RelicIds.RustyCrown }, effects.Relics, "A broken list is cleaned up.");
         }
 
+        [Test]
+        public void TheSave_KeepsTheDiesRollLeft_AndAnOlderSaveHasItFull()
+        {
+            var spent = new RunEventState(null, 0, null, 0, 0, 0, new[] { RelicIds.BoneDie }, relicRedraws: 0);
+            Assert.IsTrue(RunSnapshot.TryDecode(new RunSnapshot("mammon", 900, 7, new RunStats(1000, "mammon"), events: spent).Encode(), out RunSnapshot back));
+            StringAssert.Contains("relics.redraws=0", new RunSnapshot("mammon", 900, 7, new RunStats(1000, "mammon"), events: spent).Encode());
+            Assert.AreEqual(0, back.Events.RelicRedraws);
+            var effects = new RunEffects();
+            effects.Restore(null, 0, 0, 0, back.Events.Relics, back.Events.RelicRedraws);
+            Assert.AreEqual(0, effects.RedrawsLeft, "Spent at this table: still spent.");
+
+            // An older v=4 save (relics, but no "relics.redraws"): the die is full.
+            var older = new RunEventState(null, 0, null, 0, 0, 0, new[] { RelicIds.BoneDie });
+            string text = new RunSnapshot("mammon", 900, 7, new RunStats(1000, "mammon"), events: older).Encode();
+            StringAssert.DoesNotContain("relics.redraws", text);
+            Assert.IsTrue(RunSnapshot.TryDecode(text, out RunSnapshot old));
+            Assert.AreEqual(-1, old.Events.RelicRedraws);
+            effects.Restore(null, 0, 0, 0, old.Events.Relics, old.Events.RelicRedraws);
+            Assert.AreEqual(1, effects.RedrawsLeft);
+
+            effects.Restore(null, 0, 0, 0, new[] { RelicIds.RustyCrown }, 5);
+            Assert.AreEqual(0, effects.RedrawsLeft, "No die: a saved count means nothing.");
+        }
+
         // ------------------------------------------------------------------ at the table
 
         private FakeTableView _view;
@@ -367,11 +415,12 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheRelics_GoDownToLucifer_AndWorkAtHisTable()
+        public void TheRelics_GoDownToLucifer_AndHisTableFillsTheDie()
         {
             Table(null, finalDealer: DealerRoster.Lucifer);
             _presenter.StartNewRun(DealerRoster.Mammon);
             _game.Effects.AddRelic(RelicIds.BoneDie);
+            Assert.IsTrue(_game.Effects.SpendRedraw(), "Rolled at Mammon's table.");
             _game.TakeOver(200, 3);
 
             _presenter.SwitchTable(DealerRoster.Mammon);   // between hands below the gate: summoned
@@ -379,8 +428,52 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(_game.Rules.IsFinalTable, "At Lucifer's table.");
             CollectionAssert.AreEqual(new[] { RelicIds.BoneDie }, _game.Effects.Relics);
             Assert.AreEqual(1, _view.Relics.Count);
+            Assert.AreEqual(1, _view.Relics[0].Uses, "Summoned: a new table, the die is full.");
             _view.PressAction();
             Assert.AreEqual(1, _game.RedrawsLeft, "The die rolls at his table too.");
+        }
+
+        [Test]
+        public void TheBoneDie_AtTheTable_OnceATable_ANewSeatFillsIt_AndASavedRunKeepsItSpent()
+        {
+            var archive = new RunArchive(new MemoryStore());
+            Table(null, archive);
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.Effects.AddRelic(RelicIds.BoneDie);
+            _view.PressAction();
+            _view.PressRelic(RelicIds.BoneDie);
+            _view.PlayerView.Click(0);
+            Assert.AreEqual(0, _view.Relics[0].Uses);
+
+            PlayAHand();
+            _view.PressAction();   // the next hand
+            if (_game.Phase == GamePhase.Betting) _view.PressAction();   // and its deal
+            Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase);
+            _view.PressRelic(RelicIds.BoneDie);
+            StringAssert.Contains("once a table", _view.Message, "No new roll at a new hand.");
+            Assert.AreEqual(0, _view.Relics[0].Uses);
+
+            RunSnapshot saved = archive.LoadRun();
+            Assert.AreEqual(0, saved.Events.RelicRedraws, "The spent roll is saved.");
+            _presenter.Dispose();
+            Table(null, archive);
+            _presenter.Resume(DealerRoster.Mammon, saved);
+            Assert.AreEqual(0, _game.RedrawsLeft, "Closing the game does not refill it.");
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+            Assert.AreEqual(1, _game.RedrawsLeft, "A new table fills it.");
+            Assert.AreEqual(1, _view.Relics[0].Uses);
+        }
+
+        /// <summary>Plays the hand on the table to its end (stands pat, passes, folds to a re-raise).</summary>
+        private void PlayAHand()
+        {
+            for (int guard = 0; guard < 20 && _game.Phase != GamePhase.RoundOver && !_game.IsGameOver; guard++)
+            {
+                if (_game.Phase == GamePhase.Drawing) _view.PressAction();
+                else if (_game.Phase == GamePhase.HouseReRaise) _view.PressBet(BetAction.Fold);
+                else _view.PressBet(BetAction.Pass);
+            }
         }
 
         [Test]
@@ -417,7 +510,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1, _view.Relics.Count);
             Assert.AreEqual(RelicIds.BoneDie, _view.Relics[0].Id);
             Assert.AreEqual("BONE DIE", _view.Relics[0].Name);
-            Assert.AreEqual(1, _view.Relics[0].Uses, "One roll a hand.");
+            Assert.AreEqual(1, _view.Relics[0].Uses, "One roll a table.");
             StringAssert.Contains("BONE DIE", _view.Message);
             StringAssert.Contains("two units", _view.Message, "The curse is told too.");
         }
@@ -430,7 +523,7 @@ namespace HellPoker.Core.Tests
             _game.Effects.AddRelic(RelicIds.BoneDie);
 
             _view.PressRelic(RelicIds.BoneDie);
-            StringAssert.Contains("once a hand", _view.Message, "Not before the deal.");
+            StringAssert.Contains("once a table", _view.Message, "Not before the deal.");
 
             _view.PressAction();
             _view.PressRelic(RelicIds.BoneDie);

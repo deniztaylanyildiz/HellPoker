@@ -28,23 +28,23 @@ namespace HellPoker.Core.Relics
         /// <summary>Malice gained every hand on top of the usual (the Rusty Crown: +1).</summary>
         public int MaliceExtraPerHand { get; }
 
-        /// <summary>Cards the player may redraw each hand before the draw (the Bone Die: 1).</summary>
-        public int RedrawsPerHand { get; }
+        /// <summary>Cards the player may redraw at each table, before a draw (the Bone Die: 1; full again at a new table).</summary>
+        public int RedrawsPerTable { get; }
 
         /// <summary>A soul hand's loss surcharge in percent instead of the rule's (the Thorned Rosary: 125); -1: the rule's.</summary>
         public int SoulLossPercent { get; }
 
         public RelicEffects(int antePercent = 100, int winPercent = 100, int houseCardsDelta = 0, int reRaiseExtraUnits = 0,
-            int maliceExtraPerHand = 0, int redrawsPerHand = 0, int soulLossPercent = -1)
+            int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1)
         {
-            if (antePercent <= 0 || winPercent < 0 || reRaiseExtraUnits < 0 || maliceExtraPerHand < 0 || redrawsPerHand < 0)
+            if (antePercent <= 0 || winPercent < 0 || reRaiseExtraUnits < 0 || maliceExtraPerHand < 0 || redrawsPerTable < 0)
                 throw new ArgumentOutOfRangeException(nameof(antePercent));
             AntePercent = antePercent;
             WinPercent = winPercent;
             HouseCardsDelta = houseCardsDelta;
             ReRaiseExtraUnits = reRaiseExtraUnits;
             MaliceExtraPerHand = maliceExtraPerHand;
-            RedrawsPerHand = redrawsPerHand;
+            RedrawsPerTable = redrawsPerTable;
             SoulLossPercent = soulLossPercent;
         }
 
@@ -54,7 +54,7 @@ namespace HellPoker.Core.Relics
             if (other == null) return this;
             int soul = SoulLossPercent < 0 ? other.SoulLossPercent : other.SoulLossPercent < 0 ? SoulLossPercent : Math.Min(SoulLossPercent, other.SoulLossPercent);
             return new RelicEffects(AntePercent * other.AntePercent / 100, WinPercent * other.WinPercent / 100, HouseCardsDelta + other.HouseCardsDelta,
-                ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerHand + other.RedrawsPerHand, soul);
+                ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerTable + other.RedrawsPerTable, soul);
         }
     }
 
@@ -81,12 +81,13 @@ namespace HellPoker.Core.Relics
         public const string ThornedRosary = "thorned_rosary";
     }
 
-    /// <summary>The Bone Die: once a hand, before the draw, a card of yours is thrown back and redealt — but the House re-raises two units.</summary>
+    /// <summary>The Bone Die: once a table, before a draw, a card of yours is thrown back and redealt — but the House re-raises two units.
+    /// (Once a hand it was a free extra discard: +12 / +11 / +22 points; only while the cards turned still +16 at Lilith's.)</summary>
     public sealed class BoneDie : IRelic
     {
         public string Id => RelicIds.BoneDie;
-        public RelicEffects Effects { get; } = new RelicEffects(reRaiseExtraUnits: 1, redrawsPerHand: 1);
-        public int ExpectedYears => 60;
+        public RelicEffects Effects { get; } = new RelicEffects(reRaiseExtraUnits: 1, redrawsPerTable: 1);
+        public int ExpectedYears => 25;
     }
 
     /// <summary>The Rusty Crown: a win forgives a twentieth more — but the demon's malice grows one more every hand.

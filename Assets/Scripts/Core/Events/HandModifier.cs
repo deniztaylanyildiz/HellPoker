@@ -113,6 +113,21 @@ namespace HellPoker.Core.Events
             if (Relics.Count >= HellPoker.Core.Relics.RelicRoster.MaxCarried || _relics.Contains(id) || HellPoker.Core.Relics.RelicRoster.Find(id) == null)
                 return false;
             _relics.Add(id);
+            RedrawsLeft += HellPoker.Core.Relics.RelicRoster.Find(id).Effects.RedrawsPerTable;   // a new die comes full
+            return true;
+        }
+
+        /// <summary>Cards the relics may still redraw at this table (the Bone Die: one a table).</summary>
+        public int RedrawsLeft { get; private set; }
+
+        /// <summary>A new table (a change of seat, Lucifer's summons, the fall): the relics' per-table uses are full again.</summary>
+        public void SitDown() => RedrawsLeft = HellPoker.Core.Relics.RelicRoster.Combined(_relics).RedrawsPerTable;
+
+        /// <summary>A redraw used; false when none is left.</summary>
+        public bool SpendRedraw()
+        {
+            if (RedrawsLeft <= 0) return false;
+            RedrawsLeft--;
             return true;
         }
 
@@ -141,11 +156,14 @@ namespace HellPoker.Core.Events
             SoulSold += years;
         }
 
-        /// <summary>A saved run comes back.</summary>
-        public void Restore(HandModifier next, int deferredYears, int deferredHands, int soulSold, IEnumerable<string> relics = null)
+        /// <summary>A saved run comes back. <paramref name="redrawsLeft"/>: the table's redraws left; -1 (an older save): full.</summary>
+        public void Restore(HandModifier next, int deferredYears, int deferredHands, int soulSold, IEnumerable<string> relics = null,
+            int redrawsLeft = -1)
         {
             _relics.Clear();
+            RedrawsLeft = 0;
             foreach (string id in relics ?? Enumerable.Empty<string>()) AddRelic(id);
+            if (redrawsLeft >= 0) RedrawsLeft = Math.Min(redrawsLeft, RedrawsLeft);
             if (deferredYears < 0 || deferredHands < 0 || soulSold < 0) throw new ArgumentOutOfRangeException(nameof(deferredYears));
             NextHand = next ?? HandModifier.None;
             DeferredYears = deferredYears;

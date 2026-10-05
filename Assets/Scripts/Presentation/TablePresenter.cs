@@ -236,7 +236,7 @@ namespace HellPoker.Presentation
             // The run's events: the marks they left, and which were seen (an event on screen when the game closed is passed).
             RunEventState saved = snapshot.Events;
             _effects = new RunEffects();
-            _effects.Restore(saved.Next, saved.DeferredYears, saved.DeferredHands, saved.SoulSold, saved.Relics);
+            _effects.Restore(saved.Next, saved.DeferredYears, saved.DeferredHands, saved.SoulSold, saved.Relics, saved.RelicRedraws);
             _events?.Restore(saved.Seen, saved.HandsSince);
             _pendingEvent = null;
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
@@ -348,7 +348,7 @@ namespace HellPoker.Presentation
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
                 _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge, _sinner.Id,
                 _sinner.Charges, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
-                    _effects.DeferredHands, _effects.SoulSold, _effects.Relics));
+                    _effects.DeferredHands, _effects.SoulSold, _effects.Relics, _effects.RedrawsLeft));
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -407,6 +407,7 @@ namespace HellPoker.Presentation
             }
 
             _sinner.SitDown();   // a new table: a per-table ability is full again
+            _effects.SitDown();  // and the Bone Die's roll
             SeatAt(dealer, _game.Years, _game.RoundNumber);
             _settledRound = _game.RoundNumber;
             if (_stats == null)
@@ -470,6 +471,7 @@ namespace HellPoker.Presentation
             _originMalice = (_game.Malice, _game.MaliceMax, _game.Grudge);
             _gate.Summon(_dealer.Id);
             _sinner.SitDown();   // his table is a new table too
+            _effects.SitDown();
             _view.PlaySfx(SfxIds.Summoned);
             SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
             _audio.PlayMusic(_finalDealer.Id);
@@ -499,6 +501,7 @@ namespace HellPoker.Presentation
             int years = _gate.CastDown(_game.Years);
             Dealer origin = _origin;
             _sinner.SitDown();
+            _effects.SitDown();
             _view.PlaySfx(SfxIds.Fall);
             SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
             _audio.PlayMusic(origin.Id);
@@ -824,8 +827,8 @@ namespace HellPoker.Presentation
             {
                 IRelic relic = RelicRoster.Find(id);
                 if (relic == null) continue;
-                int perHand = relic.Effects.RedrawsPerHand;
-                int uses = perHand <= 0 ? -1 : _game.Phase == GamePhase.Betting ? perHand : _game.RedrawsLeft;
+                int perTable = relic.Effects.RedrawsPerTable;
+                int uses = perTable <= 0 ? -1 : _effects.RedrawsLeft;
                 badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses));
             }
             _view.SetRelics(badges);

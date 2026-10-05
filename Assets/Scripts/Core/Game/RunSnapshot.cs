@@ -250,7 +250,7 @@ namespace HellPoker.Core.Game
     /// <summary>
     /// The run's events as saved (v=4, every key optional): "event.seen" (ids), "event.since" (hands since the last one),
     /// "effect.next" (the next hand's modifier), "effect.deferred" / "effect.deferred.hands" (Mammon's ledger), "soul.sold",
-    /// "relics" (the cursed relics carried).
+    /// "relics" (the cursed relics carried), "relics.redraws" (the Bone Die's rolls left at this table; missing: full).
     /// An event left on screen when the game closed is already seen: it counts as passed.
     /// </summary>
     public sealed class RunEventState
@@ -260,6 +260,9 @@ namespace HellPoker.Core.Game
         /// <summary>The cursed relics the run carries ("relics", optional).</summary>
         public System.Collections.Generic.IReadOnlyList<string> Relics { get; }
 
+        /// <summary>The relics' redraws left at this table ("relics.redraws", optional); -1: not saved (an older save), full.</summary>
+        public int RelicRedraws { get; }
+
         public System.Collections.Generic.IReadOnlyList<string> Seen { get; }
         public int HandsSince { get; }
         public Events.HandModifier Next { get; }
@@ -268,8 +271,9 @@ namespace HellPoker.Core.Game
         public int SoulSold { get; }
 
         public RunEventState(System.Collections.Generic.IEnumerable<string> seen, int handsSince, Events.HandModifier next, int deferredYears,
-            int deferredHands, int soulSold, System.Collections.Generic.IEnumerable<string> relics = null)
+            int deferredHands, int soulSold, System.Collections.Generic.IEnumerable<string> relics = null, int relicRedraws = -1)
         {
+            RelicRedraws = relicRedraws < 0 ? -1 : relicRedraws;
             Relics = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(relics ?? new string[0], s => !string.IsNullOrEmpty(s)));
             if (handsSince < 0 || deferredYears < 0 || deferredHands < 0 || soulSold < 0)
                 throw new System.ArgumentOutOfRangeException(nameof(handsSince));
@@ -294,6 +298,7 @@ namespace HellPoker.Core.Game
             }
             if (SoulSold > 0) lines.Add("soul.sold=" + SoulSold.ToString(c));
             if (Relics.Count > 0) lines.Add("relics=" + string.Join(",", Relics));
+            if (Relics.Count > 0 && RelicRedraws >= 0) lines.Add("relics.redraws=" + RelicRedraws.ToString(c));
         }
 
         internal static RunEventState Decode(System.Collections.Generic.Dictionary<string, string> values)
@@ -302,7 +307,8 @@ namespace HellPoker.Core.Game
             string seen = values.TryGetValue("event.seen", out string s) ? s : "";
             string next = values.TryGetValue("effect.next", out string n) ? n : "";
             return new RunEventState(seen.Split(','), Optional("event.since"), Events.HandModifier.Decode(next), Optional("effect.deferred"),
-                Optional("effect.deferred.hands"), Optional("soul.sold"), (values.TryGetValue("relics", out string r) ? r : "").Split(','));
+                Optional("effect.deferred.hands"), Optional("soul.sold"), (values.TryGetValue("relics", out string r) ? r : "").Split(','),
+                values.ContainsKey("relics.redraws") ? KeyValues.Int(values, "relics.redraws") : -1);
         }
     }
 }
