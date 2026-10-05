@@ -71,12 +71,15 @@ Poker biliyor musun? (hiç / biraz / iyi):
 10. HATA GÖRDÜN MÜ?
     Garip, bozuk ya da yanlış görünen bir şey oldu mu? Ne yapıyordun, ne oldu, ne bekliyordun?
     Gördüysen Player.log dosyasını da eklersen çok iyi olur (nerede olduğu OKUBENI.txt'de yazıyor).
+    Aynı klasördeki "runs" klasöründeki run-....txt dosyalarını da gönder (koşularının günlüğü, kişisel bilgi yok):
+    %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\runs
 
     >
 
 
 11. SINIF
-    Hangi sınıfı seçtin (Köylü / Büyücü / Kral)? Yeteneğini anladın / kullandın mı, adil miydi?
+    Hangi sınıfı seçtin (Köylü / Büyücü / Kral)? Gücünü ve 5 pipli göstergeyi anladın mı? Kaç kez kullandın,
+    doğru anda kullanabildin mi, adil miydi?
 
     >
 

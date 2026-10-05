@@ -43,6 +43,13 @@ namespace HellPoker.Presentation.Settings
         public static int Auto(int displayWidth, int displayHeight) =>
             Math.Max(1, Math.Min((int)(displayWidth * AutoShare) / Width, (int)(displayHeight * AutoShare) / Height));
 
+        /// <summary>
+        /// Where a window of <paramref name="width"/>×<paramref name="height"/> goes: centred in the display's work area (the
+        /// screen minus the taskbar), and never outside it — a window larger than the area sits at its top-left corner.
+        /// </summary>
+        public static (int x, int y) Centered(int areaX, int areaY, int areaWidth, int areaHeight, int width, int height) =>
+            (areaX + Math.Max(0, (areaWidth - width) / 2), areaY + Math.Max(0, (areaHeight - height) / 2));
+
         /// <summary>The multiple a window really opens at: the saved one if this display fits it, otherwise automatic.</summary>
         public static int Resolve(int saved, int displayWidth, int displayHeight) =>
             saved >= Smallest && saved <= Largest(displayWidth, displayHeight) ? saved : Auto(displayWidth, displayHeight);

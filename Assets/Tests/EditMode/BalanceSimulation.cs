@@ -112,19 +112,22 @@ namespace HellPoker.Core.Tests
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null)
                 .Select(c =>
                 {
-                    // HELLPOKER_WARDS (the Warlock's wards per table); HELLPOKER_KING ("start,crown%,protects,perRun01") try other classes.
-                    if (c.Id == Warlock.ClassId && Environment.GetEnvironmentVariable("HELLPOKER_WARDS") != null)
-                        return new Warlock(wardsPerTable: EnvInt("HELLPOKER_WARDS", 1));
+                    // HELLPOKER_KING ("start,crown%") tries another King.
                     string king = Environment.GetEnvironmentVariable("HELLPOKER_KING");
                     if (c.Id == King.ClassId && king != null)
                     {
                         int[] k = king.Split(',').Select(int.Parse).ToArray();
-                        return new King(k[0], k[1], k[2], k.Length > 3 && k[3] != 0);
+                        return new King(k[0], k[1]);
                     }
                     return c;
                 }).ToArray();
-            report.AppendLine("Classes: " + string.Join(", ", classes.Select(c => $"{c.Id} (start {c.StartingYears}, crown {c.WinAntePercent}%, " +
-                                                                                     $"charges {c.ChargesPerTable}/table {c.ChargesPerRun}/run)")));
+            // HELLPOKER_CHARGE ("full,win,loss,fold"; 5,1,2,1 by default): how the class power charges.
+            int[] charge = (Environment.GetEnvironmentVariable("HELLPOKER_CHARGE") ?? "")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            var chargeRules = charge.Length >= 4 ? new ChargeRules(charge[0], charge[1], charge[2], charge[3]) : ChargeRules.Default;
+            report.AppendLine("Classes: " + string.Join(", ", classes.Select(c => $"{c.Id} (start {c.StartingYears}, crown {c.WinAntePercent}%)")) +
+                              $"; power charge: full {chargeRules.Full}, win +{chargeRules.PerWin}, loss +{chargeRules.PerLoss}, fold +{chargeRules.PerFold}.");
+            var powers = new Dictionary<string, (int used, int wards, int runs)>();
 
             report.AppendLine("class    dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved" +
                               "  | reached lucifer  beat him 1st try  avg attempts  cast downs  wild bill");
@@ -145,12 +148,11 @@ namespace HellPoker.Core.Tests
                     int seed = run * 7919 + 13 + seedShift;
                     int sittings = 0;
                     Dealer seat = dealer;
-                    var sinner = new Sinner(sinnerClass);
+                    var sinner = new Sinner(sinnerClass, rules: chargeRules);
                     var effects = new RunEffects();
                     foreach (string relic in ForcedRelics ?? new string[0]) effects.AddRelic(relic);
                     var events = new EventSession(Deck(), new SystemRandomSource(RandomSeeds.Derive(seed, HellPokerGameFactory.EventStream)),
                         eventsOn ? EnvInt("HELLPOKER_EVENT_CHANCE", table.EventChancePercent) : 0, table.EventCooldownHands);
-                    sinner.SitAt(seat.Id);
                     effects.SitAt(seat.Id);
                     HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed, sinner: sinner);
                     game.UseEffects(effects);
@@ -180,7 +182,6 @@ namespace HellPoker.Core.Tests
                             }
                             HellPokerGame previous = game;
                             // As at the real table: charges are kept per demon; Lucifer's are full at every summons.
-                            sinner.SitAt(seat.Id, fresh: call == GateCall.Summoned);
                             effects.SitAt(seat.Id, fresh: call == GateCall.Summoned);
                             game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings, sinner: sinner);
                             game.UseEffects(effects);
@@ -204,7 +205,6 @@ namespace HellPoker.Core.Tests
                             foreach (Dealer next in new[] { other, seat })
                             {
                                 HellPokerGame previous = game;
-                                sinner.SitAt(next.Id, fresh: hopOld);
                                 effects.SitAt(next.Id, fresh: hopOld);
                                 game = HellPokerGameFactory.Create(table, next, seed + 100003 * ++sittings, sinner: sinner);
                                 game.UseEffects(effects);
@@ -237,6 +237,8 @@ namespace HellPoker.Core.Tests
                     }
 
                     hands += played;
+                    powers.TryGetValue(sinnerClass.Id, out var power);
+                    powers[sinnerClass.Id] = (power.used + sinner.PowersUsed, power.wards + sinner.WardsUsed, power.runs + 1);
                     if (game.Phase == GamePhase.Absolved) absolved++;
                     else if (game.Phase == GamePhase.Damned) damned++;
                     if (staked) soulStaked++;
@@ -259,6 +261,8 @@ namespace HellPoker.Core.Tests
             report.AppendLine();
             report.AppendLine(eventsOn ? "Events (offered / taken): " + string.Join("  ", offered.OrderBy(p => p.Key)
                 .Select(p => $"{p.Key} {p.Value}/{(accepted.TryGetValue(p.Key, out int a) ? a : 0)}")) : "Events off.");
+            report.AppendLine("Class powers used per run: " + string.Join("  ", powers.Select(p =>
+                $"{p.Key} {p.Value.used / (double)Math.Max(1, p.Value.runs):0.00}" + (p.Value.wards > 0 ? $" (wards that struck {p.Value.wards / (double)Math.Max(1, p.Value.runs):0.00})" : ""))));
             if (hop) report.AppendLine($"Table hops ({(hopOld ? "old rule: every seat refills" : "charges kept per demon")}): {hops}");
 
             if (cheats)
@@ -329,6 +333,7 @@ namespace HellPoker.Core.Tests
             while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
             {
                 ProtectIfThreatened(game);
+                WardIfAnnounced(game);
                 switch (game.Phase)
                 {
                     case GamePhase.Drawing:
@@ -338,21 +343,20 @@ namespace HellPoker.Core.Tests
 
                     case GamePhase.HouseReRaise:
                         reRaised = true;
-                        game.Bet(Strength(game) >= HandCategory.OnePair ? BetAction.Call : BetAction.Fold);
+                        BetOrWalkAway(game, Strength(game) >= HandCategory.OnePair ? BetAction.Call : BetAction.Fold);
                         break;
 
                     default:
-                        game.Bet(Choose(game, drawing, payouts));
+                        BetOrWalkAway(game, Choose(game, drawing, payouts));
                         break;
                 }
             }
             return reRaised;
         }
 
-        /// <summary>True when a per-table charge (the class's ward or protection, the Bone Die) was spent at this table.</summary>
+        /// <summary>True when a per-table charge (the Bone Die) was spent at this table. (The class power is the run's now.)</summary>
         private static bool SpentHere(Sinner sinner, RunEffects effects) =>
-            (sinner.Class.ChargesPerTable > 0 && sinner.Charges < sinner.Class.ChargesPerTable)
-            || effects.RedrawsLeft < RelicRoster.Combined(effects.Relics).RedrawsPerTable;
+            effects.RedrawsLeft < RelicRoster.Combined(effects.Relics).RedrawsPerTable;
 
         /// <summary>
         /// The Bone Die (once a table), at the draw, kept for a hand worth helping: a pair or better. The lowest seen card that
@@ -416,13 +420,29 @@ namespace HellPoker.Core.Tests
             return game.CanBet(BetAction.Raise, out _) ? BetAction.Raise : BetAction.Fold;
         }
 
+        /// <summary>The Peasant, about to fold a bad hand with his power charged: he walks away for nothing instead.</summary>
+        private static void BetOrWalkAway(HellPokerGame game, BetAction action)
+        {
+            if (action == BetAction.Fold && game.Sinner?.Ability == SinnerAbility.FreeFold && game.WhyNoPower() == PowerRefusal.None)
+                game.UsePower();
+            else
+                game.Bet(action);
+        }
+
+        /// <summary>The Warlock, at the first minor cheat announced with his power charged: the ward goes up.</summary>
+        private static void WardIfAnnounced(HellPokerGame game)
+        {
+            if (game.Sinner?.Ability == SinnerAbility.Ward && game.WhyNoPower() == PowerRefusal.None)
+                game.UsePower();
+        }
+
         /// <summary>
         /// The King, when a cheat is coming for the cards (an intent is up, before the draw): the crown goes on the card worth most —
         /// the highest card of a visible pair, else the highest visible card.
         /// </summary>
         private static void ProtectIfThreatened(HellPokerGame game)
         {
-            if (game.Sinner == null || !game.Sinner.CanUse(SinnerAbility.Protect) || IntentOf(game) == null) return;
+            if (game.Sinner == null || game.Sinner.Ability != SinnerAbility.Protect || !game.Sinner.IsCharged || IntentOf(game) == null) return;
             if (IntentOf(game).Id == CheatIds.Tithe || IntentOf(game).Id == CheatIds.Gaze || IntentOf(game).Id == CheatIds.FalseFace) return;
             int[] candidates = Enumerable.Range(0, Hand.Size).Where(game.CanProtect).ToArray();
             if (candidates.Length == 0) return;

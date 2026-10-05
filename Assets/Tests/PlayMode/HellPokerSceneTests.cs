@@ -75,6 +75,44 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheSinnerCards_TheirWordsFitAboveChoose_InBothLanguages()
+        {
+            Press("NewGameButton");
+            yield return new WaitForSeconds(0.4f);
+            Find<Button>("ChooseDealer0").onClick.Invoke();   // the class cards (not the tests' usual Peasant)
+            yield return new WaitForSeconds(0.4f);
+            try
+            {
+                foreach (HellPoker.Presentation.Ui.Language language in new[] { HellPoker.Presentation.Ui.Language.English, HellPoker.Presentation.Ui.Language.Turkish })
+                {
+                    HellPoker.Presentation.Ui.Lang.Set(language);   // the open screen is described again in it
+                    yield return null;
+                    for (int index = 0; index < HellPoker.Core.Sinners.SinnerRoster.All.Count; index++)
+                    {
+                        string id = HellPoker.Core.Sinners.SinnerRoster.All[index].Id;
+                        Transform card = Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                            .Single(t => t.name == "Sinner_" + id);
+                        var ability = (RectTransform)card.Find("Ability");
+                        var detail = (RectTransform)card.Find("Detail");
+                        var choose = (RectTransform)card.Find("ChooseSinner" + index);
+                        float Top(RectTransform r) => -r.anchoredPosition.y;
+                        float Bottom(RectTransform r) => Top(r) + r.rect.height;
+
+                        string what = $"{id} ({language})";
+                        Assert.LessOrEqual(ability.GetComponent<Text>().preferredHeight, ability.rect.height + 0.5f, $"{what}: the ability fits its box.");
+                        Assert.LessOrEqual(detail.GetComponent<Text>().preferredHeight, detail.rect.height + 0.5f, $"{what}: the price fits its box.");
+                        Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price starts under the ability.");
+                        Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: both end above CHOOSE.");
+                    }
+                }
+            }
+            finally
+            {
+                HellPoker.Presentation.Ui.Lang.Set(HellPoker.Presentation.Ui.Language.English);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator TheSettings_DisplayTab_WindowSize_IsSaved()
         {
             Press("SettingsButton");

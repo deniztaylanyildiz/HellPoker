@@ -303,7 +303,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheBoneDie_LeavesTheKingsProtectedCardAlone()
         {
-            var sinner = new Sinner(new King());
+            var sinner = new Sinner(new King(), charge: 5);
             HellPokerGame game = Game(Nothing, HouseFullHouse, sinner: sinner, relics: RelicIds.BoneDie);
             game.PlaceBet();
             Assert.IsTrue(game.Protect(0));
@@ -466,56 +466,28 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(0, _view.Relics[0].Uses);
         }
 
-        [TestCase(SinnerAbility.Ward)]
-        [TestCase(SinnerAbility.Protect)]
-        public void HoppingTables_DoesNotRefillTheWardOrTheCrown(SinnerAbility ability)
-        {
-            Table(null);
-            _presenter.StartNewRun(DealerRoster.Mammon, ability == SinnerAbility.Ward ? SinnerRoster.Warlock : SinnerRoster.King);
-            Assert.IsTrue(_game.Sinner.TrySpend(ability), "Used at Mammon's.");
-
-            _presenter.SwitchTable(DealerRoster.Belial);
-            Assert.AreEqual(1, _game.Sinner.Charges, "Belial's table, never sat at: full.");
-            _presenter.SwitchTable(DealerRoster.Lilith);
-            Assert.AreEqual(1, _game.Sinner.Charges, "Lilith's: full too.");
-            _presenter.SwitchTable(DealerRoster.Mammon);
-            Assert.AreEqual(0, _game.Sinner.Charges, "Back at Mammon's: still spent.");
-        }
-
         [Test]
-        public void ThePerDemonCharges_AreSaved_AndAnOlderSaveKeepsItsOneNumber()
+        public void TheDiesPerDemonRolls_AreSaved_AndAnOlderSaveKeepsItsOneNumber()
         {
             var archive = new RunArchive(new MemoryStore());
             Table(null, archive);
-            _presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Warlock);
+            _presenter.StartNewRun(DealerRoster.Mammon);
             _game.Effects.AddRelic(RelicIds.BoneDie);
-            Assert.IsTrue(_game.Sinner.TrySpend(SinnerAbility.Ward));
             Assert.IsTrue(_game.Effects.SpendRedraw());
             _presenter.SwitchTable(DealerRoster.Belial);   // saves the run, sitting at Belial's
 
             RunSnapshot saved = archive.LoadRun();
-            Assert.AreEqual("mammon:0", saved.ClassChargeTables);
             Assert.AreEqual("mammon:0", saved.Events.RelicRedrawTables);
-            StringAssert.Contains("class.charges.tables=mammon:0", saved.Encode());
             StringAssert.Contains("relics.redraws.tables=mammon:0", saved.Encode());
             _presenter.Dispose();
 
             Table(null, archive);
             _presenter.Resume(DealerRoster.Belial, saved);
-            Assert.AreEqual(1, _game.Sinner.Charges);
             Assert.AreEqual(1, _game.RedrawsLeft);
             _presenter.SwitchTable(DealerRoster.Mammon);
-            Assert.AreEqual(0, _game.Sinner.Charges, "Closing and coming back refills nothing either.");
-            Assert.AreEqual(0, _game.RedrawsLeft);
+            Assert.AreEqual(0, _game.RedrawsLeft, "Closing and coming back refills nothing either.");
 
             // An older save: one number for the table it was saved at, no list — that table keeps it, the others are full.
-            var older = new Sinner(new Warlock(), charges: 0);
-            older.SitAt("lilith");
-            Assert.AreEqual(0, older.Charges);
-            older.SitAt("belial");
-            Assert.AreEqual(1, older.Charges);
-            older.SitAt("lilith");
-            Assert.AreEqual(0, older.Charges);
             var oldEffects = new RunEffects();
             oldEffects.Restore(null, 0, 0, 0, new[] { RelicIds.BoneDie }, redrawsLeft: 0);
             oldEffects.SitAt("lilith");

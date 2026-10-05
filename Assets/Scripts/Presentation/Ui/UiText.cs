@@ -226,11 +226,14 @@ namespace HellPoker.Presentation.Ui
         public const string TipFinalStretch = "tip.final";
         public const string TipSoul = "tip.soul";
         public const string TipLucifer = "tip.lucifer";
+        public const string TipPowerReady = "tip.power";
 
         public static string TipText(string tip, int forcedRaiseYears, int gateYears = 250)
         {
             switch (tip)
             {
+                case TipPowerReady: return L("Your sin is charged. When the moment comes, press K — or touch your badge.",
+                    "Günahın doldu. Anı gelince K'ya bas ya da rozetine dokun.");
                 case TipFirstDecision: return L("Like your cards? RAISE. Unsure? PASS. Afraid? FOLD — and lose less.",
                     "Kartların iyi mi? ARTIR. Emin değil misin? PAS. Korktun mu? ÇEKİL — daha az kaybet.");
                 case TipFirstDraw: return L("Click the cards to throw back, then DRAW. Keep your pairs, sinner.",

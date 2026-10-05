@@ -91,6 +91,15 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(0.5f);
             yield return Shot("05_decision");
 
+            // The King's power, charged: the pips glow, "READY: K" over the badge, and its hover box.
+            typeof(HellPoker.Core.Sinners.Sinner).GetProperty("Charge").SetValue(presenter.Sinner, 5);
+            typeof(TablePresenter).GetMethod("Refresh", Flags).Invoke(presenter, null);
+            yield return WaitForTable();
+            var badge = Object.FindFirstObjectByType<SinnerBadgeView>();
+            ((GameObject)typeof(SinnerBadgeView).GetField("_tooltip", Flags).GetValue(badge)).SetActive(true);
+            yield return Shot("05b_power_ready");
+            ((GameObject)typeof(SinnerBadgeView).GetField("_tooltip", Flags).GetValue(badge)).SetActive(false);
+
             for (int guard = 0; guard < 10 && IsActive("PassButton"); guard++)
             {
                 Press("PassButton");

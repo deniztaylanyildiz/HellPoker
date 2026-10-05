@@ -255,9 +255,62 @@ namespace HellPoker.Core.Game
         /// <summary>The cheat really planned for this hand while it is still to come (a Warlock sees through the lie).</summary>
         public ICheat PendingCheatTruth => InPlay && _cheats.Intent != null ? _cheats.Planned : null;
 
+        // ------------------------------------------------------------------ the sinner's power (a full charge gauge)
+
+        /// <summary>Why the class's power cannot be used right now; <see cref="PowerRefusal.None"/> when it can.</summary>
+        public PowerRefusal WhyNoPower()
+        {
+            if (Sinner == null || Sinner.Ability == SinnerAbility.None) return PowerRefusal.NoPower;
+            if (!Sinner.IsCharged) return PowerRefusal.NotCharged;
+            if (!InPlay) return PowerRefusal.NoHand;
+            switch (Sinner.Ability)
+            {
+                case SinnerAbility.FreeFold:
+                    // Walking away needs a moment where folding is possible: not in a sealed hand.
+                    return CanBet(BetAction.Fold, out _) ? PowerRefusal.None : PowerRefusal.CannotFold;
+                case SinnerAbility.Ward:
+                    if (Sinner.WardRaised) return PowerRefusal.WardAlreadyRaised;
+                    ICheat coming = PendingCheatTruth;
+                    if (coming == null) return PowerRefusal.NoCheatAnnounced;
+                    return coming.Tier == CheatTier.Minor ? PowerRefusal.None : PowerRefusal.MajorCheat;
+                case SinnerAbility.Protect:
+                    if (!IsBeforeDraw) return PowerRefusal.NotBeforeDraw;
+                    for (int i = 0; i < Hand.Size; i++)
+                        if (CanProtect(i)) return PowerRefusal.None;
+                    return PowerRefusal.NoCardToProtect;
+                default:
+                    return PowerRefusal.NoPower;
+            }
+        }
+
+        /// <summary>
+        /// Uses the full charge: the Peasant walks away from the hand for nothing (a fold that costs no years), the Warlock raises a
+        /// ward against the minor cheat announced. The King's power picks a card: <see cref="Protect"/>. False when it cannot be used.
+        /// </summary>
+        public bool UsePower()
+        {
+            if (WhyNoPower() != PowerRefusal.None) return false;
+            switch (Sinner.Ability)
+            {
+                case SinnerAbility.FreeFold:
+                    Sinner.TryUse(SinnerAbility.FreeFold);
+                    _freeFold = true;
+                    Bet(BetAction.Fold);
+                    return true;
+                case SinnerAbility.Ward:
+                    return Sinner.TryUse(SinnerAbility.Ward);
+                default:
+                    return false;
+            }
+        }
+
+        private bool _freeFold;
+
+        private bool IsBeforeDraw => Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
+
         public bool CanProtect(int index)
         {
-            if (Sinner == null || !Sinner.CanUse(SinnerAbility.Protect)) return false;
+            if (Sinner == null || Sinner.Ability != SinnerAbility.Protect || !Sinner.IsCharged) return false;
             if (index < 0 || index >= Hand.Size || PlayerHand == null) return false;
             // Before the draw: while the cards turn, and at the draw itself — a card the player can see, not yet protected.
             bool beforeDraw = Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
@@ -267,7 +320,7 @@ namespace HellPoker.Core.Game
 
         public bool Protect(int index)
         {
-            if (!CanProtect(index) || !Sinner.TrySpend(SinnerAbility.Protect)) return false;
+            if (!CanProtect(index) || !Sinner.TryUse(SinnerAbility.Protect)) return false;
             _cheats.Marks.Protected.Add(PlayerHand[index]);
             return true;
         }
@@ -428,6 +481,8 @@ namespace HellPoker.Core.Game
             _ledger.Add(penalty);
             Phase = _ledger.Years >= DamnationYears ? GamePhase.Damned : GamePhase.Betting;
             LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
+            // A hand left behind counts as the fold it was — or, sealed, as the loss.
+            Sinner?.HandSettled(!hand.IsSealed, hand.IsSealed ? ShowdownOutcome.HouseWins : (ShowdownOutcome?)null);
             return LastRound;
         }
 
@@ -760,8 +815,8 @@ namespace HellPoker.Core.Game
             bool freeFold = false;
             if (showdown == null)
             {
-                // The Peasant's honest heart: the run's first fold costs nothing.
-                freeFold = Sinner != null && Sinner.TrySpend(SinnerAbility.FreeFold);
+                // The Peasant's honest heart (his power, used for this hand): the fold costs nothing.
+                freeFold = _freeFold;
                 if (!freeFold)
                     _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             }
@@ -789,6 +844,7 @@ namespace HellPoker.Core.Game
 
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
                 yearsBefore, _ledger.Years, Phase, freeFold: freeFold);
+            Sinner?.HandSettled(showdown == null, showdown?.Outcome);   // the power charges with every settled hand
         }
 
         /// <summary>
@@ -817,6 +873,7 @@ namespace HellPoker.Core.Game
         private void ClearHand()
         {
             ThisHand = HandModifier.None;
+            _freeFold = false;
             PlayerHand = null;
             HouseHand = null;
             Unit = 0;

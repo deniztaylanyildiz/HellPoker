@@ -11,7 +11,8 @@ namespace HellPoker.Core.Game
     /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
-    /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", "class.charges", optional "class.charges.tables";
+    /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", optional "class.charge" — the power's gauge — and "class.ward"; the older
+    /// "class.charges" / "class.charges.tables" are ignored;
     /// later also the events and the relics, each with optional keys); a v=1..3 save reads as a Peasant's run. The hand lines ("hand.*") are optional, so saves made
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
@@ -27,12 +28,12 @@ namespace HellPoker.Core.Game
         /// <summary>The sinner class of the run (v=4; an older save is a Peasant's).</summary>
         public string ClassId { get; }
 
-        /// <summary>What was left of the class's ability (v=4) at the table saved at; null: full.</summary>
-        public int? ClassCharges { get; }
+        /// <summary>The class power's charge gauge ("class.charge", optional, 0..5; an older save: 0). The older
+        /// "class.charges" / "class.charges.tables" (per-table abilities) are read past and ignored.</summary>
+        public int ClassCharge { get; }
 
-        /// <summary>A per-table ability's counts per demon ("class.charges.tables", optional: "mammon:0,belial:1", only tables
-        /// where something was spent); null in an older save.</summary>
-        public string ClassChargeTables { get; }
+        /// <summary>The Warlock's ward raised and still waiting ("class.ward", optional).</summary>
+        public bool WardRaised { get; }
 
         /// <summary>The run's events (v=4, optional): seen events, the cooldown, the next hand's modifier, deferred years, the
         /// sold soul. An empty state for a run without them.</summary>
@@ -74,13 +75,13 @@ namespace HellPoker.Core.Game
 
         public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
             bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0,
-            string classId = null, int? classCharges = null, RunEventState events = null, string classChargeTables = null)
+            string classId = null, int classCharge = 0, RunEventState events = null, bool wardRaised = false)
         {
-            ClassChargeTables = string.IsNullOrEmpty(classChargeTables) ? null : classChargeTables;
+            if (classCharge < 0) throw new ArgumentOutOfRangeException(nameof(classCharge));
+            ClassCharge = classCharge;
+            WardRaised = wardRaised;
             Events = events ?? RunEventState.Empty;
-            if (classCharges.HasValue && classCharges.Value < 0) throw new ArgumentOutOfRangeException(nameof(classCharges));
             ClassId = string.IsNullOrEmpty(classId) ? Sinners.Peasant.ClassId : classId;
-            ClassCharges = classCharges;
             if (grudge < 0) throw new ArgumentOutOfRangeException(nameof(grudge));
             Grudge = grudge;
             if (malice < 0) throw new ArgumentOutOfRangeException(nameof(malice));
@@ -125,10 +126,10 @@ namespace HellPoker.Core.Game
                 "grudge=" + Grudge.ToString(CultureInfo.InvariantCulture),
                 "class=" + ClassId
             };
-            if (ClassCharges.HasValue)
-                lines.Add("class.charges=" + ClassCharges.Value.ToString(CultureInfo.InvariantCulture));
-            if (ClassChargeTables != null)
-                lines.Add("class.charges.tables=" + ClassChargeTables);
+            if (ClassCharge > 0)
+                lines.Add("class.charge=" + ClassCharge.ToString(CultureInfo.InvariantCulture));
+            if (WardRaised)
+                lines.Add("class.ward=1");
             Events.Encode(lines);
             if (Hand != null)
             {
@@ -202,11 +203,12 @@ namespace HellPoker.Core.Game
 
                 // v=4 knows the sinner's class; an older run was a Peasant's, with the ability untouched.
                 string classId = version >= 4 && values.TryGetValue("class", out string c) && c.Length > 0 ? c : null;
-                int? charges = version >= 4 && values.ContainsKey("class.charges") ? KeyValues.Int(values, "class.charges") : (int?)null;
-                string chargeTables = version >= 4 && values.TryGetValue("class.charges.tables", out string ct) ? ct : null;
+                // The power's gauge; the older per-table "class.charges" keys mean nothing now and are left unread.
+                int charge = version >= 4 && values.ContainsKey("class.charge") ? KeyValues.Int(values, "class.charge") : 0;
+                bool ward = version >= 4 && values.ContainsKey("class.ward") && KeyValues.Flag(values, "class.ward");
 
                 snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
-                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charges, RunEventState.Decode(values), chargeTables);
+                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charge, RunEventState.Decode(values), ward);
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException

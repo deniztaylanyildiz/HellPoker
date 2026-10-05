@@ -140,6 +140,12 @@ namespace HellPoker.Core.Game
         /// <summary>The run's sinner class and what is left of its ability; null for a classless game.</summary>
         Sinners.Sinner Sinner { get; }
 
+        /// <summary>Why the class's power (a full charge gauge) cannot be used right now; <see cref="PowerRefusal.None"/> when it can.</summary>
+        PowerRefusal WhyNoPower();
+
+        /// <summary>Uses the power: the Peasant folds this hand for nothing, the Warlock raises a ward (the King picks a card: Protect).</summary>
+        bool UsePower();
+
         /// <summary>While the hand is played: this card is under the King's protection — no cheat may touch it.</summary>
         bool IsPlayerCardProtected(int index);
 

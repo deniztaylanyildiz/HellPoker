@@ -2334,3 +2334,81 @@ görüntüleri; build (0.1.3 dağıtıldıysa 0.1.4), zip'ten duman testi; DEVLO
 ### Açık sorular
 - `runInBackground` açılsın mı? (Arka planda müzik çalmaya devam eder; testçi alt-tab yapınca oyun durmaz.)
 - 5. ve 6. maddeler mesajda hiç gelmedi; bir şey isteniyorduysa sonra eklenir.
+---
+
+## 2026-10-05 — Sınıf güçleri şarj göstergesine, sınıf kartı çakışması, koşu günlüğü, pencere / odak (0.1.5)
+
+**İstek:** (1) Sınıf seçiminde Kral'ın İngilizce yetenek metni 4 satıra taşıp bedel satırının üstüne biniyordu: metinler içeriğe göre
+yerleşsin, kısa yazılsın, iki dilde ölçen test. (2) Sınıf güçleri şeytanların göstergesi gibi bir şarj sistemine: koşuya ait, kazanç +1 /
+kayıp +2 / çekilme +1 / beraberlik 0, en fazla 5, 5'te isteğe bağlı kullanım (hiçbir şey kendiliğinden harcanmaz), kullanınca 0; Köylü
+bedava çekilme, Büyücü duyurulan küçük hileyi engelleme, Kral draw'dan önce kart koruma; 5 pipli rozet, parlama, "HAZIR: K" ipucu,
+reddin nedeni iki dilde, K herkese "gücü kullan"; kayıt `class.charge`, eski anahtarlar yok sayılır; TableCharges sınıflardan kalksın;
+metinler, ilk dolduğunda ipucu; simülasyon (±3, gerekirse eşik / şarj ayarı); testler. (3) Koşu günlüğü (runs/run-<tarih>.txt, 50 dosya,
+hata oyunu durdurmasın), pencereyi ortala, ilk açılışta odak + runInBackground, 5 duman testi. (4) Testler, TR / EN görüntüler, 0.1.5,
+OKUBENI / GERI_BILDIRIM, DEVLOG. Ara mesaj: iş bitince eski build'leri sil.
+
+### 1. Sınıf kartı çakışması
+- `SinnerSelectView`: yetenek metni `preferredHeight` kadar, bedel onun hemen altından (2 px), ikisi de SEÇ'in üstünde (`AbilityTop`,
+  `ChooseTop`). Metinler kısaldı: Köylü "Power: walk away from a hand for free." / "Güç: bir eli bedelsiz bırak."; Büyücü "Sees lies, and 2 of
+  Belial's cards. Power: ward off a minor cheat."; Kral "Wins pay a quarter ante more. Power: shield a card from cheats." (bedeller tek satır).
+- PlayMode `TheSinnerCards_TheirWordsFitAboveChoose_InBothLanguages`: sahnede gerçek kartlar, her sınıf × EN / TR: metin kutusuna sığar,
+  bedel yeteneğin altından başlar, SEÇ'in üstünde biter. `03c_sinners` TR / EN kontrol edildi.
+
+### 2. Şarj göstergesi
+- Core: `Sinner` baştan (`Charge`, `IsCharged`, `HandSettled`, `TryUse`, `WardRaised`, `PowersUsed`, `WardsUsed`; ICheatGuard: kurulu koruma
+  bir sonraki *gerçekten vuracak* küçük hileyi reddeder) + `ChargeRules`. `SinnerClass` sadeleşti (`ChargesPerRun / PerTable`, `FullCharges`,
+  `Allows` kalktı); Peasant / Warlock / King yapıcıları sadeleşti. `HellPokerGame`: `WhyNoPower()` → `PowerRefusal`, `UsePower()` (Köylü: bedelsiz
+  çekilme, Büyücü: koruma), `Protect` göstergeyi ister; her el kapanışında `Sinner.HandSettled` (yarım bırakılan el: çekilme / mühürlüyse kayıp).
+- Kayıt: `class.charge`, `class.ward` (isteğe bağlı); eski `class.charges(.tables)` okunmaz. Bozuk (negatif) değer kaydı geçersiz kılar, büyük
+  değer 5'e kırpılır. Sınıflar için `TableCharges` kalktı (Kemik Zar kullanmaya devam ediyor).
+- Sunum: `SinnerBadgeView` 44 px: ikon + 5 pip (palet renkleri, 4×4); dolunca altın / kor arasında yanıp söner; kullanılabilirken üstünde
+  "READY: K" / "HAZIR: K", kurulu korumada "WARD UP" / "KORUMA HAZIR"; hover kutusu metne göre boy alır. `ITableCommands.ToggleProtect` →
+  `UsePower` (K, rozet). Red nedenleri `UiText.PowerRefused` (iki dilde). İlk dolduğunda `tip.power` ipucu. SINNERS sayfası yeni kuralı anlatıyor.
+- **Denge ve karar:** planlanan şarj (5, kazanç +1, kayıp +2, çekilme +1) Mammon'da Köylü **+3.7**, Büyücü **+3.5** verdi (uzun Mammon koşularında
+  güç sık doluyor: koşu başına Köylü 4.2, Büyücü 5.7). Denenenler (Köylü / Büyücü, Mammon): dolu 6 → +3.2 / +2.7; dolu 7 → +2.7 / +2.4 (ama 5 pip
+  bozulur); 5,1,1,1 → +3.2 / +3.0; 5,1,2,0 → +3.1 / +1.3; **5,1,1,0 → +2.4 / +0.7 (seçilen)**: her kazanılan ya da kaybedilen el +1, çekilme ve
+  beraberlik 0. Çekilmenin hiç şarj vermemesi "çekilip şarj toplamak bedava olmasın" amacını daha da sıkı karşılıyor; 5 pip aynı.
+
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %81.8 (+2.4) | %77.1 (−0.5) | %51.6 (+0.7) |
+| Büyücü | %82.2 (+0.7) | %77.6 (−0.9) | %54.6 (−0.3) |
+| Kral | %77.6 (+0.5) | %72.1 (0.0) | %48.9 (+0.1) |
+
+  (Parantez: önceki "masa başına haklar" tablosuna göre.) Koşu başına güç: Köylü 2.4, Büyücü 3.6 (vuran koruma 3.6), Kral 3.4.
+  Simülasyon oyuncusu: Köylü kötü elden çekilirken gücüyle bedava çekilir, Büyücü ilk küçük hile duyurusunda korumayı kurar, Kral hile
+  beklenirken draw'dan önce en değerli çifti / kartı korur. `HELLPOKER_CHARGE`; `HELLPOKER_WARDS` kalktı, `HELLPOKER_KING` = "başlangıç,taç%".
+
+### 3. Test öncesi küçük işler
+- **Koşu günlüğü:** Core `RunLog` (başlık, el satırları, hileler, notlar, sonuç); Presentation `IRunLogSink` / `FileRunLogSink`
+  (`persistentDataPath/runs`, en yeni 50, her hata Player.log'a uyarı) / `MemoryRunLogSink`. `TablePresenter`: yeni koşu / devam ("resumed") /
+  el / hile (duyurulan, vuran, engellenen, boşa giden, geri tepen) / masa / çağrılma / düşüş / olay / emanet / güç / sonuç (aklanma, lanet,
+  bırakma) ve kapanışta yarım koşu (`CloseLog`, bootstrap OnDestroy). Yazma hatası presenter'da da yakalanıyor. Batchmode'da günlük yok.
+  Gerçek build'de duman turu dosyaları yazdı (sonra silindi); örnek: "-- SUMMONED by Lucifer from lilith at 150 years (attempt 1)".
+- **Pencere:** pencere moduna geçince / boyut değişince `Screen.MoveMainWindowTo` ile çalışma alanında ortalanır, büyükse sol üstte
+  (`WindowScales.Centered`); editörde atlanır.
+- **Odak:** `WindowFocus.BringToFront` (Windows: ShowWindow SW_SHOW + BringWindowToTop + SetForegroundWindow; SW_RESTORE kenarlıksız
+  tam ekranı bozabileceği için değil); `runInBackground` açık (Player Settings + bootstrap). **5 duman turu art arda: hepsi 44–47 sn'de bitti,
+  hata yok, takılma yok** (yalnız 1. koşuda menüde bir soğuk açılış takılması).
+
+### Testler
+- `SinnerTests` baştan: şarj kuralları (kazanç / kayıp +1, çekilme / beraberlik 0, en fazla 5, ayarlanabilir), masada her el şarj eder,
+  yarım bırakılan el, dolmadan kullanılamaz, kendiliğinden harcama yok (Köylü normal çekilince öder, Büyücü korumasız hile yer), Köylü bedava
+  çekilir / mühürlü elde reddedilir / el arasında yok, Büyücü korumayı kurar (reddedilir, şeytanın göstergesi boşalır) / hile yokken, büyük
+  hilede ve Düşüş'te reddedilir / boşa giden hilede bekler / ikinci koruma yok, Kral'ın koruması (dolu göstergeyle, draw'dan sonra reddedilir),
+  kayıt gidiş-dönüş + eski kayıt + bozuk değer, masada K: Köylü / Büyücü (WARD) / Kral, nedenler iki dilde, gösterge yeni masada / Lucifer'de /
+  düşüşte aynı, kayıt ve devam. RelicTests'te sınıf zıplama testi kaldırıldı (anlamsız), kayıt testi Kemik Zar'a indirildi.
+- `RunLogTests` (11): günlüğün satırları, sona kadar oynanan koşu, masa / olay / emanet notları + bırakılan koşu, güç notu + devam eden koşu,
+  kapanışta yarım koşu, bozuk disk oyunu durdurmaz, dosya sink'i 50'yi tutar ve hatayı yutar, pencerenin ortalanması (4 durum).
+- **745 EditMode (+1 explicit) + 27 PlayMode (+2 explicit) geçiyor.** Ekran görüntüleri TR / EN: `03c_sinners`, `05b_power_ready` (dolu rozet,
+  HAZIR: K, hover), `04_table_*` (boş rozet), `02c_rules_sinners` — taşma yok; rozet Mammon'un 4 kötülük pipine binmiyor.
+
+### Build 0.1.5
+- "Build Finished, Result: Success"; `Builds/HellPoker-0.1.5-win64.zip` 35.5 MB; zip'ten açılıp 5 kez `-fpstour` (yukarıda). OKUBENI (sınıf gücü,
+  K, runs klasörü), GERI_BILDIRIM (11. soru göstergeyi soruyor, 10. soruda runs klasörü), PLAYTEST güncellendi.
+- İstenildiği gibi eski build'ler silindi: 0.1.2 / 0.1.3 / 0.1.4 zip'leri ve Smoke-* test kopyaları; kalan: `Builds/Windows` + 0.1.5 zip.
+
+### Açık sorular
+- Şarj kuralı spesifikasyondan saptı (kayıp +2 → +1, çekilme +1 → 0); spesifikasyondaki hâli istenirse eşik 7 ile ±3 içinde ama 7 pip gerekir.
+- Kurulu koruma boşa giden hilede bekliyor (bir sonraki küçük hileye kadar); duyurulan hileye özel kalması istenirse kolay değişir.
+- Simülasyon oyuncusunun Kral'ı sadece hile beklenirken koruyor; gerçek oyuncu gücü farklı kullanabilir (oyun testi gösterecek).

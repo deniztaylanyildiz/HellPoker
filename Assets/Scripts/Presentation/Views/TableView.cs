@@ -192,7 +192,7 @@ namespace HellPoker.Presentation.Views
             // The malice gauge and the announced cheat ride on the portrait box (4, 4, 104 × 104).
             _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
             // The class badge in the portrait box's lower right corner (the malice pips run along the lower left).
-            _sinner = SinnerBadgeView.Create(screen, 4 + DealerView.PortraitSize + 8 - 34, 4 + DealerView.PortraitSize + 8 - 22, _sequencer,
+            _sinner = SinnerBadgeView.Create(screen, 4 + DealerView.PortraitSize + 8 - SinnerBadgeView.Width - 4, 4 + DealerView.PortraitSize + 8 - 22, _sequencer,
                 () => SinnerPressed?.Invoke());
             _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56));
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);

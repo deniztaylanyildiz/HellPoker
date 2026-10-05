@@ -18,7 +18,11 @@ OYUN NE?
 Cehennemde 1000 yıl cezan var. Kasaya, yani bir şeytana karşı 5 kartlık poker (5 Card Draw) oynayarak cezanı sıfıra
 indirmeye çalışıyorsun. Kazanınca ceza azalır, kaybedince artar.
 
-Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü ya da Kral. Her sınıfın bir yeteneği var.
+Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü ya da Kral. Her sınıfın bir gücü var:
+portrenin altındaki rozette 5 pip, kazandığın ya da kaybettiğin her elde bir pip dolar (çekilmek doldurmaz). Dolunca
+pipler parlar ve "HAZIR: K" yazar; gücü ne zaman kullanacağına sen karar verirsin (K tuşu ya da rozete tıkla), gösterge
+boşalır. Köylü: bir eli bedelsiz bırakır. Büyücü: duyurulan küçük bir hileyi engeller. Kral: draw'dan önce bir kartı
+hilelere karşı korur. Gösterge koşu boyunca seninle: masa değişince sıfırlanmaz.
 Eller arasında bazen ortada bir teklif paneli açılır (bir olay): kabul et ya da geç. Bazı teklifler lanetli bir emanet verir;
 emanetler portrenin yanında küçük kutularda durur, üstüne gelince ne yaptıkları yazar.
 
@@ -40,7 +44,7 @@ KONTROLLER
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
   H               el sıralaması
-  K               Kral: bir kartı hilelere karşı koru (sonra karta tıkla)
+  K               sınıfının gücünü kullan (gösterge doluyken; Kral'da sonra karta tıkla)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
@@ -61,6 +65,11 @@ Oyun çökerse ya da garip bir şey olursa şu dosyayı bana gönder:
 
 (Bu satırı Windows Gezgini'nin adres çubuğuna "Player.log" kısmı olmadan yapıştırıp Enter'a basarsan klasör açılır.)
 Yanına iki satır yaz: ne yapıyordun, ne oldu, ne bekliyordun.
+
+Oyun her koşunun kısa bir günlüğünü de tutar (hangi el, ne oldu, hangi hileler; kişisel bilgi yok). Aynı klasördeki
+"runs" klasöründeki run-....txt dosyalarını da gönderirsen çok işime yarar:
+
+  %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\runs
 
 
 GERİ BİLDİRİM

@@ -101,16 +101,18 @@ namespace HellPoker.Presentation
         /// <param name="finalDealer">Lucifer: below the gate the player is summoned to his table. Without him every table can
         /// set the player free.</param>
         public TablePresenter(Func<Dealer, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null, RunArchive archive = null,
-            Dealer finalDealer = null, EventSession events = null, IAudio audio = null)
+            Dealer finalDealer = null, EventSession events = null, IAudio audio = null, IRunLogSink runLog = null)
             : this(createGame == null ? null : (Func<Dealer, Sinner, IHellPokerGame>)((dealer, _) => createGame(dealer)), view, guide, archive,
-                finalDealer, events, audio)
+                finalDealer, events, audio, runLog)
         {
         }
 
         /// <param name="createGame">Builds a fresh game for a run at this dealer's table, for this sinner (its class, its guard).</param>
+        /// <param name="runLog">Where each run's readable log is written when it ends (or the game closes); none: no logs.</param>
         public TablePresenter(Func<Dealer, Sinner, IHellPokerGame> createGame, ITableView view, IGuideSettings guide = null,
-            RunArchive archive = null, Dealer finalDealer = null, EventSession events = null, IAudio audio = null)
+            RunArchive archive = null, Dealer finalDealer = null, EventSession events = null, IAudio audio = null, IRunLogSink runLog = null)
         {
+            _logSink = runLog;
             _events = events;
             _audio = audio ?? NullAudio.Instance;
             _createGame = createGame ?? throw new ArgumentNullException(nameof(createGame));
@@ -125,7 +127,7 @@ namespace HellPoker.Presentation
             _view.CheckToDrawPressed += CheckToDraw;
             _view.LeavePressed += RequestLeave;
             _view.HandRanksPressed += ToggleHandRanks;
-            _view.SinnerPressed += ToggleProtect;
+            _view.SinnerPressed += UsePower;
             _view.RelicPressed += PressRelic;
             _view.EventOptionPressed += ChooseEventOption;
             _view.Player.CardClicked += ToggleDiscard;
@@ -179,7 +181,47 @@ namespace HellPoker.Presentation
                     _gate.Attempts, classId: _sinner.Id);
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
+            EndLog(soul || _game.Phase == GamePhase.Damned ? "ABANDONED with the soul on the table (counted as damned)" : "ABANDONED (a new game)");
             _abandoned = true;
+        }
+
+        // ------------------------------------------------------------------ the run log (a readable diary for the playtest)
+
+        private readonly IRunLogSink _logSink;
+        private RunLog _log;
+
+        /// <summary>This run's log so far (null without a sink).</summary>
+        public RunLog Log => _log;
+
+        private void NewLog(int resumedAtHand)
+        {
+            _log = _logSink == null ? null
+                : new RunLog(_logSink.Version, Lang.Current.ToString(), _dealer.Id, _sinner.Id, _game.Years, DateTime.Now, resumedAtHand);
+        }
+
+        private void LogNote(string text) => _log?.Note(text);
+
+        /// <summary>The run is over (or left): the log says how, and is written.</summary>
+        private void EndLog(string result)
+        {
+            if (_log == null || _log.IsEnded) return;
+            _log.End(result, _game.Years, _stats?.HandsPlayed ?? _game.RoundNumber);
+            WriteLog();
+        }
+
+        /// <summary>Writing the log never stops the game: any failure is only a warning in Player.log.</summary>
+        private void WriteLog()
+        {
+            if (_log == null || _logSink == null) return;
+            try { _logSink.Write(_log); }
+            catch (Exception exception) { UnityEngine.Debug.LogWarning($"Hell Poker: the run log could not be written ({exception.Message})."); }
+        }
+
+        /// <summary>The game is closing: a run still being played is written as it stands (a resumed run starts a new log).</summary>
+        public void CloseLog()
+        {
+            if (_log == null || _log.IsEnded || _abandoned || _game == null || _game.IsGameOver) return;
+            EndLog("UNFINISHED: the game was closed" + (_game.CurrentHand != null ? " mid-hand" : ""));
         }
 
         public string CurrentDealerId => _dealer?.Id;
@@ -200,6 +242,7 @@ namespace HellPoker.Presentation
         /// the class's own sentence, its ability full.</summary>
         public void StartNewRun(Dealer dealer, SinnerClass sinnerClass)
         {
+            if (_log != null && !_log.IsEnded && Playing && !_game.IsGameOver) EndLog("LEFT for a new game");
             _sinner = new Sinner(sinnerClass ?? SinnerRoster.Peasant);
             _effects = new RunEffects();
             _events?.Reset();
@@ -217,6 +260,7 @@ namespace HellPoker.Presentation
             _origin = null;
             _originMalice = null;
             BeginRun();
+            NewLog(0);
             // The demon sizes up who sits down: a greeting for the class, the usual one otherwise.
             string classId = sinnerClass?.Id;
             Say(d => d.GreetingFor(classId) ?? UiText.Pick(d.Greeting, 0), DealerMood.Neutral);
@@ -232,7 +276,7 @@ namespace HellPoker.Presentation
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             // The same sinner, with what was left of the ability (a closed game does not refill it).
-            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharges, snapshot.ClassChargeTables);
+            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharge, wardRaised: snapshot.WardRaised);
             // The run's events: the marks they left, and which were seen (an event on screen when the game closed is passed).
             RunEventState saved = snapshot.Events;
             _effects = new RunEffects();
@@ -255,6 +299,7 @@ namespace HellPoker.Presentation
             _stats = snapshot.Stats;
             _stats.SatWith(dealer.Id);
             _settledRound = _game.RoundNumber;
+            NewLog(Math.Max(1, snapshot.RoundsPlayed));
 
             if (snapshot.Hand != null && !_game.IsGameOver)
             {
@@ -278,6 +323,9 @@ namespace HellPoker.Presentation
         {
             RoundResult round = _game.ForfeitHand(hand);
             bool soul = hand.IsSoulHand || _game.IsSoulAtStake || _game.Phase == GamePhase.Damned;
+            LogNote("the game had been closed mid-hand: the hand is forfeit" + (hand.FledACheat ? " (walking out on a cheat: a grudge)" : ""));
+            _log?.Hand(_game.RoundNumber, _dealer.Id, round.YearsBefore, round.YearsAfter, hand.IsSealed ? "LOST (sealed, left)" : null, "-",
+                hand.Stake, hand.IsSealed, hand.IsSoulHand);
             _stats.RecordHand(_game.Years, null, soul);
             if (_game.IsGameOver)
             {
@@ -320,6 +368,9 @@ namespace HellPoker.Presentation
             _records.RunEnded(_game.Phase == GamePhase.Absolved, credited, _stats.HandsPlayed, _gate.Attempts, BeatLucifer, WildBill, _sinner.Id);
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
+            EndLog(_game.Phase != GamePhase.Absolved ? "DAMNED"
+                : BeatLucifer ? "ABSOLVED: the Morning Star falls (attempt " + _gate.Attempts + ")"
+                : WildBill ? "ABSOLVED: Wild Bill's escape" : "ABSOLVED");
         }
 
         private void BeginRun()
@@ -347,9 +398,9 @@ namespace HellPoker.Presentation
         {
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
                 _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge, _sinner.Id,
-                _sinner.Charges, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
+                _sinner.Charge, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
                     _effects.DeferredHands, _effects.SoulSold, _effects.Relics, _effects.RedrawsLeft, _effects.RedrawTablesCode),
-                _sinner.TableChargesCode);
+                _sinner.WardRaised);
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -365,6 +416,11 @@ namespace HellPoker.Presentation
             RoundResult round = _game.LastRound;
             _stats.RecordHand(_game.Years, round.Folded ? (HandCategory?)null : round.Showdown.Player.Category,
                 _game.IsSoulAtStake || _game.IsSoulHand);
+            _log?.Hand(_game.RoundNumber, _dealer.Id, round.YearsBefore, round.YearsAfter,
+                round.Folded ? null : round.Showdown.Player.Category + " " + round.Showdown.Outcome,
+                round.Folded ? null : round.Showdown.House.Category.ToString(), round.Stake, _game.IsCommitted, _game.IsSoulHand, round.FreeFold);
+            foreach (CheatResult cheat in _game.CheatsThisHand)
+                _log?.Cheat(_game.RoundNumber, cheat.Backfired ? "BACKFIRED" : cheat.Outcome.ToString().ToLowerInvariant(), cheat.CheatId, cheat.ShownId);
 
             // A demon's cheat that helped the player goes into the run's story and the records.
             int backfires = _game.CheatsThisHand.Count(r => r.Backfired);
@@ -407,6 +463,7 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            LogNote($"table: {_dealer?.Id} -> {dealer.Id} at {_game.Years} years");
             SeatAt(dealer, _game.Years, _game.RoundNumber);
             _settledRound = _game.RoundNumber;
             if (_stats == null)
@@ -469,6 +526,7 @@ namespace HellPoker.Presentation
             // Lucifer's gauge is tiny; the demon below keeps theirs for when the player falls back.
             _originMalice = (_game.Malice, _game.MaliceMax, _game.Grudge);
             _gate.Summon(_dealer.Id);
+            LogNote($"SUMMONED by Lucifer from {_dealer.Id} at {_game.Years} years (attempt {_gate.Attempts})");
             _view.PlaySfx(SfxIds.Summoned);
             SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
             _audio.PlayMusic(_finalDealer.Id);
@@ -497,6 +555,7 @@ namespace HellPoker.Presentation
             Say(d => d.CastDown, _gate.Attempts, DealerMood.Gloating);
             int years = _gate.CastDown(_game.Years);
             Dealer origin = _origin;
+            LogNote($"CAST DOWN to {origin.Id}: {_game.Years} -> {years} years");
             _view.PlaySfx(SfxIds.Fall);
             SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
             _audio.PlayMusic(origin.Id);
@@ -520,7 +579,6 @@ namespace HellPoker.Presentation
             // Per-table charges are kept per demon: a table never sat at is full, one the player comes back to has what was left
             // there (changing seats refills nothing). Lucifer's table is full at every summons; a fall lands on the demon's own count.
             bool fresh = change == SeatChange.Summoned;
-            _sinner.SitAt(dealer.Id, fresh);
             _effects.SitAt(dealer.Id, fresh);
             IHellPokerGame game = _createGame(dealer, _sinner) ?? throw new InvalidOperationException("The game factory returned no game.");
             game.UseEffects(_effects);   // the run's marks go to every table
@@ -578,7 +636,7 @@ namespace HellPoker.Presentation
             _view.CheckToDrawPressed -= CheckToDraw;
             _view.LeavePressed -= RequestLeave;
             _view.HandRanksPressed -= ToggleHandRanks;
-            _view.SinnerPressed -= ToggleProtect;
+            _view.SinnerPressed -= UsePower;
             _view.RelicPressed -= PressRelic;
             _view.EventOptionPressed -= ChooseEventOption;
             _view.Player.CardClicked -= ToggleDiscard;
@@ -596,6 +654,7 @@ namespace HellPoker.Presentation
                     _view.PlaySfx(SfxIds.Deal);
                     _game.PlaceBet();
                     _discards.Clear();
+                    if (_game.PendingCheat != null) _log?.Cheat(_game.RoundNumber, "announced", _game.PendingCheat.Id);
                     PlayOutSealedHand(before);
                     // A cheat at the deal lands once the cards are on the table.
                     Refresh();
@@ -806,7 +865,10 @@ namespace HellPoker.Presentation
             _view.SetIntent(shown == null ? null : CardOf(shown.Id));
         }
 
-        /// <summary>The class badge under the portrait: the class and what is left of its ability (hover: what it does).</summary>
+        /// <summary>
+        /// The class badge under the portrait: the class and its power's charge gauge (hover: what it does). Full, it glows; when
+        /// the power can be used right now it says so (K / the badge). The first time it fills, the dealer explains it.
+        /// </summary>
         private void ShowSinner()
         {
             Sinner sinner = _game.Sinner;
@@ -816,7 +878,11 @@ namespace HellPoker.Presentation
                 return;
             }
             string id = sinner.Id;
-            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charges, sinner.Class.FullCharges));
+            bool usable = sinner.IsCharged && _game.WhyNoPower() == PowerRefusal.None;
+            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charge, sinner.Rules.Full, usable,
+                sinner.WardRaised));
+            if (sinner.IsCharged && !_relabelling)
+                Tip(UiText.TipPowerReady);
         }
 
         /// <summary>The run's relics beside the portrait (hover: the gift and the curse; the Bone Die: rolls left this hand).</summary>
@@ -968,14 +1034,15 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>
-        /// K, or the class badge: the King picks a card to put under the crown's protection (the next card clicked), or stops
-        /// picking. Anyone else — or a King with no charge left, or past the draw — hears why not.
+        /// K, or the class badge: use the class's power (a full charge). The Peasant walks away from the hand for nothing, the
+        /// Warlock raises a ward against the minor cheat announced, the King picks a card to protect (the next card clicked — or
+        /// K again: stop picking). Nothing happens on its own: a full gauge waits. When it cannot be used now, the player hears why.
         /// </summary>
-        public void ToggleProtect()
+        public void UsePower()
         {
             if (!Playing || _pendingEvent != null || Hurry()) return;
             Sinner sinner = _game.Sinner;
-            if (sinner == null || sinner.Ability != SinnerAbility.Protect) return;
+            if (sinner == null || sinner.Ability == SinnerAbility.None) return;
 
             if (_protecting)
             {
@@ -983,19 +1050,37 @@ namespace HellPoker.Presentation
                 Refresh();
                 return;
             }
-            if (!sinner.CanUse(SinnerAbility.Protect))
+            PowerRefusal refusal = _game.WhyNoPower();
+            if (refusal != PowerRefusal.None)
             {
-                _view.SetMessage(UiText.ProtectSpent, Tone.Warning);
+                _view.SetMessage(UiText.PowerRefused(sinner.Ability, refusal, sinner.Charge, sinner.Rules.Full), Tone.Warning);
                 return;
             }
-            if (!Enumerable.Range(0, Hand.Size).Any(_game.CanProtect))
+
+            switch (sinner.Ability)
             {
-                _view.SetMessage(UiText.ProtectNotNow, Tone.Warning);
-                return;
+                case SinnerAbility.Protect:
+                    _protecting = true;
+                    _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
+                    _view.SetMessage(UiText.ProtectPrompt, Tone.Warning);
+                    return;
+                case SinnerAbility.FreeFold:
+                {
+                    TableState before = CaptureState();
+                    LogNote($"power: free fold (hand {_game.RoundNumber})");
+                    _game.UsePower();   // the honest heart: a fold that costs nothing
+                    PlayOutSealedHand(before);
+                    PlayCheatStrikes(before);
+                    Refresh();
+                    return;
+                }
+                case SinnerAbility.Ward:
+                    LogNote($"power: ward raised against {_game.PendingCheatTruth?.Id} (hand {_game.RoundNumber})");
+                    _game.UsePower();
+                    Refresh();
+                    _view.SetMessage(UiText.WardRaisedMessage, Tone.Good);
+                    return;
             }
-            _protecting = true;
-            _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
-            _view.SetMessage(UiText.ProtectPrompt, Tone.Warning);
         }
 
         private void ProtectCard(int index)
@@ -1007,6 +1092,7 @@ namespace HellPoker.Presentation
                 return;
             }
             _discards.Remove(index);
+            LogNote($"power: protect {_game.PlayerHand[index]} (hand {_game.RoundNumber})");
             Refresh();
             _view.SetMessage(string.Format(UiText.ProtectedFormat, _game.PlayerHand[index]), Tone.Good);
         }
@@ -1355,6 +1441,7 @@ namespace HellPoker.Presentation
             _view.HideEvent();
             e.Apply(option, table, _dealer.Id, _events.Random);
             bool accepted = option != EventOptions.Pass;
+            LogNote($"event {e.Id}: {option} ({_game.Years} years after)");
             Say(d => accepted ? d.EventAccepted : d.EventDeclined, _game.RoundNumber, accepted ? DealerMood.Scheming : DealerMood.Neutral);
             if (!_game.IsSoulAtStake && !_game.IsGameOver)
                 _view.Sentence.SetYears(_game.Years, animate: true);
@@ -1363,6 +1450,7 @@ namespace HellPoker.Presentation
             if (accepted && e is RelicEvent relicEvent && relicEvent.LastGiven != null)
             {
                 string id = relicEvent.LastGiven;
+                LogNote($"relic taken: {id}");
                 _view.SetMessage(string.Format(UiText.RelicTakenFormat, UiText.RelicName(id), UiText.RelicGift(id), UiText.RelicCurse(id)), Tone.Warning);
             }
         }

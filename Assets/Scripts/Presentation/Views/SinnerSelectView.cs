@@ -21,6 +21,11 @@ namespace HellPoker.Presentation.Views
         private const int CardsY = 34;
         private const int CardHeight = 222;
 
+        /// <summary>Where the ability text starts, its margin, and the top of CHOOSE: the ability and the price live between.</summary>
+        public const int AbilityTop = 152;
+        public const int TextX = 8;
+        public const int ChooseTop = CardHeight - 24;
+
         private Canvas _canvas;
         private SalonView _salon;
         private RectTransform _cards;
@@ -105,13 +110,17 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.PlaceTL(6, 121, CardWidth - 12, 18);
             UiFactory.CreateText("Start", card, sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter)
                 .rectTransform.PlaceTL(0, 140, CardWidth, 9);
-            UiFactory.CreateText("Ability", card, sinner.Ability, 8, Palette.Bone, TextAnchor.UpperLeft)
-                .rectTransform.PlaceTL(8, 152, CardWidth - 16, 27);
-            UiFactory.CreateText("Detail", card, sinner.Detail, 8, Palette.LilacLight, TextAnchor.UpperLeft)
-                .rectTransform.PlaceTL(8, 180, CardWidth - 16, 18);
+            // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE.
+            Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, Palette.Bone, TextAnchor.UpperLeft);
+            ability.rectTransform.PlaceTL(TextX, AbilityTop, CardWidth - 2 * TextX, 9);
+            int abilityHeight = Mathf.CeilToInt(ability.preferredHeight);
+            ability.rectTransform.PlaceTL(TextX, AbilityTop, CardWidth - 2 * TextX, abilityHeight);
+            Text detail = UiFactory.CreateText("Detail", card, sinner.Detail, 8, Palette.LilacLight, TextAnchor.UpperLeft);
+            detail.rectTransform.PlaceTL(TextX, AbilityTop + abilityHeight + 2, CardWidth - 2 * TextX, 9);
+            detail.rectTransform.PlaceTL(TextX, AbilityTop + abilityHeight + 2, CardWidth - 2 * TextX, Mathf.CeilToInt(detail.preferredHeight));
 
             Button choose = UiFactory.CreateButton($"ChooseSinner{index}", card, UiText.ChooseSinner, 8, out _, ButtonSkin.Ember);
-            ((RectTransform)choose.transform).PlaceTL((CardWidth - 88) / 2, CardHeight - 24, 88, 18);
+            ((RectTransform)choose.transform).PlaceTL((CardWidth - 88) / 2, ChooseTop, 88, 18);
             choose.onClick.AddListener(() => SinnerChosen?.Invoke(index));
         }
     }

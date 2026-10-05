@@ -100,8 +100,8 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   (`RunArchive` → PlayerPrefs `run.save`).
   - Format: `RunSnapshot`, "key=value" satırları, **`v=4`**: dealer, years, rounds, hands, lowest, highest, best, dealers, soul,
     `lucifer` (masasında mı), `origin` (gelinen şeytan), `attempts`, `malice`, `cheat.major`, `grudge` (isteğe bağlı),
-    `class` (sınıf id), `class.charges` (kayıt masasında kalan yetenek hakkı; isteğe bağlı), `class.charges.tables` (şeytan başına,
-    "mammon:0"; isteğe bağlı); olaylar (isteğe bağlı, `RunEventState`): `event.seen`,
+    `class` (sınıf id), `class.charge` (sınıf gücünün göstergesi 0–5; isteğe bağlı), `class.ward` (kurulu koruma; isteğe bağlı;
+    eski `class.charges` / `class.charges.tables` yok sayılır); olaylar (isteğe bağlı, `RunEventState`): `event.seen`,
     `event.since`, `effect.next` (`HandModifier`), `effect.deferred`, `effect.deferred.hands`, `soul.sold`, `relics`, `relics.redraws`, `relics.redraws.tables`. v=4 tek seferde büyütülür:
     emanetler de kendi isteğe bağlı anahtarlarıyla aynı sürüme girer.
   - El sürüyorsa ayrıca `hand.stake`, `hand.ante`, `hand.drawn`, `hand.soul`, `hand.sealed`, `hand.cheat`, `hand.cheat.done`
@@ -116,6 +116,15 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - **Hileden kaçış (kin):** yarım elde planlanmış ama henüz vurmamış bir hile varsa (`HandInProgress.FledACheat`) gösterge
     hemen dolar ve `GameRules.GrudgeHands` (3) el boyunca her el +`GrudgeMalicePerHand` (1) fazla dolar (`CheatSession.Grudge`,
     kayıtta `grudge`). Şeytan `Hunted` repliğiyle alay eder ("Where to? This is Hell."), sonuç satırına kin notu eklenir.
+- **Koşu günlüğü** (oyun testi için): her koşu bitince (aklanma, lanet, bırakma) ve oyun kapanırken yarım koşu için okunabilir bir metin
+  `Application.persistentDataPath/runs/run-<yyyyMMdd-HHmmss>.txt` (Windows: Player.log'un klasöründe `runs`). Core'da saf `RunLog`
+  (başlık: sürüm, dil, şeytan, sınıf, başlangıç / devam; her el: no, masa, ceza önce → sonra, oyuncu / kasa eli ya da çekilme, bahis, mühür, ruh;
+  hileler duyurulan / vuran / engellenen / boşa giden / geri tepen; masa değişimi, çağrılma, düşüş, olay ve seçimi, emanet, sınıf gücü; sonuç).
+  Presentation'da `IRunLogSink`: `FileRunLogSink` (en yeni 50 dosya, her hata Player.log'a uyarı), `MemoryRunLogSink` (testler); batchmode'da
+  günlük yok. `TablePresenter.CloseLog` bootstrap kapanırken çağrılır; devam eden koşu yeni bir dosyada `resumed` diye sürer.
+- **Pencere:** pencere moduna geçince / boyut değişince ekranın çalışma alanında ortalanır, dışına taşmaz (`WindowScales.Centered`,
+  `Screen.MoveMainWindowTo`; editörde atlanır). Açılışta pencere öne gelir (`WindowFocus`, Windows `SetForegroundWindow`).
+  `runInBackground` açık (Player Settings + bootstrap): alt-tab'da oyun ve müzik durmaz.
 - **Oyuncu zorla tutulmaz:** Quit eller arasında onaysız (koşu kayıtlı). El ortasında ya da ruh masadayken (`AbandonRisk` Hand / Soul)
   önce sorar: şeytanın `Fled` repliği + "Leave now and the hand is lost." / "Şimdi gidersen el kaybedilir.", QUIT / BACK, Esc kapatır
   (açılışta el zaten forfeit edilir; oyuncu artık bunu bilerek çıkar). Aynı onay kutusu (`IMainMenuView.AskToConfirm(taunt, uyarı,
@@ -223,16 +232,19 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (zincir, diken, örtü, sahte yüz parıltısı). Sonuç mesajında hile satırı (ruhta yıl yok). Şeytan başına ilk hile ipucu.
     How to Play'de CHEATS sayfası.
 - **Denge** (`BalanceSimulation`, şeytan × sınıf başına 2000 koşu, akıllı oyuncu; ruh, mühür, Lucifer, **hileler ve sınıflarla**;
-  oyuncu sadece gördüğüyle oynar, niyete tepki verir; Köylü'nün bedava çekilmesi otomatik, Büyücü yalanın arkasını görür, Kral hile
-  beklenirken en değerli görünen kartını korur; **olaylarda** beklenen değer pozitifse kabul eder, emanet tekliflerini de; Kemik Zar'ı
+  oyuncu sadece gördüğüyle oynar, niyete tepki verir; gösterge doluyken Köylü kötü elden çekilirken gücüyle bedava çekilir, Büyücü ilk
+  küçük hile duyurusunda korumayı kurar (yalanın arkasını görür), Kral hile beklenirken draw'dan önce en değerli çift / kartı korur; **olaylarda** beklenen değer pozitifse kabul eder, emanet tekliflerini de; Kemik Zar'ı
   draw'da, çift ya da daha iyi bir elde eşleşmeyen en düşük karta atar). Aklanma (Lucifer'e ulaşan / ilk denemede yenme), olaylar ve emanetlerle
-  (2026-10-05, masa başına haklar şeytan başına):
+  (2026-10-05, sınıf güçleri şarj göstergesiyle: kazanç / kayıp +1, çekilme 0, dolu 5):
   | Sınıf | Mammon | Belial | Lilith |
   |---|---|---|---|
-  | Köylü | %79.4 (%87 / %32) | %77.6 (%83 / %40) | %50.9 (%66 / %32) |
-  | Büyücü | %81.5 (%87 / %39) | %78.5 (%82 / %48) | %54.9 (%66 / %39) |
-  | Kral | %77.1 (%82 / %33) | %72.1 (%76 / %43) | %48.8 (%58 / %36) |
+  | Köylü | %81.8 (%87 / %32) | %77.1 (%83 / %40) | %51.6 (%65 / %32) |
+  | Büyücü | %82.2 (%87 / %36) | %77.6 (%82 / %43) | %54.6 (%65 / %38) |
+  | Kral | %77.6 (%82 / %33) | %72.1 (%76 / %43) | %48.9 (%58 / %35) |
 
+  Önceki (masa başına haklar) tabloya göre: Köylü +2.4 / −0.5 / +0.7, Büyücü +0.7 / −0.9 / −0.3, Kral +0.5 / 0.0 / +0.1. Koşu başına
+  güç kullanımı Köylü 2.4, Büyücü 3.6 (vuran koruma 3.6), Kral 3.4. Planlanan şarj (kazanç +1 / kayıp +2 / çekilme +1) Köylü +3.7 / Büyücü
+  +3.5 (Mammon) veriyordu; dolu 6: +3.2 / +2.7; dolu 7: +2.7 / +2.4 (pip sayısı bozulur); 5,1,1,1: +3.2 / +3.0; 5,1,2,0: +3.1 / +1.3.
   Emanetsiz (`HELLPOKER_RELICS=none`: emanet teklifi yok): Köylü 80.6 / 77.6 / 53.0, Büyücü 82.3 / 78.9 / 55.9, Kral 77.7 / 72.9 / 49.9
   — emanetler −2.1..0.0 (sınır ±3; oyuncu teklifleri ~%85 alıyor).
   **Masa zıplayan oyuncu** (`HELLPOKER_HOP=1`: bir masa başına hakkı harcayınca başka bir sıradan şeytana geçip hemen döner):
@@ -244,36 +256,43 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 
   Ort. el (Köylü) ~57 / ~28 / ~32; hile / el 0.30 / 0.47 / 0.40, Lucifer 0.83. Hedefler: Mammon ~80, Belial ~70, Lilith ~55;
   Kral Lilith'te ~50 (taç %25 ile; %50'de 54.8, %100'de 64.2). Büyücü Belial'de 2 kasa kartı görür (kullanıcı kararı,
-  seçenek a): simülasyonda +1.4 (oyuncu modeli açık kartı az kullanıyor; gerçek oyuncuya daha çok yarar). `HELLPOKER_CLASSES`, `HELLPOKER_WARDS`,
-  `HELLPOKER_KING` ("başlangıç,taç%,koruma,koşuBaşına01") ile denenebilir.
+  seçenek a): simülasyonda +1.4 (oyuncu modeli açık kartı az kullanıyor; gerçek oyuncuya daha çok yarar). `HELLPOKER_CLASSES`,
+  `HELLPOKER_KING` ("başlangıç,taç%"), `HELLPOKER_CHARGE` ("dolu,kazanç,kayıp,çekilme") ile denenebilir.
 
   (Gösterge masa değişiminde taşınıyor, tohumlar türetiliyor — 2026-10-03.) Lucifer masasında el başına 0.84 hile; geri tepme: Yanan Kart %21, Düşüş %18, Çatal Dil ~%0.04 (kayma nadiren renk verir).
   Belial her el hile yapsa bile ~%75'in altına inmiyor (hileleri hafif); son karar oyun testinden sonra — bkz. DEVLOG.
   Ruhu masaya koyan koşular %30 / %38 / %62. `HELLPOKER_LUCIFER_GATE` (0 = Lucifer yok) ve `HELLPOKER_CAST_DOWN` ile denenebilir. Ruh değerini düşürmek el sayısını neredeyse değiştirmiyor
   (bahis birimi ruhla birlikte küçülüyor), sadece Lilith'i zorlaştırıyor — bkz. DEVLOG.
-- **Sınıflar** (günahkârlar, `Core/Sinners`): New Game → şeytan → **sınıf seçimi** (`SinnerSelectView`: portre, ad, unvan, yetenek,
-  bedeli, başlangıç cezası) → masa. Sınıf bütün koşu boyunca kalır (masa değişimi, Lucifer, Continue).
-  - `SinnerClass` (Id, `StartingYears`, `WinAntePercent`, `Ability`, `ChargesPerRun` / `ChargesPerTable`, `SeesLies`, `Allows` = guard
-    kararı); her sınıf kendi dosyasında (`Peasant.cs`, `Warlock.cs`, `King.cs`), `SinnerRoster.All` listesinde. **Yeni sınıf = yeni dosya
-    + roster'a bir satır** (+ UiText.Sinners metinleri, `pixel_sinners.py` portre ve ikon, şeytanlara `GreetingAs...` repliği).
-  - `Sinner` (koşunun sınıfı + kalan hak): `ICheatGuard` olarak her hile vuruşundan önce sorulur; `SitAt(şeytan, taze)` masa başına
-    hakkı **şeytan başına** tutar (koşu başına hak kalır; bkz. **Masa başına haklar**). Oyun `Sinner`'ı fabrikadan alır (`HellPokerGameFactory.Create(..., sinner)`;
-    `TablePresenter`'ın `Func<Dealer, Sinner, IHellPokerGame>`'i).
-  - **Köylü:** 1000 yıl; dürüst kalp: koşudaki ilk çekilme bedava (`RoundResult.FreeFold`, koşuda bir kez). Kolay mod.
-  - **Büyücü:** 1000 yıl; saklanan eli görür: kasanın 2'den az kart gösterdiği sıradan masada 2 kart görür — pratikte Belial
-    (`SinnerClass.HouseCardsShownAt`, `IHellPokerGame.HouseCardsShown`; Lucifer'in karanlığı kalır); yalanları görür (niyet şeridi duyuruda hemen "LIAR" diye kırılıp gerçeğe döner); her şeytanın masasında bir kez **küçük**
-    bir hileyi savuşturur (guard reddeder → `CheatOutcome.Blocked`, gösterge boşalır, kartta "WARD"/"KORUMA" `TableMoment.Ward`,
-    şeytan kızgın + `Blocked` repliği). Büyük hileleri ve Düşüş'ü engelleyemez; boşa gidecek hileye hakkını harcamaz.
-  - **Kral:** 1250 yıl (1500 olsa Lilith'te ruh hemen masada olurdu); taç: kazanç ante'nin %25'i kadar fazla siler
-    (`King.crownPercent`); her şeytanın masasında bir kez draw'dan önce (kartlar açılırken ya da draw ekranında) görünen bir kartı korur:
-    `K` tuşu ya da rozete tık → kart seç; o el hiçbir hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`;
-    kartta taç işareti `CardMark.Protected`).
-  - **Masa başına haklar** (Büyücü, Kral, Kemik Zar; ortak `Core/Game/TableCharges`): şeytan başına tutulur. Harcanan hak o şeytanın
-    masasına dönünce dolu gelmez; hiç oturulmamış şeytanın masası dolu başlar; Lucifer'in masası her çağrılmada dolu (yeni deneme); düşüşte
-    gelinen şeytanın kalan hakkı. Tek yer: `TablePresenter.SeatAt` her oturuşta `SitAt(dealer.Id, fresh: Summoned)`. Masa değiştirmek
-    eller arasında bedelsiz olduğu için eski "her yeni masada dolar" kuralı Mammon → Belial → Mammon zıplamasıyla sınırsız dolduruluyordu.
-  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`: ikon + kalan hak, hover'da açıklama). Kayıt `class`, `class.charges`, `class.charges.tables`;
-    rekorlarda sınıf başına aklanma (`free.class.<id>`). How to Play'de SINNERS / GÜNAHKÂRLAR sayfası.
+- **Sınıflar** (günahkârlar, `Core/Sinners`): New Game → şeytan → **sınıf seçimi** (`SinnerSelectView`: portre, ad, unvan, ne yaptığı,
+  bedeli, başlangıç cezası; yetenek ve bedel metni içeriğe göre yerleşir — bedel yeteneğin gerçek yüksekliğinin altından başlar, ikisi
+  de SEÇ'in üstünde biter, PlayMode testi iki dilde ölçer) → masa. Sınıf bütün koşu boyunca kalır (masa değişimi, Lucifer, Continue).
+  - `SinnerClass` (Id, `StartingYears`, `WinAntePercent`, `Ability` = güç, `SeesLies`, `HouseCardsShownAt`); her sınıf kendi dosyasında
+    (`Peasant.cs`, `Warlock.cs`, `King.cs`), `SinnerRoster.All` listesinde. **Yeni sınıf = yeni dosya + roster'a bir satır**
+    (+ UiText.Sinners metinleri, `pixel_sinners.py` portre ve ikon, şeytanlara `GreetingAs...` repliği; gerekirse `HellPokerGame.WhyNoPower / UsePower`).
+  - **Güç ve şarj göstergesi** (`Sinner` + `ChargeRules`): pasifler hep açık, aktif güç göstergeye bağlı. Gösterge **koşuya ait** (masa
+    değişimi, Lucifer'e çağrılma ve düşüş aynı göstergeyle sürer), koşu 0 ile başlar. Her kazanılan ya da kaybedilen el **+1**, çekilme ve
+    beraberlik **0**, en fazla **5** (`HandSettled`; yarım bırakılan el çekilme, mühürlüyse kayıp sayılır). 5'te güç kullanılabilir;
+    kullanmak isteğe bağlı, **hiçbir şey kendiliğinden harcanmaz**, kullanınca 0. (Plan kazanç +1 / kayıp +2 / çekilme +1 idi: Köylü
+    Mammon'da +3.7, Büyücü +3.5 çıktı; eşik 6–7 de denendi ama 5 pip bozulurdu — bkz. DEVLOG.) `HELLPOKER_CHARGE="dolu,kazanç,kayıp,çekilme"`.
+    `HellPokerGame.WhyNoPower()` → `PowerRefusal` (NotCharged, NoHand, CannotFold, NoCheatAnnounced, MajorCheat, WardAlreadyRaised,
+    NotBeforeDraw, NoCardToProtect), `UsePower()`; presenter nedeni iki dilde söyler (`UiText.PowerRefused`).
+  - **Köylü:** 1000 yıl. Güç "Dürüst kalp": bu eli bedelsiz bırak (çekilme bedeli 0, `RoundResult.FreeFold`); sadece çekilmenin mümkün
+    olduğu anda (mühürlü elde değil). Otomatik bedava çekilme yok.
+  - **Büyücü:** 1000 yıl. Pasif: yalanları görür (niyet şeridi duyuruda "LIAR" diye kırılır), kasanın 2'den az kart gösterdiği sıradan
+    masada 2 kart görür — pratikte Belial (`HouseCardsShownAt`; Lucifer'in karanlığı kalır). Güç "Koruma": duyurulan **küçük** hile
+    varken kurulur (`Sinner.WardRaised`), o hile vurmaya gelince reddedilir (`ICheatGuard` → `CheatOutcome.Blocked`, şeytanın göstergesi
+    boşalır, kartta "WARD"/"KORUMA", şeytan kızgın + `Blocked`). Boşa gidecek hile korumayı harcamaz (bir sonraki küçük hileyi bekler).
+    Büyük hilelere ve Düşüş'e kurulamaz. Otomatik engel yok.
+  - **Kral:** 1250 yıl (1500 olsa Lilith'te ruh hemen masada olurdu). Pasif: taç, kazanç ante'nin %25'i kadar fazla siler
+    (`King.crownPercent`). Güç: draw'dan önce (kartlar açılırken ya da draw ekranında) görünen bir kartı korur — `K` / rozet → kart seç;
+    o el hiçbir hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`; kartta taç işareti).
+  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`, 44 px: ikon + 5 pip; dolunca pipler altın / kor arasında parlar;
+    güç şu an kullanılabilirse üstünde "READY: K" / "HAZIR: K", kurulu korumada "KORUMA HAZIR"; hover'da ad, ne yaptığı, gösterge). **K**
+    tuşu ve rozete tık her sınıf için "gücü kullan" (`ITableCommands.UsePower`). Gösterge ilk dolduğunda şeytan ipucu söyler (`tip.power`).
+  - Kayıt: `class`, `class.charge` (0–5, isteğe bağlı; yoksa 0), `class.ward` (kurulu koruma, isteğe bağlı). Eski `class.charges` /
+    `class.charges.tables` okunmaz, yok sayılır. Rekorlarda sınıf başına aklanma (`free.class.<id>`). How to Play'de SINNERS sayfası.
+  - **Masa başına haklar** (artık sadece Kemik Zar; `Core/Game/TableCharges`): şeytan başına tutulur, harcanan hak o masaya dönünce dolu
+    gelmez; Lucifer'in masası her çağrılmada dolu. `TablePresenter.SeatAt` her oturuşta `SitAt(dealer.Id, fresh: Summoned)`.
 - **Olaylar** (`Core/Events`, eller arası): her el arasında bir kez zar (`EventSession.Roll`), `GameRules.EventChancePercent` (%12),
   son olaydan en az `EventCooldownHands` (4) el sonra, aynı olay koşuda bir kez, sadece Betting'de, **Lucifer masasında yok**.
   Kendi zar akışı (`HellPokerGameFactory.EventStream` = 3, koşu başına; diğer akışlar kaymaz). Batchmode'da (testler) kapalı.
@@ -341,7 +360,8 @@ Assets/Scripts/
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory,
                    RunStats / RunSnapshot (kayıt formatı) / HandInProgress (yarım el) / RecordBook (rekorlar),
-                   LuciferGate (çağrılma / düşüş / deneme), TableCharges (masa başına hakların şeytan başına defteri)
+                   LuciferGate (çağrılma / düşüş / deneme), TableCharges (masa başına hakların şeytan başına defteri), RunLog (koşu günlüğü),
+                   PowerRefusal (sınıf gücü neden kullanılamaz)
     Betting/       IHouseBettingStrategy, HandStrengthBettingStrategy, HouseBettingStyle (kasanın re-raise / blöf mizacı)
     Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle, SoulThreshold,
                    MaliceMax, ICheatPolicy Cheats), DealerRoster (hile listeleri ve gösterge boyları burada)
@@ -367,7 +387,7 @@ Assets/Scripts/
                    SettingsView, EndScreenView, RecordsView, SinnerBadgeView / SinnerSelectView, EventPanelView, RelicBarView,
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings, WindowMode), WindowScales (pencere katları, saf aritmetik), ISettingsStore
-                   (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar)
+                   (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar), RunLogSink (IRunLogSink: dosya / bellek)
     Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
                    + UiText.Cheats (iki dilli), Lang (dil), LocalizedText (`Localized()`: dille değişen sabit etiket), PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
@@ -540,7 +560,7 @@ Builds\WindowsDev\HellPoker.exe -fpstour -screen-fullscreen 0 -screen-width 1920
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K kartı koru (Kral), C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (sadece ana menüde), Q / E (ya da oklar) ayar sekmeleri, Esc bir üst ekran,
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K sınıf gücünü kullan (Kral: kart seç), C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (sadece ana menüde), Q / E (ya da oklar) ayar sekmeleri, Esc bir üst ekran,
 Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

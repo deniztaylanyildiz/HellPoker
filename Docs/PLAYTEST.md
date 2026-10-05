@@ -3,7 +3,7 @@
 Build: `Builds/Windows/HellPoker.exe` (ya da `Builds/HellPoker-<sürüm>-win64.zip`) · Tarih: ____________ · Sürüm (menünün sağ alt köşesi): ____________
 
 Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, C karşıla, F çekil, 1-5 kart seç, H el tablosu,
-K kartı koru (Kral), L dil (sadece ana menüde), Esc bir üst ekran, Alt+Enter tam ekran. Kemik Zar: zarın kutusuna tık → karta tık.
+K sınıf gücü, L dil (sadece ana menüde), Esc bir üst ekran, Alt+Enter tam ekran. Kemik Zar: zarın kutusuna tık → karta tık.
 Hata olursa: `%USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log`
 (0.1.0 ve öncesi: `...\LocalLow\DefaultCompany\Hellpoker\Player.log`).
 
@@ -77,13 +77,13 @@ Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral) · Hız ayarı
 
 | Sınıf | Yeteneği anladım mı? | Kullandım mı / kaç kez? | Adil miydi (çok güçlü / çok zayıf)? | Not |
 |---|---|---|---|---|
-| Köylü (ilk çekilme bedava) | | | | |
-| Büyücü (yalanı görür, şeytan başına bir küçük hileyi savuşturur, Belial'de 2 kasa kartı) | | | | |
-| Kral (1250 yıl, taç, şeytan başına bir kez K ile kart korur) | | | | |
+| Köylü (güç: bir eli bedelsiz bırak) | | | | |
+| Büyücü (yalanı görür, Belial'de 2 kasa kartı; güç: duyurulan küçük hileyi engelle) | | | | |
+| Kral (1250 yıl, taç; güç: draw'dan önce bir kartı koru) | | | | |
 
-- Portre kutusunun sağ altındaki sınıf rozeti (kalan hak) işime yaradı mı?
+- Rozetteki 5 pipli gösterge (kazanılan / kaybedilen el +1, çekilme 0; dolunca parlar, "HAZIR: K") anlaşıldı mı?
 -
-- "Her şeytanın masasında bir kez" kuralı anlaşıldı mı? (Masa değiştirmek hakkı doldurmaz; Lucifer'e her çağrılmada dolar.)
+- Gücü kullanmak istediğim an kullanabildim mi? Reddedildiğinde nedeni (mesaj) anlaşılır mıydı?
 -
 
 ## 6. Olaylar ve emanetler

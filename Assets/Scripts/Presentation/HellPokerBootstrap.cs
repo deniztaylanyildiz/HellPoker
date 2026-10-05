@@ -61,6 +61,8 @@ namespace HellPoker.Presentation
 
         private void Awake()
         {
+            // Alt-tab must not freeze the game (or its music): it keeps running behind other windows.
+            Application.runInBackground = true;
             EnsureEventSystem();
 
             // The soul line given here is only a placeholder: every dealer sets their own (Dealer.ApplyTo).
@@ -90,7 +92,7 @@ namespace HellPoker.Presentation
                     HellPokerGameFactory.EventStream)), EventChance(table), table.EventCooldownHands);
             _tablePresenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), tableView,
                 settings, archive,
-                DealerRoster.Lucifer, events, audio);
+                DealerRoster.Lucifer, events, audio, RunLogs);
             ResumeSavedRun(archive);
 
             MainMenuView menu = MainMenuView.Create(transform,
@@ -157,8 +159,20 @@ namespace HellPoker.Presentation
             _tablePresenter.Resume(dealer, saved, origin);
         }
 
+        /// <summary>Once the window exists: it comes to the front and takes the focus (a game opened behind another window
+        /// would otherwise wait there unseen).</summary>
+        private void Start()
+        {
+            if (!Application.isBatchMode) WindowFocus.BringToFront();
+        }
+
+        /// <summary>The playtest's run logs: text files next to the save (persistentDataPath/runs); none in batch runs (tests).</summary>
+        private static IRunLogSink RunLogs => Application.isBatchMode ? null
+            : new FileRunLogSink(System.IO.Path.Combine(Application.persistentDataPath, "runs"), Application.version);
+
         private void OnDestroy()
         {
+            _tablePresenter?.CloseLog();   // a run still going is written as it stands
             UiFactory.ButtonClicked = null;   // the scene's sound goes with it
             _menuPresenter?.Dispose();
             _tablePresenter?.Dispose();

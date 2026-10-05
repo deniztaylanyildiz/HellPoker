@@ -3,16 +3,16 @@ using HellPoker.Core.Cheats;
 
 namespace HellPoker.Core.Sinners
 {
-    /// <summary>What a sinner class can do, at the table and in the save.</summary>
+    /// <summary>What a sinner class can do when its charge is full (its power), at the table and in the save.</summary>
     public enum SinnerAbility
     {
-        /// <summary>No ability.</summary>
+        /// <summary>No power.</summary>
         None,
 
-        /// <summary>The Peasant: the run's first fold costs nothing.</summary>
+        /// <summary>The Peasant: an honest heart — walk away from this hand for nothing (the fold costs no years).</summary>
         FreeFold,
 
-        /// <summary>The Warlock: a minor cheat about to strike is warded off (refused by the guard).</summary>
+        /// <summary>The Warlock: the minor cheat announced is warded off when it comes (refused by the guard).</summary>
         Ward,
 
         /// <summary>The King: before the draw, one card is put under protection for the hand — no cheat may touch it.</summary>
@@ -20,9 +20,38 @@ namespace HellPoker.Core.Sinners
     }
 
     /// <summary>
+    /// How a sinner's power charges: every hand won or lost adds a pip; a fold (a loss, but a cheap one) and a tie add nothing,
+    /// so folding cannot be farmed. Up to <see cref="Full"/>; a full gauge waits until the player uses the power.
+    /// (Planned as win +1 / loss +2 / fold +1: the Peasant's free fold at Mammon's long runs then rose +3.7 points over the
+    /// balance line; loss +1 / fold 0 keeps every class within ±3 — see CLAUDE.md.)
+    /// </summary>
+    public sealed class ChargeRules
+    {
+        public static readonly ChargeRules Default = new ChargeRules();
+
+        /// <summary>The gauge is full (the power is ready) at this.</summary>
+        public int Full { get; }
+        public int PerWin { get; }
+        public int PerLoss { get; }
+        public int PerFold { get; }
+        public int PerTie { get; }
+
+        public ChargeRules(int full = 5, int perWin = 1, int perLoss = 1, int perFold = 0, int perTie = 0)
+        {
+            if (full <= 0) throw new ArgumentOutOfRangeException(nameof(full));
+            if (perWin < 0 || perLoss < 0 || perFold < 0 || perTie < 0) throw new ArgumentOutOfRangeException(nameof(perWin));
+            Full = full;
+            PerWin = perWin;
+            PerLoss = perLoss;
+            PerFold = perFold;
+            PerTie = perTie;
+        }
+    }
+
+    /// <summary>
     /// A sinner class: who the player was in life, and what that buys them in Hell. A class is a small rule package — the
-    /// starting sentence, a change to the payouts, an ability with charges (per run or per table) and, through the run's
-    /// <see cref="Sinner"/>, a say over the demons' cheats (<see cref="ICheatGuard"/>).
+    /// starting sentence, passive traits (a change to the payouts, seeing through lies) and one power that the run's charge
+    /// gauge pays for (<see cref="Sinner"/>).
     /// A new class is a new subclass and one line in <see cref="SinnerRoster"/>; nothing else needs to change.
     /// </summary>
     public abstract class SinnerClass
@@ -36,14 +65,8 @@ namespace HellPoker.Core.Sinners
         /// <summary>A won hand forgives this share of the ante more, in percent (100: the ante multiplier +1).</summary>
         public virtual int WinAntePercent => 0;
 
+        /// <summary>The power the charge gauge pays for.</summary>
         public virtual SinnerAbility Ability => SinnerAbility.None;
-
-        /// <summary>Charges of the ability for the whole run (never refilled).</summary>
-        public virtual int ChargesPerRun => 0;
-
-        /// <summary>Charges of the ability at each demon's table (full at a table never sat at and at every summons to Lucifer;
-        /// spent ones stay spent when the player comes back — see <see cref="Game.TableCharges"/>).</summary>
-        public virtual int ChargesPerTable => 0;
 
         /// <summary>True when the class sees through a demon's lie the moment it is told.</summary>
         public virtual bool SeesLies => false;
@@ -52,76 +75,75 @@ namespace HellPoker.Core.Sinners
         /// number unless the class sees more).</summary>
         public virtual int HouseCardsShownAt(Game.GameRules rules) => rules.HouseCardsShown;
 
-        /// <summary>The charges a run starts with (and, for a per-table ability, every new table).</summary>
-        public int FullCharges => ChargesPerTable > 0 ? ChargesPerTable : ChargesPerRun;
-
-        /// <summary>
-        /// Asked before a cheat strikes (through the run's <see cref="Sinner"/>). Return false to refuse it; spend a charge with
-        /// <paramref name="sinner"/> when the ability is used.
-        /// </summary>
-        public virtual bool Allows(ICheat cheat, CheatTable table, Sinner sinner) => true;
-
         public override string ToString() => Id;
     }
 
     /// <summary>
-    /// The run's sinner: the class and what is left of its ability. It is the guard every cheat asks (the Warlock's ward),
-    /// and it carries the charges from table to table — kept per demon for a per-table ability (<see cref="Game.TableCharges"/>:
-    /// changing seats does not refill it), kept for the run for a per-run one.
+    /// The run's sinner: the class and its power's charge gauge. The gauge belongs to the run — a new table, Lucifer's summons
+    /// and the fall all keep it. It fills with every settled hand (<see cref="ChargeRules"/>); full, the power may be used —
+    /// only when the player chooses (nothing is ever spent on its own) — and the gauge empties. It is also the guard every
+    /// cheat asks: a ward the Warlock raised refuses the next minor cheat that would really strike.
     /// </summary>
     public sealed class Sinner : ICheatGuard
     {
         public SinnerClass Class { get; }
 
-        private readonly Game.TableCharges _tables;
-        private int _runCharges;
+        public ChargeRules Rules { get; }
 
-        /// <summary>What is left of the ability (at this table, or this run).</summary>
-        public int Charges => IsPerTable ? _tables.Left : _runCharges;
+        /// <summary>The gauge, 0 to <see cref="ChargeRules.Full"/>.</summary>
+        public int Charge { get; private set; }
 
-        /// <summary>How many cheats this sinner has warded off (the whole run).</summary>
+        /// <summary>True when the gauge is full and the class has a power to use.</summary>
+        public bool IsCharged => Class.Ability != SinnerAbility.None && Charge >= Rules.Full;
+
+        /// <summary>The Warlock's ward is up: the next minor cheat that would strike is refused.</summary>
+        public bool WardRaised { get; private set; }
+
+        /// <summary>How many times the power was used, and how many cheats were warded off (the whole run).</summary>
+        public int PowersUsed { get; private set; }
         public int WardsUsed { get; private set; }
 
-        /// <param name="charges">What was left at the table the run was saved at (an older save's only number).</param>
-        /// <param name="tables">The per-demon counts of a per-table ability, as <see cref="Game.TableCharges.Encode"/> wrote them.</param>
-        public Sinner(SinnerClass sinnerClass, int? charges = null, string tables = null)
+        /// <param name="charge">The gauge (a saved run's); clamped to 0..full.</param>
+        /// <param name="wardRaised">A ward raised and still waiting (a saved run's).</param>
+        public Sinner(SinnerClass sinnerClass, int charge = 0, ChargeRules rules = null, bool wardRaised = false)
         {
             Class = sinnerClass ?? throw new ArgumentNullException(nameof(sinnerClass));
-            int full = sinnerClass.FullCharges;
-            _tables = new Game.TableCharges(() => Class.ChargesPerTable);
-            if (IsPerTable)
-                _tables.Restore(tables, charges.HasValue ? Math.Max(0, Math.Min(full, charges.Value)) : -1);
-            else
-                _runCharges = Math.Max(0, Math.Min(full, charges ?? full));
+            Rules = rules ?? ChargeRules.Default;
+            Charge = Math.Max(0, Math.Min(Rules.Full, charge));
+            WardRaised = wardRaised && Class.Ability == SinnerAbility.Ward;
         }
-
-        private bool IsPerTable => Class.ChargesPerTable > 0;
 
         public string Id => Class.Id;
 
         public SinnerAbility Ability => Class.Ability;
 
-        /// <summary>The per-demon counts for the save (empty for a per-run ability).</summary>
-        public string TableChargesCode => IsPerTable ? _tables.Encode() : "";
-
-        /// <summary>
-        /// The player sits at <paramref name="dealerId"/>'s table: a per-table ability has what was left there (full at a table
-        /// never sat at; <paramref name="fresh"/> — Lucifer's summons — full again). A per-run one stays as it is.
-        /// </summary>
-        public void SitAt(string dealerId, bool fresh = false) => _tables.SitAt(dealerId, fresh);
-
-        /// <summary>Spends one charge of <paramref name="ability"/>; false when none is left (or the class has another ability).</summary>
-        public bool TrySpend(SinnerAbility ability)
+        /// <summary>A hand was settled: the gauge fills (a win or a loss a pip; a fold or a tie nothing), up to full.</summary>
+        public void HandSettled(bool folded, Game.ShowdownOutcome? outcome)
         {
-            if (ability == SinnerAbility.None || Class.Ability != ability || Charges <= 0) return false;
-            if (IsPerTable) _tables.TrySpend();
-            else _runCharges--;
-            if (ability == SinnerAbility.Ward) WardsUsed++;
+            int gain = folded ? Rules.PerFold
+                : outcome == Game.ShowdownOutcome.PlayerWins ? Rules.PerWin
+                : outcome == Game.ShowdownOutcome.HouseWins ? Rules.PerLoss
+                : Rules.PerTie;
+            Charge = Math.Min(Rules.Full, Charge + gain);
+        }
+
+        /// <summary>Spends the full gauge on <paramref name="ability"/>; false when it is not full (or the class has another power).</summary>
+        public bool TryUse(SinnerAbility ability)
+        {
+            if (ability == SinnerAbility.None || Class.Ability != ability || !IsCharged) return false;
+            Charge = 0;
+            PowersUsed++;
+            if (ability == SinnerAbility.Ward) WardRaised = true;
             return true;
         }
 
-        public bool CanUse(SinnerAbility ability) => ability != SinnerAbility.None && Class.Ability == ability && Charges > 0;
-
-        public bool Allows(ICheat cheat, CheatTable table) => Class.Allows(cheat, table, this);
+        /// <summary>The ward refuses the next minor cheat that would really strike (one that would come to nothing keeps it up).</summary>
+        public bool Allows(ICheat cheat, CheatTable table)
+        {
+            if (!WardRaised || cheat == null || cheat.Tier != CheatTier.Minor || !cheat.CanApply(table)) return true;
+            WardRaised = false;
+            WardsUsed++;
+            return false;
+        }
     }
 }
