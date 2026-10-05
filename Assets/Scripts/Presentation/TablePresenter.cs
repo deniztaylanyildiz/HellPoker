@@ -232,11 +232,11 @@ namespace HellPoker.Presentation
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             // The same sinner, with what was left of the ability (a closed game does not refill it).
-            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharges);
+            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharges, snapshot.ClassChargeTables);
             // The run's events: the marks they left, and which were seen (an event on screen when the game closed is passed).
             RunEventState saved = snapshot.Events;
             _effects = new RunEffects();
-            _effects.Restore(saved.Next, saved.DeferredYears, saved.DeferredHands, saved.SoulSold, saved.Relics, saved.RelicRedraws);
+            _effects.Restore(saved.Next, saved.DeferredYears, saved.DeferredHands, saved.SoulSold, saved.Relics, saved.RelicRedraws, saved.RelicRedrawTables);
             _events?.Restore(saved.Seen, saved.HandsSince);
             _pendingEvent = null;
             SeatAt(dealer, snapshot.Years, snapshot.RoundsPlayed);
@@ -348,7 +348,8 @@ namespace HellPoker.Presentation
             return new RunSnapshot(_dealer.Id, _game.Years, _game.RoundNumber, _stats, hand,
                 _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge, _sinner.Id,
                 _sinner.Charges, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
-                    _effects.DeferredHands, _effects.SoulSold, _effects.Relics, _effects.RedrawsLeft));
+                    _effects.DeferredHands, _effects.SoulSold, _effects.Relics, _effects.RedrawsLeft, _effects.RedrawTablesCode),
+                _sinner.TableChargesCode);
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -406,8 +407,6 @@ namespace HellPoker.Presentation
                 return;
             }
 
-            _sinner.SitDown();   // a new table: a per-table ability is full again
-            _effects.SitDown();  // and the Bone Die's roll
             SeatAt(dealer, _game.Years, _game.RoundNumber);
             _settledRound = _game.RoundNumber;
             if (_stats == null)
@@ -470,8 +469,6 @@ namespace HellPoker.Presentation
             // Lucifer's gauge is tiny; the demon below keeps theirs for when the player falls back.
             _originMalice = (_game.Malice, _game.MaliceMax, _game.Grudge);
             _gate.Summon(_dealer.Id);
-            _sinner.SitDown();   // his table is a new table too
-            _effects.SitDown();
             _view.PlaySfx(SfxIds.Summoned);
             SeatAt(_finalDealer, _game.Years, _game.RoundNumber, SeatChange.Summoned);
             _audio.PlayMusic(_finalDealer.Id);
@@ -500,8 +497,6 @@ namespace HellPoker.Presentation
             Say(d => d.CastDown, _gate.Attempts, DealerMood.Gloating);
             int years = _gate.CastDown(_game.Years);
             Dealer origin = _origin;
-            _sinner.SitDown();
-            _effects.SitDown();
             _view.PlaySfx(SfxIds.Fall);
             SeatAt(origin, years, _game.RoundNumber, SeatChange.CastDown);
             _audio.PlayMusic(origin.Id);
@@ -522,6 +517,11 @@ namespace HellPoker.Presentation
         {
             if (dealer == null) throw new ArgumentNullException(nameof(dealer));
 
+            // Per-table charges are kept per demon: a table never sat at is full, one the player comes back to has what was left
+            // there (changing seats refills nothing). Lucifer's table is full at every summons; a fall lands on the demon's own count.
+            bool fresh = change == SeatChange.Summoned;
+            _sinner.SitAt(dealer.Id, fresh);
+            _effects.SitAt(dealer.Id, fresh);
             IHellPokerGame game = _createGame(dealer, _sinner) ?? throw new InvalidOperationException("The game factory returned no game.");
             game.UseEffects(_effects);   // the run's marks go to every table
             if (carriedYears.HasValue)

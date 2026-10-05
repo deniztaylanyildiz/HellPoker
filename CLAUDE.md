@@ -100,8 +100,9 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   (`RunArchive` → PlayerPrefs `run.save`).
   - Format: `RunSnapshot`, "key=value" satırları, **`v=4`**: dealer, years, rounds, hands, lowest, highest, best, dealers, soul,
     `lucifer` (masasında mı), `origin` (gelinen şeytan), `attempts`, `malice`, `cheat.major`, `grudge` (isteğe bağlı),
-    `class` (sınıf id), `class.charges` (kalan yetenek hakkı; isteğe bağlı); olaylar (isteğe bağlı, `RunEventState`): `event.seen`,
-    `event.since`, `effect.next` (`HandModifier`), `effect.deferred`, `effect.deferred.hands`, `soul.sold`, `relics`, `relics.redraws`. v=4 tek seferde büyütülür:
+    `class` (sınıf id), `class.charges` (kayıt masasında kalan yetenek hakkı; isteğe bağlı), `class.charges.tables` (şeytan başına,
+    "mammon:0"; isteğe bağlı); olaylar (isteğe bağlı, `RunEventState`): `event.seen`,
+    `event.since`, `effect.next` (`HandModifier`), `effect.deferred`, `effect.deferred.hands`, `soul.sold`, `relics`, `relics.redraws`, `relics.redraws.tables`. v=4 tek seferde büyütülür:
     emanetler de kendi isteğe bağlı anahtarlarıyla aynı sürüme girer.
   - El sürüyorsa ayrıca `hand.stake`, `hand.ante`, `hand.drawn`, `hand.soul`, `hand.sealed`, `hand.cheat`, `hand.cheat.done`
     (`HandInProgress`; isteğe bağlı).
@@ -215,15 +216,18 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   oyuncu sadece gördüğüyle oynar, niyete tepki verir; Köylü'nün bedava çekilmesi otomatik, Büyücü yalanın arkasını görür, Kral hile
   beklenirken en değerli görünen kartını korur; **olaylarda** beklenen değer pozitifse kabul eder, emanet tekliflerini de; Kemik Zar'ı
   draw'da, çift ya da daha iyi bir elde eşleşmeyen en düşük karta atar). Aklanma (Lucifer'e ulaşan / ilk denemede yenme), olaylar ve emanetlerle
-  (2026-10-05, Kemik Zar masa başına):
+  (2026-10-05, masa başına haklar şeytan başına):
   | Sınıf | Mammon | Belial | Lilith |
   |---|---|---|---|
-  | Köylü | %79.4 (%87 / %32) | %77.6 (%83 / %40) | %51.1 (%66 / %32) |
-  | Büyücü | %82.4 (%87 / %39) | %78.7 (%82 / %48) | %55.9 (%66 / %39) |
-  | Kral | %77.0 (%82 / %33) | %72.2 (%76 / %43) | %49.1 (%58 / %36) |
+  | Köylü | %79.4 (%87 / %32) | %77.6 (%83 / %40) | %50.9 (%66 / %32) |
+  | Büyücü | %81.5 (%87 / %39) | %78.5 (%82 / %48) | %54.9 (%66 / %39) |
+  | Kral | %77.1 (%82 / %33) | %72.1 (%76 / %43) | %48.8 (%58 / %36) |
 
   Emanetsiz (`HELLPOKER_RELICS=none`: emanet teklifi yok): Köylü 80.6 / 77.6 / 53.0, Büyücü 82.3 / 78.9 / 55.9, Kral 77.7 / 72.9 / 49.9
-  — emanetler −1.9..+0.1 (sınır ±3; oyuncu teklifleri ~%85 alıyor). Olaysız (`HELLPOKER_EVENTS=0`): Köylü 79.3 / 76.0 / 52.3, Büyücü 81.1 / 77.4 / 55.1, Kral 76.3 / 71.6 / 49.2.
+  — emanetler −2.1..0.0 (sınır ±3; oyuncu teklifleri ~%85 alıyor).
+  **Masa zıplayan oyuncu** (`HELLPOKER_HOP=1`: bir masa başına hakkı harcayınca başka bir sıradan şeytana geçip hemen döner):
+  yeni kuralla normal oyuncuya göre −1.8..+1.5 (Kemik Zar zorlanmış Köylü, 3 tohum ortalaması: −1.2 / +0.2 / +0.7; `HELLPOKER_SEED`
+  tohumu kaydırır). Eski kuralla (`HELLPOKER_HOP_OLD=1`: her oturuş doldurur) Büyücü +5.4 / +0.2 / +6.1, Kemik Zar Köylü +5.1 / +4.2 / +10.0. Olaysız (`HELLPOKER_EVENTS=0`): Köylü 79.3 / 76.0 / 52.3, Büyücü 81.1 / 77.4 / 55.1, Kral 76.3 / 71.6 / 49.2.
   Tek emanet koşu başından (`HELLPOKER_RELICS=<id>`, Köylü, Paslı Taç %110 / Sikke %75 iken): Kemik Zar el başına +11.7 / +11.1 / +21.8, sadece kartlar açılırken +11.3 / +9.2 / +15.7, **masa başına 1** +1.7 / +2.6 / +3.9,
   Paslı Taç +2.6 / +3.6 / +3.0, Kayıkçı Sikkesi +4.7 / +4.1 / +3.3, Dikenli Tespih −8.5 / −6.4 / −11.5. Oyuncu iki teklifi de neredeyse
   hep kabul ediyor (beklenen değer = kalan emanetlerin ortalaması > 0).
@@ -242,19 +246,23 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - `SinnerClass` (Id, `StartingYears`, `WinAntePercent`, `Ability`, `ChargesPerRun` / `ChargesPerTable`, `SeesLies`, `Allows` = guard
     kararı); her sınıf kendi dosyasında (`Peasant.cs`, `Warlock.cs`, `King.cs`), `SinnerRoster.All` listesinde. **Yeni sınıf = yeni dosya
     + roster'a bir satır** (+ UiText.Sinners metinleri, `pixel_sinners.py` portre ve ikon, şeytanlara `GreetingAs...` repliği).
-  - `Sinner` (koşunun sınıfı + kalan hak): `ICheatGuard` olarak her hile vuruşundan önce sorulur; `SitDown` yeni masada masa başına
-    hakkı doldurur (koşu başına hak kalır). Oyun `Sinner`'ı fabrikadan alır (`HellPokerGameFactory.Create(..., sinner)`;
+  - `Sinner` (koşunun sınıfı + kalan hak): `ICheatGuard` olarak her hile vuruşundan önce sorulur; `SitAt(şeytan, taze)` masa başına
+    hakkı **şeytan başına** tutar (koşu başına hak kalır; bkz. **Masa başına haklar**). Oyun `Sinner`'ı fabrikadan alır (`HellPokerGameFactory.Create(..., sinner)`;
     `TablePresenter`'ın `Func<Dealer, Sinner, IHellPokerGame>`'i).
   - **Köylü:** 1000 yıl; dürüst kalp: koşudaki ilk çekilme bedava (`RoundResult.FreeFold`, koşuda bir kez). Kolay mod.
   - **Büyücü:** 1000 yıl; saklanan eli görür: kasanın 2'den az kart gösterdiği sıradan masada 2 kart görür — pratikte Belial
-    (`SinnerClass.HouseCardsShownAt`, `IHellPokerGame.HouseCardsShown`; Lucifer'in karanlığı kalır); yalanları görür (niyet şeridi duyuruda hemen "LIAR" diye kırılıp gerçeğe döner); masa başına bir kez **küçük**
+    (`SinnerClass.HouseCardsShownAt`, `IHellPokerGame.HouseCardsShown`; Lucifer'in karanlığı kalır); yalanları görür (niyet şeridi duyuruda hemen "LIAR" diye kırılıp gerçeğe döner); her şeytanın masasında bir kez **küçük**
     bir hileyi savuşturur (guard reddeder → `CheatOutcome.Blocked`, gösterge boşalır, kartta "WARD"/"KORUMA" `TableMoment.Ward`,
     şeytan kızgın + `Blocked` repliği). Büyük hileleri ve Düşüş'ü engelleyemez; boşa gidecek hileye hakkını harcamaz.
   - **Kral:** 1250 yıl (1500 olsa Lilith'te ruh hemen masada olurdu); taç: kazanç ante'nin %25'i kadar fazla siler
-    (`King.crownPercent`); masa başına bir kez draw'dan önce (kartlar açılırken ya da draw ekranında) görünen bir kartı korur:
+    (`King.crownPercent`); her şeytanın masasında bir kez draw'dan önce (kartlar açılırken ya da draw ekranında) görünen bir kartı korur:
     `K` tuşu ya da rozete tık → kart seç; o el hiçbir hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`;
     kartta taç işareti `CardMark.Protected`).
-  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`: ikon + kalan hak, hover'da açıklama). Kayıt `class`, `class.charges`;
+  - **Masa başına haklar** (Büyücü, Kral, Kemik Zar; ortak `Core/Game/TableCharges`): şeytan başına tutulur. Harcanan hak o şeytanın
+    masasına dönünce dolu gelmez; hiç oturulmamış şeytanın masası dolu başlar; Lucifer'in masası her çağrılmada dolu (yeni deneme); düşüşte
+    gelinen şeytanın kalan hakkı. Tek yer: `TablePresenter.SeatAt` her oturuşta `SitAt(dealer.Id, fresh: Summoned)`. Masa değiştirmek
+    eller arasında bedelsiz olduğu için eski "her yeni masada dolar" kuralı Mammon → Belial → Mammon zıplamasıyla sınırsız dolduruluyordu.
+  - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`: ikon + kalan hak, hover'da açıklama). Kayıt `class`, `class.charges`, `class.charges.tables`;
     rekorlarda sınıf başına aklanma (`free.class.<id>`). How to Play'de SINNERS / GÜNAHKÂRLAR sayfası.
 - **Olaylar** (`Core/Events`, eller arası): her el arasında bir kez zar (`EventSession.Roll`), `GameRules.EventChancePercent` (%12),
   son olaydan en az `EventCooldownHands` (4) el sonra, aynı olay koşuda bir kez, sadece Betting'de, **Lucifer masasında yok**.
@@ -278,10 +286,10 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   zarla henüz taşınmayan bir emanet; koşuda en fazla `RelicRoster.MaxCarried` = **2**, ikisi taşınırken ya da hepsi alınmışken çıkmaz).
   Her emanet bir lütuf + bir lanet, koşu boyunca her masada her ele etki eder.
   - `IRelic` (Id, `Effects`, `ExpectedYears` — simülasyon oyuncusu için), `RelicEffects` (ante %, kazanç %, kasa kart sayısı ±, re-raise
-    +birim, her el +kötülük, masa başına yeniden çekme, ruh kaybı %), `RelicRoster.All` / `Find` / `Combined` (iki emanet: yüzdeler çarpılır,
+    +birim, her el +kötülük, şeytan başına yeniden çekme, ruh kaybı %), `RelicRoster.All` / `Find` / `Combined` (iki emanet: yüzdeler çarpılır,
     sayılar toplanır, düşük ruh kaybı geçer). Olayın `HandModifier`'ıyla aynı kancalar; `HellPokerGame.Relic` dağıtımda sabitlenir.
-  - **Kemik Zar:** **masa başına bir kez** (yeni masada, Lucifer'e çağrılınca ve düşüşte dolar; `RunEffects.RedrawsLeft` / `SitDown`,
-    kayıtta `relics.redraws`, eski kayıtta dolu), draw'dan önce görünen bir kartı geri at, desteden yenisi (`CanRedraw` / `Redraw`; zincirli, dikenli,
+  - **Kemik Zar:** **her şeytanın masasında bir kez** (Lucifer'e her çağrılmada dolar; `RunEffects.RedrawsLeft` / `SitAt`, **Masa başına
+    haklar** kuralı; kayıtta `relics.redraws` + `relics.redraws.tables`, eski kayıtta dolu), draw'dan önce görünen bir kartı geri at, desteden yenisi (`CanRedraw` / `Redraw`; zincirli, dikenli,
     korunan, gizli kart olmaz) / kasa re-raise'i **2 birim**. **Paslı Taç:** kazanç %105 / gösterge her el +1. **Kayıkçı Sikkesi:**
     ante %80 / kasa bir kart eksik gösterir. **Dikenli Tespih:** ruh elinde kayıp ×1.25 (×1.5 yerine) / kazanç %90.
     (Taç %110 / Sikke %75'te Büyücü-Lilith +3.4 çıkıyordu; sayılar dengeyle ayarlandı.)
@@ -289,7 +297,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (`HellPokerGame.Forgiven`): önce sınırlayıp sonra kesmek son yılları asla 0'a indirmiyordu (Tespih'le Lucifer yenilemiyordu).
     "Win: at least" satırı (`LeastYearsForgiven`) ve DEAL'daki ante (`UpcomingAnte`) da olayın / emanetlerin yüzdelerini bilir.
   - Kayıt: `RunEffects.Relics` → v=4 kayıtta `relics` (virgüllü; bilinmeyen / fazla / tekrar eden temizlenir; eski kayıtta yok) ve
-    `relics.redraws` (bu masada kalan zar hakkı; isteğe bağlı, yoksa dolu).
+    `relics.redraws` (bu masada kalan zar hakkı; isteğe bağlı, yoksa dolu), `relics.redraws.tables` (şeytan başına; isteğe bağlı).
   - Masada portre kutusunun sağ kenarında (niyet şeridinin altında) 20×20 kutular (`RelicBarView`: `Ui/relic_icons.png` 16×16,
     `pixel_relics.py`; Kemik Zar'da bu masada kalan hak; hover'da ad + lütuf + lanet). Kemik Zar'a tık → kart seç (tekrar tık: vazgeç).
     Alınınca mesaj: "Artık X sende. Lütuf. Ama: lanet".
@@ -323,7 +331,7 @@ Assets/Scripts/
     Draw/          ICardExchanger, IDiscardPolicy, IDrawStrategy (HouseDrawStrategy = kasa AI)
     Game/          IHellPokerGame/HellPokerGame (tur akışı), GameRules, PayoutTable, PunishmentLedger, HellPokerGameFactory,
                    RunStats / RunSnapshot (kayıt formatı) / HandInProgress (yarım el) / RecordBook (rekorlar),
-                   LuciferGate (çağrılma / düşüş / deneme)
+                   LuciferGate (çağrılma / düşüş / deneme), TableCharges (masa başına hakların şeytan başına defteri)
     Betting/       IHouseBettingStrategy, HandStrengthBettingStrategy, HouseBettingStyle (kasanın re-raise / blöf mizacı)
     Dealers/       Dealer (şeytanın ev kuralları paketi: MaxDiscards, HouseCardsShown, PayoutTable, HouseBettingStyle, SoulThreshold,
                    MaliceMax, ICheatPolicy Cheats), DealerRoster (hile listeleri ve gösterge boyları burada)

@@ -103,9 +103,10 @@ namespace HellPoker.Core.Tests
         public void ThePeasantsFreeFold_IsPerRun_NotRefilledAtANewTable()
         {
             var sinner = new Sinner(new Peasant());
+            sinner.SitAt("mammon");
             Assert.IsTrue(sinner.TrySpend(SinnerAbility.FreeFold));
 
-            sinner.SitDown();
+            sinner.SitAt("belial");
 
             Assert.AreEqual(0, sinner.Charges);
         }
@@ -131,9 +132,10 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheWarlocksWard_IsOncePerTable_AndRefillsAtTheNext()
+        public void TheWarlocksWard_IsOncePerDemon_FullAtANewDemon_StillSpentBackHome()
         {
             var sinner = new Sinner(new Warlock());
+            sinner.SitAt("mammon");
             HellPokerGame game = Game(Nothing, HouseFullHouse, new CollateralCheat(), sinner);
             game.PlaceBet();
             game.CheckToDraw();
@@ -145,8 +147,12 @@ namespace HellPoker.Core.Tests
             game.CheckToDraw();
             Assert.AreEqual(CheatOutcome.Played, Only(game).Outcome, "No ward left at this table.");
 
-            sinner.SitDown();
-            Assert.AreEqual(1, sinner.Charges, "A new table: the ward is back.");
+            sinner.SitAt("belial");
+            Assert.AreEqual(1, sinner.Charges, "A demon never sat with: the ward is there.");
+            sinner.SitAt("mammon");
+            Assert.AreEqual(0, sinner.Charges, "Back at Mammon's table: still spent (hopping refills nothing).");
+            sinner.SitAt("lucifer", fresh: true);
+            Assert.AreEqual(1, sinner.Charges, "Summoned: Lucifer's table is full at every summons.");
         }
 
         [TestCase(true)]
@@ -319,17 +325,20 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheKingProtects_OnlyBeforeTheDraw_ACardHeSees_OncePerTable()
+        public void TheKingProtects_OnlyBeforeTheDraw_ACardHeSees_OncePerDemon()
         {
             HellPokerGame game = KingWith(null, KingsPair, out Sinner sinner);
+            sinner.SitAt("mammon");
             Assert.IsFalse(game.CanProtect(4), "Not yet turned.");
             Assert.IsTrue(game.Protect(2));
             Assert.IsFalse(game.CanProtect(1), "No charge left at this table.");
             game.CheckToDraw();
             game.Draw(new int[0]);
-            sinner.SitDown();
+            sinner.SitAt("belial");
             Assert.IsFalse(game.CanProtect(0), "After the draw: too late.");
-            Assert.AreEqual(1, sinner.Charges, "A new table: the crown can protect again.");
+            Assert.AreEqual(1, sinner.Charges, "A demon never sat with: the crown can protect again.");
+            sinner.SitAt("mammon");
+            Assert.AreEqual(0, sinner.Charges, "Back at Mammon's table: still spent.");
         }
 
         [Test]

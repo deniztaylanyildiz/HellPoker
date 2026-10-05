@@ -83,7 +83,10 @@ namespace HellPoker.Presentation.Views
         {
             if (slot >= _relics.Count) return;
             _tooltipText.text = _relics[slot].Name + "\n" + _relics[slot].Description;
-            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot * (Tile + 2), 196, 38);
+            // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
+            int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
+            _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
+            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot * (Tile + 2), 196, textHeight + 4);
             _tooltip.SetActive(true);
         }
 

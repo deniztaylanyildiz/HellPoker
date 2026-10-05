@@ -41,7 +41,8 @@ namespace HellPoker.Core.Sinners
         /// <summary>Charges of the ability for the whole run (never refilled).</summary>
         public virtual int ChargesPerRun => 0;
 
-        /// <summary>Charges of the ability at each table (refilled at every new table — Lucifer's included).</summary>
+        /// <summary>Charges of the ability at each demon's table (full at a table never sat at and at every summons to Lucifer;
+        /// spent ones stay spent when the player comes back — see <see cref="Game.TableCharges"/>).</summary>
         public virtual int ChargesPerTable => 0;
 
         /// <summary>True when the class sees through a demon's lie the moment it is told.</summary>
@@ -65,41 +66,56 @@ namespace HellPoker.Core.Sinners
 
     /// <summary>
     /// The run's sinner: the class and what is left of its ability. It is the guard every cheat asks (the Warlock's ward),
-    /// and it carries the charges from table to table — refilled at a new table for a per-table ability, kept for a per-run one.
+    /// and it carries the charges from table to table — kept per demon for a per-table ability (<see cref="Game.TableCharges"/>:
+    /// changing seats does not refill it), kept for the run for a per-run one.
     /// </summary>
     public sealed class Sinner : ICheatGuard
     {
         public SinnerClass Class { get; }
 
+        private readonly Game.TableCharges _tables;
+        private int _runCharges;
+
         /// <summary>What is left of the ability (at this table, or this run).</summary>
-        public int Charges { get; private set; }
+        public int Charges => IsPerTable ? _tables.Left : _runCharges;
 
         /// <summary>How many cheats this sinner has warded off (the whole run).</summary>
         public int WardsUsed { get; private set; }
 
-        public Sinner(SinnerClass sinnerClass, int? charges = null)
+        /// <param name="charges">What was left at the table the run was saved at (an older save's only number).</param>
+        /// <param name="tables">The per-demon counts of a per-table ability, as <see cref="Game.TableCharges.Encode"/> wrote them.</param>
+        public Sinner(SinnerClass sinnerClass, int? charges = null, string tables = null)
         {
             Class = sinnerClass ?? throw new ArgumentNullException(nameof(sinnerClass));
             int full = sinnerClass.FullCharges;
-            Charges = Math.Max(0, Math.Min(full, charges ?? full));
+            _tables = new Game.TableCharges(() => Class.ChargesPerTable);
+            if (IsPerTable)
+                _tables.Restore(tables, charges.HasValue ? Math.Max(0, Math.Min(full, charges.Value)) : -1);
+            else
+                _runCharges = Math.Max(0, Math.Min(full, charges ?? full));
         }
+
+        private bool IsPerTable => Class.ChargesPerTable > 0;
 
         public string Id => Class.Id;
 
         public SinnerAbility Ability => Class.Ability;
 
-        /// <summary>A new table: a per-table ability is full again; a per-run one stays as it is.</summary>
-        public void SitDown()
-        {
-            if (Class.ChargesPerTable > 0)
-                Charges = Class.ChargesPerTable;
-        }
+        /// <summary>The per-demon counts for the save (empty for a per-run ability).</summary>
+        public string TableChargesCode => IsPerTable ? _tables.Encode() : "";
+
+        /// <summary>
+        /// The player sits at <paramref name="dealerId"/>'s table: a per-table ability has what was left there (full at a table
+        /// never sat at; <paramref name="fresh"/> — Lucifer's summons — full again). A per-run one stays as it is.
+        /// </summary>
+        public void SitAt(string dealerId, bool fresh = false) => _tables.SitAt(dealerId, fresh);
 
         /// <summary>Spends one charge of <paramref name="ability"/>; false when none is left (or the class has another ability).</summary>
         public bool TrySpend(SinnerAbility ability)
         {
             if (ability == SinnerAbility.None || Class.Ability != ability || Charges <= 0) return false;
-            Charges--;
+            if (IsPerTable) _tables.TrySpend();
+            else _runCharges--;
             if (ability == SinnerAbility.Ward) WardsUsed++;
             return true;
         }

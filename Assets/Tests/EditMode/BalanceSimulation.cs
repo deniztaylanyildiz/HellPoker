@@ -10,6 +10,7 @@ using HellPoker.Core.Evaluation;
 using HellPoker.Core.Events;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
+using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 using NUnit.Framework;
 
@@ -79,6 +80,12 @@ namespace HellPoker.Core.Tests
             bool cheats = EnvInt("HELLPOKER_CHEATS", 1) != 0;
             // HELLPOKER_EVENTS=0 plays without events between hands.
             bool eventsOn = EnvInt("HELLPOKER_EVENTS", 1) != 0;
+            // HELLPOKER_HOP=1: a table-hopper (see below); HELLPOKER_HOP_OLD=1: under the old "every seat refills" rule.
+            bool hop = EnvInt("HELLPOKER_HOP", 0) != 0;
+            bool hopOld = EnvInt("HELLPOKER_HOP_OLD", 0) != 0;
+            int hops = 0;
+            // HELLPOKER_SEED: shifts every run's seed (a second sample of the same setup, to tell a difference from noise).
+            int seedShift = EnvInt("HELLPOKER_SEED", 0);
             var offered = new Dictionary<string, int>();
             var accepted = new Dictionary<string, int>();
             int[] malice = (Environment.GetEnvironmentVariable("HELLPOKER_MALICE") ?? "")
@@ -135,7 +142,7 @@ namespace HellPoker.Core.Tests
                 int reached = 0, firstTry = 0, attempts = 0, castDowns = 0, wildBill = 0;
                 for (int run = 0; run < Runs; run++)
                 {
-                    int seed = run * 7919 + 13;
+                    int seed = run * 7919 + 13 + seedShift;
                     int sittings = 0;
                     Dealer seat = dealer;
                     var sinner = new Sinner(sinnerClass);
@@ -143,6 +150,8 @@ namespace HellPoker.Core.Tests
                     foreach (string relic in ForcedRelics ?? new string[0]) effects.AddRelic(relic);
                     var events = new EventSession(Deck(), new SystemRandomSource(RandomSeeds.Derive(seed, HellPokerGameFactory.EventStream)),
                         eventsOn ? EnvInt("HELLPOKER_EVENT_CHANCE", table.EventChancePercent) : 0, table.EventCooldownHands);
+                    sinner.SitAt(seat.Id);
+                    effects.SitAt(seat.Id);
                     HellPokerGame game = HellPokerGameFactory.Create(table, seat, seed, sinner: sinner);
                     game.UseEffects(effects);
                     if (game.Years != sinnerClass.StartingYears) game.TakeOver(sinnerClass.StartingYears, 0);
@@ -170,8 +179,9 @@ namespace HellPoker.Core.Tests
                                 seat = dealer;
                             }
                             HellPokerGame previous = game;
-                            sinner.SitDown();   // a new table: a per-table ability is full again
-                            effects.SitDown();  // and the Bone Die's roll
+                            // As at the real table: charges are kept per demon; Lucifer's are full at every summons.
+                            sinner.SitAt(seat.Id, fresh: call == GateCall.Summoned);
+                            effects.SitAt(seat.Id, fresh: call == GateCall.Summoned);
                             game = HellPokerGameFactory.Create(table, seat, seed + 100003 * ++sittings, sinner: sinner);
                             game.UseEffects(effects);
                             game.TakeOver(years, played);
@@ -182,6 +192,26 @@ namespace HellPoker.Core.Tests
                                 ? originMalice.Value
                                 : (previous.Malice, previous.MaliceMax, previous.Grudge);
                             game.RestoreMalice(CheatSession.Carry(carried, carriedMax, game.MaliceMax), false, grudge);
+                        }
+
+                        // HELLPOKER_HOP=1: the table-hopper. Once a per-table charge is spent here, the player gets up (free between
+                        // hands, unless the soul is on the table), sits at another ordinary demon's table and comes straight back.
+                        // HELLPOKER_HOP_OLD=1 plays the same under the old rule, where every new seat refilled the charges.
+                        if (hop && !seat.IsFinalTable && game.Phase == GamePhase.Betting && game.CanLeaveTable(out _)
+                            && SpentHere(sinner, effects))
+                        {
+                            Dealer other = Tune(DealerRoster.All[(slot + 1) % DealerRoster.All.Count], (slot + 1) % DealerRoster.All.Count);
+                            foreach (Dealer next in new[] { other, seat })
+                            {
+                                HellPokerGame previous = game;
+                                sinner.SitAt(next.Id, fresh: hopOld);
+                                effects.SitAt(next.Id, fresh: hopOld);
+                                game = HellPokerGameFactory.Create(table, next, seed + 100003 * ++sittings, sinner: sinner);
+                                game.UseEffects(effects);
+                                game.TakeOver(previous.Years, played);
+                                game.RestoreMalice(CheatSession.Carry(previous.Malice, previous.MaliceMax, game.MaliceMax), false, previous.Grudge);
+                            }
+                            hops++;
                         }
 
                         // Between hands: perhaps an event; the player takes it when it looks worth it.
@@ -229,6 +259,7 @@ namespace HellPoker.Core.Tests
             report.AppendLine();
             report.AppendLine(eventsOn ? "Events (offered / taken): " + string.Join("  ", offered.OrderBy(p => p.Key)
                 .Select(p => $"{p.Key} {p.Value}/{(accepted.TryGetValue(p.Key, out int a) ? a : 0)}")) : "Events off.");
+            if (hop) report.AppendLine($"Table hops ({(hopOld ? "old rule: every seat refills" : "charges kept per demon")}): {hops}");
 
             if (cheats)
             {
@@ -317,6 +348,11 @@ namespace HellPoker.Core.Tests
             }
             return reRaised;
         }
+
+        /// <summary>True when a per-table charge (the class's ward or protection, the Bone Die) was spent at this table.</summary>
+        private static bool SpentHere(Sinner sinner, RunEffects effects) =>
+            (sinner.Class.ChargesPerTable > 0 && sinner.Charges < sinner.Class.ChargesPerTable)
+            || effects.RedrawsLeft < RelicRoster.Combined(effects.Relics).RedrawsPerTable;
 
         /// <summary>
         /// The Bone Die (once a table), at the draw, kept for a hand worth helping: a pair or better. The lowest seen card that

@@ -34,10 +34,10 @@ namespace HellPoker.Presentation.Ui
             switch (id)
             {
                 case Peasant.ClassId: return L("An honest heart: the run's first fold costs nothing.", "Dürüst kalp: koşudaki ilk çekilme bedava.");
-                case Warlock.ClassId: return L("Sees through lies and hidden hands. Wards off one minor cheat at each table.",
-                    "Yalanları ve saklanan elleri görür. Her masada bir küçük hileyi savuşturur.");
-                case King.ClassId: return L("The crown pays: wins forgive a quarter ante more. Once at each table, K protects a card from every cheat.",
-                    "Taç öder: kazanç çeyrek ante fazla siler. Her masada bir kez K ile bir kartı her hileden korur.");
+                case Warlock.ClassId: return L("Sees through lies and hidden hands. Wards off one minor cheat at each demon's table.",
+                    "Yalanları ve saklanan elleri görür. Her şeytanın masasında bir küçük hileyi savuşturur.");
+                case King.ClassId: return L("The crown pays: wins forgive a quarter ante more. Once at each demon's table, K protects a card from every cheat.",
+                    "Taç öder: kazanç çeyrek ante fazla siler. Her şeytanın masasında bir kez K ile bir kartı her hileden korur.");
                 default: return "";
             }
         }
@@ -68,7 +68,7 @@ namespace HellPoker.Presentation.Ui
         /// <summary>{0}: the card.</summary>
         public static string ProtectedFormat => L("The crown protects your {0}: no cheat may touch it this hand.",
             "Taç {0} kartını koruyor: bu el hiçbir hile ona dokunamaz.");
-        public static string ProtectSpent => L("The crown has spent its protection at this table.", "Taç bu masadaki korumasını kullandı.");
+        public static string ProtectSpent => L("The crown has spent its protection at this demon's table.", "Taç bu şeytanın masasındaki korumasını kullandı.");
         public static string ProtectNotNow => L("The crown protects a card you can see, before the draw.", "Taç ancak gördüğün bir kartı, değişten önce korur.");
 
         /// <summary>One line for every class: {0} = "PEASANT 2 · WARLOCK 0 · KING 1".</summary>
@@ -83,9 +83,11 @@ namespace HellPoker.Presentation.Ui
                 $"{SinnerName(c.Id)} — {SinnerTitle(c.Id)}  ({string.Format(SinnerStartFormat, c.StartingYears)})\n" +
                 $"   {SinnerAbility(c.Id)}\n   {SinnerDetail(c.Id)}\n";
             string page = L("Before the first hand you choose who you were. The class stays for the whole run, at every table.\n" +
-                            "An ability \"at each table\" is full again at every new table — Lucifer's included.\n\n",
+                            "An ability \"at each demon's table\" is spent per demon: changing tables refills nothing, a demon never sat " +
+                            "with starts full, and Lucifer's table is full again at every summons.\n\n",
                 "İlk elden önce kim olduğunu seçersin. Sınıf bütün koşu boyunca, her masada seninledir.\n" +
-                "\"Her masada\" olan bir yetenek her yeni masada — Lucifer'inki dahil — yeniden dolar.\n\n");
+                "\"Her şeytanın masasında\" olan bir yetenek şeytan başına harcanır: masa değiştirmek doldurmaz, hiç oturulmamış " +
+                "şeytanın masası dolu başlar, Lucifer'in masası her çağrılmada yeniden dolar.\n\n");
             foreach (SinnerClass c in SinnerRoster.All)
                 page += Block(c) + "\n";
             return page.TrimEnd();

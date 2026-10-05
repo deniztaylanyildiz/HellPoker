@@ -11,7 +11,7 @@ namespace HellPoker.Core.Game
     /// that hand (stake, draw, soul, seal), so closing the game mid-hand cannot undo it. The soul needs no field of its own —
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
-    /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", "class.charges";
+    /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", "class.charges", optional "class.charges.tables";
     /// later also the events and the relics, each with optional keys); a v=1..3 save reads as a Peasant's run. The hand lines ("hand.*") are optional, so saves made
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
@@ -27,8 +27,12 @@ namespace HellPoker.Core.Game
         /// <summary>The sinner class of the run (v=4; an older save is a Peasant's).</summary>
         public string ClassId { get; }
 
-        /// <summary>What was left of the class's ability (v=4); null: full.</summary>
+        /// <summary>What was left of the class's ability (v=4) at the table saved at; null: full.</summary>
         public int? ClassCharges { get; }
+
+        /// <summary>A per-table ability's counts per demon ("class.charges.tables", optional: "mammon:0,belial:1", only tables
+        /// where something was spent); null in an older save.</summary>
+        public string ClassChargeTables { get; }
 
         /// <summary>The run's events (v=4, optional): seen events, the cooldown, the next hand's modifier, deferred years, the
         /// sold soul. An empty state for a run without them.</summary>
@@ -70,8 +74,9 @@ namespace HellPoker.Core.Game
 
         public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
             bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0,
-            string classId = null, int? classCharges = null, RunEventState events = null)
+            string classId = null, int? classCharges = null, RunEventState events = null, string classChargeTables = null)
         {
+            ClassChargeTables = string.IsNullOrEmpty(classChargeTables) ? null : classChargeTables;
             Events = events ?? RunEventState.Empty;
             if (classCharges.HasValue && classCharges.Value < 0) throw new ArgumentOutOfRangeException(nameof(classCharges));
             ClassId = string.IsNullOrEmpty(classId) ? Sinners.Peasant.ClassId : classId;
@@ -122,6 +127,8 @@ namespace HellPoker.Core.Game
             };
             if (ClassCharges.HasValue)
                 lines.Add("class.charges=" + ClassCharges.Value.ToString(CultureInfo.InvariantCulture));
+            if (ClassChargeTables != null)
+                lines.Add("class.charges.tables=" + ClassChargeTables);
             Events.Encode(lines);
             if (Hand != null)
             {
@@ -196,9 +203,10 @@ namespace HellPoker.Core.Game
                 // v=4 knows the sinner's class; an older run was a Peasant's, with the ability untouched.
                 string classId = version >= 4 && values.TryGetValue("class", out string c) && c.Length > 0 ? c : null;
                 int? charges = version >= 4 && values.ContainsKey("class.charges") ? KeyValues.Int(values, "class.charges") : (int?)null;
+                string chargeTables = version >= 4 && values.TryGetValue("class.charges.tables", out string ct) ? ct : null;
 
                 snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
-                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charges, RunEventState.Decode(values));
+                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charges, RunEventState.Decode(values), chargeTables);
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException
@@ -250,7 +258,8 @@ namespace HellPoker.Core.Game
     /// <summary>
     /// The run's events as saved (v=4, every key optional): "event.seen" (ids), "event.since" (hands since the last one),
     /// "effect.next" (the next hand's modifier), "effect.deferred" / "effect.deferred.hands" (Mammon's ledger), "soul.sold",
-    /// "relics" (the cursed relics carried), "relics.redraws" (the Bone Die's rolls left at this table; missing: full).
+    /// "relics" (the cursed relics carried), "relics.redraws" (the Bone Die's rolls left at this table; missing: full), "relics.redraws.tables" (per demon, as
+    /// "mammon:0"; missing: an older save, the one number goes to the table saved at).
     /// An event left on screen when the game closed is already seen: it counts as passed.
     /// </summary>
     public sealed class RunEventState
@@ -263,6 +272,9 @@ namespace HellPoker.Core.Game
         /// <summary>The relics' redraws left at this table ("relics.redraws", optional); -1: not saved (an older save), full.</summary>
         public int RelicRedraws { get; }
 
+        /// <summary>The redraws per demon ("relics.redraws.tables", optional); null in an older save.</summary>
+        public string RelicRedrawTables { get; }
+
         public System.Collections.Generic.IReadOnlyList<string> Seen { get; }
         public int HandsSince { get; }
         public Events.HandModifier Next { get; }
@@ -271,9 +283,11 @@ namespace HellPoker.Core.Game
         public int SoulSold { get; }
 
         public RunEventState(System.Collections.Generic.IEnumerable<string> seen, int handsSince, Events.HandModifier next, int deferredYears,
-            int deferredHands, int soulSold, System.Collections.Generic.IEnumerable<string> relics = null, int relicRedraws = -1)
+            int deferredHands, int soulSold, System.Collections.Generic.IEnumerable<string> relics = null, int relicRedraws = -1,
+            string relicRedrawTables = null)
         {
             RelicRedraws = relicRedraws < 0 ? -1 : relicRedraws;
+            RelicRedrawTables = string.IsNullOrEmpty(relicRedrawTables) ? null : relicRedrawTables;
             Relics = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(relics ?? new string[0], s => !string.IsNullOrEmpty(s)));
             if (handsSince < 0 || deferredYears < 0 || deferredHands < 0 || soulSold < 0)
                 throw new System.ArgumentOutOfRangeException(nameof(handsSince));
@@ -299,6 +313,7 @@ namespace HellPoker.Core.Game
             if (SoulSold > 0) lines.Add("soul.sold=" + SoulSold.ToString(c));
             if (Relics.Count > 0) lines.Add("relics=" + string.Join(",", Relics));
             if (Relics.Count > 0 && RelicRedraws >= 0) lines.Add("relics.redraws=" + RelicRedraws.ToString(c));
+            if (Relics.Count > 0 && RelicRedrawTables != null) lines.Add("relics.redraws.tables=" + RelicRedrawTables);
         }
 
         internal static RunEventState Decode(System.Collections.Generic.Dictionary<string, string> values)
@@ -308,7 +323,8 @@ namespace HellPoker.Core.Game
             string next = values.TryGetValue("effect.next", out string n) ? n : "";
             return new RunEventState(seen.Split(','), Optional("event.since"), Events.HandModifier.Decode(next), Optional("effect.deferred"),
                 Optional("effect.deferred.hands"), Optional("soul.sold"), (values.TryGetValue("relics", out string r) ? r : "").Split(','),
-                values.ContainsKey("relics.redraws") ? KeyValues.Int(values, "relics.redraws") : -1);
+                values.ContainsKey("relics.redraws") ? KeyValues.Int(values, "relics.redraws") : -1,
+                values.TryGetValue("relics.redraws.tables", out string rt) ? rt : null);
         }
     }
 }

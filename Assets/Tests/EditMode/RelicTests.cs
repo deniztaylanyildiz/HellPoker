@@ -238,9 +238,10 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheBoneDie_RolledOnce_StaysSpentForTheTable_AndANewTableFillsIt()
+        public void TheBoneDie_RolledOnce_StaysSpentForTheTable_AndANewDemonFillsIt()
         {
             HellPokerGame game = Game(Nothing, HouseFullHouse, relics: RelicIds.BoneDie);
+            game.Effects.SitAt("mammon");
             game.PlaceBet();
             Assert.IsNotNull(game.Redraw(0));
             PlayOut(game);
@@ -253,11 +254,13 @@ namespace HellPoker.Core.Tests
                 PlayOut(game);
             }
 
-            game.Effects.SitDown();   // a new table (the presenter calls it on every change of seat)
+            game.Effects.SitAt("belial");   // another demon's table (the presenter does it on every change of seat)
+            Assert.AreEqual(1, game.Effects.RedrawsLeft, "A demon never sat with: full.");
+            game.Effects.SitAt("mammon");
+            Assert.AreEqual(0, game.Effects.RedrawsLeft, "Back at Mammon's: still spent.");
 
-            Assert.AreEqual(1, game.Effects.RedrawsLeft);
             var plain = new RunEffects();
-            plain.SitDown();
+            plain.SitAt("belial");
             Assert.AreEqual(0, plain.RedrawsLeft, "No die, nothing to fill.");
         }
 
@@ -431,6 +434,108 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1, _view.Relics[0].Uses, "Summoned: a new table, the die is full.");
             _view.PressAction();
             Assert.AreEqual(1, _game.RedrawsLeft, "The die rolls at his table too.");
+
+            PlayAHand();           // a full house at his table: 700, above the gate
+            _view.PressAction();   // between hands: cast down to Mammon
+
+            Assert.IsFalse(_game.Rules.IsFinalTable, "Cast down.");
+            Assert.AreEqual(0, _game.RedrawsLeft, "Back at Mammon's table: what was left there — nothing.");
+        }
+
+        // ------------------------------------------------------------------ per-table charges are kept per demon
+
+        [Test]
+        public void HoppingTables_DoesNotRefillTheDie()
+        {
+            Table(null);
+            _presenter.StartNewRun(DealerRoster.Mammon);
+            _game.Effects.AddRelic(RelicIds.BoneDie);
+            _view.PressAction();
+            _view.PressRelic(RelicIds.BoneDie);
+            _view.PlayerView.Click(0);
+            Assert.AreEqual(0, _game.RedrawsLeft, "Rolled at Mammon's.");
+            PlayAHand();
+            _view.PressAction();
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+            Assert.AreEqual(1, _game.RedrawsLeft, "Belial's table, never sat at: full.");
+            Assert.AreEqual(1, _view.Relics[0].Uses);
+
+            _presenter.SwitchTable(DealerRoster.Mammon);
+            Assert.AreEqual(0, _game.RedrawsLeft, "Back at Mammon's: still spent.");
+            Assert.AreEqual(0, _view.Relics[0].Uses);
+        }
+
+        [TestCase(SinnerAbility.Ward)]
+        [TestCase(SinnerAbility.Protect)]
+        public void HoppingTables_DoesNotRefillTheWardOrTheCrown(SinnerAbility ability)
+        {
+            Table(null);
+            _presenter.StartNewRun(DealerRoster.Mammon, ability == SinnerAbility.Ward ? SinnerRoster.Warlock : SinnerRoster.King);
+            Assert.IsTrue(_game.Sinner.TrySpend(ability), "Used at Mammon's.");
+
+            _presenter.SwitchTable(DealerRoster.Belial);
+            Assert.AreEqual(1, _game.Sinner.Charges, "Belial's table, never sat at: full.");
+            _presenter.SwitchTable(DealerRoster.Lilith);
+            Assert.AreEqual(1, _game.Sinner.Charges, "Lilith's: full too.");
+            _presenter.SwitchTable(DealerRoster.Mammon);
+            Assert.AreEqual(0, _game.Sinner.Charges, "Back at Mammon's: still spent.");
+        }
+
+        [Test]
+        public void ThePerDemonCharges_AreSaved_AndAnOlderSaveKeepsItsOneNumber()
+        {
+            var archive = new RunArchive(new MemoryStore());
+            Table(null, archive);
+            _presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Warlock);
+            _game.Effects.AddRelic(RelicIds.BoneDie);
+            Assert.IsTrue(_game.Sinner.TrySpend(SinnerAbility.Ward));
+            Assert.IsTrue(_game.Effects.SpendRedraw());
+            _presenter.SwitchTable(DealerRoster.Belial);   // saves the run, sitting at Belial's
+
+            RunSnapshot saved = archive.LoadRun();
+            Assert.AreEqual("mammon:0", saved.ClassChargeTables);
+            Assert.AreEqual("mammon:0", saved.Events.RelicRedrawTables);
+            StringAssert.Contains("class.charges.tables=mammon:0", saved.Encode());
+            StringAssert.Contains("relics.redraws.tables=mammon:0", saved.Encode());
+            _presenter.Dispose();
+
+            Table(null, archive);
+            _presenter.Resume(DealerRoster.Belial, saved);
+            Assert.AreEqual(1, _game.Sinner.Charges);
+            Assert.AreEqual(1, _game.RedrawsLeft);
+            _presenter.SwitchTable(DealerRoster.Mammon);
+            Assert.AreEqual(0, _game.Sinner.Charges, "Closing and coming back refills nothing either.");
+            Assert.AreEqual(0, _game.RedrawsLeft);
+
+            // An older save: one number for the table it was saved at, no list — that table keeps it, the others are full.
+            var older = new Sinner(new Warlock(), charges: 0);
+            older.SitAt("lilith");
+            Assert.AreEqual(0, older.Charges);
+            older.SitAt("belial");
+            Assert.AreEqual(1, older.Charges);
+            older.SitAt("lilith");
+            Assert.AreEqual(0, older.Charges);
+            var oldEffects = new RunEffects();
+            oldEffects.Restore(null, 0, 0, 0, new[] { RelicIds.BoneDie }, redrawsLeft: 0);
+            oldEffects.SitAt("lilith");
+            Assert.AreEqual(0, oldEffects.RedrawsLeft);
+            oldEffects.SitAt("mammon");
+            Assert.AreEqual(1, oldEffects.RedrawsLeft);
+        }
+
+        [Test]
+        public void TableCharges_BrokenSaveEntriesAreSkipped()
+        {
+            var charges = new TableCharges(() => 1);
+            charges.Restore("mammon:0,,belial:x,:3,lilith:-1,lucifer:7");
+            charges.SitAt("mammon");
+            Assert.AreEqual(0, charges.Left);
+            charges.SitAt("belial");
+            Assert.AreEqual(1, charges.Left);
+            charges.SitAt("lucifer");
+            Assert.AreEqual(1, charges.Left, "Never above full.");
+            Assert.AreEqual("mammon:0", charges.Encode());
         }
 
         [Test]
@@ -450,7 +555,7 @@ namespace HellPoker.Core.Tests
             if (_game.Phase == GamePhase.Betting) _view.PressAction();   // and its deal
             Assert.AreEqual(GamePhase.PlayerReveal, _game.Phase);
             _view.PressRelic(RelicIds.BoneDie);
-            StringAssert.Contains("once a table", _view.Message, "No new roll at a new hand.");
+            StringAssert.Contains("once at each demon's table", _view.Message, "No new roll at a new hand.");
             Assert.AreEqual(0, _view.Relics[0].Uses);
 
             RunSnapshot saved = archive.LoadRun();
@@ -523,7 +628,7 @@ namespace HellPoker.Core.Tests
             _game.Effects.AddRelic(RelicIds.BoneDie);
 
             _view.PressRelic(RelicIds.BoneDie);
-            StringAssert.Contains("once a table", _view.Message, "Not before the deal.");
+            StringAssert.Contains("once at each demon's table", _view.Message, "Not before the deal.");
 
             _view.PressAction();
             _view.PressRelic(RelicIds.BoneDie);

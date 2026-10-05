@@ -113,23 +113,32 @@ namespace HellPoker.Core.Events
             if (Relics.Count >= HellPoker.Core.Relics.RelicRoster.MaxCarried || _relics.Contains(id) || HellPoker.Core.Relics.RelicRoster.Find(id) == null)
                 return false;
             _relics.Add(id);
-            RedrawsLeft += HellPoker.Core.Relics.RelicRoster.Find(id).Effects.RedrawsPerTable;   // a new die comes full
+            if (HellPoker.Core.Relics.RelicRoster.Find(id).Effects.RedrawsPerTable > 0)
+                _redraws.Refill();   // a new die comes full, at every demon's table
             return true;
         }
 
-        /// <summary>Cards the relics may still redraw at this table (the Bone Die: one a table).</summary>
-        public int RedrawsLeft { get; private set; }
+        private readonly Game.TableCharges _redraws;
 
-        /// <summary>A new table (a change of seat, Lucifer's summons, the fall): the relics' per-table uses are full again.</summary>
-        public void SitDown() => RedrawsLeft = HellPoker.Core.Relics.RelicRoster.Combined(_relics).RedrawsPerTable;
+        public RunEffects()
+        {
+            _redraws = new Game.TableCharges(() => HellPoker.Core.Relics.RelicRoster.Combined(_relics).RedrawsPerTable);
+        }
+
+        /// <summary>Cards the relics may still redraw at this demon's table (the Bone Die: one at each demon's table).</summary>
+        public int RedrawsLeft => _redraws.Left;
+
+        /// <summary>The per-demon redraws for the save ("relics.redraws.tables").</summary>
+        public string RedrawTablesCode => _redraws.Encode();
+
+        /// <summary>
+        /// The player sits at <paramref name="dealerId"/>'s table: the redraws left there (full at a table never sat at;
+        /// <paramref name="fresh"/> — Lucifer's summons — full again). Changing seats does not refill a spent die.
+        /// </summary>
+        public void SitAt(string dealerId, bool fresh = false) => _redraws.SitAt(dealerId, fresh);
 
         /// <summary>A redraw used; false when none is left.</summary>
-        public bool SpendRedraw()
-        {
-            if (RedrawsLeft <= 0) return false;
-            RedrawsLeft--;
-            return true;
-        }
+        public bool SpendRedraw() => _redraws.TrySpend();
 
         public void Defer(int years, int hands)
         {
@@ -156,14 +165,16 @@ namespace HellPoker.Core.Events
             SoulSold += years;
         }
 
-        /// <summary>A saved run comes back. <paramref name="redrawsLeft"/>: the table's redraws left; -1 (an older save): full.</summary>
+        /// <summary>
+        /// A saved run comes back. <paramref name="redrawsLeft"/>: the redraws left at the table it was saved at (-1, an older
+        /// save: full); <paramref name="redrawTables"/>: the per-demon list (null in an older save).
+        /// </summary>
         public void Restore(HandModifier next, int deferredYears, int deferredHands, int soulSold, IEnumerable<string> relics = null,
-            int redrawsLeft = -1)
+            int redrawsLeft = -1, string redrawTables = null)
         {
             _relics.Clear();
-            RedrawsLeft = 0;
             foreach (string id in relics ?? Enumerable.Empty<string>()) AddRelic(id);
-            if (redrawsLeft >= 0) RedrawsLeft = Math.Min(redrawsLeft, RedrawsLeft);
+            _redraws.Restore(redrawTables, redrawsLeft);
             if (deferredYears < 0 || deferredHands < 0 || soulSold < 0) throw new ArgumentOutOfRangeException(nameof(deferredYears));
             NextHand = next ?? HandModifier.None;
             DeferredYears = deferredYears;

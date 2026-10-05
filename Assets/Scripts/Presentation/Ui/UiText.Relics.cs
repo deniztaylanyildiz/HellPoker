@@ -22,7 +22,8 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case RelicIds.BoneDie: return L("Once a table, before the draw, redraw a card.", "Masa başına bir kez, değişten önce bir kartı yeniden çek.");
+                case RelicIds.BoneDie: return L("Once at each demon's table (full again at every summons to Lucifer), before the draw, redraw a card.",
+                    "Her şeytanın masasında bir kez (Lucifer'e her çağrılmada dolar), değişten önce bir kartı yeniden çek.");
                 case RelicIds.RustyCrown: return L("A win forgives a twentieth more.", "Kazanç yirmide bir fazla siler.");
                 case RelicIds.FerrymansCoin: return L("The ante is four fifths.", "Ante beşte dört.");
                 case RelicIds.ThornedRosary: return L("The soul burns slower when you lose.", "Kaybedince ruhun daha yavaş yanar.");
@@ -49,7 +50,8 @@ namespace HellPoker.Presentation.Ui
         public static string RelicTakenFormat => L("You carry the {0} now. {1} But: {2}", "Artık {0} sende. {1} Ama: {2}");
 
         public static string RedrawPrompt => L("Pick the card the Bone Die throws back (click the die again: cancel).", "Kemik Zar'ın geri atacağı kartı seç (zara yine tıkla: vazgeç).");
-        public static string RedrawNotNow => L("The Bone Die rolls once a table (a new table fills it), before the draw, on a card you can see.", "Kemik Zar masa başına bir kez (yeni masada dolar), değişten önce, gördüğün bir karta atılır.");
+        public static string RedrawNotNow => L("The Bone Die rolls once at each demon's table (full again at every summons to Lucifer), before the draw, on a card you can see.",
+            "Kemik Zar her şeytanın masasında bir kez (Lucifer'e her çağrılmada dolar), değişten önce, gördüğün bir karta atılır.");
         /// <summary>{0}: the card that came.</summary>
         public static string RedrawnFormat => L("The Bone Die rolls: {0} comes in.", "Kemik Zar atıldı: {0} geldi.");
 

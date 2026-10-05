@@ -46,6 +46,9 @@ namespace HellPoker.PlayMode.Tests
             yield return Shot("02_rules");
             Press("HandRanksPageButton");
             yield return Shot("02b_rules_hand_ranks");
+            for (int guard = 0; guard < 4 && !Find<Text>("Sinners").gameObject.activeInHierarchy; guard++)
+                Press("HandRanksPageButton");
+            yield return Shot("02c_rules_sinners");
             Press("BackButton");
 
             Press("NewGameButton");

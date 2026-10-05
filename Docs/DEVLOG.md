@@ -2195,3 +2195,61 @@ Hiçbir hücre ±3'ü aşmıyor. Emanetler artık ortalamada hafif eksi (Tespih'
 - Kemik Zar'ın laneti (kasa re-raise'i 2 birim) simülasyonda neredeyse etkisiz (re-raise ellerin ~%4'ü). Masa başına tek hakla
   zar artık dengeli; lanet hissedilmiyorsa oyun testinden sonra düşünülebilir.
 - Emanet teklifinin içeriği gizli (zarla): oyuncu Tespih'i istemeyebilir — önceki kayıttaki soru duruyor.
+---
+
+## 2026-10-05 — Açık kapatıldı: masa başına haklar şeytan başına (masa zıplamak doldurmaz)
+
+**İstek:** (Önce: "soluk rozet + iki dilde neden" denemesini geri al — kullanıcı istemedi, tamamen geri alındı; dosyalar "day 6.02" ile
+aynı hale döndü.) Sonra açığı kapat: `TablePresenter.SwitchTable` her masa değişiminde `_sinner.SitDown()` / `_effects.SitDown()`
+çağırıyordu; masa değiştirmek eller arasında serbest ve bedelsiz (ruh masada değilse). Kemik Zar'ı atıp Mammon → Belial → Mammon
+gidip gelerek zar her elde yeniden doluyor, az önce kapatılan "el başına zar" gücünü geri getiriyordu; aynısı Büyücü'nün koruması ve
+Kral'ın tacı için. Kural: bir şeytanın masasında harcanan hak, o masaya dönünce dolu gelmez; hiç oturulmamış şeytanın masası dolu başlar.
+Lucifer her çağrılmada dolu (yeni deneme); düşüşte gelinen şeytanın kalan hakkı. Sinner ve RunEffects için aynı kural, ortak küçük bir
+sınıf. Metinler iki dilde ("her şeytanın masasında bir kez (Lucifer'e her çağrılmada dolar)"), How to Play SINNERS sayfası. Testler;
+simülasyonda masa zıplayan oyuncu (normal oyuncuya göre +3'ü geçmesin); ana tablo yeniden; CLAUDE.md; DEVLOG; 0.1.3 dağıtılmadıysa aynı
+numarayla build.
+
+### Yapılanlar
+- `Core/Game/TableCharges`: şeytan başına hak defteri (`SitAt(dealerId, fresh)`, `TrySpend`, `Left`, `Refill`, `Encode` / `Restore`).
+  Hiç oturulmamış masa dolu; `fresh` (Lucifer'e çağrılma) o şeytanın kaydını siler; eski kayıttaki tek sayı ilk oturulan masaya gider.
+- `Sinner`: masa başına yetenek `TableCharges`'la (koşu başına — Köylü — eskisi gibi tek sayı). `SitDown()` kalktı, yerine `SitAt`.
+- `RunEffects`: Kemik Zar hakkı `TableCharges`'la; yeni bir zar her masada dolu gelir (`Refill`). `SitDown()` kalktı, yerine `SitAt`.
+- `TablePresenter`: üç dağınık `SitDown` çağrısı kalktı; **tek yer** `SeatAt`: her oturuşta (yeni koşu, devam, masa değişimi, çağrılma,
+  düşüş) `SitAt(dealer.Id, fresh: change == Summoned)`. Aynı şeytana yeniden oturmak da bir şey doldurmaz.
+- Kayıt (v=4, isteğe bağlı): `class.charges.tables`, `relics.redraws.tables` ("mammon:0", sadece hak harcanmış masalar). Eski kayıt: tek
+  sayı (`class.charges` / `relics.redraws`) kaydedildiği masaya, diğerleri dolu. Bozuk girdiler atlanır, değer doluyu aşamaz.
+- Metinler (iki dilde): Kemik Zar lütfu ve uyarısı "Once at each demon's table (full again at every summons to Lucifer)..." /
+  "Her şeytanın masasında bir kez (Lucifer'e her çağrılmada dolar)..."; Büyücü / Kral yetenekleri "her şeytanın masasında"; Kral'ın
+  "korumasını kullandı" uyarısı; SINNERS sayfasının girişi kuralı anlatıyor (sayfa sığıyor: `02c_rules_sinners`).
+- Emanet hover kutusu artık metnin boyuna göre (Kemik Zar'ın lütfu 2 satır; sabit 38 px'te taşacaktı). TR / EN `08g_relics` kontrol edildi.
+- Ekran görüntüsü turuna `02c_rules_sinners` eklendi.
+
+### Simülasyon (2000 koşu × 9)
+- `BalanceSimulation`: oturuşlarda `SitAt` (gerçek masa gibi); `HELLPOKER_HOP=1` masa zıplayan oyuncu (bir masa başına hak harcanınca,
+  ruh masada değilse, başka bir sıradan şeytana geçip hemen döner); `HELLPOKER_HOP_OLD=1` aynısı eski "her oturuş doldurur" kuralıyla;
+  `HELLPOKER_SEED` tohumları kaydırır (aynı kurulumun ikinci örneği).
+- Ana tablo (değişmesi beklenmiyordu): Köylü 79.4 / 77.6 / 50.9, Büyücü 81.5 / 78.5 / 54.9, Kral 77.1 / 72.1 / 48.8 — öncekine göre en fazla
+  −1.0 (Büyücü: düşüşte gelinen şeytanın koruması artık kendiliğinden dolmuyor).
+- **Açık gerçekti** (eski kural, zıplayan oyuncu − normal): Büyücü +5.4 / +0.2 / +6.1, Köylü +0.4 / 0.0 / +1.5, Kral +0.3 / −0.1 / +0.9;
+  Kemik Zar zorlanmış Köylü +5.1 / +4.2 / **+10.0**.
+- **Yeni kural** (zıplayan − normal): Köylü −0.4 / −0.5 / +0.3, Büyücü −1.8 / 0.0 / +1.5, Kral +0.9 / −0.6 / −0.2. Kemik Zar zorlanmış Köylü
+  ilk örnekte Lilith +4.0 çıktı; iki tohumla tekrar: −0.5 ve −1.3 → 3 örnek ortalaması −1.2 / +0.2 / +0.7 (ilk +4.0 gürültü: fark SE ~1.6).
+  Hiçbir hücre +3'ü geçmiyor.
+
+### Testler
+- Yeni: `HoppingTables_DoesNotRefillTheDie` (at → Belial dolu → Mammon hâlâ 0), `HoppingTables_DoesNotRefillTheWardOrTheCrown` (Büyücü,
+  Kral; Belial ve Lilith dolu, Mammon 0), `ThePerDemonCharges_AreSaved_AndAnOlderSaveKeepsItsOneNumber` (kayıt + devam + eski kayıt),
+  `TableCharges_BrokenSaveEntriesAreSkipped`; Lucifer testi: çağrılınca dolu, **düşüşte Mammon'un kalan hakkı (0)**.
+- Güncellenen: Büyücü / Kral / Köylü çekirdek testleri `SitAt` ile ("geri dönünce hâlâ 0", Lucifer taze); Kemik Zar "yeni şeytan doldurur".
+- **703 EditMode (+1 explicit) + 25 PlayMode (+2 explicit) geçiyor.**
+
+### Build (0.1.3, aynı numara)
+- 0.1.3 dağıtılmadı varsayıldı (bu oturumda sadece yerelde build alındı). "Build Finished, Result: Success" (log'da Bee'nin ilk tur iki CS
+  satırı: silinen `RedrawRefusal.cs` / yeni `TableCharges.cs`). `Builds/HellPoker-0.1.3-win64.zip` 35 MB.
+- Zip `Builds/Smoke-0.1.3-*` altına açılıp oradaki exe ile iki kez `-fpstour`: Player.log temiz; 1. açılışta soğuk açılış takılmaları
+  (menü 3, Lucifer 1), 2. açılışta her ekran 60.0 / 0 takılma. Not: zip'i scratchpad'in uzun yoluna açmak 260 karakter sınırına takıldı.
+
+### Açık sorular
+- 0.1.3 arkadaşlara gönderildiyse bu build 0.1.4 olmalı (söylersen numarayı çıkarıp yeniden alırım).
+- Masa zıplamak hâlâ bedava ve malice'i oranla taşıyor (yukarı yuvarlanarak); simülasyonda zararsız, ama kasıtlı zıplamayı tamamen
+  anlamsız kılmak istenirse (ör. aynı el arası ikinci masa değişimi yasak) ayrı bir karar.
