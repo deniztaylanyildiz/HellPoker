@@ -13,7 +13,7 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 ## Durum
 
-**Demo 1.0 dondu**: etiket `v1.0-demo` (commit: etiketin işaret ettiği commit). Phase 2 bundan sonra.
+**Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
 ## Oyun
 
