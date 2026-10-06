@@ -23,7 +23,8 @@ namespace HellPoker.Editor
         /// <summary>A development build (F3 frame rate, -fpstour) kept apart from the one handed out.</summary>
         public const string DevelopmentFolder = "Builds/WindowsDev";
 
-        public static string ZipPath => $"Builds/HellPoker-{PlayerSettings.bundleVersion}-win64.zip";
+        /// <summary>Builds/HellPoker-0.1.6-win64.zip — or, for a demo, Builds/HellPoker-Demo-1.0-win64.zip.</summary>
+        public static string ZipPath => $"Builds/HellPoker-{HellPoker.Core.Game.ReleaseVersion.FileName(PlayerSettings.bundleVersion)}-win64.zip";
 
         [MenuItem("Hell Poker/Build Windows")]
         public static void Windows()
@@ -31,7 +32,7 @@ namespace HellPoker.Editor
             if (!Build(WindowsFolder, BuildOptions.None)) return;
             try
             {
-                Pack(WindowsFolder, ZipPath, PlayerSettings.bundleVersion);
+                Pack(WindowsFolder, ZipPath, PlayerSettings.bundleVersion);   // the notes say "Demo 1.0", the folder HellPoker-Demo-1.0
                 Debug.Log($"Hell Poker packed: {Path.GetFullPath(ZipPath)} ({new FileInfo(ZipPath).Length / (1024 * 1024)} MB).");
             }
             catch (IOException exception)
@@ -44,7 +45,7 @@ namespace HellPoker.Editor
         /// <summary>The build folder and the tester notes into one zip, under a folder named for the version.</summary>
         public static void Pack(string buildFolder, string zipPath, string version)
         {
-            string root = $"HellPoker-{version}/";
+            string root = $"HellPoker-{HellPoker.Core.Game.ReleaseVersion.FileName(version)}/";
             if (File.Exists(zipPath)) File.Delete(zipPath);
             using (ZipArchive zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
             {
@@ -57,7 +58,9 @@ namespace HellPoker.Editor
                 }
                 foreach (string note in new[] { "OKUBENI.txt", "GERI_BILDIRIM.txt" })
                 {
-                    string text = File.ReadAllText(Path.Combine(ReleaseTexts, note)).Replace("{VERSION}", version);
+                    string text = File.ReadAllText(Path.Combine(ReleaseTexts, note)).Replace("{VERSION}",
+                        HellPoker.Core.Game.ReleaseVersion.IsDemo(version) ? HellPoker.Core.Game.ReleaseVersion.Display(version) : version)
+                        .Replace("{FOLDER}", HellPoker.Core.Game.ReleaseVersion.FileName(version));   // the folder the zip unpacks to
                     ZipArchiveEntry entry = zip.CreateEntry(root + note);
                     using (var writer = new StreamWriter(entry.Open(), new UTF8Encoding(true)))   // with a BOM, for Notepad
                         writer.Write(text.Replace("\r\n", "\n").Replace("\n", "\r\n"));

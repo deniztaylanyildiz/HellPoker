@@ -312,7 +312,7 @@ MENU_PARTICLES = [Particles("embers", 0, 30, 90, 170, 14), Particles("embers", 3
 
 # Where words sit on the title screen (nothing moves there): the taglines, the button grid, the footer, and the version
 # in the bottom right corner.
-MENU_TEXT = ((88, 84, 392, 126), (100, 128, 380, 240), (176, 250, 304, 266), (400, 256, 479, 269))
+MENU_TEXT = ((88, 84, 392, 126), (100, 128, 380, 240), (176, 250, 304, 266), (400, 256, 479, 269), (204, 70, 276, 82))   # the last: DEMO
 
 
 def write_all(out_dir):

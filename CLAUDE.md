@@ -11,6 +11,10 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 - Mimari bir karar değiştiğinde bu dosyadaki ilgili bölümü de güncelle.
 - Kod **SOLID** prensiplerine uygun olmalı (aşağıdaki mimari kurallara bak). Yeni kod için test yaz.
 
+## Durum
+
+**Demo 1.0 dondu**: etiket `v1.0-demo` (commit: etiketin işaret ettiği commit). Phase 2 bundan sonra.
+
 ## Oyun
 
 Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasaya (House)** karşı oynar.

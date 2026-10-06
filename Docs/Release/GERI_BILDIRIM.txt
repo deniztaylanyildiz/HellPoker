@@ -113,6 +113,11 @@ Poker biliyor musun? (hiç / biraz / iyi):
     >
 
 
+Demo'dan sonra oyunda en çok ne görmek istersin?
+
+>
+
+
 Eklemek istediğin başka bir şey:
 
 >

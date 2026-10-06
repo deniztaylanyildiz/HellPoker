@@ -1,13 +1,22 @@
-HELL POKER {VERSION} — test sürümü
-===================================
+HELL POKER {VERSION}
+====================
 
-Merhaba! Oynadığın için teşekkürler. Bu, arkadaşlar için erken bir test sürümü; hatalar olabilir.
+Merhaba! Oynadığın için teşekkürler.
+
+BU BİR DEMO SÜRÜMÜDÜR. İçinde: üç kurpiyer şeytan (Mammon, Belial, Lilith) ve finalde Lucifer; dört sınıf (Köylü, Büyücü,
+Kral, Soytarı); eller arasında olaylar; lanetli emanetler; eller boyunca devam eden, sayılabilen deste. Oyun bitmiş bir
+oyun değil: hatalar olabilir, sayılar değişebilir.
+
+Bilinen sınırlamalar:
+  - 2K gibi yüksek çözünürlüklü ekranlarda yazılar bulanık görünürse Ayarlar > GÖRÜNTÜ > PİKSEL ÖLÇEĞİ'nde TAM PİKSEL'i seç.
+  - Soytarı'nın jokeriyle Ölü Adamın Eli yapılabilir (bilerek böyle).
+  - Denge hâlâ test aşamasında.
 
 
 NASIL AÇILIR
 ------------
 1. Zip dosyasının tamamını bir klasöre çıkar (zip'e sağ tık → "Tümünü ayıkla..."). Zip'in içinden doğrudan çalıştırma.
-2. Çıkan "HellPoker-{VERSION}" klasöründeki HellPoker.exe'ye çift tıkla.
+2. Çıkan "HellPoker-{FOLDER}" klasöründeki HellPoker.exe'ye çift tıkla.
 3. Windows mavi bir pencereyle "Windows bilgisayarınızı korudu" diyebilir (oyun imzalı değil, ondan):
    "Ek bilgi" yazısına tıkla → "Yine de çalıştır" butonuna bas.
 4. Oyun açılır. Alt+Enter ile tam ekran / pencere arasında geçiş yaparsın.

@@ -102,6 +102,11 @@ namespace HellPoker.Presentation.Views
                     .rectTransform.PlaceTL(0, 34, PixelScreen.Width, 32);
             }
 
+            // A demo build says so, small, under the title (the same word in both languages).
+            if (HellPoker.Core.Game.ReleaseVersion.IsDemo(Application.version))
+                UiFactory.CreateText("DemoLabel", front, UiText.DemoLabel, 8, Palette.Ember, style: FontStyle.Bold).WithOutline()
+                    .rectTransform.PlaceTL((PixelScreen.Width - 64) / 2, 72, 64, 9);
+
             Text taglineText = UiFactory.CreateText("Tagline", front, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline().Localized(tagline);
             taglineText.rectTransform.PlaceTL(40, 88, PixelScreen.Width - 80, 18);
             UiFactory.CreateSprite("Divider", front, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 110, 48, 3);
@@ -130,7 +135,7 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
 
             // The build's version, small, in the bottom right corner (C.23).
-            Text version = UiFactory.CreateText("Version", front, string.Format(UiText.VersionFormat, Application.version), 8, Palette.BoneDark,
+            Text version = UiFactory.CreateText("Version", front, HellPoker.Core.Game.ReleaseVersion.Display(Application.version), 8, Palette.BoneDark,
                 TextAnchor.MiddleRight).WithOutline();
             version.rectTransform.PlaceTL(PixelScreen.Width - 84, 258, 80, 9);
 

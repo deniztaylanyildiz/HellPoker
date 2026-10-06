@@ -2,7 +2,8 @@
     "name": "HellPoker.Editor",
     "rootNamespace": "HellPoker.Editor",
     "references": [
-        "HellPoker.Presentation"
+        "HellPoker.Presentation",
+        "HellPoker.Core"
     ],
     "includePlatforms": [
         "Editor"

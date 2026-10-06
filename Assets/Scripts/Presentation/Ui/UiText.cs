@@ -79,7 +79,8 @@ namespace HellPoker.Presentation.Ui
         public static string MenuFooter => L("Esc — menu", "Esc — menü");
 
         /// <summary>The build's version in the menu's corner ("v0.1.1").</summary>
-        public const string VersionFormat = "v{0}";
+        /// <summary>Under the title of a demo build (the same in both languages).</summary>
+        public static string DemoLabel => L("DEMO", "DEMO");
 
         /// <summary>The development FPS readout (F3): average and slowest frame. Developer text: never translated.</summary>
         public const string FpsFormat = "FPS {0}  min {1}";

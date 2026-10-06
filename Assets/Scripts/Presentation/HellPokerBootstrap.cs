@@ -168,7 +168,8 @@ namespace HellPoker.Presentation
 
         /// <summary>The playtest's run logs: text files next to the save (persistentDataPath/runs); none in batch runs (tests).</summary>
         private static IRunLogSink RunLogs => Application.isBatchMode ? null
-            : new FileRunLogSink(System.IO.Path.Combine(Application.persistentDataPath, "runs"), Application.version);
+            : new FileRunLogSink(System.IO.Path.Combine(Application.persistentDataPath, "runs"),
+                HellPoker.Core.Game.ReleaseVersion.Display(Application.version));
 
         private void OnDestroy()
         {

@@ -2729,3 +2729,41 @@ Köylü ve Büyücü önceki tabloyla birebir aynı.
 - Ekran görüntüleri TR / EN: `JesterScreenshots` 60–67 (67: seçicisiz el).
 - 0.1.6'nın dağıtıldığı bilgisi yok: aynı numara. `Builds/HellPoker-0.1.6-win64.zip` (37 200 043 bayt, ~35.5 MB); zip'ten 3 duman
   turu: çıkış 0, Player.log temiz.
+
+## 2026-10-07 — DEMO 1.0 kapanışı
+
+### İstek (kullanıcı)
+Oyunu demo sürümü olarak kapat; kurallara, dengeye ve koda (sürüm metni dışında) dokunma; bir test geçmezse dur. Sürüm "1.0.0-demo"
+("Demo 1.0" görünür), ana menüde DEMO etiketi, son kontroller, build, belgeler, commit + etiket (push ve GitHub Release kullanıcıda).
+
+### Yapılanlar
+- Sürüm: `bundleVersion` = `1.0.0-demo`. `Core/Game/ReleaseVersion` ("1.0.0-demo" → "Demo 1.0", dosya adında "Demo-1.0"; demo değilse
+  "v0.1.6"): menünün köşesi, koşu günlüğü başlığı ("version: Demo 1.0", doğrulandı), zip adı ve klasörü, OKUBENI / GERI_BILDIRIM
+  ({VERSION} → "Demo 1.0", yeni {FOLDER} → "Demo-1.0"). Ana menüde başlığın altında turuncu "DEMO" (`UiText.DemoLabel`, iki dilde aynı;
+  y 72, menü yazı bölgelerine eklendi: `pixel_menu.MENU_TEXT` (204, 70, 276, 82), zemin yeniden üretildi — katmanlar o bölgeye
+  girmediği için resimler değişmedi). Editor assembly'sine Core referansı (zip adı için).
+- Bir derleme hatası çıktı (Editor asmdef Core'u görmüyordu; testler eski derlemeyle koştu): referans eklendi, testler yeniden koştu.
+  Mevcut hiçbir test başarısız olmadı.
+- Geliştirme anahtarları: oyun kodu hiçbir `HELLPOKER_*` ortam değişkenini okumuyor (hepsi testlerde: simülasyon, ekran görüntüsü);
+  `-fpstour` sadece komut satırında verilirse çalışır (`FpsTour.IsRequested`); F3 FPS sayacı sadece development build'de
+  (`Debug.isDebugBuild`); batchmode dalları (bellek deposu, ses yok, olay yok) oyuncunun açılışında devreye girmez. Normal açılışta
+  hiçbiri bir şey değiştirmiyor.
+- Belgeler: OKUBENI başına demo paragrafı ve bilinen sınırlamalar; GERI_BILDIRIM sonuna "Demo'dan sonra oyunda en çok ne görmek
+  istersin?"; CHANGELOG.md (0.1.0 → Demo 1.0); CLAUDE.md'ye dondurma notu.
+
+### Son kontroller
+- EditMode 809 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata.
+- Denge (2000 koşu, değişmedi):
+
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
+| Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
+| Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
+| Soytarı | %75.9 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
+
+- Build: `Builds/HellPoker-Demo-1.0-win64.zip` (37 201 612 bayt, ~35.5 MB; klasör `HellPoker-Demo-1.0`). Zip'ten 3 duman turu:
+  çıkış 0, Player.log'da uyarı / hata / istisna yok, 13 FPS satırı (menü ort. 60). Exe ikonu şeytan (çıkarılıp bakıldı). Eski 0.1.x
+  zip'leri silindi.
+- Git: "Demo 1.0" commit'i ve `v1.0-demo` etiketi (annotated, "Hell Poker Demo 1.0"); commit hash'i CLAUDE.md'ye ayrı bir küçük
+  commit'le yazıldı (aynı commit kendi hash'ini içeremez). Push ve GitHub Release kullanıcıda.
