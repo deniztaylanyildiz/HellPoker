@@ -50,7 +50,7 @@ namespace HellPoker.Core.Game
             bool beforeDraw = Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
             if (!beforeDraw || index >= PlayerCardsRevealed || IsPlayerCardHidden(index)) return false;
             // A chained card must stay; a thorned one is not shaken off this way.
-            return !IsPlayerCardChained(index) && !IsPlayerCardThorned(index) && !IsPlayerCardProtected(index);
+            return !IsPlayerCardChained(index) && !IsPlayerCardThorned(index);
         }
 
         /// <summary>The Bone Die: the card goes back, the next card of the deck takes its place. Returns the new card, or null.</summary>
@@ -242,6 +242,24 @@ namespace HellPoker.Core.Game
 
         public int DeckCount => _deck.Count;
 
+        /// <summary>A whole deck (the 52; the Jester's jokers are never counted).</summary>
+        public const int FullDeck = 52;
+
+        /// <summary>The cards left, the next one to be drawn first (for the save and the next table); empty for a deck not counted.</summary>
+        public IReadOnlyList<Card> DeckCards => !Rules.ContinuousDeck || JokerDeck ? Array.Empty<Card>() : _deck.Remaining.Reverse().ToArray();
+
+        /// <summary>
+        /// The run's deck goes on here (another table, or a saved run): the cards left, in order. Ignored for a deck that is not
+        /// counted (the Jester's, or without the rule) and for anything that is not a part of one deck (a card twice, a joker).
+        /// </summary>
+        public bool RestoreDeck(IReadOnlyList<Card> cardsInDrawOrder)
+        {
+            if (cardsInDrawOrder == null || !Rules.ContinuousDeck || JokerDeck) return false;
+            if (cardsInDrawOrder.Any(c => c.IsJoker) || cardsInDrawOrder.Distinct().Count() != cardsInDrawOrder.Count) return false;
+            _deck.Restore(cardsInDrawOrder);
+            return true;
+        }
+
         /// <summary>True when this hand began with the demon shuffling a deck run too thin.</summary>
         public bool DeckShuffledThisHand { get; private set; }
 
@@ -295,9 +313,12 @@ namespace HellPoker.Core.Game
         {
             if (!Rules.ContinuousDeck || JokerDeck) return ShuffleRefusal.NoDeckToCount;
             if (Phase != GamePhase.Betting) return ShuffleRefusal.NotBetweenHands;
+            if (IsSoulAtStake) return ShuffleRefusal.SoulOnTable;
             if (ShuffledThisHand) return ShuffleRefusal.AlreadyShuffled;
-            if (IsSoulAtStake || _ledger.Years + Rules.ShuffleYears >= Rules.SoulThreshold) return ShuffleRefusal.SoulAtStake;
+            if (_deck.Count >= FullDeck) return ShuffleRefusal.DeckFull;
+            if (_deck.Count < CardsForAHand) return ShuffleRefusal.ShuffleComing;   // the demon shuffles it anyway, for nothing
             if (_ledger.Years < Rules.ShuffleMinYears) return ShuffleRefusal.TooFewYears;
+            if (_ledger.Years + Rules.ShuffleYears >= Rules.SoulThreshold) return ShuffleRefusal.WouldStakeSoul;
             return ShuffleRefusal.None;
         }
 
@@ -331,7 +352,8 @@ namespace HellPoker.Core.Game
 
         public bool IsPlayerCardThorned(int index) => InPlay && _cheats.Marks.Thorned.Contains(PlayerHand[index]);
 
-        public bool IsPlayerCardProtected(int index) => InPlay && _cheats.Marks.Protected.Contains(PlayerHand[index]);
+        /// <summary>The King's crown guards the whole hand this hand (every card in it, the new ones too).</summary>
+        public bool IsPlayerCardProtected(int index) => InPlay && Sinner != null && Sinner.HandProtected;
 
         /// <summary>The cheat really planned for this hand while it is still to come (a Warlock sees through the lie).</summary>
         public ICheat PendingCheatTruth => InPlay && _cheats.Intent != null ? _cheats.Planned : null;
@@ -342,6 +364,7 @@ namespace HellPoker.Core.Game
         public PowerRefusal WhyNoPower()
         {
             if (Sinner == null || Sinner.Ability == SinnerAbility.None) return PowerRefusal.NoPower;
+            if (Sinner.HandProtected) return PowerRefusal.HandAlreadyProtected;   // said before the empty gauge: it is the news
             if (!Sinner.IsCharged) return PowerRefusal.NotCharged;
             // The Peasant's power is switched on at any time and waits for his next fold (this hand or a later one).
             if (Sinner.Ability == SinnerAbility.FreeFold) return PowerRefusal.None;
@@ -354,35 +377,35 @@ namespace HellPoker.Core.Game
                     if (coming == null) return PowerRefusal.NoCheatAnnounced;
                     return coming.Tier == CheatTier.Minor ? PowerRefusal.None : PowerRefusal.MajorCheat;
                 case SinnerAbility.Protect:
-                    if (!IsBeforeDraw) return PowerRefusal.NotBeforeDraw;
-                    for (int i = 0; i < Hand.Size; i++)
-                        if (CanProtect(i)) return PowerRefusal.None;
-                    return PowerRefusal.NoCardToProtect;
+                    // The crown guards the hand against a cheat announced and still to come (the King cannot read a lie: any
+                    // announcement will do).
+                    if (Sinner.HandProtected) return PowerRefusal.HandAlreadyProtected;
+                    return PendingCheatTruth == null ? PowerRefusal.NoCheatAnnounced : PowerRefusal.None;
                 default:
                     return PowerRefusal.NoPower;
             }
         }
 
         /// <summary>
-        /// Switches the power on: the Peasant's free fold and the King's protection wait, switched on, for the player's move (the
-        /// gauge is spent only when it is used); the Warlock's ward goes up at once (it waits for the cheat itself). False when the
-        /// power cannot be used now (<see cref="WhyNoPower"/>).
+        /// Uses — or, for the Peasant, switches on — the power: the Peasant's free fold waits, switched on, for his fold (the gauge
+        /// is spent only then); the Warlock's ward and the King's crown go up at once (they wait for the cheat themselves). False
+        /// when the power cannot be used now (<see cref="WhyNoPower"/>).
         /// </summary>
         public bool ArmPower()
         {
             if (WhyNoPower() != PowerRefusal.None) return false;
-            return Sinner.Ability == SinnerAbility.Ward ? Sinner.TryUse(SinnerAbility.Ward) : Sinner.Arm();
+            return Sinner.Ability == SinnerAbility.FreeFold ? Sinner.Arm() : Sinner.TryUse(Sinner.Ability);
         }
 
         /// <summary>Switches a waiting power off again (the player changed their mind); the gauge stays full.</summary>
         public void DisarmPower() => Sinner?.Disarm();
 
-        /// <summary>The power is switched on and waiting for the player's move.</summary>
+        /// <summary>The power is switched on and waiting for the player's move (the Peasant's free fold).</summary>
         public bool PowerArmed => Sinner != null && Sinner.PowerArmed;
 
         /// <summary>
         /// Uses the power in one go: the Peasant walks away from this hand for nothing (switched on, then folded), the Warlock raises
-        /// a ward. The King's power picks a card: <see cref="Protect"/>. False when it cannot be used now.
+        /// a ward, the King's crown guards the hand. False when it cannot be used now.
         /// </summary>
         public bool UsePower()
         {
@@ -395,52 +418,12 @@ namespace HellPoker.Core.Game
                     Bet(BetAction.Fold);
                     return true;
                 case SinnerAbility.Ward:
-                    return Sinner.TryUse(SinnerAbility.Ward);
+                case SinnerAbility.Protect:
+                    return Sinner.TryUse(Sinner.Ability);
                 default:
                     return false;
             }
         }
-
-        private bool _powerLapsed;
-
-        /// <summary>
-        /// True once (then cleared) when a switched-on protection was never used before the draw passed: the King's mode closed
-        /// on its own, the gauge still full — the player should hear it.
-        /// </summary>
-        public bool TakePowerLapsed()
-        {
-            bool lapsed = _powerLapsed;
-            _powerLapsed = false;
-            return lapsed;
-        }
-
-        /// <summary>The King's switched-on protection only lives before the draw: past it (or at the hand's end) it closes, unspent.</summary>
-        private void LapseProtection(bool tell)
-        {
-            if (Sinner == null || !Sinner.PowerArmed || Sinner.Ability != SinnerAbility.Protect) return;
-            Sinner.Disarm();
-            if (tell) _powerLapsed = true;
-        }
-
-        private bool IsBeforeDraw => Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
-
-        public bool CanProtect(int index)
-        {
-            if (Sinner == null || Sinner.Ability != SinnerAbility.Protect || !Sinner.IsCharged) return false;
-            if (index < 0 || index >= Hand.Size || PlayerHand == null) return false;
-            // Before the draw: while the cards turn, and at the draw itself — a card the player can see, not yet protected.
-            bool beforeDraw = Phase == GamePhase.Drawing || (Phase == GamePhase.PlayerReveal && !IsAfterDraw);
-            if (!beforeDraw || index >= PlayerCardsRevealed || IsPlayerCardHidden(index)) return false;
-            return !_cheats.Marks.Protected.Contains(PlayerHand[index]);
-        }
-
-        public bool Protect(int index)
-        {
-            if (!CanProtect(index) || !Sinner.TryUse(SinnerAbility.Protect)) return false;
-            _cheats.Marks.Protected.Add(PlayerHand[index]);
-            return true;
-        }
-
         /// <summary>True while a House card shows a false face (until the showdown).</summary>
         public bool IsHouseCardFalse(int index) => InPlay && _cheats.Marks.FakeHouseIndex == index;
 
@@ -595,7 +578,6 @@ namespace HellPoker.Core.Game
 
             int yearsBefore = _ledger.Years;
             _ledger.Add(penalty);
-            LapseProtection(tell: false);
             Phase = _ledger.Years >= DamnationYears ? GamePhase.Damned : GamePhase.Betting;
             LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
             // A hand left behind counts as the fold it was — or, sealed, as the loss.
@@ -659,7 +641,6 @@ namespace HellPoker.Core.Game
             HouseHand = _houseExchange.Hand;
             _drawnIndices = _playerExchange.ReplacedIndices;
             IsAfterDraw = true;
-            LapseProtection(tell: true);
 
             // The thorn took the last of the soul: there is no hand left to play.
             if (_ledger.Years >= DamnationYears)
@@ -1024,12 +1005,12 @@ namespace HellPoker.Core.Game
 
             // The power charges with every settled hand — but not the one the Peasant walked away from with it (his gauge is empty).
             if (!freeFold) Sinner?.HandSettled(showdown == null, showdown?.Outcome);
+            Sinner?.EndHand();   // the crown's guard lasts the hand
             // The Jester's twenty jokers: the deck is cleared of them, and the first time the Rattle joins the run (beyond the relic limit).
             bool jackpot = !freeFold && Sinner != null && Sinner.HitJokerJackpot;
             bool rattle = jackpot && Effects.AddRelic(RelicIds.JestersRattle);
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
                 yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle);
-            LapseProtection(tell: false);
         }
 
         /// <summary>
@@ -1077,6 +1058,7 @@ namespace HellPoker.Core.Game
             _drawnIndices = Array.Empty<int>();
             ThornYearsThisHand = 0;
             TitheYearsThisHand = 0;
+            Sinner?.EndHand();
             _cheats.ClearHand();
         }
 

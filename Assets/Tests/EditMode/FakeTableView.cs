@@ -87,8 +87,13 @@ namespace HellPoker.Core.Tests
         public void SetPower(PowerDisplay power) => Power = power ?? PowerDisplay.None;
 
         /// <summary>The deck counter (-1: hidden) and the SHUFFLE button (null: hidden).</summary>
-        public int DeckCount { get; private set; } = -1;
-        public void SetDeckCount(int cards) => DeckCount = cards;
+        public string DeckLabel { get; private set; }
+        public string DeckHint { get; private set; }
+        public void SetDeck(string label, string hint)
+        {
+            DeckLabel = label;
+            DeckHint = hint;
+        }
         public string ShuffleLabel { get; private set; }
         public bool ShuffleLocked { get; private set; }
         public void SetShuffle(string label, bool locked)

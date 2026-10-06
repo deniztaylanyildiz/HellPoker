@@ -59,6 +59,13 @@ namespace HellPoker.Core.Cards
 
         public bool Take(Card card) => _cards.Remove(card);
 
+        public void Restore(IEnumerable<Card> cardsInDrawOrder)
+        {
+            if (cardsInDrawOrder == null) throw new ArgumentNullException(nameof(cardsInDrawOrder));
+            _cards.Clear();
+            _cards.AddRange(cardsInDrawOrder.Reverse());   // drawn from the end
+        }
+
         public void Reset()
         {
             _cards.Clear();

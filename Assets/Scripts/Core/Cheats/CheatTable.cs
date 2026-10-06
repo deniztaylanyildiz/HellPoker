@@ -36,8 +36,6 @@ namespace HellPoker.Core.Cheats
         /// <summary>Gaze: the House re-raises knowing the player's hand.</summary>
         public bool Gaze { get; set; }
 
-        /// <summary>The King's protection: these cards of the player's are beyond every cheat this hand.</summary>
-        public HashSet<Card> Protected { get; } = new HashSet<Card>();
 
         public void Clear()
         {
@@ -47,7 +45,6 @@ namespace HellPoker.Core.Cheats
             FakeHouseIndex = -1;
             Tithe = false;
             Gaze = false;
-            Protected.Clear();
         }
     }
 
@@ -114,8 +111,9 @@ namespace HellPoker.Core.Cheats
         /// <summary>The Dead Man's Hand cards are beyond any cheat.</summary>
         public static bool IsImmune(Card card) => CheatRules.IsImmune(card);
 
-        /// <summary>True for a player's card no cheat may touch: a Dead Man's Hand card, or one under the King's protection.</summary>
-        public bool IsUntouchable(int index) => IsImmune(PlayerHand[index]) || Marks.Protected.Contains(PlayerHand[index]);
+        /// <summary>True for a player's card no cheat may touch: a Dead Man's Hand card or a joker. (The King's crown refuses the whole
+        /// cheat instead: <see cref="Sinners.Sinner.Allows"/>.)</summary>
+        public bool IsUntouchable(int index) => IsImmune(PlayerHand[index]);
 
         /// <summary>Positions in the player's hand a cheat may touch (not untouchable, and passing the extra test).</summary>
         public IEnumerable<int> PlayerTargets(Func<int, bool> also = null) =>
@@ -218,6 +216,13 @@ namespace HellPoker.Core.Cheats
         {
             new Card(Rank.Ace, Suit.Spades), new Card(Rank.Ace, Suit.Clubs), new Card(Rank.Eight, Suit.Spades), new Card(Rank.Eight, Suit.Clubs)
         };
+
+        /// <summary>The cheats that leave the player's cards alone (a false face on the demon's card, the tithe, the gaze): the King's
+        /// crown does not stop them.</summary>
+        private static readonly string[] DemonSideOnly = { CheatIds.FalseFace, CheatIds.Tithe, CheatIds.Gaze };
+
+        /// <summary>True for a cheat that changes, marks or hides a card of the player's.</summary>
+        public static bool TouchesPlayerCards(string cheatId) => Array.IndexOf(DemonSideOnly, cheatId) < 0;
 
         /// <summary>A♠ A♣ 8♠ 8♣ are beyond any cheat, wherever they lie — and so is a joker (in a hand or in the deck).</summary>
         public static bool IsImmune(Card card) => card.IsJoker || Array.IndexOf(DeadMansCards, card) >= 0;

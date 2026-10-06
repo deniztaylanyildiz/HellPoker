@@ -79,8 +79,8 @@ Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral / Soytarı) · 
 |---|---|---|---|---|
 | Köylü (güç: bir eli bedelsiz bırak) | | | | |
 | Büyücü (yalanı görür, Belial'de 2 kasa kartı; güç: duyurulan küçük hileyi engelle) | | | | |
-| Kral (1250 yıl, taç; güç: draw'dan önce bir kartı koru) | | | | |
-| Soytarı (1000 yıl, güç yok; destede joker: tek joker = istediğin kart, iki joker = kayıp; kazanç +1 joker, 10 üstünde kayıp -1) | | | | |
+| Kral (1250 yıl, taç; güç: duyurulan hileye karşı bütün eli koru) | | | | |
+| Soytarı (750 yıl, güç yok; destede joker: tek joker = istediğin kart, iki joker = kayıp; kazanç +1 joker, 10 üstünde kayıp -1) | | | | |
 
 - Rozetteki 5 pipli gösterge (kazanç +1, kayıp +2, çekilme +1, beraberlik 0; dolunca parlar, "HAZIR: K"; K ile açılan güç "GÜÇ AÇIK" yazar ve kullanılana kadar açık kalır) anlaşıldı mı?
 -
@@ -165,5 +165,6 @@ Her hata için: ne yapıyordum → ne oldu → ne bekliyordum (şeytan, sınıf,
 ## Deste sayma (0.1.5)
 
 - Kalan kart sayacını (kasanın kartlarının üstü) fark ettim mi, kart saydım mı?
+- 10 kartın altında sayaç "KARIŞIYOR" yazıyor mu? Masa değişince / oyunu kapatıp açınca deste kaldığı yerden devam ediyor mu?
 - Deste bitince şeytanın karıştırdığını gördüm mü? KARIŞTIR'ı (S, +10 yıl) kullandım mı, ne zaman, değdi mi?
 - Soytarı'da 20 jokere ulaştım mı? Çıngırak emanetinin anı anlaşıldı mı?

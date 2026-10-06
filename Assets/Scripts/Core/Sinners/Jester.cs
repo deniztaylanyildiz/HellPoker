@@ -19,7 +19,8 @@ namespace HellPoker.Core.Sinners
         private readonly int _jackpot;
 
         /// <param name="jackpot">At this many jokers the deck is cleared and the run earns the Jester's Rattle (once).</param>
-        public Jester(int startingYears = 1000, int startingJokers = 2, int lossLine = 10, int jackpot = 20)
+        /// <param name="startingYears">750: a lighter sentence for the wildest deck (the balance simulation's suggestion, the designer's choice).</param>
+        public Jester(int startingYears = 750, int startingJokers = 2, int lossLine = 10, int jackpot = 20)
         {
             if (jackpot != 0 && jackpot <= startingJokers) throw new ArgumentOutOfRangeException(nameof(jackpot));
             _jackpot = jackpot;

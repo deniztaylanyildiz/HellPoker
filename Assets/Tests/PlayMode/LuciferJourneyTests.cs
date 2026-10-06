@@ -107,7 +107,8 @@ namespace HellPoker.PlayMode.Tests
             Func<Dealer, HellPoker.Core.Sinners.Sinner, IHellPokerGame> stacked = (dealer, _) =>
             {
                 if (decks.Count > 0) last = decks.Dequeue();
-                GameRules rules = dealer.ApplyTo(new GameRules());
+                // Each table its own stacked deck: the run's deck is not carried (a fresh deal every hand).
+                GameRules rules = dealer.ApplyTo(new GameRules(continuousDeck: false));
                 return new HellPokerGame(rules, new Deck(new NoShuffle(), Cards(last).Reverse()), HandEvaluator.CreateDefault(),
                     new CardExchanger(new MaxDiscardPolicy(rules.MaxDiscards)), new HouseDrawStrategy(rules.MaxDiscards), dealer.Payouts);
             };

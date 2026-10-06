@@ -547,7 +547,8 @@ namespace HellPoker.Core.Tests
             {
                 last = decks.Count > 0 ? decks.Dequeue() : last;
                 var random = new FirstChoice();
-                return _game = new HellPokerGame(d.ApplyTo(new GameRules()), TestDecks.Stacked(last), HandEvaluator.CreateDefault(),
+                // Each table its own stacked deck: the run's deck is not carried (a fresh deal every hand).
+                return _game = new HellPokerGame(d.ApplyTo(new GameRules(continuousDeck: false)), TestDecks.Stacked(last), HandEvaluator.CreateDefault(),
                     new CardExchanger(new MaxDiscardPolicy(d.MaxDiscards)), new HouseDrawStrategy(d.MaxDiscards), d.Payouts, null,
                     new CheatSession(d.Cheats, d.MaliceMax, random), random);
             }, _view, null, null, DealerRoster.Lucifer);

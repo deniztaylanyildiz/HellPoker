@@ -476,20 +476,15 @@ namespace HellPoker.Core.Tests
         }
 
         /// <summary>
-        /// The King, when a cheat is coming for the cards (an intent is up, before the draw): the crown goes on the card worth most —
-        /// the highest card of a visible pair, else the highest visible card.
+        /// The King, when a cheat is announced that would touch his cards (not a false face, the tithe or the gaze): the crown
+        /// guards the hand at once.
         /// </summary>
         private static void ProtectIfThreatened(HellPokerGame game)
         {
-            if (game.Sinner == null || game.Sinner.Ability != SinnerAbility.Protect || !game.Sinner.IsCharged || IntentOf(game) == null) return;
-            if (IntentOf(game).Id == CheatIds.Tithe || IntentOf(game).Id == CheatIds.Gaze || IntentOf(game).Id == CheatIds.FalseFace) return;
-            int[] candidates = Enumerable.Range(0, Hand.Size).Where(game.CanProtect).ToArray();
-            if (candidates.Length == 0) return;
-            Hand hand = game.PlayerHand;
-            int best = candidates.OrderByDescending(i => candidates.Count(j => hand[j].Rank == hand[i].Rank)).ThenByDescending(i => hand[i].Rank).First();
-            game.Protect(best);
+            if (game.Sinner == null || game.Sinner.Ability != SinnerAbility.Protect || game.WhyNoPower() != PowerRefusal.None) return;
+            if (!CheatRules.TouchesPlayerCards(IntentOf(game).Id)) return;
+            game.UsePower();
         }
-
         /// <summary>The intent as the player reads it: the truth for a class that sees through lies.</summary>
         private static ICheat IntentOf(HellPokerGame game) =>
             game.Sinner != null && game.Sinner.Class.SeesLies ? game.PendingCheatTruth ?? game.PendingCheat : game.PendingCheat;

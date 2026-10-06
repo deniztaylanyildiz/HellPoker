@@ -15,7 +15,7 @@ namespace HellPoker.Core.Sinners
         /// <summary>The Warlock: the minor cheat announced is warded off when it comes (refused by the guard).</summary>
         Ward,
 
-        /// <summary>The King: before the draw, one card is put under protection for the hand — no cheat may touch it.</summary>
+        /// <summary>The King: against a cheat announced, the crown guards the whole hand — no cheat may touch the player's cards this hand.</summary>
         Protect
     }
 
@@ -114,10 +114,19 @@ namespace HellPoker.Core.Sinners
         /// </summary>
         public bool PowerArmed { get; private set; }
 
-        /// <summary>Switches the power on (a full gauge, a power that waits for a move: the free fold, the protection).</summary>
+        /// <summary>The King's crown guards this hand: a cheat that would touch the player's cards is refused. Lasts until the hand ends.</summary>
+        public bool HandProtected { get; private set; }
+
+        /// <summary>How many cheats the crown refused (the whole run).</summary>
+        public int CrownBlocks { get; private set; }
+
+        /// <summary>A hand ended: the crown's guard goes with it.</summary>
+        public void EndHand() => HandProtected = false;
+
+        /// <summary>Switches the power on (a full gauge, a power that waits for a move: the Peasant's free fold).</summary>
         public bool Arm()
         {
-            if (!IsCharged || (Class.Ability != SinnerAbility.FreeFold && Class.Ability != SinnerAbility.Protect)) return false;
+            if (!IsCharged || Class.Ability != SinnerAbility.FreeFold) return false;
             PowerArmed = true;
             return true;
         }
@@ -191,12 +200,19 @@ namespace HellPoker.Core.Sinners
             PowerArmed = false;
             PowersUsed++;
             if (ability == SinnerAbility.Ward) WardRaised = true;
+            if (ability == SinnerAbility.Protect) HandProtected = true;
             return true;
         }
 
         /// <summary>The ward refuses the next minor cheat that would really strike (one that would come to nothing keeps it up).</summary>
         public bool Allows(ICheat cheat, CheatTable table)
         {
+            // The crown: every cheat that would touch the player's cards this hand is refused (one on the demon's side gets through).
+            if (HandProtected && cheat != null && CheatRules.TouchesPlayerCards(cheat.Id) && cheat.CanApply(table))
+            {
+                CrownBlocks++;
+                return false;
+            }
             if (!WardRaised || cheat == null || cheat.Tier != CheatTier.Minor || !cheat.CanApply(table)) return true;
             WardRaised = false;
             WardsUsed++;

@@ -81,64 +81,43 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the King
 
         [Test]
-        public void TheKing_K_ThenPass_ACardTurns_StillPicking_ThenACard_Protected()
+        public void TheKing_K_GuardsTheHandAtOnce_TheCrownsStayThroughBetsAndTheDraw()
         {
-            Run(SinnerRoster.King, KingsPair, HouseTwos, years: 1250);
-            _view.PressAction();   // deal
+            Run(SinnerRoster.King, KingsPair, HouseTwos, new BurningCardCheat(), years: 1250);
+            _view.PressAction();   // deal: the cheat is announced
             _presenter.UsePower();
-            Assert.IsTrue(_game.PowerArmed);
-            Assert.AreEqual(5, Sinner.Charge, "Switched on, not spent.");
+            Assert.IsFalse(_game.PowerArmed, "No switched-on mode for the King any more.");
+            Assert.AreEqual(0, Sinner.Charge, "Spent at once.");
+            Assert.IsTrue(Sinner.HandProtected);
+            Assert.IsNull(_view.PlayerView.Picking, "No card to pick.");
 
-            int turned = _game.PlayerCardsRevealed;
-            _view.PressBet(BetAction.Pass);
-            Assert.Greater(_game.PlayerCardsRevealed, turned, "A card turned.");
-
-            Assert.IsTrue(_game.PowerArmed, "A bet does not close it.");
-            Assert.AreEqual(UiText.ProtectHint, _view.Power.Hint, "The line stays.");
-            Assert.IsTrue(_view.Sinner.Armed);
-            CollectionAssert.Contains(_view.PlayerView.Picking, 0, "The cards it may take are framed.");
-
-            _view.PlayerView.Click(0);
-
-            Assert.IsTrue(_game.IsPlayerCardProtected(0));
-            Assert.AreEqual(0, Sinner.Charge);
-            Assert.IsFalse(_game.PowerArmed);
-            Assert.IsNull(_view.Power.Hint);
-            Assert.IsNull(_view.PlayerView.Picking);
-            Assert.IsFalse(_view.Sinner.Armed);
+            _view.PressBet(BetAction.Pass);   // a card turns: it is guarded too
+            for (int i = 0; i < _game.PlayerCardsRevealed; i++)
+                Assert.AreEqual(CardMark.Protected, _view.PlayerView.Slots[i].Mark, "card " + i);
+            Assert.IsTrue(_view.Sinner.PowerOn);
         }
 
         [Test]
-        public void TheKing_PastTheDrawWithoutAPick_ClosesUnspent_AndSaysSo()
+        public void TheKing_TheCrownEndsWithTheHand()
+        {
+            Run(SinnerRoster.King, KingsPair, HouseTwos, new BurningCardCheat(), years: 1250);
+            _view.PressAction();
+            _presenter.UsePower();
+            PlayToTheEnd();
+            Assert.IsFalse(Sinner.HandProtected);
+            Assert.IsFalse(_view.Sinner.PowerOn);
+        }
+
+        [Test]
+        public void TheKing_K_WithoutACheat_SaysWhy_AndSpendsNothing()
         {
             Run(SinnerRoster.King, KingsPair, HouseTwos, years: 1250);
             _view.PressAction();
             _presenter.UsePower();
-            _presenter.CheckToDraw();
-            Assert.IsTrue(_game.PowerArmed, "The draw prompt is still before the draw.");
-
-            _view.PressAction();   // stand pat: the draw passes
-
-            Assert.IsFalse(_game.PowerArmed);
-            Assert.AreEqual(5, Sinner.Charge, "Not spent.");
-            Assert.AreEqual("You did not use the protection; your power is still full.", _view.Message);
-            Assert.IsNull(_view.Power.Hint);
-        }
-
-        [Test]
-        public void TheKing_KTwice_SwitchesItOff_StillFull()
-        {
-            Run(SinnerRoster.King, KingsPair, HouseTwos, years: 1250);
-            _view.PressAction();
-            _presenter.UsePower();
-            _view.PressSinner();   // the badge: off again
-
-            Assert.IsFalse(_game.PowerArmed);
+            Assert.AreEqual(UiText.PowerNoCheatToGuard, _view.Message);
             Assert.AreEqual(5, Sinner.Charge);
-            Assert.AreEqual(UiText.PowerOffMessage, _view.Message);
-            Assert.AreEqual(PowerDisplay.None.Hint, _view.Power.Hint);
+            Assert.IsFalse(Sinner.HandProtected);
         }
-
         // ------------------------------------------------------------------ the Peasant
 
         [Test]

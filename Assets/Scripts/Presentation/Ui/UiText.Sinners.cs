@@ -38,8 +38,8 @@ namespace HellPoker.Presentation.Ui
                 case Peasant.ClassId: return L("Power: walk away from a hand for free.", "Güç: bir eli bedelsiz bırak.");
                 case Warlock.ClassId: return L("Sees lies, and 2 of Belial's cards. Power: ward off a minor cheat.",
                     "Yalanları ve Belial'in 2 kartını görür. Güç: küçük bir hileyi savuştur.");
-                case King.ClassId: return L("Wins pay a quarter ante more. Power: shield a card from cheats.",
-                    "Kazanç çeyrek ante fazla. Güç: bir kartı hilelerden koru.");
+                case King.ClassId: return L("Wins pay a quarter ante more. Power: guard your whole hand against an announced cheat.",
+                    "Kazanç çeyrek ante fazla. Güç: duyurulan hileye karşı bütün elini koru.");
                 case Jester.ClassId: return L("Jokers in the deck: one is any card, two lose. A win adds one.",
                     "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir tane ekler.");
                 default: return "";
@@ -73,9 +73,6 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Over the badge while a power is switched on (or a ward is up).</summary>
         public static string PowerOnLabel => L("POWER ON", "GÜÇ AÇIK");
-        /// <summary>The line that stays on screen while the King picks.</summary>
-        public static string ProtectHint => L("Pick a card to protect (K: cancel)", "Korumak için bir kart seç (K: vazgeç)");
-        public static string ProtectUnused => L("You did not use the protection; your power is still full.", "Korumayı kullanmadın, gücün dolu duruyor.");
         /// <summary>The line that stays on screen while the Peasant's power is on.</summary>
         public static string FreeFoldHint => L("Power on: your next FOLD is free (K: switch off)", "Güç açık: sıradaki ÇEKİL bedava (K: kapat)");
         /// <summary>The Fold button while the Peasant's power is on: two short lines.</summary>
@@ -88,6 +85,14 @@ namespace HellPoker.Presentation.Ui
         public static string WardRaisedMessage => L("The ward is up: the cheat announced will be refused.", "Koruma hazır: duyurulan hile engellenecek.");
 
         public static string WardFlash => L("WARD", "KORUMA");
+
+        /// <summary>The King's crown refused a cheat.</summary>
+        public static string CrownFlash => L("CROWN", "TAÇ");
+        public static string CrownRaisedMessage => L("The crown guards your hand: no cheat may touch your cards this hand.",
+            "Taç elini koruyor: bu el hiçbir hile kartlarına dokunamaz.");
+        public static string PowerNoCheatToGuard => L("Nothing to guard against: the demon has announced no cheat.",
+            "Korunacak bir hile yok: şeytan henüz hile duyurmadı.");
+        public static string PowerHandProtected => L("The crown already guards this hand.", "Taç bu eli zaten koruyor.");
         public static string FreeFoldMessage => L("An honest heart: you walk away for nothing.", "Dürüst kalp: bu eli bedelsiz bıraktın.");
 
         /// <summary>{0} the charge, {1} full, {2} a win, {3} a loss, {4} a fold.</summary>
@@ -98,7 +103,6 @@ namespace HellPoker.Presentation.Ui
         public static string PowerNoCheat => L("No cheat is announced: the ward waits for one.", "Duyurulan bir hile yok: koruma bir hile bekler.");
         public static string PowerMajorCheat => L("A major cheat is beyond a ward.", "Büyük bir hileye koruma işlemez.");
         public static string PowerWardAlreadyUp => L("The ward is already up.", "Koruma zaten hazır.");
-        public static string PowerNotBeforeDraw => L("The crown protects a card only before the draw.", "Taç bir kartı ancak değişten önce korur.");
 
         /// <summary>Why the power cannot be used now, in words.</summary>
         public static string PowerRefused(SinnerAbility ability, HellPoker.Core.Game.PowerRefusal refusal, int charge, int full)
@@ -108,19 +112,13 @@ namespace HellPoker.Presentation.Ui
                 case HellPoker.Core.Game.PowerRefusal.NotCharged:
                     return string.Format(PowerChargingFormat, charge, full, ChargeRules.Default.PerWin, ChargeRules.Default.PerLoss, ChargeRules.Default.PerFold);
                 case HellPoker.Core.Game.PowerRefusal.CannotFold: return PowerCannotFold;
-                case HellPoker.Core.Game.PowerRefusal.NoCheatAnnounced: return PowerNoCheat;
+                case HellPoker.Core.Game.PowerRefusal.NoCheatAnnounced: return ability == HellPoker.Core.Sinners.SinnerAbility.Protect ? PowerNoCheatToGuard : PowerNoCheat;
                 case HellPoker.Core.Game.PowerRefusal.MajorCheat: return PowerMajorCheat;
                 case HellPoker.Core.Game.PowerRefusal.WardAlreadyRaised: return PowerWardAlreadyUp;
-                case HellPoker.Core.Game.PowerRefusal.NotBeforeDraw: return PowerNotBeforeDraw;
-                case HellPoker.Core.Game.PowerRefusal.NoCardToProtect: return ProtectNotNow;
+                case HellPoker.Core.Game.PowerRefusal.HandAlreadyProtected: return PowerHandProtected;
                 default: return PowerNoHand;
             }
         }
-        public static string ProtectPrompt => L("Pick the card the crown protects (K again: cancel).", "Tacın koruyacağı kartı seç (yine K: vazgeç).");
-        /// <summary>{0}: the card.</summary>
-        public static string ProtectedFormat => L("The crown protects your {0}: no cheat may touch it this hand.",
-            "Taç {0} kartını koruyor: bu el hiçbir hile ona dokunamaz.");
-        public static string ProtectNotNow => L("The crown protects a card you can see, before the draw.", "Taç ancak gördüğün bir kartı, değişten önce korur.");
 
         /// <summary>One line for every class: {0} = "PEASANT 2 · WARLOCK 0 · KING 1".</summary>
         public static string RecordsClassesFormat => L("Freed as: {0}", "Sınıfa göre aklanma: {0}");

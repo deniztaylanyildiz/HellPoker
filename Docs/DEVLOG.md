@@ -2606,3 +2606,92 @@ sonunda joker ort. 8.9 / 6.7 / 7.4, en çok 19). Soytarı hâlâ Köylü'nün 4�
 ### Açık sorular
 - Çıngırak'ın lütfu metinde kesikti (yukarıdaki yorum doğru mu?). Okunamayan mesaj ve kesik "...açılır" cümlesi neydi?
 - Soytarı başlangıcı 750 olsun mu? Sayaç başlık fontuyla biraz iri; istersen metin fontuna alınır.
+## 2026-10-06 — 0.1.6 paketi (devam ediyor): 1. deste koşuya ait, 2. KARIŞTIR nedenleri, 4. Kral bütün eli korur
+
+### İstek (kullanıcı)
+0.1.6: altı iş, sırayla, her işten sonra o işin testleri, sonda hepsi. Şarj kuralına, olaylara, emanetlere ve adı geçmeyen kurallara
+dokunma. Mesajlar parçalı geldi: 1., 2. ve 4. iş büyük ölçüde okunuyor; 3. işin yalnız test satırı ("10 → sayı, 9 → KARIŞIYOR,
+karıştırınca → 52"), 5. ve 6. iş hiç gelmedi. Bir mesaj okunamaz geldi.
+
+### 1. Deste koşuya ait (bedava karıştırma açığı kapandı)
+- Masa değişimi (Lucifer'e çağrılma ve düşüş dahil): `SeatAt` eski oyunun `DeckCards`'ını yeni oyuna `RestoreDeck` ile taşır.
+- Kayıt: v=4 isteğe bağlı `deck` (`AS,10H,3C`…, sıradaki önce; `CardCodes`), eller arasında ve el ortasında; yarım elin kartları
+  desteye dönmez. Yoksa / bozuksa / tekrar eden ya da geçersiz kart varsa taze deste, kayıt geçersiz sayılmaz. Jokerli (Soytarı)
+  deste ve "her el taze" kuralı kaydedilmez. `IDeck.Restore`.
+- Masa-başı yığılmış deste kullanan iki test (CheatPresenterTests'teki düşüş, PlayMode LuciferJourneyTests) `continuousDeck: false`
+  ile kuruldu (oyun kuralı değil, test kurulumu).
+
+### 2. KARIŞTIR'ın nedenleri
+`ShuffleRefusal`: `SoulOnTable` (eski `SoulAtStake`), `AlreadyShuffled`, `DeckFull` ("Deste zaten tam."), `ShuffleComing` ("Şeytan bir
+sonraki elden önce desteyi zaten karacak."), `TooFewYears` — buton gizli; `WouldStakeSoul` — buton görünür ama soluk, mesaj
+"Karıştırmanın 10 yılı seni 1750 yıla taşır: ruhun masaya gelir." (CLAUDE.md kuralı gereği değişken sayıya ek bağlanmadı: "1750'ye"
+yerine "1750 yıla"). Testler: 52 → buton yok + "zaten tam"; deste `CardsForAHand` altında → "şeytan karacak"; Belial 1743 →
+WouldStakeSoul ve mesaj, 1739 → izin; ruh masadayken SoulOnTable.
+
+### 4. Kral: güç bütün eli korur
+- Sadece şeytan bir hile duyurmuşken ve hile henüz vurmamışken (`PendingCheatTruth != null`); yoksa "Korunacak bir hile yok: şeytan
+  henüz hile duyurmadı." K anında çalışır, şarj o an 0, draw'dan önce / sonra fark etmez; açık kalan güç modu ve seçim çerçevesi Kral
+  için kalktı (Kemik Zar seçimi aynı). El bitince kalkar; korunan kartlar normal atılır (Kemik Zar da çekebilir), yeni gelen kart da
+  korunur; taç işareti; engellenince Büyücü'nünki gibi parıltı ("TAÇ") ve şeytanın kızgın repliği. Büyük hileleri de durdurur (eski
+  koruma da durduruyordu).
+- **Oyuncunun kartına dokunan hileler (koddan):** Rehin (zincir), Satın Al (kart takası), Çatal Dil (renk değişimi), Yılan Takası
+  (takas + gizleme), Gece Örtüsü (gizleme), Diken (işaret), Aysız Gece (çekilen kartları gizler), Yeniden Yazma (kart değişimi), Yanan
+  Kart (yeniden dağıtım), Düşüş (oyuncunun en yüksek kartı yeniden dağıtılır). **Dokunmayanlar (koruma durdurmaz):** Sahte Yüz (şeytanın
+  kartının yüzü), Haraç (kazançtan alır), Bakış (kasanın bahis bilgisi). `CheatRules.TouchesPlayerCards`.
+- Sınıf kartı: "Güç: duyurulan hileye karşı bütün elini koru." Rozet hover'ı ve SINNERS sayfası bu metni kullanır; OKUBENI, PLAYTEST.
+
+### Testler
+EditMode 800 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata.
+
+### Bekleyen
+3. iş (sayaçta "KARIŞIYOR"?), 5. ve 6. iş: metin gelmedi. Sonra: denge tablosu, TR / EN ekran görüntüleri, 0.1.6 build, zip'ten duman testi.
+## 2026-10-06 — 0.1.6 paketi tamamlandı (altı iş + son)
+
+### İstek (kullanıcı)
+Sürüm 0.1.6, altı iş sırayla, her işten sonra testleri, sonda hepsi; şarj, olay, emanet ve adı geçmeyen kurallara dokunma. Mesajlar
+parça parça geldi; 1, 2, 4 (bkz. önceki kayıt) ile 3, 5, 6, 7 burada.
+
+### 3. Deste sayacı: 10'un altında sayı yok
+Destede 10'dan az kart varken sayaç sayı yerine "KARIŞIYOR" / "SHUFFLING" yazar (aynı yer, aynı font; hover: "Destede birkaç kart
+kaldı: şeytan bir sonraki elden önce 52 kartı karar."). Deste dolunca sayı geri gelir. `ITableView.SetDeck(label, hint)`,
+`TablePresenter.DeckCountShownFrom` (10). Otomatik karıştırma kuralı aynı. Test: 10 → sayı, 9 → KARIŞIYOR, karılınca → 42 (yeni elin
+dağıtımından sonra; 52 karılır, 10 dağıtılır).
+
+### 4. Kral (önceki kayıttan) — ek
+Korunan kartın atılamaması bildirilen hata (`CanRedraw`'da `IsPlayerCardProtected`) kaldırıldı; draw zaten kısıtlamıyordu.
+
+### 5. Soytarı 750 yıl
+`Jester` varsayılan başlangıcı 750; sınıf kartı ve SINNERS sayfası sayıyı `StartingYears`'tan okur. OKUBENI, CLAUDE.md, PLAYTEST.
+
+### 6. 2K'da yazılar
+- İnceleme: ekran görüntüsü testine `HELLPOKER_SHOT_SIZE` (2560x1440) ve `HELLPOKER_FILL` eklendi; düzeltme kapalıyken "önce",
+  açıkken "sonra" görüntüleri TR / EN, 1920×1080 ve 2560×1440 (TAM PİKSEL ve EKRANI DOLDUR) alındı; mesaj satırı 8× büyütülüp
+  karşılaştırıldı ve kenar karışımı ölçüldü (aradaki tonların parlak piksellere oranı).
+- Bulgu: RenderTexture yakalamasında 2560×1440 ×5 yazıları 1920×1080 ×4 kadar keskin (her font pikseli tam 5×5; oran 0.22 = 0.22).
+  EKRANI DOLDUR (×5.33) font piksellerini 5 ve 6 ekran pikseli genişliğinde eşitsiz yapıyor (oran 0.25), bilinear bulaşma yakalamada
+  görülmedi. Unity'nin `Canvas.pixelPerfect`'i Text'i ilk köşesinden yuvarladığı için yarım piksel bu sahnelerde ortaya çıkmadı. Oyun
+  Windows'ta DPI-aware (Player Settings'te ayar yok; %125 ekranda pencere fiziksel piksellerle ölçülmüştü). **Gerçek 2K ekranda
+  görülen bulanıklık bu ortamda yeniden üretilemedi**; en olası nedenler: EKRANI DOLDUR'un kesirli ölçeği, ya da tek ölçekte (×3, ×5)
+  yarım oyun pikselinde duran bir metnin yarım ekran pikseline düşmesi + font atlasının bilinear örneklenmesi.
+- Düzeltme (iki riski de kapatır): `PixelSnappedText` (mesh düzenleyici: her metin köşesi tam ekran pikseline) ve `PixelText.KeepSharp`
+  (font atlası Point filtre, `Font.textureRebuilt`'te yeniden); `UiFactory.CreateText` ikisini de her metne uygular. Ayar ipucu:
+  "Doldur: yazılar bulanık olabilir, TAM PİKSEL önerilir." Testler: ×2..×6'da yarım oyun pikselindeki metnin bütün köşeleri tam ekran
+  pikselinde; atlas yeniden kurulunca Point kalıyor.
+- Önce / sonra ölçüm aynı (yakalamada bulanıklık zaten yoktu). Kullanıcı gerçek 2K ekranda tekrar bakmalı.
+
+### Denge (2000 koşu, sayılan deste)
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
+| Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
+| Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
+| Soytarı | %75.4 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
+
+Kral +1.4 / +0.7 / +5.1 (bütün el korunuyor; koşu başına güç 4.9). Soytarı 750 yılla +6.2 / +7.1 / +7.1; Köylü'ye göre −8.0 / −0.9 / +4.4.
+Köylü ve Büyücü önceki tabloyla birebir aynı.
+
+### 7. Son
+- Sürüm 0.1.6. `Builds/HellPoker-0.1.6-win64.zip` (37 199 214 bayt, ~35.5 MB); zip'ten 3 duman turu: çıkış 0, Player.log temiz, 13 FPS
+  satırı. 0.1.5 zip'i silindi; duman kopyası ve günlükleri silindi.
+- Son test turu: EditMode 804 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata.
+- OKUBENI, GERI_BILDIRIM, PLAYTEST, CLAUDE.md güncel.

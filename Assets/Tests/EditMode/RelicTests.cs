@@ -303,15 +303,15 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheBoneDie_LeavesTheKingsProtectedCardAlone()
+        public void TheBoneDie_MayRedrawACardTheKingsCrownGuards()
         {
             var sinner = new Sinner(new King(), charge: 5);
             HellPokerGame game = Game(Nothing, HouseFullHouse, sinner: sinner, relics: RelicIds.BoneDie);
             game.PlaceBet();
-            Assert.IsTrue(game.Protect(0));
+            Assert.IsTrue(sinner.TryUse(SinnerAbility.Protect));
+            Assert.IsTrue(game.IsPlayerCardProtected(0));
 
-            Assert.IsFalse(game.CanRedraw(0), "Protected from everything — the die too.");
-            Assert.IsTrue(game.CanRedraw(1));
+            Assert.IsTrue(game.CanRedraw(0), "The crown guards against cheats, not the player's own hand.");
         }
 
         // ------------------------------------------------------------------ the offers and the save

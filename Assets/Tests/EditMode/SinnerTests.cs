@@ -89,7 +89,7 @@ namespace HellPoker.Core.Tests
             Assert.AreSame(SinnerRoster.King, SinnerRoster.Find("king"));
             Assert.AreSame(SinnerRoster.Jester, SinnerRoster.Find("jester"));
             Assert.IsNull(SinnerRoster.Find("thief"));
-            Assert.AreEqual(1000, SinnerRoster.Jester.StartingYears);
+            Assert.AreEqual(750, SinnerRoster.Jester.StartingYears);
             CollectionAssert.AreEqual(new[] { SinnerAbility.FreeFold, SinnerAbility.Ward, SinnerAbility.Protect, SinnerAbility.None },
                 SinnerRoster.All.Select(c => c.Ability));
             CollectionAssert.AreEqual(new[] { 0, 0, 0, 2 }, SinnerRoster.All.Select(c => c.StartingJokers));
@@ -384,106 +384,121 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheKingsProtectedCard_IsBeyondTheBurningCard()
+        public void TheKingsCrown_GuardsTheWholeHand_TheBurningCardIsRefused()
         {
             HellPokerGame game = KingWith(new BurningCardCheat(), KingsPair, out Sinner sinner);
-            Assert.IsTrue(game.CanProtect(0));
-            Assert.IsTrue(game.Protect(0));
-            Assert.IsTrue(game.IsPlayerCardProtected(0));
+            Assert.AreEqual(PowerRefusal.None, game.WhyNoPower(), "A cheat is announced.");
+            Hand before = game.PlayerHand;
+            Assert.IsTrue(game.UsePower(), "At once: no card to pick.");
+            Assert.IsTrue(sinner.HandProtected);
             Assert.AreEqual(0, sinner.Charge);
+            Assert.IsFalse(game.PowerArmed, "Nothing waits switched on.");
+            for (int i = 0; i < game.PlayerCardsRevealed; i++)
+                Assert.IsTrue(game.IsPlayerCardProtected(i));
+            Assert.AreEqual(PowerRefusal.HandAlreadyProtected, game.WhyNoPower());
 
-            game.CheckToDraw();   // the fire strikes as the draw opens
-
-            CheatResult burn = Only(game);
-            Assert.AreEqual(CheatOutcome.Played, burn.Outcome);
-            CollectionAssert.DoesNotContain(burn.PlayerCards, 0);
-            Assert.AreEqual(new Card(Rank.King, Suit.Spades), game.PlayerHand[0]);
+            game.CheckToDraw();   // the fire comes as the draw opens — and is refused
+            Assert.AreEqual(CheatOutcome.Blocked, Only(game).Outcome);
+            CollectionAssert.AreEqual(before, game.PlayerHand);
+            Assert.AreEqual(1, sinner.CrownBlocks);
+            Assert.AreEqual(0, game.Malice, "A refused cheat empties the gauge, as a ward's does.");
         }
 
         [Test]
-        public void TheKingsProtectedCard_IsBeyondTheRewrite()
+        public void TheKingsCrown_RefusesTheRewrite_TheSerpent_AndTheFall_TheNewCardsGuardedToo()
         {
-            HellPokerGame game = KingWith(new RewriteCheat(), KingsPair, out _);
-            game.Protect(0);
-            game.CheckToDraw();
-            game.Draw(new int[0]);
+            HellPokerGame rewrite = KingWith(new RewriteCheat(), KingsPair, out _);
+            rewrite.UsePower();
+            rewrite.CheckToDraw();
+            rewrite.Draw(new[] { 4 });   // a protected card goes back as usual; the new one is under the crown too
+            Assert.IsTrue(rewrite.IsPlayerCardProtected(4));
+            Assert.AreEqual(CheatOutcome.Blocked, Only(rewrite).Outcome);
 
-            CollectionAssert.DoesNotContain(Only(game).PlayerCards, 0);
-            Assert.AreEqual(new Card(Rank.King, Suit.Spades), game.PlayerHand[0]);
-        }
+            HellPokerGame serpent = KingWith(new SerpentSwapCheat(), KingsPair, out _);
+            serpent.UsePower();
+            serpent.CheckToDraw();
+            serpent.Draw(new int[0]);
+            Assert.AreEqual(CheatOutcome.Blocked, Only(serpent).Outcome);
 
-        [Test]
-        public void TheKingsProtectedCard_IsBeyondTheSerpent()
-        {
-            HellPokerGame game = KingWith(new SerpentSwapCheat(), KingsPair, out _);
-            game.Protect(0);
-            game.CheckToDraw();
-            game.Draw(new int[0]);
-
-            CollectionAssert.DoesNotContain(Only(game).PlayerCards, 0);
-            Assert.AreEqual(new Card(Rank.King, Suit.Spades), game.PlayerHand[0]);
-        }
-
-        [Test]
-        public void TheKingsProtectedCards_AreBeyondTheFall_ItFallsElsewhere()
-        {
             var sinner = Charged(new King());
             Dealer lucifer = DealerRoster.Lucifer;
             var random = new FirstChoice();
-            var game = new HellPokerGame(lucifer.ApplyTo(GameRules.Default), TestDecks.Stacked($"{Flush} {HouseTwos} {Blanks}"),
+            var fall = new HellPokerGame(lucifer.ApplyTo(GameRules.Default), TestDecks.Stacked($"{Flush} {HouseTwos} {Blanks}"),
                 HandEvaluator.CreateDefault(), new CardExchanger(new MaxDiscardPolicy(3)), new HouseDrawStrategy(3), lucifer.Payouts, null,
                 new CheatSession(new OnlyCheat(new TheFallCheat()), 1, random, sinner), random, sinner);
-            game.TakeOver(150, 5);
-            game.PlaceBet();
-            int king = 4;   // K♣, the highest card
-            game.CheckToDraw();
-            Assert.IsTrue(game.Protect(king), "At the draw too.");
-
-            game.Draw(new int[0]);
-            PassToTheEnd(game);
-
-            CheatResult fall = Only(game);
-            Assert.AreEqual(CheatOutcome.Played, fall.Outcome);
-            CollectionAssert.DoesNotContain(fall.PlayerCards, king);
-            Assert.AreEqual(new Card(Rank.King, Suit.Clubs), game.PlayerHand[king]);
+            fall.TakeOver(150, 5);
+            fall.PlaceBet();
+            fall.CheckToDraw();
+            fall.Draw(new int[0]);
+            Assert.IsTrue(fall.UsePower(), "After the draw too, while the cheat is still to come.");
+            PassToTheEnd(fall);
+            Assert.AreEqual(CheatOutcome.Blocked, Only(fall).Outcome, "A major cheat too: it would touch his cards.");
+            Assert.AreEqual(ShowdownOutcome.PlayerWins, fall.LastRound.Showdown.Outcome);
         }
 
         [Test]
-        public void TheKingProtects_OnlyBeforeTheDraw_ACardHeSees_WithAFullGauge()
+        public void TheKingsCrown_DoesNotStop_ACheatOnTheDemonsSide()
         {
-            var empty = new Sinner(new King(), charge: 4);
-            HellPokerGame notYet = Game(KingsPair, HouseTwos, null, empty);
+            Assert.IsFalse(CheatRules.TouchesPlayerCards(CheatIds.FalseFace));
+            Assert.IsFalse(CheatRules.TouchesPlayerCards(CheatIds.Tithe));
+            Assert.IsFalse(CheatRules.TouchesPlayerCards(CheatIds.Gaze));
+            foreach (string id in new[] { CheatIds.Collateral, CheatIds.Buyout, CheatIds.ForkedTongue, CheatIds.SerpentSwap, CheatIds.NightVeil,
+                         CheatIds.Thorn, CheatIds.Moonless, CheatIds.Rewrite, CheatIds.BurningCard, CheatIds.TheFall })
+                Assert.IsTrue(CheatRules.TouchesPlayerCards(id), id);
+
+            HellPokerGame game = KingWith(new TitheCheat(), Flush, out Sinner sinner);
+            Assert.IsTrue(game.UsePower());
+            PlayOut(game);
+            Assert.AreEqual(CheatOutcome.Played, Only(game).Outcome, "The tithe takes from the win, not from the cards.");
+            Assert.AreEqual(0, sinner.CrownBlocks);
+        }
+
+        [Test]
+        public void TheKingsCrown_OnlyAgainstAnAnnouncedCheat_WithAFullGauge_AndOnlyForThatHand()
+        {
+            HellPokerGame quiet = Game(KingsPair, HouseTwos, null, Charged(new King()));
+            quiet.PlaceBet();
+            Assert.AreEqual(PowerRefusal.NoCheatAnnounced, quiet.WhyNoPower());
+            Assert.IsFalse(quiet.UsePower());
+            Assert.AreEqual(UiText.PowerNoCheatToGuard, UiText.PowerRefused(SinnerAbility.Protect, PowerRefusal.NoCheatAnnounced, 5, 5));
+
+            HellPokerGame notYet = Game(KingsPair, HouseTwos, new BurningCardCheat(), new Sinner(new King(), charge: 4));
             notYet.PlaceBet();
-            Assert.IsFalse(notYet.CanProtect(0), "The gauge is not full.");
             Assert.AreEqual(PowerRefusal.NotCharged, notYet.WhyNoPower());
 
-            HellPokerGame game = KingWith(null, KingsPair, out Sinner sinner);
-            Assert.IsFalse(game.CanProtect(4), "Not yet turned.");
-            Assert.AreEqual(PowerRefusal.None, game.WhyNoPower());
-            Assert.IsFalse(game.UsePower(), "The King's power picks a card: Protect.");
-            Assert.IsTrue(game.Protect(2));
-            Assert.IsFalse(game.CanProtect(1), "The gauge is empty again.");
+            HellPokerGame struck = KingWith(new BurningCardCheat(), KingsPair, out _);
+            struck.CheckToDraw();   // the fire has struck
+            Assert.AreEqual(PowerRefusal.NoCheatAnnounced, struck.WhyNoPower(), "Nothing left to guard against.");
 
-            var late = Charged(new King());
-            HellPokerGame afterDraw = Game(KingsPair, HouseTwos, null, late);
-            afterDraw.PlaceBet();
-            afterDraw.CheckToDraw();
-            afterDraw.Draw(new int[0]);
-            Assert.AreEqual(PowerRefusal.NotBeforeDraw, afterDraw.WhyNoPower());
-            Assert.IsFalse(afterDraw.CanProtect(0), "After the draw: too late.");
-            Assert.IsTrue(late.IsCharged);
+            HellPokerGame game = KingWith(new BurningCardCheat(), KingsPair, out Sinner sinner);
+            game.UsePower();
+            game.CheckToDraw();
+            Assert.IsTrue(game.CanDraw(new[] { 0, 1 }, out _), "Guarded cards go back as any card.");
+            game.Draw(new[] { 0, 1 });
+            PassToTheEnd(game);
+            Assert.IsFalse(sinner.HandProtected, "The crown's guard ends with the hand.");
+            game.NextRound();
+            game.PlaceBet();
+            Assert.IsFalse(game.IsPlayerCardProtected(0));
+
+            HellPokerGame folded = KingWith(new BurningCardCheat(), KingsPair, out Sinner king);
+            folded.UsePower();
+            folded.Bet(BetAction.Fold);   // the cheat never came: the charge stays spent
+            Assert.AreEqual(1, king.Charge, "Spent (and the fold's +1).");
+            Assert.IsFalse(king.HandProtected);
         }
 
         [Test]
-        public void NoOneElse_CanProtect()
+        public void NoOneElse_GuardsTheHand()
         {
-            HellPokerGame game = Game(KingsPair, HouseTwos, null, Charged(new Warlock()));
+            Sinner warlock = Charged(new Warlock());
+            HellPokerGame game = Game(KingsPair, HouseTwos, new BurningCardCheat(), warlock);
             game.PlaceBet();
-
-            Assert.IsFalse(game.CanProtect(0));
-            Assert.IsFalse(game.Protect(0));
+            game.UsePower();
+            Assert.IsFalse(warlock.HandProtected);
+            Assert.IsTrue(warlock.WardRaised);
+            Assert.IsFalse(game.IsPlayerCardProtected(0));
         }
-
         // ------------------------------------------------------------------ the save and the records
 
         [Test]
@@ -617,7 +632,7 @@ namespace HellPoker.Core.Tests
                 WithTurkish(() => UiText.PowerRefused(SinnerAbility.FreeFold, PowerRefusal.NotCharged, 2, 5)));
             Assert.AreEqual("Mühür vuruldu: bu el bırakılamaz.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.FreeFold, PowerRefusal.CannotFold, 5, 5)));
             Assert.AreEqual("Büyük bir hileye koruma işlemez.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.Ward, PowerRefusal.MajorCheat, 5, 5)));
-            Assert.AreEqual("Taç bir kartı ancak değişten önce korur.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.Protect, PowerRefusal.NotBeforeDraw, 5, 5)));
+            Assert.AreEqual("Korunacak bir hile yok: şeytan henüz hile duyurmadı.", WithTurkish(() => UiText.PowerRefused(SinnerAbility.Protect, PowerRefusal.NoCheatAnnounced, 5, 5)));
             Assert.AreEqual("A major cheat is beyond a ward.", UiText.PowerRefused(SinnerAbility.Ward, PowerRefusal.MajorCheat, 5, 5));
         }
 
@@ -679,36 +694,36 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheKing_PressesK_ThenACard_AndTheCrownProtectsIt()
+        public void TheKing_PressesK_TheCrownGuardsTheHand_AtOnce_TheCheatIsRefused()
         {
             ChargedRun(SinnerRoster.King, DealerRoster.Mammon, new BurningCardCheat(), KingsPair, HouseTwos, years: 1250);
             _view.PressAction();
 
             _presenter.UsePower();
-            StringAssert.Contains("crown protects", _view.Message);
-            _presenter.ToggleDiscard(0);
-
-            Assert.IsTrue(_game.IsPlayerCardProtected(0));
-            Assert.AreEqual(CardMark.Protected, _view.PlayerView.Slots[0].Mark);
+            Assert.AreEqual(UiText.CrownRaisedMessage, _view.Message);
+            Assert.IsFalse(_game.PowerArmed, "No picking: it works at once.");
+            Assert.IsNull(_view.PlayerView.Picking);
+            for (int i = 0; i < _game.PlayerCardsRevealed; i++)
+                Assert.AreEqual(CardMark.Protected, _view.PlayerView.Slots[i].Mark);
             Assert.AreEqual(0, _view.Sinner.Charge);
+            Assert.IsTrue(_view.Sinner.PowerOn, "The badge says the crown is up.");
+
             _presenter.CheckToDraw();
             Assert.AreEqual(new Card(Rank.King, Suit.Spades), _game.PlayerHand[0]);
+            Assert.IsTrue(_view.Moments.Any(m => m.moment == TableMoment.Ward && m.text == UiText.CrownFlash));
         }
 
         [Test]
-        public void TheKing_AfterTheDraw_HearsWhyNot()
+        public void TheKing_WithNoCheatAnnounced_HearsWhyNot()
         {
             ChargedRun(SinnerRoster.King, DealerRoster.Mammon, null, KingsPair, HouseTwos, years: 1250);
             _view.PressAction();
-            _presenter.CheckToDraw();
-            _view.PressAction();   // stand pat
 
             _presenter.UsePower();
 
-            Assert.AreEqual("The crown protects a card only before the draw.", _view.Message);
+            Assert.AreEqual("Nothing to guard against: the demon has announced no cheat.", _view.Message);
             Assert.AreEqual(5, _view.Sinner.Charge);
         }
-
         [Test]
         public void TheGauge_FollowsTheRun_ToEveryTable_ToLucifer_AndBackDown()
         {

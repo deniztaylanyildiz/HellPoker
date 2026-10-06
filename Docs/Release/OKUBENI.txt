@@ -23,9 +23,9 @@ portrenin altındaki rozette 5 pip: kazandığın elde +1, kaybettiğin elde +2,
 pipler parlar ve "HAZIR: K" yazar. K tuşu ya da rozete tık gücü AÇAR ("GÜÇ AÇIK", rozet yanıp söner); tekrar K kapatır,
 gösterge dolu kalır. Açık güç sen kullanana kadar açık kalır, bu arada bahis yapabilirsin. Köylü: ÇEKİL düğmesi
 "BEDAVA ÇEKİL" olur, sıradaki çekilme bedelsiz (eller boyunca bekler). Büyücü: duyurulan küçük bir hileyi engeller (kalkan
-niyet şeridinin üstünde, hile gelene kadar bekler). Kral: draw'dan önce korunacak kartı seç (seçilebilen kartlar altın
-çerçeveyle yanıp söner); seçmeden draw'ı geçersen gücün harcanmaz. Gösterge koşu boyunca seninle: masa değişince sıfırlanmaz.
-Soytarı'nın gücü ve göstergesi yok; onun numarası deste: her masada destede joker var (koşu 2 jokerle başlar, kazandığın
+niyet şeridinin üstünde, hile gelene kadar bekler). Kral: şeytan bir hile duyurduğunda K bütün elini o el boyunca korur
+(kartlarda taç; kartlarını yine değiştirebilirsin); yalnızca şeytanın kendi tarafına dokunan hileler (sahte yüz, haraç, bakış) geçer. Gösterge koşu boyunca seninle: masa değişince sıfırlanmaz.
+Soytarı 750 yılla başlar; gücü ve göstergesi yok, onun numarası deste: her masada destede joker var (koşu 2 jokerle başlar, kazandığın
 her el bir tane ekler; 10'un üstündeyken kaybedersen bir tane eksilir, 2'nin altına inmez; rozette sayısı yazar, ör. ×3).
 Joker eldeyken ? yüzlü bir soytarı kartıdır. El sonunda tek jokerin elinde olmayan istediğin karta dönüşür: küçük bir
 seçici açılır, en iyi kart hazır seçili gelir (oklar değiştirir, Enter onaylar). Elinde 2 joker varsa el sonunda
@@ -34,8 +34,9 @@ Destede 20 jokere ulaşırsan jokerler silinir, sayı 2'ye döner ve koşuda bir
 (kazanılan el ante'nin yarısı kadar fazla yıl siler, kaybedilen el yarısı kadar fazla ekler).
 Deste eller boyunca devam eder: dağıtılan ve değiştirilen kartlar desteye dönmez, kalan kart sayısı kasanın kartlarının üstünde
 yazar (kart sayabilirsin). Deste bir eli kaldıramayacak kadar azalınca şeytan 52 kartı yeniden karar; istersen eller arasında
-KARIŞTIR (S) ile 10 yıl ödeyip desteyi kendin de karıştırabilirsin (her elden önce bir kez, 300 yılın altında ve ruhun masadayken
-olmaz). Soytarı'nın destesi her el karılır.
+KARIŞTIR (S) ile 10 yıl ödeyip desteyi kendin de karıştırabilirsin (her elden önce bir kez; deste tamken, şeytan zaten karacakken,
+300 yılın altında ve ruhun masadayken olmaz). Masa değişince ve oyunu kapatıp açınca deste kaldığı yerden devam eder.
+Soytarı'nın destesi her el karılır.
 Eller arasında bazen ortada bir teklif paneli açılır (bir olay): kabul et ya da geç. Bazı teklifler lanetli bir emanet verir;
 emanetler portrenin yanında küçük kutularda durur, üstüne gelince ne yaptıkları yazar.
 

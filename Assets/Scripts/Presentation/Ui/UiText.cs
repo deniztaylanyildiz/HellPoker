@@ -315,8 +315,8 @@ namespace HellPoker.Presentation.Ui
         /// <summary>A window size: {0} the multiple, {1}×{2} the pixels.</summary>
         public static string WindowScaleFormat => L("×{0}  {1}×{2}", "×{0}  {1}×{2}");
         public static string SettingPixelScale => L("PIXEL SCALE", "PİKSEL ÖLÇEĞİ");
-        public static string SettingPixelScaleHint => L("Full screen only. Fill: pixels may be slightly uneven.",
-            "Tam ekranda. Doldur: pikseller hafif eşitsiz olabilir.");
+        public static string SettingPixelScaleHint => L("Full screen only. Fill: text may look blurry, WHOLE PIXELS recommended.",
+            "Tam ekranda. Doldur: yazılar bulanık olabilir, TAM PİKSEL önerilir.");
         public static string PixelScaleWhole => L("WHOLE PIXELS", "TAM PİKSEL");
         public static string PixelScaleFill => L("FILL SCREEN", "EKRANI DOLDUR");
         public static string SettingVSync => L("VERTICAL SYNC", "DİKEY SENKRON");
@@ -437,6 +437,10 @@ namespace HellPoker.Presentation.Ui
         public static string DeckCountFormat => L("DECK {0}", "DESTE {0}");
         public static string DeckCountHintFormat => L("Cards left in the deck: {0}. When it runs out, or with SHUFFLE, all 52 are shuffled again.",
             "Destede kalan: {0} kart. Deste bitince ya da KARIŞTIR ile baştan karılır.");
+        /// <summary>Under ten cards the counter shows no number: the deck is about to be shuffled.</summary>
+        public static string DeckShufflingLabel => L("SHUFFLING", "KARIŞIYOR");
+        public static string DeckShufflingHint => L("Only a few cards are left: the demon shuffles all 52 before the next hand.",
+            "Destede birkaç kart kaldı: şeytan bir sonraki elden önce 52 kartı karar.");
         public static string ShuffleButtonFormat => L("SHUFFLE +{0}", "KARIŞTIR +{0}");
         public static string DeckRanOut => L("The deck ran out; the demon shuffles.", "Deste bitti, şeytan desteyi karıyor.");
         /// <summary>{0} the years paid.</summary>
@@ -446,16 +450,24 @@ namespace HellPoker.Presentation.Ui
         /// <summary>{0} the least sentence.</summary>
         public static string ShuffleTooFewYearsFormat => L("Below {0} years the demon will not shuffle for you.", "{0} yılın altında şeytan senin için karıştırmaz.");
         public static string ShuffleSoul => L("Not with your soul on the table.", "Ruhun masadayken olmaz.");
+        public static string ShuffleDeckFull => L("The deck is already full.", "Deste zaten tam.");
+        public static string ShuffleComing => L("The demon will shuffle before the next hand anyway.", "Şeytan bir sonraki elden önce desteyi zaten karacak.");
+        /// <summary>{0} the shuffle's years, {1} the soul line.</summary>
+        public static string ShuffleWouldStakeSoulFormat => L("The shuffle's {0} years would take you to {1}: your soul would go on the table.",
+            "Karıştırmanın {0} yılı seni {1} yıla taşır: ruhun masaya gelir.");
         public static string ShuffleJesterDeck => L("The Jester's deck is shuffled every hand.", "Soytarı'nın destesi her el karılır.");
 
-        public static string ShuffleRefused(HellPoker.Core.Game.ShuffleRefusal refusal, int minYears)
+        public static string ShuffleRefused(HellPoker.Core.Game.ShuffleRefusal refusal, int minYears, int years = 10, int soulLine = 0)
         {
             switch (refusal)
             {
+                case HellPoker.Core.Game.ShuffleRefusal.DeckFull: return ShuffleDeckFull;
+                case HellPoker.Core.Game.ShuffleRefusal.ShuffleComing: return ShuffleComing;
+                case HellPoker.Core.Game.ShuffleRefusal.WouldStakeSoul: return string.Format(ShuffleWouldStakeSoulFormat, years, soulLine);
                 case HellPoker.Core.Game.ShuffleRefusal.NotBetweenHands: return ShuffleNotBetweenHands;
                 case HellPoker.Core.Game.ShuffleRefusal.AlreadyShuffled: return ShuffleAlreadyDone;
                 case HellPoker.Core.Game.ShuffleRefusal.TooFewYears: return string.Format(ShuffleTooFewYearsFormat, minYears);
-                case HellPoker.Core.Game.ShuffleRefusal.SoulAtStake: return ShuffleSoul;
+                case HellPoker.Core.Game.ShuffleRefusal.SoulOnTable: return ShuffleSoul;
                 default: return ShuffleJesterDeck;
             }
         }

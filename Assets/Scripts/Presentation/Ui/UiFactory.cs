@@ -150,6 +150,9 @@ namespace HellPoker.Presentation.Ui
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            // Whole screen pixels at every scale, a point-sampled atlas: the pixel fonts stay sharp at odd scales too (PixelText).
+            text.gameObject.AddComponent<PixelSnappedText>();
+            PixelText.KeepSharp(text.font);
             return text;
         }
 

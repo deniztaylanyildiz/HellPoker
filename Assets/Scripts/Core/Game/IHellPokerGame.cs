@@ -143,7 +143,7 @@ namespace HellPoker.Core.Game
         /// <summary>Why the class's power (a full charge gauge) cannot be used right now; <see cref="PowerRefusal.None"/> when it can.</summary>
         PowerRefusal WhyNoPower();
 
-        /// <summary>Uses the power at once: the Peasant folds this hand for nothing, the Warlock raises a ward (the King picks a card: Protect).</summary>
+        /// <summary>Uses the power at once: the Peasant folds this hand for nothing, the Warlock raises a ward, the King's crown guards the hand.</summary>
         bool UsePower();
 
         /// <summary>Switches the power on to wait for the player's move (the Peasant's next fold is free, the King picks a card); the
@@ -156,8 +156,6 @@ namespace HellPoker.Core.Game
         /// <summary>The power is switched on and waiting (it stays on through bets and turned cards until used or switched off).</summary>
         bool PowerArmed { get; }
 
-        /// <summary>True once when a switched-on protection closed unspent because the draw passed.</summary>
-        bool TakePowerLapsed();
 
         /// <summary>While the hand is played: this card is under the King's protection — no cheat may touch it.</summary>
         bool IsPlayerCardProtected(int index);
@@ -198,11 +196,7 @@ namespace HellPoker.Core.Game
         /// table that hides them).</summary>
         int HouseCardsShown { get; }
 
-        /// <summary>True when the King may put this card under protection now: before the draw, a card the player sees, a charge left.</summary>
-        bool CanProtect(int index);
 
-        /// <summary>Puts the card under protection for the hand, spending a charge; false when it cannot be done.</summary>
-        bool Protect(int index);
 
         /// <summary>While the hand is played: this House card shows a false face.</summary>
         bool IsHouseCardFalse(int index);
@@ -285,6 +279,12 @@ namespace HellPoker.Core.Game
 
         /// <summary>Cards left in the deck.</summary>
         int DeckCount { get; }
+
+        /// <summary>The cards left, next to be drawn first (empty for a deck not counted: the Jester's).</summary>
+        IReadOnlyList<Card> DeckCards { get; }
+
+        /// <summary>The run's deck goes on at this table (carried from another, or saved): false when it is not taken.</summary>
+        bool RestoreDeck(IReadOnlyList<Card> cardsInDrawOrder);
 
         /// <summary>The demon shuffled all 52 again as this hand began (the deck was too thin for it).</summary>
         bool DeckShuffledThisHand { get; }

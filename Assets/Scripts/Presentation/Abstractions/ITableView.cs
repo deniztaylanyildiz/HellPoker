@@ -57,8 +57,8 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A power switched on and waiting: the line that stays under the message, the Warlock's shield (<see cref="PowerDisplay.None"/>: off).</summary>
         void SetPower(PowerDisplay power);
 
-        /// <summary>The cards left in the deck, over the House's row (hover: how it works); -1 hides it (the Jester's deck).</summary>
-        void SetDeckCount(int cards);
+        /// <summary>The deck counter over the House's row and its hover text; a null label hides it (the Jester's deck).</summary>
+        void SetDeck(string label, string hint);
 
         /// <summary>The SHUFFLE button under the deal button: its label, or null to hide it; locked buttons stay clickable.</summary>
         void SetShuffle(string label, bool locked);

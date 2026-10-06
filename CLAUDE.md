@@ -64,12 +64,16 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
      Karar `IHouseBettingStrategy` (`HandStrengthBettingStrategy` + şeytanın `HouseBettingStyle`'ı, zar `IRandomSource`'tan).
 - **Pas** = artırmadan devam. **Çekil** = eli bırak; draw'dan önce `FoldPercentBeforeDraw`, sonra `FoldPercentAfterDraw` (yukarı yuvarlanır).
 - **Deste sayılır** (`GameRules.ContinuousDeck`, varsayılan açık): deste eller boyunca devam eder; dağıtılan, atılan ve çekilen kartlar
-  dönmez. Yeni elin başında destede `HellPokerGame.CardsForAHand` (iki el + iki tarafın en çok draw'u + emanetlerin yeniden çekişi +
+  dönmez. **Deste koşuya ait:** masa değişimi, Lucifer'e çağrılma ve düşüş desteyi yeni masaya taşır (`SeatAt` → `RestoreDeck(DeckCards)`),
+  kayıt `deck` anahtarıyla saklar (v=4, isteğe bağlı, `AS,10H,3C`…, sıradaki önce; eller arasında ve el ortasında — yarım elin kartları
+  dönmez; yoksa / bozuksa / tekrar eden kart varsa taze deste, kayıt geçersiz sayılmaz; `CardCodes`). Yeni koşu taze deste. Yeni elin başında destede `HellPokerGame.CardsForAHand` (iki el + iki tarafın en çok draw'u + emanetlerin yeniden çekişi +
   `CheatTable.MostCardsACheatDeals` (2) + hayalet elde 5) kadar kart yoksa şeytan 52'yi karar (`DeckShuffledThisHand`, ilk kararda
   `DeckRanOut`). Yeni masa / çağrılma / düşüş / devam taze deste (yeni oyun; kartlar kaydedilmez). Masada kasanın satırının üstünde
   `DESTE 37` (hover açıklama; `ITableView.SetDeckCount`). **KARIŞTIR** (S / buton, `ShuffleDeck`; `IHellPokerGame.WhyNoShuffle` →
-  `ShuffleRefusal`, `Shuffle`): eller arasında, her elden önce bir kez, +`ShuffleYears` (10) yıl, `ShuffleMinYears` (300) altında ve
-  ruh masadayken (ya da 10 yıl ruhu masaya koyacaksa) yok; ruhta buton gizli (yıl gösterilmez). Soytarı'nın destesi her el karılır:
+  `ShuffleRefusal`, `Shuffle`; sayaç 10 kartın altında sayı yerine `KARIŞIYOR` / `SHUFFLING` yazar, `TablePresenter.DeckCountShownFrom`): eller arasında, her elden önce bir kez, +`ShuffleYears` (10) yıl. Red nedenleri: `SoulOnTable`,
+  `AlreadyShuffled`, `DeckFull` (deste 52), `ShuffleComing` (deste `CardsForAHand`'in altında: şeytan zaten bedava karacak),
+  `TooFewYears` (300 altı) — bunlarda buton gizli; `WouldStakeSoul` (10 yıl ruh çizgisine ulaştırır) — buton görünür ama soluk,
+  mesaj `Rules.ShuffleYears` ve `SoulThreshold`'dan. Masa-başı yığılmış deste kullanan testler `continuousDeck: false` ile kurulur. Soytarı'nın destesi her el karılır:
   sayaç ve KARIŞTIR yok. Kasa draw'da desteden fazlasını istemez; boş destede hileler ve Kemik Zar bir şey yapmaz (test).
   Günlük: otomatik ve oyuncunun karıştırması (yıl, kalan kart). `HELLPOKER_FRESH_DECK=1` simülasyonda eski (her el taze) deste.
 - **Mühür** (`IHellPokerGame.IsCommitted`): masadaki bahis tavana ulaşınca ya da oyuncu all-in olunca (ruhta: kalan ruhun tamamı) el
@@ -254,8 +258,10 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   |---|---|---|---|
   | Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
   | Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
-  | Kral | %77.4 (%82 / %32) | %72.2 (%77 / %42) | %47.1 (%58 / %34) |
-  | Soytarı | %69.2 (%80 / %45) | %70.0 (%78 / %50) | %47.6 (%59 / %45) |
+  | Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
+  | Soytarı | %75.4 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
+
+  (0.1.6: Kral bütün eli korur → +1.4 / +0.7 / +5.1; Soytarı 750 yıl → +6.2 / +7.1 / +7.1, Köylü'ye göre −8.0 / −0.9 / +4.4.)
 
   (2026-10-06: sayılan deste + Soytarı'nın Çıngırağı ile; simülasyon oyuncusu kart saymaz, hiç KARIŞTIR'a basmaz.) Taze deste
   (`HELLPOKER_FRESH_DECK=1`): Köylü 82.8 / 78.4 / 52.4, Büyücü 84.9 / 77.9 / 53.9, Kral 77.5 / 71.0 / 49.3, Soytarı aynı (her el karılır)
@@ -302,9 +308,8 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     şarj vermez. `HELLPOKER_CHARGE="dolu,kazanç,kayıp,çekilme"` ile denenebilir. `HellPokerGame.WhyNoPower()` → `PowerRefusal`.
   - **Açık kalan güç** (`Sinner.PowerArmed`; `ArmPower` / `DisarmPower` / `PowerArmed`): K ya da rozet gücü **açar**, şarj henüz
     harcanmaz; mod bahislerde, açılan kartlarda, draw ekranında **açık kalır** (`Refresh` artık hiçbir modu sıfırlamaz). Kapanır: güç
-    kullanılınca (şarj 0), K / rozete yeniden basınca (`PowerOffMessage`, şarj dolu), ya da anı geçince. Kral'ın modu draw geçince ve el
-    bitince kapanır, şarj harcanmaz; draw'da kaçırılan koruma iki dilde söylenir (`TakePowerLapsed` → `UiText.ProtectUnused`).
-    Masa değişimi Kral'ın ve Kemik Zar'ın seçimini kapatır. Kayda yazılmaz (el ortasında kapatma eli zaten forfeit eder).
+    kullanılınca (şarj 0), K / rozete yeniden basınca (`PowerOffMessage`, şarj dolu). Artık sadece Köylü'nün gücü açık kalır (Kral'ın
+    seçim modu 2026-10-06'da kalktı). Masa değişimi Kemik Zar'ın seçimini kapatır. Kayda yazılmaz (el ortasında kapatma eli zaten forfeit eder).
   - **Köylü:** 1000 yıl. Güç "Dürüst kalp": K açar (eller arasında da), ÇEKİL "FREE / FOLD" / "BEDAVA / ÇEKİL" olur; açıkken yapılan ilk
     çekilme (yeniden artırmaya cevap dahil) bedelsizdir ve gösterge o anda 0 olur. Çekilmezse sonraki ellerde de açık kalır. Mühürlü elde
     ÇEKİL yok. Otomatik bedava çekilme yok.
@@ -314,18 +319,22 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     (`CheatOutcome.Blocked`, şeytanın göstergesi boşalır, kartta "WARD"/"KORUMA", şeytan kızgın). Hile hiç vurmazsa (çekildi, boşa gitti)
     şarj iade edilmez, koruma bir sonraki küçük hileyi bekler (eller ve masalar boyunca). Büyük hilelere ve Düşüş'e kurulamaz.
   - **Kral:** 1250 yıl (1500 olsa Lilith'te ruh hemen masada olurdu). Pasif: taç, kazanç ante'nin %25'i kadar fazla siler
-    (`King.crownPercent`). Güç: draw'dan önce (kartlar açılırken ya da draw ekranında) K açar, kart seçilince korur (şarj 0); o el hiçbir
-    hile o karta dokunamaz (`CheatMarks.Protected`, `CheatTable.IsUntouchable`; kartta taç işareti).
+    (`King.crownPercent`). Güç **Taç**: sadece şeytan bir hile duyurmuşken ve o hile henüz vurmamışken (`PendingCheatTruth != null`;
+    yoksa `PowerNoCheatToGuard`), K anında **bütün eli** o el boyunca korur (`Sinner.HandProtected`, şarj 0; seçim yok). Oyuncunun
+    kartına dokunan her hile (büyükler, The Fall dahil) reddedilir (`Sinner.Allows` → `CheatOutcome.Blocked`, gösterge boşalır,
+    `TableMoment.Ward` + `CrownFlash` `TAÇ`, şeytan kızgın `Blocked`). Sadece şeytan tarafına dokunan hileler (Sahte Yüz, Haraç, Bakış;
+    `CheatRules.TouchesPlayerCards`) durmaz. Korunan kartlar normal atılır / değiştirilir (Kemik Zar dahil), yeni gelen kart da
+    korunur, kartlarda taç işareti (`CardMark.Protected`). El bitince kalkar (`Sinner.EndHand`); hile hiç gelmezse şarj iade edilmez.
   - **Görünürlük** (güç açıkken ya da koruma kalkmışken): rozet 1 sn nabızla parlar, üstünde "POWER ON" / "GÜÇ AÇIK" (`SinnerBadge.Armed /
     PowerOn`); kullanılabilir ama kapalıyken "READY: K" / "HAZIR: K". Mesajın altındaki satır (kazanç / kayıp satırının yerinde) güç açıkken
-    ne yapılacağını söyler (`ITableView.SetPower(PowerDisplay)`: "Korumak için bir kart seç (K: vazgeç)", "Güç açık: sıradaki ÇEKİL bedava
+    ne yapılacağını söyler (`ITableView.SetPower(PowerDisplay)`: "Güç açık: sıradaki ÇEKİL bedava
     (K: kapat)", Kemik Zar'ın satırı). Seçilebilir kartlar yanıp sönen 2 px altın çerçeveli, diğerleri soluk (`IHandView.SetPicking`,
     `CardView.PickState`). Büyücü'nün koruması kalkınca niyet şeridinin altında 9×10 piksel kalkan (`MaliceView.SetWard`), vurunca gider.
     Kemik Zar'ın kutusu seçim boyunca nabızla parlar (`RelicBadge.Selecting`).
   - Masada portre kutusunun sağ altında rozet (`SinnerBadgeView`, 44 px: ikon + 5 pip; dolunca pipler altın / kor arasında parlar; hover'da
     ad, ne yaptığı, gösterge ve kuralı). **K** tuşu ve rozete tık her sınıf için "gücü aç / kapat" (`ITableCommands.UsePower`). Gösterge
     ilk dolduğunda şeytan ipucu söyler (`tip.power`).
-  - **Soytarı** (`Jester`, id `jester`): 1000 yıl, gücü ve şarjı yok (`SinnerAbility.None`; K / rozet sadece `JesterPowerInfo` der).
+  - **Soytarı** (`Jester`, id `jester`): **750 yıl** (2026-10-06, kullanıcı kararı; simülasyon önerisi), gücü ve şarjı yok (`SinnerAbility.None`; K / rozet sadece `JesterPowerInfo` der).
     Onun özelliği **jokerli deste**: koşu boyunca her masada (Lucifer dahil) destede `Sinner.Jokers` kadar joker (başta 2 =
     `SinnerClass.StartingJokers`; kazanılan el +1, sonraki elden itibaren; sayı `JokerLossLine` (10) üstündeyken kaybedilen el -1, 2'nin altına
     inmez; çekilme / beraberlik değiştirmez; yarıda bırakılan mühürlü el kayıp sayılır; üst sınır yok). Diğer sınıflarda deste 52, joker yok.
@@ -506,6 +515,11 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
   bunu tam sayı katıyla ölçekler (1920×1080'de ×4), kenarda siyah dolgu kalır; `Canvas.pixelPerfect` açık.
 - **Boyutlar:** şeytan karesi 96×96, kart 32×48 (köşede 5×5, ortada 11×11 renk sembolü), butonlar / paneller / diyalog 12×12
   9-slice (kenar 4 px), piksel rakam 12×16, zemin 480×270, alev şeridi 32×20 karelik.
+- **Keskin yazı** (`Ui/PixelText`): `UiFactory.CreateText` her metne `PixelSnappedText` (mesh düzenleyici: her köşe tam ekran
+  pikseline yuvarlanır — tek ölçeklerde ×3 / ×5 yarım oyun pikseli yarım ekran pikseli olurdu) ekler ve font atlasını Point filtreye
+  alır (`Font.textureRebuilt`'te yeniden). EKRANI DOLDUR'da (2K'da ×5.33) font pikselleri eşitsiz olur: ayarın ipucu söyler.
+  Windows oyuncusu DPI-aware (Player Settings'te ayar yok; fiziksel piksellerle ölçüldü). Ekran görüntüsü boyutu
+  `HELLPOKER_SHOT_SIZE=2560x1440`, dolgu `HELLPOKER_FILL=1`.
 - **Fontlar:** iki font da 8 px ızgarada; boyut her zaman 8'in katı. `UiFactory.CreateText`: `Bold` = başlık fontu
   (Press Start 2P), diğerleri metin fontu (Tiny5). Fontta olmayan karakter kullanma (ör. "→"); gerekirse `fonts.py`'ye piksel glif ekle. Başlık fontunun Türkçe "İ"si `fonts.py`'de elle (`TITLE_DOTTED_I`): tam boy I, noktası 1 px boşlukla em'in üstünde (satır yüksekliği aynı).
 - **Animasyon:** kart hareketleri tam piksel adımlarla (dağıtma yukarıdan düşer, çevirme 2'şer piksel daralır).

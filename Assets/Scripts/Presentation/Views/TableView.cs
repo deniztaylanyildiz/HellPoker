@@ -86,18 +86,18 @@ namespace HellPoker.Presentation.Views
         /// <summary>The deck counter's text (for tests and screenshots); empty while hidden.</summary>
         public string DeckCountText => _deckCount.gameObject.activeSelf ? _deckCount.text : "";
 
-        public void SetDeckCount(int cards)
+        public void SetDeck(string label, string hint)
         {
             _sequencer.Do(() =>
             {
-                _deckCount.gameObject.SetActive(cards >= 0);
-                if (cards < 0)
+                _deckCount.gameObject.SetActive(label != null);
+                if (label == null)
                 {
                     _deckTip.SetActive(false);
                     return;
                 }
-                _deckCount.text = string.Format(UiText.DeckCountFormat, cards);
-                _deckTipText.text = string.Format(UiText.DeckCountHintFormat, cards);
+                _deckCount.text = label;
+                _deckTipText.text = hint ?? "";
             });
         }
 

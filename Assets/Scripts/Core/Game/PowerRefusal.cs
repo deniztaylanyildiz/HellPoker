@@ -18,7 +18,7 @@ namespace HellPoker.Core.Game
         /// <summary>The Peasant: folding is not possible now (a sealed hand).</summary>
         CannotFold,
 
-        /// <summary>The Warlock: no cheat has been announced this hand.</summary>
+        /// <summary>The Warlock, the King: no cheat has been announced this hand (or it has struck already).</summary>
         NoCheatAnnounced,
 
         /// <summary>The Warlock: the cheat coming is a major one (The Fall among them) — beyond a ward.</summary>
@@ -27,10 +27,7 @@ namespace HellPoker.Core.Game
         /// <summary>The Warlock: a ward is already up.</summary>
         WardAlreadyRaised,
 
-        /// <summary>The King: only before the draw.</summary>
-        NotBeforeDraw,
-
-        /// <summary>The King: no card he can see is left to protect.</summary>
-        NoCardToProtect
+        /// <summary>The King: the crown already guards this hand.</summary>
+        HandAlreadyProtected
     }
 }

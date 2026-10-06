@@ -83,7 +83,8 @@ Poker biliyor musun? (hiç / biraz / iyi):
     Soytarı'yı denedin mi? Joker kuralı (tek joker istediğin kart, iki joker kayıp) ve destedeki joker sayacı
     (kazanınca +1, 10'un üstünde kayıpta -1) anlaşıldı mı? El sonundaki kart seçici rahat mıydı?
     Deste artık eller boyunca devam ediyor: kalan kart sayacını kullandın mı, kart saydın mı? KARIŞTIR'ı (S, +10 yıl)
-    hiç kullandın mı, adil buldun mu?
+    hiç kullandın mı, adil buldun mu? Masa değiştirince destenin devam ettiğini fark ettin mi?
+    Kral'sın: hile duyurulunca K ile bütün elini korumak anlaşılır mıydı? 2K ya da yüksek çözünürlükte yazılar keskin miydi?
 
     >
 

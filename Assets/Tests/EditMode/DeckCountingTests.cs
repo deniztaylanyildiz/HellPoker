@@ -97,10 +97,19 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(ShuffleRefusal.NoDeckToCount, game.WhyNoShuffle());
         }
 
+        /// <summary>A hand dealt and folded: the deck is no longer whole (42 left).</summary>
+        private static HellPokerGame Used(HellPokerGame game)
+        {
+            game.PlaceBet();
+            FoldAndNext(game);
+            return game;
+        }
+
         [Test]
         public void Shuffle_CostsTenYears_AllFiftyTwoBack_OnceBeforeEachHand()
         {
             HellPokerGame game = Game();
+            Assert.AreEqual(ShuffleRefusal.DeckFull, game.WhyNoShuffle(), "A whole deck: nothing to shuffle back.");
             game.PlaceBet();
             Assert.AreEqual(ShuffleRefusal.NotBetweenHands, game.WhyNoShuffle());
             Assert.IsFalse(game.Shuffle());
@@ -119,19 +128,33 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Shuffle_NotBelow300Years_NotWithTheSoulOnTheTable()
+        public void Shuffle_NotWhenTheDemonShufflesAnyway()
         {
             HellPokerGame game = Game();
+            while (game.DeckCount >= game.CardsForAHand) Used(game);
+            Assert.AreEqual(ShuffleRefusal.ShuffleComing, game.WhyNoShuffle());
+            Assert.AreEqual(UiText.ShuffleComing, UiText.ShuffleRefused(ShuffleRefusal.ShuffleComing, 300));
+        }
+
+        [Test]
+        public void Shuffle_NotBelow300Years_NotWithTheSoulOnTheTable_NorIfItWouldPutItThere()
+        {
+            HellPokerGame game = Used(Game());
             game.TakeOver(299, 3);
             Assert.AreEqual(ShuffleRefusal.TooFewYears, game.WhyNoShuffle());
             game.TakeOver(300, 3);
             Assert.AreEqual(ShuffleRefusal.None, game.WhyNoShuffle());
             game.TakeOver(2100, 3);
-            Assert.AreEqual(ShuffleRefusal.SoulAtStake, game.WhyNoShuffle());
-            game.TakeOver(1995, 3);
-            Assert.AreEqual(ShuffleRefusal.SoulAtStake, game.WhyNoShuffle(), "Ten years would put the soul on the table.");
-        }
+            Assert.AreEqual(ShuffleRefusal.SoulOnTable, game.WhyNoShuffle());
 
+            HellPokerGame belial = Used(Game(DealerRoster.Belial));
+            belial.TakeOver(1743, 3);
+            Assert.AreEqual(ShuffleRefusal.WouldStakeSoul, belial.WhyNoShuffle(), "1743 + 10 reaches Belial's line at 1750.");
+            Assert.AreEqual("The shuffle's 10 years would take you to 1750: your soul would go on the table.",
+                UiText.ShuffleRefused(ShuffleRefusal.WouldStakeSoul, 300, belial.Rules.ShuffleYears, belial.Rules.SoulThreshold));
+            belial.TakeOver(1739, 3);
+            Assert.AreEqual(ShuffleRefusal.None, belial.WhyNoShuffle());
+        }
         [Test]
         public void TheJestersDeck_IsShuffledEveryHand_NothingToCount()
         {
@@ -208,26 +231,40 @@ namespace HellPoker.Core.Tests
             try
             {
                 presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Peasant);
-                Assert.AreEqual(52, view.DeckCount);
-                Assert.AreEqual(string.Format(UiText.ShuffleButtonFormat, 10), view.ShuffleLabel);
-                Assert.IsFalse(view.ShuffleLocked);
-
+                Assert.AreEqual(string.Format(UiText.DeckCountFormat, 52), view.DeckLabel);
+                Assert.IsNull(view.ShuffleLabel, "A whole deck: no SHUFFLE.");
                 view.PressShuffle();
-                Assert.AreEqual(1010, game.Years);
-                Assert.AreEqual(string.Format(UiText.ShuffledFormat, 10), view.Message);
-                Assert.IsTrue(view.ShuffleLocked);
-                view.PressShuffle();
-                Assert.AreEqual(UiText.ShuffleAlreadyDone, view.Message);
-                Assert.AreEqual(1010, game.Years);
+                Assert.AreEqual(UiText.ShuffleDeckFull, view.Message);
 
                 view.PressAction();   // deal
-                Assert.AreEqual(42, view.DeckCount);
+                Assert.AreEqual(string.Format(UiText.DeckCountFormat, 42), view.DeckLabel);
                 Assert.IsNull(view.ShuffleLabel, "Only between hands.");
+                view.PressBet(BetAction.Fold);
+                view.PressAction();   // next hand
+                Assert.AreEqual(string.Format(UiText.ShuffleButtonFormat, 10), view.ShuffleLabel);
+                Assert.IsFalse(view.ShuffleLocked);
+                int years = game.Years;
+                view.PressShuffle();
+                Assert.AreEqual(years + 10, game.Years);
+                Assert.AreEqual(string.Format(UiText.ShuffledFormat, 10), view.Message);
+                Assert.IsNull(view.ShuffleLabel, "Once before each hand (and the deck is whole again).");
+                Assert.AreEqual(string.Format(UiText.DeckCountFormat, 52), view.DeckLabel);
+
+                view.PressAction();   // deal
                 for (int guard = 0; guard < 8 && !game.DeckShuffledThisHand; guard++)
                 {
-                    view.PressBet(BetAction.Fold);
-                    view.PressAction();   // next hand
-                    view.PressAction();   // deal
+                    if (game.Phase == GamePhase.Betting && game.DeckCount < game.CardsForAHand)
+                    {
+                        Assert.IsNull(view.ShuffleLabel, "The demon shuffles anyway: no SHUFFLE.");
+                        view.PressShuffle();
+                        Assert.AreEqual(UiText.ShuffleComing, view.Message);
+                    }
+                    if (game.Phase != GamePhase.Betting)
+                    {
+                        view.PressBet(BetAction.Fold);
+                        view.PressAction();   // next hand
+                    }
+                    view.PressAction();       // deal
                 }
                 Assert.IsTrue(game.DeckShuffledThisHand);
                 StringAssert.Contains(UiText.DeckRanOut, view.Message);
@@ -242,6 +279,144 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void TheTable_NearTheSoulLine_ShowsShuffleDimmed_AndSaysWhy()
+        {
+            var view = new FakeTableView();
+            HellPokerGame game = null;
+            var presenter = new TablePresenter((d, sinner) => game = HellPokerGameFactory.Create(new GameRules(luciferGateYears: 0), d, 21, sinner: sinner), view);
+            try
+            {
+                presenter.StartNewRun(DealerRoster.Belial, SinnerRoster.Peasant);
+                view.PressAction();
+                view.PressBet(BetAction.Fold);
+                view.PressAction();
+                game.TakeOver(1745, game.RoundNumber);
+                presenter.SwitchTable(DealerRoster.Belial);
+                Assert.AreEqual(string.Format(UiText.ShuffleButtonFormat, 10), view.ShuffleLabel, "Shown...");
+                Assert.IsTrue(view.ShuffleLocked, "...but dimmed.");
+                view.PressShuffle();
+                Assert.AreEqual(string.Format(UiText.ShuffleWouldStakeSoulFormat, 10, 1750), view.Message);
+                Assert.AreEqual(1745, game.Years);
+            }
+            finally
+            {
+                presenter.Dispose();
+            }
+        }
+
+        [Test]
+        public void TheCounter_ShowsNoNumberUnderTen_SHUFFLING_TheNumberComesBackWithAWholeDeck()
+        {
+            var view = new FakeTableView();
+            HellPokerGame game = null;
+            var presenter = new TablePresenter((d, sinner) => game = HellPokerGameFactory.Create(new GameRules(luciferGateYears: 0), d, 21, sinner: sinner), view);
+            try
+            {
+                presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Peasant);
+                var cards = Deck.CreateStandardCards().ToList();
+                game.RestoreDeck(cards.Take(10).ToList());
+                presenter.SwitchTable(DealerRoster.Mammon);   // the run's deck (10 cards) comes along
+                Assert.AreEqual(string.Format(UiText.DeckCountFormat, 10), view.DeckLabel);
+                game.RestoreDeck(cards.Take(9).ToList());
+                presenter.SwitchTable(DealerRoster.Mammon);
+                Assert.AreEqual(UiText.DeckShufflingLabel, view.DeckLabel, "Nine: no number.");
+                Assert.AreEqual(UiText.DeckShufflingHint, view.DeckHint);
+                view.PressAction();   // the demon shuffles as the hand begins
+                Assert.IsTrue(game.DeckShuffledThisHand);
+                Assert.AreEqual(string.Format(UiText.DeckCountFormat, 42), view.DeckLabel, "A whole deck: the number is back.");
+            }
+            finally
+            {
+                presenter.Dispose();
+            }
+        }
+        // ------------------------------------------------------------------ the deck belongs to the run
+
+        [Test]
+        public void ChangingTables_TheDeckGoesOn_NoFreeShuffle()
+        {
+            var view = new FakeTableView();
+            HellPokerGame game = null;
+            var presenter = new TablePresenter((d, sinner) => game = HellPokerGameFactory.Create(new GameRules(luciferGateYears: 0), d, 21, sinner: sinner), view);
+            try
+            {
+                presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Peasant);
+                view.PressAction();
+                view.PressBet(BetAction.Fold);
+                view.PressAction();
+                List<Card> left = game.DeckCards.ToList();
+                Assert.AreEqual(42, left.Count);
+
+                presenter.SwitchTable(DealerRoster.Belial);
+                Assert.AreEqual(42, game.DeckCount, "Another demon, the same deck.");
+                CollectionAssert.AreEqual(left, game.DeckCards);
+                presenter.SwitchTable(DealerRoster.Mammon);
+                CollectionAssert.AreEqual(left, game.DeckCards, "And back: still the same deck.");
+                view.PressAction();
+                CollectionAssert.AreEqual(left.Take(5), game.PlayerHand, "Dealt from where it was.");
+            }
+            finally
+            {
+                presenter.Dispose();
+            }
+        }
+
+        [Test]
+        public void TheSave_KeepsTheDeck_BetweenHandsAndMidHand_AGarbledOneIsAFreshShuffle()
+        {
+            var store = new MemoryStore();
+            var archive = new RunArchive(store);
+            var view = new FakeTableView();
+            HellPokerGame game = null;
+            var presenter = new TablePresenter((d, sinner) => game = HellPokerGameFactory.Create(new GameRules(luciferGateYears: 0), d, 21, sinner: sinner),
+                view, archive: archive);
+            List<Card> left;
+            List<Card> inHand;
+            try
+            {
+                presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Peasant);
+                view.PressAction();
+                view.PressBet(BetAction.Fold);
+                view.PressAction();
+                RunSnapshot between = archive.LoadRun();
+                CollectionAssert.AreEqual(game.DeckCards, between.DeckCards);
+                StringAssert.Contains("deck=" + CardCodes.FormatAll(game.DeckCards.Take(3)), between.Encode());
+
+                view.PressAction();   // a hand on the table: the save keeps its cards out of the deck
+                inHand = game.PlayerHand.Concat(game.HouseHand).ToList();
+                left = game.DeckCards.ToList();
+                CollectionAssert.AreEqual(left, archive.LoadRun().DeckCards);
+            }
+            finally
+            {
+                presenter.Dispose();
+            }
+
+            var again = new FakeTableView();
+            var resumed = new TablePresenter((d, sinner) => game = HellPokerGameFactory.Create(new GameRules(luciferGateYears: 0), d, 99, sinner: sinner),
+                again, archive: archive);
+            try
+            {
+                resumed.Resume(DealerRoster.Mammon, archive.LoadRun());   // the hand left mid-way is forfeit
+                CollectionAssert.AreEqual(left, game.DeckCards, "The deck goes on; the left hand's cards do not come back.");
+                Assert.IsFalse(game.DeckCards.Any(inHand.Contains));
+            }
+            finally
+            {
+                resumed.Dispose();
+            }
+
+            string text = new RunSnapshot("mammon", 900, 4, new RunStats(1000, "mammon"), deckCards: TestCards.Cards("AS 10H 3C").ToList()).Encode();
+            StringAssert.Contains("deck=AS,10H,3C", text);
+            foreach (string bad in new[] { "deck=AS,AS,3C", "deck=AS,XX", "deck=AS,1H" })
+            {
+                Assert.IsTrue(RunSnapshot.TryDecode(text.Replace("deck=AS,10H,3C", bad), out RunSnapshot read), bad + ": the run is still read");
+                Assert.IsNull(read.DeckCards, bad + ": a fresh shuffle");
+            }
+            Assert.IsTrue(RunSnapshot.TryDecode(text.Replace("deck=AS,10H,3C\n", "").Replace("\ndeck=AS,10H,3C", ""), out RunSnapshot none));
+            Assert.IsNull(none.DeckCards, "An older save: a fresh shuffle.");
+        }
+        [Test]
         public void TheJestersTable_ShowsNoCounter_AndNoShuffle()
         {
             var view = new FakeTableView();
@@ -249,7 +424,7 @@ namespace HellPoker.Core.Tests
             try
             {
                 presenter.StartNewRun(DealerRoster.Mammon, SinnerRoster.Jester);
-                Assert.AreEqual(-1, view.DeckCount);
+                Assert.IsNull(view.DeckLabel);
                 Assert.IsNull(view.ShuffleLabel);
                 presenter.ShuffleDeck();
                 Assert.AreEqual(UiText.ShuffleJesterDeck, view.Message);

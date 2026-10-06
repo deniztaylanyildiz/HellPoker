@@ -11,13 +11,22 @@ namespace HellPoker.Core.Game
         /// <summary>Only between hands, before the deal.</summary>
         NotBetweenHands,
 
+        /// <summary>The soul is on the table.</summary>
+        SoulOnTable,
+
         /// <summary>Once before each hand.</summary>
         AlreadyShuffled,
+
+        /// <summary>All 52 are in the deck: nothing to shuffle back.</summary>
+        DeckFull,
+
+        /// <summary>The deck is too thin for the next hand: the demon shuffles it anyway, for nothing.</summary>
+        ShuffleComing,
 
         /// <summary>Below <see cref="GameRules.ShuffleMinYears"/>.</summary>
         TooFewYears,
 
-        /// <summary>The soul is on the table — or the shuffle's years would put it there.</summary>
-        SoulAtStake
+        /// <summary>The shuffle's years would reach the soul line: the soul would go on the table.</summary>
+        WouldStakeSoul
     }
 }

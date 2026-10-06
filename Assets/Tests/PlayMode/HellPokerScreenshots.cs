@@ -23,7 +23,15 @@ namespace HellPoker.PlayMode.Tests
     [Explicit, Category("Screenshots")]
     public class HellPokerScreenshots
     {
-        private static readonly Vector2Int Size = new Vector2Int(1920, 1080);
+        /// <summary>1920×1080, or HELLPOKER_SHOT_SIZE ("2560x1440": ×5, an odd scale).</summary>
+        private static Vector2Int Size
+        {
+            get
+            {
+                string[] parts = (System.Environment.GetEnvironmentVariable("HELLPOKER_SHOT_SIZE") ?? "").Split('x');
+                return parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h) ? new Vector2Int(w, h) : new Vector2Int(1920, 1080);
+            }
+        }
 
         [UnityTest, Timeout(600000)]
         public IEnumerator CaptureScreens()
@@ -33,6 +41,8 @@ namespace HellPoker.PlayMode.Tests
             if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            // HELLPOKER_FILL=1: the screens as FILL SCREEN shows them (a fractional scale).
+            HellPoker.Presentation.Ui.PixelScreen.FillScreen = System.Environment.GetEnvironmentVariable("HELLPOKER_FILL") == "1";
             yield return new WaitForSeconds(0.5f);
             yield return Shot("01_menu");
 
