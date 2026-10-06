@@ -1184,6 +1184,7 @@ namespace HellPoker.Presentation
 
         /// <summary>The card the picker shows; the hand it was opened for (a new showdown starts on the best card again).</summary>
         private Card _jokerPick;
+        private int _jokerNamedRound = -1;
         private int _jokerPickRound = -1;
 
         private static IEnumerable<Card> NewCards(Hand before, Hand after) =>
@@ -1203,8 +1204,13 @@ namespace HellPoker.Presentation
             ShowdownResult showdown = round?.Showdown;
             if (showdown != null)
             {
-                if (showdown.PlayerBust) LogNote($"TWO JOKERS in the player's hand: lost (hand {_game.RoundNumber})");
-                if (showdown.HouseBust) LogNote($"TWO JOKERS in the house's hand: the player wins (hand {_game.RoundNumber})");
+                if (showdown.BothBust)
+                    LogNote($"JOKERS ON BOTH SIDES: player {showdown.PlayerJokers} vs house {showdown.HouseJokers}: {showdown.Outcome} (hand {_game.RoundNumber})");
+                else if (showdown.PlayerBust) LogNote($"TWO JOKERS in the player's hand: lost (hand {_game.RoundNumber})");
+                else if (showdown.HouseBust) LogNote($"TWO JOKERS in the house's hand: the player wins (hand {_game.RoundNumber})");
+                int playerJoker = JokerIndex(_game.PlayerHand);
+                if (playerJoker >= 0 && !showdown.PlayerBust && _jokerNamedRound != _game.RoundNumber)
+                    LogNote($"player joker -> {showdown.Player.Hand[playerJoker]} at once (the outcome did not hang on it; hand {_game.RoundNumber})");
                 int houseJoker = JokerIndex(_game.HouseHand);
                 if (houseJoker >= 0 && !showdown.HouseBust)
                     LogNote($"house joker -> {showdown.House.Hand[houseJoker]} ({showdown.House.Category}, hand {_game.RoundNumber})");
@@ -1290,6 +1296,7 @@ namespace HellPoker.Presentation
             HandEvaluation made = _game.EvaluateJokerAs(_jokerPick);
             LogNote($"joker named: {_jokerPick} ({made.Category}; best was {best}) (hand {_game.RoundNumber})");
             _view.ShowJokerPicker(null);
+            _jokerNamedRound = _game.RoundNumber;
             _game.NameJoker(_jokerPick);
             Refresh();
         }
@@ -1871,7 +1878,7 @@ namespace HellPoker.Presentation
                 else if (houseWon || (round.Folded && !round.FreeFold))
                     _view.PlaySfx(SfxIds.Loss);
                 PlayMoments(round, playerWon);
-                if (showdown?.HouseBust == true)
+                if (showdown?.HouseBust == true && playerWon)   // the demon's own jokers sank him
                     _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerLaughFlash);
                 // Twenty jokers: the fool's laugh, the deck cleared — and the first time, the Rattle.
                 if (round.JokerJackpot)
@@ -1958,7 +1965,7 @@ namespace HellPoker.Presentation
             int counter = _game.RoundNumber;
             if (round.JokerJackpot)
                 Say(d => d.JokerJackpot, counter, DealerMood.Annoyed);   // the demon did not see that coming
-            else if (!round.Folded && round.Showdown.HouseBust)
+            else if (!round.Folded && round.Showdown.HouseBust && round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
                 Say(d => d.JokerBust, counter, DealerMood.Annoyed);   // the demon's own jokers sank him
             else if (round.Folded)
                 Say(d => d.PlayerFolds, counter, DealerMood.Gloating);
@@ -1978,7 +1985,9 @@ namespace HellPoker.Presentation
                 return soulHand ? UiText.SoulFold : string.Format(UiText.FoldFormat, round.YearsChange);
 
             // Two jokers decide the hand whatever the cards make.
-            if (round.Showdown.PlayerBust && round.Showdown.HouseBust) return UiText.BothBust;
+            if (round.Showdown.BothBust)
+                return round.Showdown.Outcome == ShowdownOutcome.PlayerWins ? UiText.JokerDuelWin
+                    : round.Showdown.Outcome == ShowdownOutcome.HouseWins ? UiText.JokerDuelLoss : UiText.JokerDuelPush;
             if (round.Showdown.PlayerBust) return soulHand ? UiText.PlayerBustSoul : string.Format(UiText.PlayerBustFormat, round.YearsChange);
             if (round.Showdown.HouseBust) return soulHand ? UiText.HouseBustSoul : string.Format(UiText.HouseBustFormat, -round.YearsChange);
 

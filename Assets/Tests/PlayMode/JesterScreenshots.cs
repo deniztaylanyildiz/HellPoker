@@ -30,7 +30,8 @@ namespace HellPoker.PlayMode.Tests
     {
         private const string Rest = "3S 6D 10S 8H 3H QC 8C 7C 6H 4S";
         private const string TwoJokers = "JK1 JK2 AS AH 9D  2C 5D 7H 9S JC  " + Rest;
-        private const string OneJoker = "AS AH 5C 9D JK1  2C 5D 7H 9S JC  " + Rest;
+        private const string OneJoker = "AS AH 5C 9D JK1  KS KH KD 2C 4D  " + Rest;
+        private const string NoPicker = "AS AH 5C 9D JK1  JK2 JK3 KS KH KD  JK4 6D 10S 8H 3H QC 8C 7C 6H 4S";
         private const string DemonsJokers = "2C 5D 7H 9S JC  JK1 JK2 AS AH AD  JK3 6D 10S 8H 3H QC 8C 7C 6H 4S";
 
         private static TablePresenter Presenter =>
@@ -109,6 +110,24 @@ namespace HellPoker.PlayMode.Tests
             }
             yield return HellPokerScreenshots.Shot("66_demon_two_jokers");
             yield return HellPokerScreenshots.WaitForTable();
+            Press("ActionButton");
+            yield return HellPokerScreenshots.WaitForTable();
+
+            // The player's one joker against the demon's two: no picker — it becomes its best card at once, the demon laughs no more.
+            Deal(NoPicker);
+            Press("ActionButton");
+            yield return HellPokerScreenshots.WaitForTable();
+            Press("CheckToDrawButton");
+            yield return HellPokerScreenshots.WaitForTable();
+            Press("ActionButton");
+            yield return HellPokerScreenshots.WaitForTable();
+            for (int guard = 0; guard < 6 && Presenter.Game.Phase != GamePhase.RoundOver; guard++)
+            {
+                Press("PassButton");
+                yield return HellPokerScreenshots.WaitForTable();
+            }
+            yield return new WaitForSeconds(0.8f);
+            yield return HellPokerScreenshots.Shot("67_no_picker");
         }
 
         /// <summary>The next table deals exactly these cards (with the run's other jokers at the bottom); a fresh seat at Mammon's.</summary>

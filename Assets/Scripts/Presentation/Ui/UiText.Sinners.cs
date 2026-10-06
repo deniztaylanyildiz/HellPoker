@@ -177,7 +177,11 @@ namespace HellPoker.Presentation.Ui
             "Yirmi joker: deste temizlendi. {0} artık sende. {1} Ama: {2}");
         public static string JokerJackpotAgain => L("Twenty jokers again: the deck is cleared.", "Yine yirmi joker: deste temizlendi.");
 
-        public static string BothBust => L("Two jokers on both sides: nobody wins.", "İki tarafta da iki joker: kimse kazanmadı.");
+        /// <summary>Both sides held two jokers or more: the fewer wins, as many each is a push.</summary>
+        public static string JokerDuelWin => L("Too many jokers on both sides: you held fewer, you win.", "İkinizde de joker fazla: daha az jokeri olan sen kazandın.");
+        public static string JokerDuelLoss => L("Too many jokers on both sides: the demon held fewer, the demon wins.",
+            "İkinizde de joker fazla: daha az jokeri olan şeytan kazandı.");
+        public static string JokerDuelPush => L("As many jokers each: a push, no years change.", "Eşit joker: el berabere, yıl değişmez.");
 
         /// <summary>How to Play: the Sinners page.</summary>
         public static string SinnersPage()

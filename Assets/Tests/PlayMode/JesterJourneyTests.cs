@@ -29,7 +29,7 @@ namespace HellPoker.PlayMode.Tests
         private const float SceneTimeout = 25f;
 
         // Player five (a pair of aces and a joker), House five (nothing), then the draws; the run's second joker at the bottom.
-        private const string Deal = "AS AH 5C 9D JK1  2C 5D 7H 9S JC  3S 6D 10S 8H 3H QC 8C 7C JK2";
+        private const string Deal = "AS AH 5C 9D JK1  KS KH KD 2C 4D  3S 6D 10S 8H 3H QC 8C 7C JK2";
 
         private static TablePresenter Presenter =>
             (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", BindingFlags.NonPublic | BindingFlags.Instance)

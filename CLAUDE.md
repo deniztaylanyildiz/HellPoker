@@ -259,7 +259,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   | Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
   | Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
   | Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
-  | Soytarı | %75.4 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
+  | Soytarı | %75.9 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
 
   (0.1.6: Kral bütün eli korur → +1.4 / +0.7 / +5.1; Soytarı 750 yıl → +6.2 / +7.1 / +7.1, Köylü'ye göre −8.0 / −0.9 / +4.4.)
 
@@ -347,7 +347,12 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
       Testte her kart denenerek doğrulanır (1 ve 2 joker).
     - Showdown: tek jokeri olan taraf onu bir karta çevirir. Oyuncununki için `GamePhase.NamingJoker`: bütün kartlar döner, presenter
       seçiciyi açar (`JokerChoices`, `BestJokerCard`, `EvaluateJokerAs`, `CanNameJoker`, `NameJoker`; daha kötü kart seçilirse o sayılır).
-      Kasa en iyisini seçer. **2+ joker = o taraf kaybeder** (`ShowdownResult.Judge`: `PlayerBust` / `HouseBust`; ikisinde de beraberlik);
+      Kasa en iyisini seçer. **2+ joker = o taraf kaybeder** (`ShowdownResult.Judge(..., oyuncuJoker, kasaJoker)`: `PlayerBust` / `HouseBust`);
+      **ikisinde de 2+ varsa jokeri az olan kazanır, eşitse berabere** (`BothBust`, `PlayerJokers` / `HouseJokers`); bozuk elle
+      kazanan en zayıf el gibi ödenir (`WinnerBust` → Yüksek Kart'ın kazancı / kaybı; tek taraf battığında kazananın kendi eli ödenir).
+      Seçici sadece jokerin kartı sonucu (kazanç / kayıp / beraberlik) değiştirebiliyorsa açılır (`JokerCanChangeTheOutcome`: bütün
+      adaylar denenir); değilse joker en iyi karta döner. Mesajlar `JokerDuelWin / Loss / Push`; kahkaha anı ve `JokerBust` sadece
+      şeytan kendi jokerleriyle kaybettiğinde; günlükte `JOKERS ON BOTH SIDES`. Kasanın bahsi temkinli kalır (2+ jokerle re-raise yok);
       kontrol showdown'da, draw'da fazlasını atan kurtulur, çekilen el kurala girmez. El ortasında kapatma `NamingJoker`'ı da forfeit eder.
     - Kasa yapay zekası (`HouseDrawStrategy`) tek jokeri tutar, fazlasını önce atar, jokeri en iyi kart sayarak plan yapar; 2 jokerle re-raise etmez.
     - Hileler jokere dokunmaz (`CheatRules.IsImmune`: joker de bağışık; `CheatTable` desteden `sıradaki kartı` verirken jokerleri atlar,

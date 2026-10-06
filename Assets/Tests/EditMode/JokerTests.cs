@@ -24,6 +24,9 @@ namespace HellPoker.Core.Tests
     public class JokerTests
     {
         private const string Nothing = "2C 5D 7H 9S JC";
+
+        /// <summary>The House's three kings: the player's pair of aces and a joker beats them only as the third ace — the pick matters.</summary>
+        private const string HouseKings = "KS KH KD 2C 4D";
         private const string Blanks = "3S 6D 10S 8H 3H QC 8C 7C 6H 4S 10D 3D";
 
         private static readonly IHandEvaluator Plain = HandEvaluator.CreateDefault();
@@ -246,22 +249,47 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TwoJokersOnBothSides_APush()
+        public void JokersOnBothSides_TheFewerWins_AsManyEachIsAPush()
         {
-            ShowdownResult both = ShowdownResult.Judge(Plain.Evaluate(TestCards.Hand(Nothing)), Plain.Evaluate(TestCards.Hand("AS AH AD KC KD")), true, true);
-            Assert.AreEqual(ShowdownOutcome.Push, both.Outcome);
+            HandEvaluation weak = Plain.Evaluate(TestCards.Hand(Nothing)), strong = Plain.Evaluate(TestCards.Hand("AS AH AD KC KD"));
+            Assert.AreEqual(ShowdownOutcome.PlayerWins, ShowdownResult.Judge(weak, strong, 2, 3).Outcome, "2 against 3: the player.");
+            Assert.AreEqual(ShowdownOutcome.HouseWins, ShowdownResult.Judge(strong, weak, 3, 2).Outcome, "3 against 2: the demon.");
+            Assert.AreEqual(ShowdownOutcome.Push, ShowdownResult.Judge(strong, weak, 2, 2).Outcome);
+            Assert.AreEqual(ShowdownOutcome.Push, ShowdownResult.Judge(weak, strong, 3, 3).Outcome);
+            Assert.AreEqual(ShowdownOutcome.HouseWins, ShowdownResult.Judge(strong, weak, 2, 1).Outcome, "Only one side broken: it loses (as before).");
+            Assert.AreEqual(ShowdownOutcome.PlayerWins, ShowdownResult.Judge(weak, strong, 0, 2).Outcome);
+            Assert.IsTrue(ShowdownResult.Judge(weak, strong, 2, 3).WinnerBust);
+            Assert.IsFalse(ShowdownResult.Judge(weak, strong, 0, 2).WinnerBust);
 
-            HellPokerGame game = Game("JK1 JK2 AS AH AD", "JK3 JK4 2C 4D 5H", Jester(5), "JK5 " + Blanks.Replace("3S ", ""));
-            ToShowdown(game);
-            Assert.IsTrue(game.LastRound.Showdown.PlayerBust && game.LastRound.Showdown.HouseBust);
-            Assert.AreEqual(ShowdownOutcome.Push, game.LastRound.Showdown.Outcome);
-            Assert.AreEqual(0, game.LastRound.YearsChange);
+            // 2 against 2 at the table: a push, no years, the count unchanged.
+            Sinner sinner = Jester(5);
+            HellPokerGame push = Game("JK1 JK2 AS AH AD", "JK3 JK4 2C 4D 5H", sinner, "JK5 " + Blanks.Replace("3S ", ""));
+            ToShowdown(push);
+            Assert.IsTrue(push.LastRound.Showdown.BothBust);
+            Assert.AreEqual(ShowdownOutcome.Push, push.LastRound.Showdown.Outcome);
+            Assert.AreEqual(0, push.LastRound.YearsChange);
+            Assert.AreEqual(5, sinner.Jokers);
         }
 
         [Test]
+        public void JokersOnBothSides_TheDemonWithFewer_Wins_PaidAsTheWeakestHand()
+        {
+            // 3 against 2 (the House throws its extra joker back and draws another): the demon wins. Its hand is broken too, so it is
+            // paid as the weakest hand would be — high card ×1: the stake.
+            Sinner sinner = Jester(6);
+            HellPokerGame game = Game("JK1 JK2 JK3 AS AH", "JK4 JK5 2C 4D 5H", sinner, "JK6 " + Blanks.Replace("3S ", ""));
+            ToShowdown(game);
+            ShowdownResult duel = game.LastRound.Showdown;
+            Assert.AreEqual(3, duel.PlayerJokers);
+            Assert.AreEqual(2, duel.HouseJokers);
+            Assert.AreEqual(ShowdownOutcome.HouseWins, duel.Outcome);
+            Assert.AreEqual(game.LastRound.Stake, game.LastRound.YearsChange, "Not the House's straight: the weakest loss.");
+            Assert.AreEqual(6, sinner.Jokers, "A loss at ten or below: the count stays.");
+        }
+        [Test]
         public void ThrowingTheExtraJokerBackAtTheDraw_TheRuleFalls()
         {
-            HellPokerGame game = Game("JK1 JK2 AS AH 9D", Nothing, Jester());
+            HellPokerGame game = Game("JK1 JK2 AS AH 9D", HouseKings, Jester());
             ToShowdown(game, 1);
             Assert.AreEqual(GamePhase.NamingJoker, game.Phase, "One joker left: it waits for its name.");
             game.NameJoker(game.BestJokerCard);
@@ -269,6 +297,18 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(HandCategory.ThreeOfAKind, game.LastRound.Showdown.Player.Category);
         }
 
+        [Test]
+        public void TheDemonsTwoJokers_ThePlayersOneJoker_NoPicker_HeWins_TheJokerIsItsBestCard()
+        {
+            Sinner sinner = Jester(4);
+            HellPokerGame game = Game("AS AH 5C 9D JK1", "JK2 JK3 KS KH KD", sinner, "JK4 " + Blanks.Replace("3S ", ""));
+            ToShowdown(game);
+            Assert.AreEqual(GamePhase.RoundOver, game.Phase, "Whatever the joker becomes, the demon's two jokers lose: no picker.");
+            Assert.IsTrue(game.LastRound.Showdown.HouseBust);
+            Assert.AreEqual(ShowdownOutcome.PlayerWins, game.LastRound.Showdown.Outcome);
+            Assert.AreEqual(new Card(Rank.Ace, Suit.Diamonds), game.LastRound.Showdown.Player.Hand[4], "Its best card, at once.");
+            Assert.AreEqual(5, sinner.Jokers, "A win: one more.");
+        }
         [Test]
         public void AFoldedHandWithTwoJokers_IsJustAFold()
         {
@@ -285,9 +325,9 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThePicker_StartsOnTheBestCard_AWorseCardPickedCountsAsItIs()
         {
-            HellPokerGame game = Game("AS AH 5C 9D JK1", Nothing, Jester(), "JK2 " + Blanks.Replace("3S ", ""));
+            HellPokerGame game = Game("AS AH 5C 9D JK1", HouseKings, Jester(), Blanks + " JK2");
             ToShowdown(game);
-            Assert.AreEqual(GamePhase.NamingJoker, game.Phase);
+            Assert.AreEqual(GamePhase.NamingJoker, game.Phase, "Trips of aces win, a pair of aces loses: the pick matters.");
             Assert.AreEqual(5, game.HouseCardsRevealed, "Every card turns before the joker is named.");
             Assert.AreEqual(Rank.Ace, game.BestJokerCard.Rank);
             Assert.AreEqual(HandCategory.ThreeOfAKind, game.EvaluateJokerAs(game.BestJokerCard).Category);

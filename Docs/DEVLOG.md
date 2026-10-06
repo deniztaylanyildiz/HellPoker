@@ -2695,3 +2695,37 @@ Köylü ve Büyücü önceki tabloyla birebir aynı.
   satırı. 0.1.5 zip'i silindi; duman kopyası ve günlükleri silindi.
 - Son test turu: EditMode 804 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata.
 - OKUBENI, GERI_BILDIRIM, PLAYTEST, CLAUDE.md güncel.
+## 2026-10-07 — Soytarı: sonuç belliyken seçici açılmasın; iki tarafta da 2+ joker (0.1.6, aynı numara)
+
+### İstek (kullanıcı)
+1. Hata: şeytanın 2+ jokeri varken (şeytan zaten kaybetmiş) oyuncu tek jokerini yine de seçmek zorunda kalıyordu. Genel kural:
+   sonuç jokerin kartına bağlı değilse seçici açılmasın. 2. Yeni kural: iki tarafta da 2+ joker → jokeri az olan kazanır, eşitse
+   berabere (yıl değişmez); tek tarafta 2+ → o taraf kaybeder (aynı). Diğer kurallara dokunma.
+
+### Yapılanlar
+- `HellPokerGame.JokerCanChangeTheOutcome`: oyuncunun tek jokeri için bütün aday kartlar denenir (48 değerlendirme); hepsi aynı sonucu
+  (kazanç / kayıp / beraberlik) veriyorsa seçici açılmaz, joker en iyi karta döner (külahlı görünür), mesaj satırı sonucu söyler.
+  Bu genel kural normal ellerde de geçerli: en iyi kartla bile kaybedilen ya da her kartla kazanılan elde artık seçici yok.
+- `ShowdownResult.Judge(player, house, oyuncuJoker, kasaJoker)` (bool yerine sayı): `PlayerJokers` / `HouseJokers`, `BothBust`,
+  `WinnerBust`. İkisi de 2+: az olan kazanır, eşit beraberlik.
+- **Ödeme:** tek taraf battığında bugün kazananın kendi (bozulmamış) elinin kategorisi ödeniyordu — öyle kaldı. İki taraf da battığında
+  kazananın eli de bozuk: en zayıf el gibi ödenir (Yüksek Kart; kazançta `Forgiven(HighCard)`, kayıpta `GetYearsAdded(HighCard)`, yani
+  `GetLeastYearsForgiven/Added` ile aynı sonuç). Beraberlik yıl değiştirmez. Joker sayacı normal: kazanç +1, kayıp (10 üstü) −1, beraberlik 0.
+- Mesajlar (iki dil): "İkinizde de joker fazla: daha az jokeri olan sen kazandın." / şeytan kazandı / "Eşit joker: el berabere, yıl
+  değişmez."; kahkaha anı ve şeytanın `JokerBust` repliği sadece şeytan kendi jokerleriyle kaybettiğinde; eşitlikte normal Push repliği.
+  Günlük: `JOKERS ON BOTH SIDES: player 2 vs house 2: Push`, kendiliğinden dönen joker için `player joker -> A♦ at once`.
+- Kasanın yapay zekası: draw'da fazla jokerleri atmaya devam ediyor; bahiste 2+ jokerle re-raise etmiyor (oyuncunun kartlarını bilmiyor,
+  temkinli; Bakış altında yargı yeni kuralı biliyor).
+- Seçicinin açıldığı testler artık sonucun gerçekten jokere bağlı olduğu elle kuruldu (kasada K üçlüsü: joker as olursa kazanç, başka
+  kart olursa kayıp); PlayMode Soytarı yolculuğu ve ekran görüntüleri de.
+
+### Denge (Soytarı, 2000 koşu)
+%75.9 (%87 / %41) / %77.1 (%86 / %50) / %54.7 (%72 / %42) — önceki 75.4 / 77.1 / 54.7: +0.5 / 0 / 0 (iki tarafta 2+ joker nadir).
+
+### Testler / build
+- EditMode 808 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata. Yeni: seçicisiz el (oyuncu 1, şeytan 2 → kazanç,
+  sayaç +1), seçici açılan el, 2–3 / 3–2 / 2–2 / 3–3 / tek taraf; oyunda 2–2 beraberlik ve 3–2 kayıp (en zayıf el ödemesi);
+  presenter: seçicisiz el + kahkaha + günlük, beraberlik mesajı ve günlüğü, Türkçe metinler.
+- Ekran görüntüleri TR / EN: `JesterScreenshots` 60–67 (67: seçicisiz el).
+- 0.1.6'nın dağıtıldığı bilgisi yok: aynı numara. `Builds/HellPoker-0.1.6-win64.zip` (37 200 043 bayt, ~35.5 MB); zip'ten 3 duman
+  turu: çıkış 0, Player.log temiz.

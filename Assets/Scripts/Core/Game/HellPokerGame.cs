@@ -917,7 +917,8 @@ namespace HellPoker.Core.Game
             // The Jester's deck: every card turns; a single joker of the player's waits for its name, the House names its own.
             PlayerCardsRevealed = Hand.Size;
             HouseCardsRevealed = Hand.Size;
-            if (JokerResolver.CountJokers(PlayerHand) == 1)
+            // The picker opens only when the card the joker becomes can change the outcome; otherwise it becomes its best card at once.
+            if (JokerResolver.CountJokers(PlayerHand) == 1 && JokerCanChangeTheOutcome())
             {
                 Phase = GamePhase.NamingJoker;
                 return;
@@ -935,7 +936,20 @@ namespace HellPoker.Core.Game
         {
             Hand player = named.HasValue ? JokerResolver.Name(PlayerHand, named.Value) ?? PlayerHand : PlayerHand;
             return ShowdownResult.Judge(_evaluator.Evaluate(player), _evaluator.Evaluate(HouseHand),
-                JokerResolver.CountJokers(PlayerHand) >= 2, JokerResolver.CountJokers(HouseHand) >= 2);
+                JokerResolver.CountJokers(PlayerHand), JokerResolver.CountJokers(HouseHand));
+        }
+
+        /// <summary>True when naming the player's joker one card or another could turn the showdown (win, loss, push).</summary>
+        private bool JokerCanChangeTheOutcome()
+        {
+            ShowdownOutcome? first = null;
+            foreach (Card card in JokerResolver.Choices(PlayerHand))
+            {
+                ShowdownOutcome outcome = JudgeShowdown(card).Outcome;
+                if (first == null) first = outcome;
+                else if (outcome != first) return true;
+            }
+            return false;
         }
 
         public IReadOnlyList<Card> JokerChoices => Phase == GamePhase.NamingJoker ? JokerResolver.Choices(PlayerHand) : Array.Empty<Card>();
@@ -982,7 +996,8 @@ namespace HellPoker.Core.Game
             }
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
             {
-                int forgiven = Forgiven(showdown.Player.Category);
+                // A hand broken by jokers that still won (fewer jokers than the demon's) pays as the weakest hand: its own make means nothing.
+                int forgiven = Forgiven(showdown.PlayerBust ? HandCategory.HighCard : showdown.Player.Category);
                 if (_cheats.Marks.Tithe && !_payouts.IsAbsolution(showdown.Player.Category))
                 {
                     TitheYearsThisHand = Math.Min(Unit, forgiven);
@@ -992,7 +1007,8 @@ namespace HellPoker.Core.Game
                 _cheats.PlayerWon(Rules);
             }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)) *
+                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake, Ante,
+                                                  LossSurcharge(IsSoulHand)) *
                                               (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
                             + AnteShare(Ante, Relic.LossAntePercent));        // the Rattle: half an ante more
 

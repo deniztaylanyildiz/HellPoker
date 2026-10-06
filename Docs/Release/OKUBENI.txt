@@ -29,7 +29,9 @@ Soytarı 750 yılla başlar; gücü ve göstergesi yok, onun numarası deste: he
 her el bir tane ekler; 10'un üstündeyken kaybedersen bir tane eksilir, 2'nin altına inmez; rozette sayısı yazar, ör. ×3).
 Joker eldeyken ? yüzlü bir soytarı kartıdır. El sonunda tek jokerin elinde olmayan istediğin karta dönüşür: küçük bir
 seçici açılır, en iyi kart hazır seçili gelir (oklar değiştirir, Enter onaylar). Elinde 2 joker varsa el sonunda
-kaybedersin: fazlasını kart değiştirirken at (ekranda uyarı çıkar). Şeytan da joker çekebilir, onun için de aynı kurallar.
+kaybedersin: fazlasını kart değiştirirken at (ekranda uyarı çıkar). İkinizde de 2 ya da daha fazla joker varsa jokeri az olan
+kazanır, eşitse el berabere (yıl değişmez). Sonuç jokerinin hangi karta döndüğüne bağlı değilse seçici açılmaz, joker kendiliğinden
+en iyi karta döner. Şeytan da joker çekebilir, onun için de aynı kurallar.
 Destede 20 jokere ulaşırsan jokerler silinir, sayı 2'ye döner ve koşuda bir kez Soytarı'nın Çıngırağı emanetini kazanırsın
 (kazanılan el ante'nin yarısı kadar fazla yıl siler, kaybedilen el yarısı kadar fazla ekler).
 Deste eller boyunca devam eder: dağıtılan ve değiştirilen kartlar desteye dönmez, kalan kart sayısı kasanın kartlarının üstünde

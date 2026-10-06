@@ -86,7 +86,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheShowdown_OpensThePicker_OnTheBestCard_ArrowsStepIt_ConfirmShowsTheNamedCard()
         {
-            Run("AS AH 5C 9D JK1", Nothing, Blanks + " JK2");
+            Run("AS AH 5C 9D JK1", "KS KH KD 2C 4D", Blanks + " JK2");
             ToShowdown();
             Assert.AreEqual(GamePhase.NamingJoker, _game.Phase);
             Assert.IsNotNull(_view.JokerPicker);
@@ -118,7 +118,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThePickersButtons_DoWhatTheKeysDo()
         {
-            Run("AS AH 5C 9D JK1", Nothing, Blanks + " JK2");
+            Run("AS AH 5C 9D JK1", "KS KH KD 2C 4D", Blanks + " JK2");
             ToShowdown();
             _view.PressJokerStep(1, 0);
             Assert.AreEqual(Rank.Two, _view.JokerPicker.Card.Rank);
@@ -159,9 +159,43 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void TheDemonsTwoJokers_NoPicker_TheJokerShowsItsBestCard_TheLaugh()
+        {
+            Run("AS AH 5C 9D JK1", "JK2 JK3 KS KH KD", "JK4 " + Blanks.Replace("3S ", ""), jokers: 4);
+            ToShowdown();
+            Assert.AreEqual(GamePhase.RoundOver, _game.Phase);
+            Assert.IsNull(_view.JokerPicker, "The outcome did not hang on the joker: no picker.");
+            Assert.AreEqual(CardMark.Joker, _view.PlayerView.Slots[4].Mark);
+            Assert.AreEqual(new Card(Rank.Ace, Suit.Diamonds), _view.PlayerView.Slots[4].Card);
+            Assert.IsTrue(_view.Moments.Any(m => m.moment == TableMoment.JokerLaugh));
+            StringAssert.StartsWith(string.Format(UiText.HouseBustFormat, -_game.LastRound.YearsChange), _view.Message);
+            StringAssert.Contains("at once", _presenter.Log.ToText());
+        }
+
+        [Test]
+        public void JokersOnBothSides_AsManyEach_APush_SaidAndLogged()
+        {
+            Run("JK1 JK2 AS AH AD", "JK3 JK4 2C 4D 5H", "JK5 " + Blanks.Replace("3S ", ""), jokers: 5);
+            ToShowdown();
+            Assert.AreEqual(ShowdownOutcome.Push, _game.LastRound.Showdown.Outcome);
+            StringAssert.StartsWith(UiText.JokerDuelPush, _view.Message);
+            Assert.IsFalse(_view.Moments.Any(m => m.moment == TableMoment.JokerLaugh), "Nobody's jokers sank anybody.");
+            StringAssert.Contains("JOKERS ON BOTH SIDES: player 2 vs house 2: Push", _presenter.Log.ToText());
+            Assert.AreEqual("Eşit joker: el berabere, yıl değişmez.", WithTurkish(() => UiText.JokerDuelPush));
+            Assert.AreEqual("İkinizde de joker fazla: daha az jokeri olan sen kazandın.", WithTurkish(() => UiText.JokerDuelWin));
+        }
+
+        private static string WithTurkish(System.Func<string> words)
+        {
+            Lang.Set(Language.Turkish);
+            try { return words(); }
+            finally { Lang.Set(Language.English); }
+        }
+
+        [Test]
         public void TheRunLog_TellsTheJokersStory()
         {
-            Run("AS AH 5C 9D JK1", Nothing, Blanks + " JK2");
+            Run("AS AH 5C 9D JK1", "KS KH KD 2C 4D", Blanks + " JK2");
             ToShowdown();
             _view.PressAction();
             string log = _presenter.Log.ToText();
