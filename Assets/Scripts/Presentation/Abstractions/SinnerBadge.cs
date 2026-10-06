@@ -32,9 +32,15 @@ namespace HellPoker.Presentation.Abstractions
 
         public bool Visible => ClassId != null;
 
+        /// <summary>The Jester's jokers in the deck (shown as a count in place of the pips); -1 for a class without them.</summary>
+        public int Jokers { get; }
+
+        public bool ShowsJokers => Jokers >= 0;
+
         public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false,
-            bool armed = false)
+            bool armed = false, int jokers = -1)
         {
+            Jokers = jokers;
             Armed = armed;
             ClassId = classId;
             Name = name ?? "";

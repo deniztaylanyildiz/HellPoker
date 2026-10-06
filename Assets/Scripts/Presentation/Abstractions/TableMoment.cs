@@ -19,6 +19,9 @@ namespace HellPoker.Presentation.Abstractions
         Backfire,
 
         /// <summary>The Warlock warded off a cheat: the text ("WARD") flares over the player's cards.</summary>
-        Ward
+        Ward,
+
+        /// <summary>The demon's two jokers turned up at the showdown: a fool's laugh flares up (the text), the demon fumes.</summary>
+        JokerLaugh
     }
 }

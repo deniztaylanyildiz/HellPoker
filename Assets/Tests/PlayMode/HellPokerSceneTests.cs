@@ -103,6 +103,20 @@ namespace HellPoker.PlayMode.Tests
                         Assert.LessOrEqual(detail.GetComponent<Text>().preferredHeight, detail.rect.height + 0.5f, $"{what}: the price fits its box.");
                         Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price starts under the ability.");
                         Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: both end above CHOOSE.");
+                        var title = (RectTransform)card.Find("Title");
+                        Assert.LessOrEqual(title.GetComponent<Text>().preferredHeight, title.rect.height + 0.5f, $"{what}: who they were fits.");
+
+                        // Every card on the 480 px screen, side by side, none over another.
+                        var box = (RectTransform)card;
+                        float left = box.anchoredPosition.x;
+                        Assert.GreaterOrEqual(left, 0f, $"{what}: on screen (left).");
+                        Assert.LessOrEqual(left + box.rect.width, 480f, $"{what}: on screen (right).");
+                        if (index > 0)
+                        {
+                            var previous = (RectTransform)Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                                .Single(t => t.name == "Sinner_" + HellPoker.Core.Sinners.SinnerRoster.All[index - 1].Id);
+                            Assert.GreaterOrEqual(left, previous.anchoredPosition.x + previous.rect.width, $"{what}: beside the card before it.");
+                        }
                     }
                 }
             }

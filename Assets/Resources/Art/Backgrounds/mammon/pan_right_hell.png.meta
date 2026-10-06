@@ -435,7 +435,19 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      pan_right_hell_0: -4043310295925686258
+      pan_right_hell_1: -512987112759442959
+      pan_right_hell_10: -3815339524056203960
+      pan_right_hell_11: 2491575901715549379
+      pan_right_hell_2: 7739039852249399462
+      pan_right_hell_3: -5995748625482262021
+      pan_right_hell_4: -361969442749957601
+      pan_right_hell_5: 2160196125457578542
+      pan_right_hell_6: 8114384012263528585
+      pan_right_hell_7: -5802238278872923360
+      pan_right_hell_8: 1201795392024536110
+      pan_right_hell_9: 3211346052079201770
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

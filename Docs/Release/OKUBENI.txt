@@ -18,13 +18,24 @@ OYUN NE?
 Cehennemde 1000 yıl cezan var. Kasaya, yani bir şeytana karşı 5 kartlık poker (5 Card Draw) oynayarak cezanı sıfıra
 indirmeye çalışıyorsun. Kazanınca ceza azalır, kaybedince artar.
 
-Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü ya da Kral. Her sınıfın bir gücü var:
+Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü, Kral ya da Soytarı. İlk üçünün bir gücü var:
 portrenin altındaki rozette 5 pip: kazandığın elde +1, kaybettiğin elde +2, çekildiğin elde +1 dolar (berabere 0). Dolunca
 pipler parlar ve "HAZIR: K" yazar. K tuşu ya da rozete tık gücü AÇAR ("GÜÇ AÇIK", rozet yanıp söner); tekrar K kapatır,
 gösterge dolu kalır. Açık güç sen kullanana kadar açık kalır, bu arada bahis yapabilirsin. Köylü: ÇEKİL düğmesi
 "BEDAVA ÇEKİL" olur, sıradaki çekilme bedelsiz (eller boyunca bekler). Büyücü: duyurulan küçük bir hileyi engeller (kalkan
 niyet şeridinin üstünde, hile gelene kadar bekler). Kral: draw'dan önce korunacak kartı seç (seçilebilen kartlar altın
 çerçeveyle yanıp söner); seçmeden draw'ı geçersen gücün harcanmaz. Gösterge koşu boyunca seninle: masa değişince sıfırlanmaz.
+Soytarı'nın gücü ve göstergesi yok; onun numarası deste: her masada destede joker var (koşu 2 jokerle başlar, kazandığın
+her el bir tane ekler; 10'un üstündeyken kaybedersen bir tane eksilir, 2'nin altına inmez; rozette sayısı yazar, ör. ×3).
+Joker eldeyken ? yüzlü bir soytarı kartıdır. El sonunda tek jokerin elinde olmayan istediğin karta dönüşür: küçük bir
+seçici açılır, en iyi kart hazır seçili gelir (oklar değiştirir, Enter onaylar). Elinde 2 joker varsa el sonunda
+kaybedersin: fazlasını kart değiştirirken at (ekranda uyarı çıkar). Şeytan da joker çekebilir, onun için de aynı kurallar.
+Destede 20 jokere ulaşırsan jokerler silinir, sayı 2'ye döner ve koşuda bir kez Soytarı'nın Çıngırağı emanetini kazanırsın
+(kazanılan el ante'nin yarısı kadar fazla yıl siler, kaybedilen el yarısı kadar fazla ekler).
+Deste eller boyunca devam eder: dağıtılan ve değiştirilen kartlar desteye dönmez, kalan kart sayısı kasanın kartlarının üstünde
+yazar (kart sayabilirsin). Deste bir eli kaldıramayacak kadar azalınca şeytan 52 kartı yeniden karar; istersen eller arasında
+KARIŞTIR (S) ile 10 yıl ödeyip desteyi kendin de karıştırabilirsin (her elden önce bir kez, 300 yılın altında ve ruhun masadayken
+olmaz). Soytarı'nın destesi her el karılır.
 Eller arasında bazen ortada bir teklif paneli açılır (bir olay): kabul et ya da geç. Bazı teklifler lanetli bir emanet verir;
 emanetler portrenin yanında küçük kutularda durur, üstüne gelince ne yaptıkları yazar.
 
@@ -45,7 +56,9 @@ KONTROLLER
   D               kart değiştirmeye kadar pas geç (check to draw)
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
+  Oklar           el sonunda jokerin kartını seç (sol / sağ değer, yukarı / aşağı renk; Soytarı)
   H               el sıralaması
+  S               desteyi karıştır (eller arasında, +10 yıl)
   K               sınıfının gücünü aç / kapat (gösterge doluyken; Kral'da sonra karta tıkla)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü

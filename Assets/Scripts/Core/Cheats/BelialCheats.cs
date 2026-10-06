@@ -16,7 +16,7 @@ namespace HellPoker.Core.Cheats
         public CheatTiming Timing => CheatTiming.HouseReveal;
 
         public bool CanApply(CheatTable table) =>
-            table.HouseCardsRevealed > 0 && table.Deck.Count > 0 && table.HouseTargets(i => i < table.HouseCardsRevealed).Any();
+            table.HouseCardsRevealed > 0 && table.Deck.Remaining.Any(c => !c.IsJoker) && table.HouseTargets(i => i < table.HouseCardsRevealed).Any();
 
         public CheatResult Apply(CheatTable table)
         {
@@ -25,8 +25,9 @@ namespace HellPoker.Core.Cheats
             Card real = table.HouseHand[index];
 
             // A face from the deck (so it is in nobody's hand), weaker than the truth when one can be found.
-            Card[] weaker = table.Deck.Remaining.Where(c => c.Rank < real.Rank).ToArray();
-            Card[] pool = weaker.Length > 0 ? weaker : table.Deck.Remaining.ToArray();
+            Card[] ordinary = table.Deck.Remaining.Where(c => !c.IsJoker).ToArray();
+            Card[] weaker = ordinary.Where(c => c.Rank < real.Rank).ToArray();
+            Card[] pool = weaker.Length > 0 ? weaker : ordinary;
             Card face = pool[table.Random.Next(pool.Length)];
 
             table.Marks.FakeHouseIndex = index;
@@ -68,7 +69,7 @@ namespace HellPoker.Core.Cheats
         private static (int, Card)[] Aimed(CheatTable table, (int index, Card card)[] targets)
         {
             Hand hand = table.PlayerHand;
-            Suit? flushSuit = hand.GroupBy(c => c.Suit).Where(g => g.Count() >= 4).Select(g => (Suit?)g.Key).FirstOrDefault();
+            Suit? flushSuit = hand.Where(c => !c.IsJoker).GroupBy(c => c.Suit).Where(g => g.Count() >= 4).Select(g => (Suit?)g.Key).FirstOrDefault();
             if (flushSuit.HasValue)
             {
                 (int, Card)[] breakers = targets.Where(t => hand[t.index].Suit == flushSuit.Value && t.card.Suit != flushSuit.Value).ToArray();

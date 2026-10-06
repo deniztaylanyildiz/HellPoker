@@ -135,6 +135,9 @@ namespace HellPoker.Presentation
             _view.RelicPressed += PressRelic;
             _view.EventOptionPressed += ChooseEventOption;
             _view.Player.CardClicked += ToggleDiscard;
+            _view.JokerStepPressed += StepJoker;
+            _view.ShufflePressed += ShuffleDeck;
+            _view.JokerConfirmPressed += ConfirmJoker;
             Lang.Changed += OnLanguageChanged;
         }
 
@@ -248,6 +251,7 @@ namespace HellPoker.Presentation
         {
             if (_log != null && !_log.IsEnded && Playing && !_game.IsGameOver) EndLog("LEFT for a new game");
             _sinner = new Sinner(sinnerClass ?? SinnerRoster.Peasant);
+            _loggedJokers = _sinner.Jokers;
             _effects = new RunEffects();
             _events?.Reset();
             _pendingEvent = null;
@@ -280,7 +284,9 @@ namespace HellPoker.Presentation
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             // The same sinner, with what was left of the ability (a closed game does not refill it).
-            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharge, wardRaised: snapshot.WardRaised);
+            _sinner = new Sinner(SinnerRoster.Find(snapshot.ClassId) ?? SinnerRoster.Peasant, snapshot.ClassCharge, wardRaised: snapshot.WardRaised,
+                jokers: snapshot.ClassJokers);
+            _loggedJokers = _sinner.Jokers;
             // The run's events: the marks they left, and which were seen (an event on screen when the game closed is passed).
             RunEventState saved = snapshot.Events;
             _effects = new RunEffects();
@@ -330,6 +336,7 @@ namespace HellPoker.Presentation
             LogNote("the game had been closed mid-hand: the hand is forfeit" + (hand.FledACheat ? " (walking out on a cheat: a grudge)" : ""));
             _log?.Hand(_game.RoundNumber, _dealer.Id, round.YearsBefore, round.YearsAfter, hand.IsSealed ? "LOST (sealed, left)" : null, "-",
                 hand.Stake, hand.IsSealed, hand.IsSoulHand);
+            LogJokerOutcome(null);
             _stats.RecordHand(_game.Years, null, soul);
             if (_game.IsGameOver)
             {
@@ -404,7 +411,7 @@ namespace HellPoker.Presentation
                 _gate.IsAtLucifer, _gate.OriginDealerId, _gate.Attempts, _game.Malice, _game.MajorCheatUsed, _game.Grudge, _sinner.Id,
                 _sinner.Charge, new RunEventState(_events?.Seen, _events?.HandsSinceLast ?? 0, _effects.NextHand, _effects.DeferredYears,
                     _effects.DeferredHands, _effects.SoulSold, _effects.Relics, _effects.RedrawsLeft, _effects.RedrawTablesCode),
-                _sinner.WardRaised);
+                _sinner.WardRaised, _sinner.Jokers);
         }
 
         private LuciferGate NewGate() => _finalDealer == null ? new LuciferGate(0, 0) : new LuciferGate(_game.Rules);
@@ -425,6 +432,7 @@ namespace HellPoker.Presentation
                 round.Folded ? null : round.Showdown.House.Category.ToString(), round.Stake, _game.IsCommitted, _game.IsSoulHand, round.FreeFold);
             foreach (CheatResult cheat in _game.CheatsThisHand)
                 _log?.Cheat(_game.RoundNumber, cheat.Backfired ? "BACKFIRED" : cheat.Outcome.ToString().ToLowerInvariant(), cheat.CheatId, cheat.ShownId);
+            LogJokerOutcome(round);
 
             // A demon's cheat that helped the player goes into the run's story and the records.
             int backfires = _game.CheatsThisHand.Count(r => r.Backfired);
@@ -647,6 +655,9 @@ namespace HellPoker.Presentation
             _view.RelicPressed -= PressRelic;
             _view.EventOptionPressed -= ChooseEventOption;
             _view.Player.CardClicked -= ToggleDiscard;
+            _view.JokerStepPressed -= StepJoker;
+            _view.ShufflePressed -= ShuffleDeck;
+            _view.JokerConfirmPressed -= ConfirmJoker;
             Lang.Changed -= OnLanguageChanged;
         }
 
@@ -659,9 +670,13 @@ namespace HellPoker.Presentation
             {
                 case GamePhase.Betting:
                     _view.PlaySfx(SfxIds.Deal);
+                    int deckBefore = _game.DeckCount;
                     _game.PlaceBet();
+                    if (_game.DeckShuffledThisHand)
+                        LogNote($"deck ran out: the demon shuffles ({deckBefore} cards left, {_game.Years} years, hand {_game.RoundNumber})");
                     _discards.Clear();
                     if (_game.PendingCheat != null) _log?.Cheat(_game.RoundNumber, "announced", _game.PendingCheat.Id);
+                    LogJokers("dealt", _game.PlayerHand, _game.HouseHand);
                     PlayOutSealedHand(before);
                     // A cheat at the deal lands once the cards are on the table.
                     Refresh();
@@ -679,14 +694,19 @@ namespace HellPoker.Presentation
                     return;
                 case GamePhase.Drawing:
                     if (_discards.Count > 0) _view.PlaySfx(SfxIds.Deal);
+                    Hand playerBefore = _game.PlayerHand, houseBefore = _game.HouseHand;
                     _game.Draw(_discards.ToArray());
                     _discards.Clear();
+                    LogJokers("drawn", NewCards(playerBefore, _game.PlayerHand), NewCards(houseBefore, _game.HouseHand));
                     PlayOutSealedHand(before);
                     PlayCheatStrikes(before);
                     break;
                 case GamePhase.RoundOver:
                     _game.NextRound();
                     break;
+                case GamePhase.NamingJoker:
+                    ConfirmJoker();
+                    return;
                 default:
                     // The run is over: the end screen takes it from here (or, with nobody listening, a fresh run).
                     if (RunEnded != null)
@@ -887,7 +907,7 @@ namespace HellPoker.Presentation
             string id = sinner.Id;
             bool usable = sinner.IsCharged && _game.WhyNoPower() == PowerRefusal.None;
             _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charge, sinner.Rules.Full, usable,
-                sinner.WardRaised, _game.PowerArmed));
+                sinner.WardRaised, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1));
             if (sinner.IsCharged && !_relabelling)
                 Tip(UiText.TipPowerReady);
         }
@@ -903,7 +923,7 @@ namespace HellPoker.Presentation
                 int perTable = relic.Effects.RedrawsPerTable;
                 int uses = perTable <= 0 ? -1 : _effects.RedrawsLeft;
                 badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses,
-                    selecting: perTable > 0 && _redrawing));
+                    selecting: perTable > 0 && _redrawing, isReward: relic.IsReward));
             }
             _view.SetRelics(badges);
         }
@@ -959,6 +979,17 @@ namespace HellPoker.Presentation
             CheatResult played = _game.CheatsThisHand.FirstOrDefault(r => r.Outcome == CheatOutcome.Played);
             string log = UiText.CheatLog(_dealerText, played, soul, _game.ThornYearsThisHand, _game.TitheYearsThisHand);
             return log == null ? message : message + "\n" + log;
+        }
+
+        /// <summary>The twenty jokers' line under the result: the Rattle given (its gift and curse), or the deck simply cleared.</summary>
+        private static string WithJackpot(string message, RoundResult round)
+        {
+            if (round == null || !round.JokerJackpot) return message;
+            string line = round.RattleGiven
+                ? string.Format(UiText.JokerJackpotRattleFormat, UiText.RelicName(RelicIds.JestersRattle), UiText.RelicGift(RelicIds.JestersRattle),
+                    UiText.RelicCurse(RelicIds.JestersRattle))
+                : UiText.JokerJackpotAgain;
+            return message + "\n" + line;
         }
 
         /// <summary>The H panel's line about the announced cheat; null when nothing is coming.</summary>
@@ -1050,7 +1081,13 @@ namespace HellPoker.Presentation
         {
             if (!Playing || _pendingEvent != null || Hurry()) return;
             Sinner sinner = _game.Sinner;
-            if (sinner == null || sinner.Ability == SinnerAbility.None) return;
+            if (sinner == null) return;
+            if (sinner.Ability == SinnerAbility.None)
+            {
+                // The Jester has nothing to switch on: his jokers are his power — he hears so.
+                if (sinner.Class.StartingJokers > 0) _view.SetMessage(UiText.JesterPowerInfo, Tone.Neutral);
+                return;
+            }
 
             // K again (or the badge) while the power waits: switched off, the gauge stays full.
             if (_game.PowerArmed)
@@ -1091,6 +1128,157 @@ namespace HellPoker.Presentation
                     _view.SetMessage(UiText.WardRaisedMessage, Tone.Good);
                     return;
             }
+        }
+
+        // ------------------------------------------------------------------ the deck, counted from hand to hand
+
+        /// <summary>The hand whose shuffled deck the player has been told about.</summary>
+        private int _deckToldRound = -1;
+
+        /// <summary>The counter over the House's row and, between hands, SHUFFLE (hidden for the Jester's deck and while the soul
+        /// is on the table — no years are shown then).</summary>
+        private void ShowDeck()
+        {
+            ShuffleRefusal refusal = _game.WhyNoShuffle();
+            bool counted = refusal != ShuffleRefusal.NoDeckToCount;
+            _view.SetDeckCount(counted ? _game.DeckCount : -1);
+            bool offer = counted && _game.Phase == GamePhase.Betting && !SoulMode && _pendingEvent == null && !_game.IsGameOver;
+            _view.SetShuffle(offer ? string.Format(UiText.ShuffleButtonFormat, _game.Rules.ShuffleYears) : null, refusal != ShuffleRefusal.None);
+        }
+
+        /// <summary>S or SHUFFLE: between hands, the years paid and all 52 shuffled — or the reason it cannot be done now.</summary>
+        public void ShuffleDeck()
+        {
+            if (!Playing || _pendingEvent != null || Hurry()) return;
+            ShuffleRefusal refusal = _game.WhyNoShuffle();
+            if (refusal != ShuffleRefusal.None)
+            {
+                _view.SetMessage(UiText.ShuffleRefused(refusal, _game.Rules.ShuffleMinYears), Tone.Warning);
+                return;
+            }
+            int left = _game.DeckCount;
+            _game.Shuffle();
+            LogNote($"SHUFFLE (the player): +{_game.Rules.ShuffleYears} years -> {_game.Years} ({left} cards were left, hand {_game.RoundNumber + 1} next)");
+            _view.PlaySfx(SfxIds.Deal);
+            Refresh();
+            _view.SetMessage(string.Format(UiText.ShuffledFormat, _game.Rules.ShuffleYears), Tone.Warning);
+        }
+
+        // ------------------------------------------------------------------ the Jester's jokers
+
+        /// <summary>The joker count the log last wrote (a change is noted when a hand settles).</summary>
+        private int _loggedJokers;
+
+        /// <summary>The card the picker shows; the hand it was opened for (a new showdown starts on the best card again).</summary>
+        private Card _jokerPick;
+        private int _jokerPickRound = -1;
+
+        private static IEnumerable<Card> NewCards(Hand before, Hand after) =>
+            after == null ? Enumerable.Empty<Card>() : after.Where(card => before == null || !before.Contains(card));
+
+        /// <summary>The log notes every joker that comes into a hand (who got it, at the deal or the draw).</summary>
+        private void LogJokers(string when, IEnumerable<Card> player, IEnumerable<Card> house)
+        {
+            int mine = player?.Count(c => c.IsJoker) ?? 0, theirs = house?.Count(c => c.IsJoker) ?? 0;
+            if (mine > 0) LogNote($"joker {when} to the player x{mine} (hand {_game.RoundNumber})");
+            if (theirs > 0) LogNote($"joker {when} to the house x{theirs} (hand {_game.RoundNumber})");
+        }
+
+        /// <summary>A hand settled: the jokers' part in it (the House's named card, a two-joker loss) and the deck's new count.</summary>
+        private void LogJokerOutcome(RoundResult round)
+        {
+            ShowdownResult showdown = round?.Showdown;
+            if (showdown != null)
+            {
+                if (showdown.PlayerBust) LogNote($"TWO JOKERS in the player's hand: lost (hand {_game.RoundNumber})");
+                if (showdown.HouseBust) LogNote($"TWO JOKERS in the house's hand: the player wins (hand {_game.RoundNumber})");
+                int houseJoker = JokerIndex(_game.HouseHand);
+                if (houseJoker >= 0 && !showdown.HouseBust)
+                    LogNote($"house joker -> {showdown.House.Hand[houseJoker]} ({showdown.House.Category}, hand {_game.RoundNumber})");
+            }
+            if (round != null && round.JokerJackpot)
+                LogNote($"TWENTY JOKERS: the deck is cleared, back to {_sinner.Jokers}" + (round.RattleGiven ? "; the Jester's Rattle joins the run" : " (the Rattle is already carried)"));
+            if (_sinner.Jokers != _loggedJokers)
+            {
+                LogNote($"jokers in the deck: {_loggedJokers} -> {_sinner.Jokers}");
+                _loggedJokers = _sinner.Jokers;
+            }
+        }
+
+        /// <summary>Where the (first) joker sits in a hand; -1 for none.</summary>
+        private static int JokerIndex(Hand hand)
+        {
+            if (hand == null) return -1;
+            for (int i = 0; i < Hand.Size; i++)
+                if (hand[i].IsJoker) return i;
+            return -1;
+        }
+
+        /// <summary>
+        /// The showdown waits for the player's joker: both hands face up (jokers as jokers), the picker on the card it would become
+        /// (the best card when it opens), and on the line under the message what the hand makes with it.
+        /// </summary>
+        private void ShowNaming()
+        {
+            if (_jokerPickRound != _game.RoundNumber || !_game.CanNameJoker(_jokerPick))
+            {
+                _jokerPick = _game.BestJokerCard;
+                _jokerPickRound = _game.RoundNumber;
+            }
+            _view.SetBetControls(BetControls.Hidden);
+            _view.SetAction(null);
+            _view.SetAnte(0);
+            _view.Player.SetInteractable(false);
+            _view.Player.SetSelection(null);
+            _view.Player.SetHints(null);
+            _view.House.Show(HouseSlots(Hand.Size));
+            _view.Player.Show(PlayerSlots(Hand.Size));
+            _view.House.SetCaption(UiText.HouseCaption, Tone.Muted);
+            ShowStakeOnTable();
+            _view.SetMessage(UiText.JokerPrompt, Tone.Warning);
+            _view.ShowJokerPicker(new JokerPick(_jokerPick));
+        }
+
+        /// <summary>What the hand makes with the joker as the picked card ("With this card: THREE OF A KIND (best)").</summary>
+        private string JokerResultLine()
+        {
+            HandEvaluation made = _game.EvaluateJokerAs(_jokerPick);
+            bool best = made.CompareTo(_game.EvaluateJokerAs(_game.BestJokerCard)) == 0;
+            return string.Format(UiText.JokerResultFormat, UiText.CategoryNameUpper(made.Category)) + (best ? UiText.JokerBestTag : "");
+        }
+
+        private static readonly Suit[] PickSuits = { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades };
+
+        /// <summary>The arrows: the picked card's rank and / or suit steps on, past every card the player already holds.</summary>
+        public void StepJoker(int rankStep, int suitStep)
+        {
+            if (!Playing || _game.Phase != GamePhase.NamingJoker || (rankStep == 0 && suitStep == 0)) return;
+            if (_view.IsBusy) _view.SkipAnimations();
+            int rank = (int)_jokerPick.Rank - (int)Rank.Two, suit = Array.IndexOf(PickSuits, _jokerPick.Suit);
+            for (int tries = 0; tries < 52; tries++)
+            {
+                rank = (rank + Math.Sign(rankStep) + 13) % 13;
+                suit = (suit + Math.Sign(suitStep) + 4) % 4;
+                var card = new Card((Rank)(rank + (int)Rank.Two), PickSuits[suit]);
+                if (!_game.CanNameJoker(card)) continue;
+                _jokerPick = card;
+                break;
+            }
+            _view.ShowJokerPicker(new JokerPick(_jokerPick));
+            ShowPower();
+        }
+
+        /// <summary>NAME IT (or Enter / Space): the joker becomes the picked card — a worse card than the best counts as it is.</summary>
+        public void ConfirmJoker()
+        {
+            if (!Playing || _game.Phase != GamePhase.NamingJoker) return;
+            if (_view.IsBusy) _view.SkipAnimations();
+            Card best = _game.BestJokerCard;
+            HandEvaluation made = _game.EvaluateJokerAs(_jokerPick);
+            LogNote($"joker named: {_jokerPick} ({made.Category}; best was {best}) (hand {_game.RoundNumber})");
+            _view.ShowJokerPicker(null);
+            _game.NameJoker(_jokerPick);
+            Refresh();
         }
 
         private void ProtectCard(int index)
@@ -1250,12 +1438,21 @@ namespace HellPoker.Presentation
                 _view.ShowEvent(EventCardOf(_pendingEvent));
         }
 
+        /// <summary>A hand is being played (bets, the draw, a re-raise, the joker's naming).</summary>
+        private bool IsHandInPlay => IsBetPhase(_game.Phase) || _game.Phase == GamePhase.Drawing;
+
+        /// <summary>The jokers among the player's cards they can see.</summary>
+        private int VisiblePlayerJokers() =>
+            _game.PlayerHand == null ? 0
+                : Enumerable.Range(0, Math.Min(Hand.Size, _game.PlayerCardsRevealed)).Count(i => _game.PlayerHand[i].IsJoker && !_game.IsPlayerCardHidden(i));
+
         /// <summary>The player's caption: what the face-up cards make right now (hand guide), or just "YOUR HAND".</summary>
         private void ShowPlayerCaption()
         {
             HandCategory? now = _game.PlayerHandNow;
             if (GuideOn && now.HasValue)
-                _view.Player.SetCaption(string.Format(UiText.HandNowFormat, UiText.CategoryNameUpper(now.Value)), Tone.Neutral);
+                _view.Player.SetCaption(string.Format(VisiblePlayerJokers() > 0 ? UiText.HandNowJokerFormat : UiText.HandNowFormat,
+                    UiText.CategoryNameUpper(now.Value)), Tone.Neutral);
             else
                 _view.Player.SetCaption(UiText.PlayerCaption, Tone.Muted);
         }
@@ -1294,9 +1491,15 @@ namespace HellPoker.Presentation
             // or when its moment has gone. The Bone Die's pick goes when no card may be rolled any more (the draw passed, the hand ended).
             if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
                 _redrawing = false;
+            // The joker picker lives only while the showdown waits for the joker's name.
+            if (_game.Phase != GamePhase.NamingJoker)
+                _view.ShowJokerPicker(null);
 
             switch (_game.Phase)
             {
+                case GamePhase.NamingJoker:
+                    ShowNaming();
+                    break;
                 case GamePhase.Betting:
                     ShowBetting();
                     break;
@@ -1348,6 +1551,7 @@ namespace HellPoker.Presentation
             }
 
             ShowPower();
+            ShowDeck();
             // The King's protection was switched on but the draw passed without a card picked: it closed, the gauge still full.
             if (_game.TakePowerLapsed())
             {
@@ -1364,7 +1568,16 @@ namespace HellPoker.Presentation
         {
             Sinner sinner = _game.Sinner;
             string hint = KingPicking ? UiText.ProtectHint : FreeFoldOn ? UiText.FreeFoldHint : _redrawing ? UiText.RedrawPrompt : null;
-            _view.SetPower(new PowerDisplay(hint, sinner != null && sinner.WardRaised));
+            // The joker picker's live result; two jokers in the hand while it is played: the warning stays until one goes.
+            bool warning = false;
+            if (_game.Phase == GamePhase.NamingJoker)
+                hint = JokerResultLine();
+            else if (hint == null && IsHandInPlay && VisiblePlayerJokers() >= 2)
+            {
+                hint = UiText.TwoJokersWarning;
+                warning = true;
+            }
+            _view.SetPower(new PowerDisplay(hint, sinner != null && sinner.WardRaised, warning));
             int[] pickable = KingPicking ? Enumerable.Range(0, Hand.Size).Where(_game.CanProtect).ToArray()
                 : _redrawing ? Enumerable.Range(0, Hand.Size).Where(_game.CanRedraw).ToArray()
                 : null;
@@ -1497,7 +1710,10 @@ namespace HellPoker.Presentation
 
             bool mustRaise = !_game.CanBet(BetAction.Pass, out _);
             bool beforeDraw = _game.Phase == GamePhase.PlayerReveal;
-            _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice), mustRaise ? Tone.Warning : Tone.Neutral);
+            // A thin deck was shuffled as this hand began: said once, with the first decision.
+            string shuffled = _game.DeckShuffledThisHand && _deckToldRound != _game.RoundNumber ? "\n" + UiText.DeckRanOut : "";
+            if (shuffled.Length > 0 && !_relabelling) _deckToldRound = _game.RoundNumber;
+            _view.SetMessage(prompt + (mustRaise ? UiText.PromptForcedChoice : UiText.PromptChoice) + shuffled, mustRaise ? Tone.Warning : Tone.Neutral);
             _view.SetBetControls(new BetControls(true, RaiseLabel(), _game.CanBet(BetAction.Raise, out _), !mustRaise,
                 showCheckToDraw: beforeDraw, canCheckToDraw: beforeDraw && _game.CanCheckToDraw(out _), foldLabel: FoldLabel));
             if (_game.Phase == GamePhase.PlayerReveal)
@@ -1624,9 +1840,11 @@ namespace HellPoker.Presentation
             _view.Player.SetInteractable(false);
             _view.Player.SetSelection(null);
             _view.Player.SetHints(null);
-            // The House turns first: a card a cheat kept from the player turns only once both hands are on the table.
-            _view.House.Show(HouseSlots(Hand.Size));
-            _view.Player.Show(PlayerSlots(Hand.Size));
+            // The House turns first: a card a cheat kept from the player turns only once both hands are on the table. A single joker
+            // sparkles into the card it became (a fool's cap in its corner); two or more stay jokers — they lost the hand.
+            ShowdownResult judged = round?.Showdown;
+            _view.House.Show(JokersResolved(HouseSlots(Hand.Size), _game.HouseHand, judged?.House, judged == null || judged.HouseBust));
+            _view.Player.Show(JokersResolved(PlayerSlots(Hand.Size), _game.PlayerHand, judged?.Player, judged == null || judged.PlayerBust));
             if (!_relabelling)
                 _view.Pause(ShowdownPause);
 
@@ -1649,8 +1867,9 @@ namespace HellPoker.Presentation
             else
             {
                 // Both hands by name; the winner's is lit and marked.
-                string house = string.Format(UiText.HouseDrewFormat, UiText.CategoryName(showdown.House.Category), round.HouseExchange.Drawn.Count);
-                string player = UiText.CategoryName(showdown.Player.Category);
+                string house = showdown.HouseBust ? UiText.TwoJokersCaption
+                    : string.Format(UiText.HouseDrewFormat, UiText.CategoryName(showdown.House.Category), round.HouseExchange.Drawn.Count);
+                string player = showdown.PlayerBust ? UiText.TwoJokersCaption : UiText.CategoryName(showdown.Player.Category);
                 _view.House.SetCaption(houseWon ? string.Format(UiText.WinnerFormat, house) : house, houseWon ? Tone.Bad : Tone.Muted);
                 _view.Player.SetCaption(playerWon ? string.Format(UiText.WinnerFormat, player) : player, playerWon ? Tone.Triumph : Tone.Muted);
             }
@@ -1663,6 +1882,11 @@ namespace HellPoker.Presentation
                 else if (houseWon || (round.Folded && !round.FreeFold))
                     _view.PlaySfx(SfxIds.Loss);
                 PlayMoments(round, playerWon);
+                if (showdown?.HouseBust == true)
+                    _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerLaughFlash);
+                // Twenty jokers: the fool's laugh, the deck cleared — and the first time, the Rattle.
+                if (round.JokerJackpot)
+                    _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerJackpotFlash);
             }
             if (soulHand)
             {
@@ -1691,7 +1915,7 @@ namespace HellPoker.Presentation
                     break;
                 default:
                     if (round == null) break;   // only a finished run can come here without a hand
-                    _view.SetMessage(WithCheatLog(ResultMessage(round, soulHand), soulHand),
+                    _view.SetMessage(WithJackpot(WithCheatLog(ResultMessage(round, soulHand), soulHand), round),
                         playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     if (IsHoldingTheLastYear)
                     {
@@ -1743,7 +1967,11 @@ namespace HellPoker.Presentation
         private void SayRoundLine(RoundResult round)
         {
             int counter = _game.RoundNumber;
-            if (round.Folded)
+            if (round.JokerJackpot)
+                Say(d => d.JokerJackpot, counter, DealerMood.Annoyed);   // the demon did not see that coming
+            else if (!round.Folded && round.Showdown.HouseBust)
+                Say(d => d.JokerBust, counter, DealerMood.Annoyed);   // the demon's own jokers sank him
+            else if (round.Folded)
                 Say(d => d.PlayerFolds, counter, DealerMood.Gloating);
             else if (round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
                 Say(d => d.PlayerWins, counter, DealerMood.Annoyed);
@@ -1759,6 +1987,11 @@ namespace HellPoker.Presentation
                 return UiText.FreeFoldMessage;
             if (round.Folded)
                 return soulHand ? UiText.SoulFold : string.Format(UiText.FoldFormat, round.YearsChange);
+
+            // Two jokers decide the hand whatever the cards make.
+            if (round.Showdown.PlayerBust && round.Showdown.HouseBust) return UiText.BothBust;
+            if (round.Showdown.PlayerBust) return soulHand ? UiText.PlayerBustSoul : string.Format(UiText.PlayerBustFormat, round.YearsChange);
+            if (round.Showdown.HouseBust) return soulHand ? UiText.HouseBustSoul : string.Format(UiText.HouseBustFormat, -round.YearsChange);
 
             string player = UiText.CategoryName(round.Showdown.Player.Category);
             string house = UiText.CategoryName(round.Showdown.House.Category);
@@ -1808,6 +2041,18 @@ namespace HellPoker.Presentation
                     slots[i] = slots[i].WithMark(CardMark.Thorned);
                 else if (_game.IsPlayerCardProtected(i) && i < faceUp)
                     slots[i] = slots[i].WithMark(CardMark.Protected);
+            }
+            return slots;
+        }
+
+        /// <summary>At the showdown: a single joker shows the card it became, with a fool's cap in its corner (two or more stay jokers).</summary>
+        private static CardSlot[] JokersResolved(CardSlot[] slots, Hand hand, HandEvaluation judged, bool bust)
+        {
+            if (hand == null || judged == null || bust) return slots;
+            for (int i = 0; i < Hand.Size; i++)
+            {
+                if (hand[i].IsJoker && !judged.Hand[i].IsJoker && slots[i].Kind == CardSlot.SlotKind.Face)
+                    slots[i] = CardSlot.Face(judged.Hand[i]).WithMark(CardMark.Joker);
             }
             return slots;
         }

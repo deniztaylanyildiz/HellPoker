@@ -12,6 +12,7 @@ namespace HellPoker.Presentation.Ui
                 case Peasant.ClassId: return L("PEASANT", "KÖYLÜ");
                 case Warlock.ClassId: return L("WARLOCK", "BÜYÜCÜ");
                 case King.ClassId: return L("KING", "KRAL");
+                case Jester.ClassId: return L("JESTER", "SOYTARI");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -24,6 +25,7 @@ namespace HellPoker.Presentation.Ui
                 case Peasant.ClassId: return L("Who never had much to lose", "Kaybedecek pek bir şeyi olmamış");
                 case Warlock.ClassId: return L("Who dabbled in the dark arts", "Karanlık sanatlarla oynamış");
                 case King.ClassId: return L("Who ruled, and sinned in proportion", "Hüküm sürmüş, günahı da ona göre");
+                case Jester.ClassId: return L("Who made a joke of everything", "Her şeyi şakaya vurmuş");
                 default: return "";
             }
         }
@@ -38,6 +40,8 @@ namespace HellPoker.Presentation.Ui
                     "Yalanları ve Belial'in 2 kartını görür. Güç: küçük bir hileyi savuştur.");
                 case King.ClassId: return L("Wins pay a quarter ante more. Power: shield a card from cheats.",
                     "Kazanç çeyrek ante fazla. Güç: bir kartı hilelerden koru.");
+                case Jester.ClassId: return L("Jokers in the deck: one is any card, two lose. A win adds one.",
+                    "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir tane ekler.");
                 default: return "";
             }
         }
@@ -50,6 +54,7 @@ namespace HellPoker.Presentation.Ui
                 case Peasant.ClassId: return L("No tricks — the easy way down.", "Hilesi yok — en kolay yol.");
                 case Warlock.ClassId: return L("Major cheats get through.", "Büyük hileler geçer.");
                 case King.ClassId: return L("A heavier sin: starts deeper.", "Ağır günah: daha derinden başlar.");
+                case Jester.ClassId: return L("The demon may draw a joker too.", "Şeytan da joker çekebilir.");
                 default: return "";
             }
         }
@@ -122,6 +127,60 @@ namespace HellPoker.Presentation.Ui
 
         public static string SinnersButton => L("SINNERS", "GÜNAHKÂRLAR");
 
+        // ------------------------------------------------------------------ the Jester and his jokers
+
+        /// <summary>The Jester's badge: the jokers in the deck ({0}).</summary>
+        public static string JokerCountFormat => L("×{0}", "×{0}");
+
+        /// <summary>The badge's hover line: {0} jokers now, {1} the line above which a loss takes one away, {2} the floor.</summary>
+        public static string JokerBadgeFormat => L("Jokers in the deck: {0}. A win +1; above {1}, a loss -1 (never below {2}).",
+            "Destede joker: {0}. Kazanç +1; {1} üstündeyken kayıp -1 (en az {2}).");
+
+        public static string JokerBadgeHint(int jokers)
+        {
+            var jester = (Jester)SinnerRoster.Jester;
+            return string.Format(JokerBadgeFormat, jokers, jester.JokerLossLine, jester.StartingJokers);
+        }
+
+        /// <summary>K (or the badge) for the Jester: he has no power to switch on.</summary>
+        public static string JesterPowerInfo => L("The Jester's power is the jokers in the deck.", "Soytarı'nın gücü destedeki jokerler.");
+
+        /// <summary>Two jokers (or more) in the player's hand during play.</summary>
+        public static string TwoJokersWarning => L("Two jokers: you lose at the showdown, discard the extra", "İki joker: el sonunda kaybedersin, fazlasını at");
+
+        /// <summary>The caption while the player's visible cards hold a joker: {0} the best hand it makes.</summary>
+        public static string HandNowJokerFormat => L("WITH JOKER: {0}", "JOKER İLE: {0}");
+
+        public static string JokerPrompt => L("Name your joker: left / right rank, up / down suit, Enter.", "Jokerini seç: sol / sağ değer, yukarı / aşağı renk, Enter.");
+
+        /// <summary>The picker's live line: {0} the hand the chosen card makes.</summary>
+        public static string JokerResultFormat => L("With this card: {0}", "Bu kartla elin: {0}");
+        public static string JokerBestTag => L(" (best)", " (en iyisi)");
+        public static string JokerRankLabel => L("RANK", "DEĞER");
+        public static string JokerSuitLabel => L("SUIT", "RENK");
+        public static string JokerConfirm => L("NAME IT", "SEÇ");
+
+        /// <summary>The demon's two jokers come to light at the showdown.</summary>
+        public static string JokerLaughFlash => L("HA! HA! HA!", "HA! HA! HA!");
+        public static string TwoJokersCaption => L("TWO JOKERS", "İKİ JOKER");
+
+        /// <summary>{0} the years added.</summary>
+        public static string PlayerBustFormat => L("Two jokers in your hand: the hand is lost. +{0} years.", "Elinde iki joker: el kaybedildi. +{0} yıl.");
+        public static string PlayerBustSoul => L("Two jokers in your hand: the hand is lost.", "Elinde iki joker: el kaybedildi.");
+
+        /// <summary>{0} the years forgiven.</summary>
+        public static string HouseBustFormat => L("Two jokers in the demon's hand: you win! -{0} years.", "Şeytanın elinde iki joker: kazandın! -{0} yıl.");
+        public static string HouseBustSoul => L("Two jokers in the demon's hand: you win!", "Şeytanın elinde iki joker: kazandın!");
+        /// <summary>Twenty jokers in the Jester's deck.</summary>
+        public static string JokerJackpotFlash => L("TWENTY JOKERS!", "YİRMİ JOKER!");
+
+        /// <summary>{0} the relic's name, {1} its gift, {2} its curse.</summary>
+        public static string JokerJackpotRattleFormat => L("Twenty jokers: the deck is cleared. {0} is yours. {1} But: {2}",
+            "Yirmi joker: deste temizlendi. {0} artık sende. {1} Ama: {2}");
+        public static string JokerJackpotAgain => L("Twenty jokers again: the deck is cleared.", "Yine yirmi joker: deste temizlendi.");
+
+        public static string BothBust => L("Two jokers on both sides: nobody wins.", "İki tarafta da iki joker: kimse kazanmadı.");
+
         /// <summary>How to Play: the Sinners page.</summary>
         public static string SinnersPage()
         {
@@ -132,11 +191,13 @@ namespace HellPoker.Presentation.Ui
             string page = string.Format(L("Before the first hand you choose who you were. The class stays for the whole run, at every table.\n" +
                             "Every class has a power and a gauge of {0} pips under the portrait: a won hand +{1}, a lost one +{2}, a fold +{3}. " +
                             "The gauge belongs to the run (new tables and Lucifer keep it). Full, K or the badge switches the power on; it " +
-                            "stays on until it is used (the gauge empties) or switched off with K again.\n\n",
+                            "stays on until it is used (the gauge empties) or switched off with K again. The Jester has no gauge: his jokers are his power " +
+                            "(a single joker at the showdown becomes any card you name; two or more lose the hand).\n\n",
                 "İlk elden önce kim olduğunu seçersin. Sınıf bütün koşu boyunca, her masada seninledir.\n" +
                 "Her sınıfın bir gücü ve portrenin altında {0} pipli bir göstergesi var: kazanılan el +{1}, kaybedilen +{2}, çekilme +{3}. " +
                 "Gösterge koşuya aittir (yeni masa ve Lucifer onu korur). Dolunca K ya da rozet gücü açar; güç kullanılana " +
-                "(gösterge boşalır) ya da yine K ile kapatılana kadar açık kalır.\n\n"), charge.Full, charge.PerWin, charge.PerLoss, charge.PerFold);
+                "(gösterge boşalır) ya da yine K ile kapatılana kadar açık kalır. Soytarı'nın göstergesi yok: gücü jokerleri " +
+                "(showdown'da tek joker seçtiğin karta dönüşür; iki ya da fazlası eli kaybettirir).\n\n"), charge.Full, charge.PerWin, charge.PerLoss, charge.PerFold);
             foreach (SinnerClass c in SinnerRoster.All)
                 page += Block(c) + "\n";
             return page.TrimEnd();

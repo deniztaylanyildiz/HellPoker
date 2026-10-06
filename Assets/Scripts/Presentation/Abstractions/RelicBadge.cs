@@ -15,8 +15,12 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The relic is being used: the player is picking its card (the Bone Die) — its tile pulses.</summary>
         public bool Selecting { get; }
 
-        public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false)
+        /// <summary>An earned relic (the Jester's Rattle): it sits apart from the offered ones, in a gold frame.</summary>
+        public bool IsReward { get; }
+
+        public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false, bool isReward = false)
         {
+            IsReward = isReward;
             Selecting = selecting;
             Id = id;
             Name = name ?? "";

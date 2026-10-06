@@ -258,11 +258,11 @@ namespace HellPoker.Core.Events
         public string LastGiven { get; private set; }
 
         private static string[] Open(IEventTable table) =>
-            System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(System.Linq.Enumerable.Select(Relics.RelicRoster.All, r => r.Id),
+            System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(System.Linq.Enumerable.Select(Relics.RelicRoster.Offered, r => r.Id),
                 id => !System.Linq.Enumerable.Contains(table.Effects.Relics, id)));
 
         public bool CanAppear(IEventTable table, string dealerId) =>
-            table.Effects.Relics.Count < Relics.RelicRoster.MaxCarried && Open(table).Length > 0;
+            table.Effects.CarriedOffered < Relics.RelicRoster.MaxCarried && Open(table).Length > 0;
 
         public void Apply(string option, IEventTable table, string dealerId, Randomness.IRandomSource random)
         {

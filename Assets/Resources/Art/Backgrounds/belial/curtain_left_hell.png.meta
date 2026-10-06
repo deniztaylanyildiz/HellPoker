@@ -235,7 +235,11 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      curtain_left_hell_0: 4329589813931645386
+      curtain_left_hell_1: 6853177738403525398
+      curtain_left_hell_2: -2911151258857505817
+      curtain_left_hell_3: -8383861339955929682
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

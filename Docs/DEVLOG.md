@@ -2470,3 +2470,139 @@ Köylü 3.8, Büyücü 5.7, Kral 5.5. Mammon'da Köylü / Büyücü hedefin (~80
 ### Açık sorular / sıradaki
 - Oyun testi: güç modu anlaşılıyor mu (GÜÇ AÇIK, BEDAVA ÇEKİL, kalkan)? Mammon'da Köylü / Büyücü kolay mı?
 - Köylü BEDAVA ÇEKİL ve Büyücü kalkanının ekran görüntüsü turda yok (Kral'ınki var).
+## 2026-10-06 — Oyun ikonu (piksel şeytan)
+
+### İstek (kullanıcı)
+Exe'de ve Başlat menüsünde Unity logosu yerine kendi piksel şeytan ikonumuz. `Tools/make_icon.py` verilen kodla birebir; import ayarları
+Editor script'iyle; menüde "Hell Poker/İkonu Ayarla".
+
+### Yapılanlar
+- `Tools/make_icon.py` (kullanıcının kodu, değiştirilmedi) → `Assets/Art/Icon/hellpoker-icon-{1024..16}.png` + `hellpoker.ico`
+  (`py Tools/make_icon.py`; bu makinede `python` Store yönlendiricisi, `py` çalışıyor).
+- `Assets/Editor/HellPokerIconImporter.cs` (AssetPostprocessor, sadece `Assets/Art/Icon/`): Default, Point, sıkıştırmasız, mipmap yok,
+  Alpha Is Transparency, NPOT ölçeklenmez, Max Size 2048.
+- `Assets/Editor/HellPokerIconSetter.cs` (menü Hell Poker ▸ İkonu Ayarla): Default Icon = 1024'lük PNG; Standalone override'ın her
+  boyutuna aynı boyuttaki (yoksa en yakın büyük) PNG; sürüm `ProjectVersion.txt`'den okunup loglanır, API derleme anında seçilir
+  (`UNITY_2021_2_OR_NEWER` → NamedBuildTarget, değilse SetIconsForTargetGroup); her atama Console'a yazılır, `SaveAssets`.
+- **Not:** batchmode'da `GetIconSizes(Standalone)` boş liste döndürüyor ve Standalone override'ı yazılmıyor (yedek boyut listesi
+  `1024..16` ile denendi, yine boş kaldı). Varsayılan ikon yazıldı ve build'deki exe şeytan ikonunu taşıyor (çıkarılıp bakıldı).
+  Elle çizilmiş 16 / 48'lik sürümlerin override'a girmesi için menü komutu editörde bir kez çalıştırılmalı.
+## 2026-10-06 — Dördüncü sınıf: Soytarı (jokerli deste) — 0.1.5, aynı numara
+
+### İstek (kullanıcı)
+SOYTARI (Jester, id "jester"): şarj gücü yok; koşusunda her masada (Lucifer dahil) jokerli deste. 2 jokerle başlar, kazanılan el +1,
+10'un üstünde kaybedilen el -1, 2'nin altına inmez. Showdown'da 2+ joker kaybettirir (iki tarafta da: beraberlik), tek joker istenen
+karta dönüşür (oyuncuya seçici, şeytan en iyisini seçer; sahibinin elindeki karta dönüşemez). Hileler jokere dokunmaz. Diğer üç sınıfın
+kuralları ve dengesi değişmez; Soytarı Köylü'den ±3'ten fazla saparsa sadece rapor + tek öneri. Sunum, sanat, iki dil, kayıt
+(`class.jokers`), günlük, testler, simülasyon, ekran görüntüleri, build, belgeler. (Önce "joker prompunu unut" denildi, sonra bu
+güncellenmiş sürüm verildi: şarj yok, sayaç var.)
+
+### Tasarım kararları
+- **Kart:** `Card.Joker(seri)`: Rank 0, suit yok, seri numarasıyla ayrışır (destede çok joker olabilir). 52 kartın eşitliği, hash'i,
+  metni birebir aynı (test). Deste `IJokerDeck.SetJokers` (`Deck`); jokerler listenin dibine girer (yığılmış test destelerinin sırası
+  korunur). `PlaceBet` her elde `Sinner.Jokers`'ı uygular; Soytarı değilse 0 → 52.
+- **Değerlendirme:** `JokerResolver` aramasız, kategori kategori en iyi kartı kurar (Ölü Adamın Eli → floş kent → kare → full → renk →
+  kent → üçlü → çift); testte 300 tek jokerli ve 40 iki jokerli rastgele elde her kartı tek tek denemekle aynı sonucu verdiği doğrulandı.
+  `WildJokerEvaluator` oyunun her yargısının önünde (kurucu sarar): kasa yapay zekası, bahis, el rehberi, hileler, Bakış hep jokeri en
+  iyi kart sayar. Jokerle Ölü Adamın Eli de olur (kural "istediği kart" dediği için; simülasyonda Soytarı'nın DMH kazancı belirgin arttı).
+- **Showdown:** `GamePhase.NamingJoker` (sona eklendi): önce The Fall vurur, sonra bütün kartlar döner, oyuncunun tek jokeri için seçici
+  açılır; kasa kendi jokerini en iyiye çevirir. `ShowdownResult.Judge` (`PlayerBust` / `HouseBust`). Seçim sırasında kapatma = el ortası
+  (forfeit). Çekilen elde kural yok.
+- **Hileler:** `CheatRules.IsImmune` jokeri de kapsar (hedef olmaz); `CheatTable` desteden "sıradaki kartı" verirken jokerleri atlar,
+  Sahte Yüz joker göstermez, Çatal Dil'in renk sayımı jokeri saymaz. Her şeytanın her hilesi için test.
+- **Sayaç:** `Sinner.Jokers` (koşuya ait: masa değişimi / çağrılma / düşüş aynen). `SinnerClass.StartingJokers` / `JokerLossLine`;
+  `Jester(başlangıç, joker, sınır)`. Kayıt `class.jokers` (yoksa / bozuksa / 2'nin altıysa 2; bozuk değer kaydı geçersiz kılmaz).
+- **Sunum:** joker yüzü `Ui/card_joker`, dönüşte `Ui/joker_sparkle` (6 kare) + köşede külah (`CardMark.Joker`, `card_marks` 6. kare);
+  seçici `JokerPickerView` bet satırında (DEĞER / RENK okları, kart, SEÇ; klavyede oklar + Enter / Space; `ITableCommands.StepJoker`),
+  canlı satır "Bu kartla elin: ÜÇLÜ (en iyisi)"; elde 2 joker varken kırmızı uyarı satırı (`PowerDisplay.Warning`); rehber
+  "JOKER İLE: ..."; şeytanın iki jokeri `TableMoment.JokerLaugh` ("HA! HA! HA!") + kızgın `JokerBust` repliği; rozet pip yerine "×N",
+  sayı değişince parlar, hover'da kural. K / rozet: "Soytarı'nın gücü destedeki jokerler." Sınıf seçimi 4 karta göre daralıyor
+  (`CardWidthFor`: 112 px). Her şeytana `GreetingAsJester` ve `JokerBust`. SINNERS sayfası joker kurallarını anlatıyor.
+- **Günlük:** joker gelişi (kime, dağıtım / draw), adlandırılan kart (ve en iyisi), kasanın kartı, iki joker kaybı / kazancı, sayaç değişimi.
+
+### Denge (2000 koşu, kurallara dokunulmadı)
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %82.7 (%88 / %31) | %78.7 (%84 / %41) | %51.7 (%65 / %32) |
+| Büyücü | %85.0 (%89 / %37) | %78.2 (%83 / %44) | %55.2 (%66 / %37) |
+| Kral | %77.3 (%82 / %33) | %72.2 (%76 / %43) | %49.0 (%58 / %35) |
+| Soytarı | %71.2 (%81 / %45) | %69.7 (%77 / %52) | %47.9 (%60 / %47) |
+
+Soytarı, Köylü'ye göre −11.5 / −9.0 / −3.8: sınırın dışında. Koşular kısa ve oynak (ort. el 24 / 13 / 14; Köylü 57 / 28 / 32). Koşu
+sonunda joker ort. 9.0 / 6.6 / 7.3, en çok 24. Showdown'ların %14 / %10 / %13'ü oyuncunun iki jokeriyle kaybedildi, %16 / %9 / %13'ü
+şeytanın iki jokeriyle kazanıldı. Denemeler (sadece simülasyonda, `HELLPOKER_JESTER`): kayıp sınırı 4 → 74.2 / 71.5 / 48.8; başlangıç
+750 → 76.7 / 77.7 / 57.6. **Öneri (uygulanmadı):** Soytarı'nın başlangıç cezası 750 yıl. Diğer üç sınıfın sayıları değişmedi
+(tohumlar aynı, sonuçlar önceki tabloyla birebir).
+
+### Testler / build
+- Yeni: `JokerTests` (18: deste 54/52, sayaç, değerlendirme her kategoride + rastgele doğrulama, iki joker kuralı, seçici, kasa yapay
+  zekası, hileler, kayıt), `JesterPresenterTests` (6: rozet / K, uyarı, seçici ve okları, şeytanın iki jokeri, günlük), PlayMode
+  `JesterJourneyTests` (Soytarı seçilir, seçici çıkar, adlandırılan kart külahlı); sınıf kartı testi 4 kartın ekrana sığdığını da ölçüyor.
+- EditMode 781 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+2 explicit), 0 hata. Simülasyona 1 saatlik zaman aşımı (4 sınıfla
+  varsayılan 3 dakikayı aşıyordu; rapor tam yazılıyordu ama test "başarısız" görünüyordu).
+- Ekran görüntüleri TR / EN: 03c (4 sınıf), 02c (SINNERS sayfası), `JesterScreenshots` 60–66 (sınıf seçimi, elde joker, iki joker
+  uyarısı, seçici, adlandırılan kart, rozet hover'ı, şeytanın iki jokeri).
+- `Builds/HellPoker-0.1.5-win64.zip` (~35.5 MB; 0.1.5 dağıtılmadığı varsayıldı). Zip'ten 3 duman turu: çıkış 0, Player.log temiz.
+- OKUBENI (Soytarı paragrafı, oklar), GERI_BILDIRIM (Soytarı soruları), PLAYTEST (Soytarı satırı), CLAUDE.md (Sınıflar, mimari, kayıt,
+  sanat, testler, denge tablosu) güncel.
+
+### Açık sorular / sıradaki
+- Soytarı dengesi: öneri başlangıç 750 (kullanıcı seçecek). Jokerle Ölü Adamın Eli'ne izin kalsın mı?
+- Unity, eski .meta dosyalarına `nameFileIdTable` ekleyerek yeniden yazdı (zararsız; commit'e girebilir).
+## 2026-10-06 — Soytarı'nın Çıngırağı (20 joker) ve sayılan deste / KARIŞTIR — 0.1.5, aynı numara
+
+### İstekler (kullanıcı)
+1. Soytarı isteğinin güncellenmiş sürümü (parçalı geldi): **20 joker** — sayı 20'ye ulaşınca jokerler silinir, sayı 2'ye döner,
+   koşuda bir kez "Soytarı'nın Çıngırağı" emaneti (lanet: kaybedilen el ante'nin %50'si kadar fazla yıl ekler; "oynaklığı ikiye
+   katlar"), büyük an, emanet çubuğunda ayrı, kayıtta 2 sınırına takılmasın. Bir mesaj okunamaz geldi (karakterler karışık).
+2. "İşlemler bittikten sonra": **kart sayma** — deste eller boyunca devam etsin, kalan kart sayısı görünsün, oyuncu bedel ödeyip
+   karıştırabilsin; diğer kurallara dokunma. Son olarak iki denge tablosu ve kısa Türkçe özet. (Bu da parçalı geldi: 2. ve 4. bölümün
+   bir kısmı ile "...açılır; bunu OKUBENI'de bir cümleyle söyle" cümlesinin başı kayıp.)
+
+### Yorum ve kararlar (eksik parçalar için)
+- Çıngırak'ın lütfu metinde kesikti; lanetin simetriği alındı: **kazanılan el ante'nin %50'si kadar fazla siler**. `RelicEffects`'e
+  `WinAntePercent` / `LossAntePercent` (yeni kancalar; diğer emanetlerin sayıları aynı). `IRelic.IsReward`: olaylarda çıkmaz
+  (`RelicRoster.Offered`), 2 sınırına sayılmaz (`RunEffects.CarriedOffered`), kayıtta "relics" içinde okunur.
+- 20 joker anı: `TableMoment.JokerLaugh` + "YİRMİ JOKER!", şeytan şaşkın `JokerJackpot` repliği (10 metin, iki dil), sonuç satırında
+  emanet (ya da "yine yirmi joker: deste temizlendi"), emanet kutusu çubukta ilk kutunun solunda, altın çerçeveli, bir an parlıyor.
+- Sayılan deste: `GameRules.ContinuousDeck` (açık). Otomatik karıştırma eşiği koddan: `CardsForAHand` = 2 el + iki tarafın en çok
+  draw'u + emanetlerin yeniden çekişi + bir hilenin en çok çektiği (`CheatTable.MostCardsACheatDeals` = 2, The Fall) + hayalet elde 5.
+  Mammon'da 18, Lilith'te 20, Kemik Zar'la +1. Kasa draw'da desteden fazlasını istemez (boş destede hata yerine az çeker).
+- KARIŞTIR: S / buton ("KARIŞTIR +10"), eller arasında, her elden önce bir kez, +10 yıl, 300 altı / ruh masadayken (ya da 10 yıl ruhu
+  masaya koyacaksa) yok; ruhta buton gizli (yıl gösterilmez). Sayaç "DESTE 37" kasanın satırının solunda, hover: "Destede kalan: N
+  kart. Deste bitince ya da KARIŞTIR ile baştan karılır." Otomatik karıştırma ilk kararda "Deste bitti, şeytan desteyi karıyor."
+  Soytarı'da deste her el karılıyor; sayaç ve KARIŞTIR yok.
+- Yeni masa / Lucifer / düşüş / devam: yeni oyun = taze deste. `Restart` da desteyi tazeliyor.
+
+### Denge (2000 koşu)
+Taze deste (eski, `HELLPOKER_FRESH_DECK=1`):
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %82.8 (%88 / %31) | %78.4 (%84 / %40) | %52.4 (%66 / %32) |
+| Büyücü | %84.9 (%89 / %36) | %77.9 (%83 / %45) | %53.9 (%65 / %39) |
+| Kral | %77.5 (%82 / %34) | %71.0 (%75 / %44) | %49.3 (%59 / %35) |
+| Soytarı | %69.2 (%80 / %45) | %70.0 (%78 / %50) | %47.6 (%59 / %45) |
+
+Sayılan deste (yeni):
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
+| Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
+| Kral | %77.4 (%82 / %32) | %72.2 (%77 / %42) | %47.1 (%58 / %34) |
+| Soytarı | %69.2 (%80 / %45) | %70.0 (%78 / %50) | %47.6 (%59 / %45) |
+
+Fark −2.2..+1.4 (gürültü payı); simülasyon oyuncusu kart saymıyor ve KARIŞTIR'a basmıyor, gerçek sayan oyuncuya fayda daha çok olabilir.
+Soytarı iki tabloda aynı (her el karılıyor). Çıngırak: Soytarı koşularının %0.7 (Mammon) / %0 / %0.2'sinde; 20'ye çıkmak zor (koşu
+sonunda joker ort. 8.9 / 6.7 / 7.4, en çok 19). Soytarı hâlâ Köylü'nün 4–14 puan altında; önceki öneri (başlangıç 750) bekliyor.
+
+### Testler / build
+- EditMode 797 geçti (+1 explicit), 0 hata. Yeni: Çıngırak (`JokerTests` +4, `JesterPresenterTests` +1, `RelicTests` güncel),
+  `DeckCountingTests` (11: deste devam ediyor, otomatik karıştırma ve eşik, yeni masa taze, kural kapalıyken her el taze, KARIŞTIR bedeli
+  / bir kez / 300 / ruh, Soytarı'da yok, boş destede hileler ve Kemik Zar hata vermiyor, masa sayacı + buton + günlük).
+- PlayMode 28 geçti (+3 explicit), 0 hata. Ekran görüntüleri TR / EN yeniden alındı (masada "DESTE 52", "KARIŞTIR +10").
+- `Builds/HellPoker-0.1.5-win64.zip` (~35.5 MB); zip'ten 3 duman turu: çıkış 0, Player.log temiz.
+- OKUBENI (deste sayma + KARIŞTIR + S + Çıngırak), GERI_BILDIRIM, PLAYTEST, CLAUDE.md güncel.
+
+### Açık sorular
+- Çıngırak'ın lütfu metinde kesikti (yukarıdaki yorum doğru mu?). Okunamayan mesaj ve kesik "...açılır" cümlesi neydi?
+- Soytarı başlangıcı 750 olsun mu? Sayaç başlık fontuyla biraz iri; istersen metin fontuna alınır.

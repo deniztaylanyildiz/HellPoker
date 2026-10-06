@@ -395,7 +395,7 @@ def malice_pips():
     return sheet([malice_pip(d, f) for d in MALICE_ORDER for f in (False, True)])
 
 
-MARK_ORDER = ["chained", "thorned", "veiled", "false_face", "protected"]
+MARK_ORDER = ["chained", "thorned", "veiled", "false_face", "protected", "joker"]
 
 
 def card_mark(mark):
@@ -443,6 +443,18 @@ def card_mark(mark):
         img.paint(img.m_rect(20, 9, 29, 9), C.GOLD_MID)
         img.put(24, 7, C.RED)
         img.outline(C.BLACK, mask=img.m_rect(19, 1, 30, 10) & (img.px != C.CLEAR))
+    elif mark == "joker":              # a joker turned into this card: a tiny fool's cap in the top right corner, motley dots
+        frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
+        dots = ((img.xs.astype(int) + img.ys.astype(int)) // 2) % 3
+        img.paint(frame & (dots == 0), C.CRIMSON)
+        img.paint(frame & (dots == 1), C.GOLD)
+        img.paint(img.m_poly([(21, 8), (19, 2), (24, 6)]), C.CRIMSON)
+        img.paint(img.m_poly([(23, 8), (25, 1), (27, 8)]), C.GOLD)
+        img.paint(img.m_poly([(26, 6), (31, 2), (29, 8)]), C.VIOLET)
+        img.paint(img.m_rect(21, 8, 29, 9), C.GOLD_MID)
+        for bx, by in ((19, 2), (25, 1), (30, 2)):
+            img.put(bx, by, C.GOLD_LIGHT)
+        img.outline(C.BLACK, mask=img.m_rect(18, 0, 31, 10) & (img.px != C.CLEAR))
     elif mark == "false_face":           # the faintest silver sheen: a broken silver frame, two glints
         frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
         dashes = ((img.xs.astype(int) + img.ys.astype(int)) // 3) % 3 == 0
@@ -454,6 +466,59 @@ def card_mark(mark):
 
 def card_marks():
     return sheet([card_mark(m) for m in MARK_ORDER])
+
+
+def card_joker():
+    """The joker's face: a card with a grinning fool in the middle, a little bell in each corner."""
+    img = card_face()
+    # The fool: a white face under a three-pointed cap.
+    head = img.m_ellipse(16, 27, 6.5, 7.5)
+    img.paint(head, C.BONE_MID)
+    img.inner_outline(head, C.BONE_DARK)
+    img.put(13, 26, C.BLACK)
+    img.put(19, 26, C.BLACK)
+    img.put(13, 28, C.CRIMSON)
+    img.put(19, 28, C.CRIMSON)
+    img.paint(img.m_rect(12, 31, 20, 31), C.BLACK)
+    img.put(11, 30, C.BLACK)
+    img.put(21, 30, C.BLACK)
+    for x in (13, 15, 17, 19):
+        img.put(x, 32, C.BONE_SHADE)
+    img.paint(img.m_poly([(15, 20), (5, 12), (4, 17), (11, 20)]), C.CRIMSON)
+    img.paint(img.m_poly([(14, 20), (16, 9), (18, 20)]), C.GOLD)
+    img.paint(img.m_poly([(17, 20), (27, 12), (28, 17), (21, 20)]), C.VIOLET)
+    img.paint(img.m_rect(9, 20, 23, 21), C.GOLD_MID)
+    for bx, by in ((4, 17), (16, 9), (28, 17)):
+        img.paint(img.m_ellipse(bx, by, 1.4, 1.4), C.GOLD_LIGHT)
+    img.outline(C.BLACK, mask=img.m_rect(2, 7, 29, 36) & (img.px != C.BONE) & (img.px != C.CLEAR) & (img.px != C.BONE_MID) | head)
+    # Corner bells (no rank, no suit: it is every card and none).
+    for x, y in ((4, 4), (CARD_W - 5, CARD_H - 5)):
+        img.paint(img.m_ellipse(x, y, 1.6, 1.6), C.GOLD)
+        img.put(x, y + 1, C.GOLD_DARK)
+    img.inner_outline(card_shape(img), C.BLACK)
+    return img
+
+
+def joker_sparkle(frames=6):
+    """The joker turning into its card: gold and white sparks burst from the middle of the card and die out (played once)."""
+    out = []
+    rays = [(math.cos(math.radians(a)), math.sin(math.radians(a))) for a in range(0, 360, 45)]
+    for k in range(frames):
+        img = Img(CARD_W, CARD_H)
+        r = 3 + k * 4
+        for i, (dx, dy) in enumerate(rays):
+            x, y = 16 + dx * r, 24 + dy * r * 1.3
+            if not (0 <= x < CARD_W and 0 <= y < CARD_H):
+                continue
+            col = C.WHITE if k < 2 else C.GOLD_LIGHT if k < 4 else C.GOLD
+            img.put(int(x), int(y), col)
+            if k < frames - 2:
+                for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    img.put(int(x) + ox, int(y) + oy, C.GOLD if k < 3 else C.GOLD_MID)
+        if k < 2:
+            img.paint(img.m_ellipse(16, 24, 4 - k, 4 - k), C.WHITE)
+        out.append(img)
+    return sheet(out)
 
 
 def fade(steps=4):
@@ -485,6 +550,8 @@ def write_all(out_dir, fonts_dir):
         "cheat_icons": cheat_icons(),
         "malice_pips": malice_pips(),
         "card_marks": card_marks(),
+        "card_joker": card_joker(),
+        "joker_sparkle": joker_sparkle(),
         "button_blood": button(C.CRIMSON, C.RED, C.BLOOD),
         "button_ember": button(C.HELL, C.ORANGE, C.RED),
         "button_ash": button(C.PLUM, C.VIOLET, C.DUSK),

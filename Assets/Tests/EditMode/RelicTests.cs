@@ -78,9 +78,11 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the roster
 
         [Test]
-        public void FourRelics_EachWithAGiftAndACurse_AndUniqueIds()
+        public void FourOfferedRelicsAndOneEarned_EachWithAGiftAndACurse_AndUniqueIds()
         {
-            Assert.AreEqual(4, RelicRoster.All.Count);
+            Assert.AreEqual(5, RelicRoster.All.Count);
+            Assert.AreEqual(4, RelicRoster.Offered.Count());
+            Assert.AreEqual(RelicIds.JestersRattle, RelicRoster.All.Single(r => r.IsReward).Id);
             Assert.AreEqual(RelicRoster.All.Count, RelicRoster.All.Select(r => r.Id).Distinct().Count());
             foreach (IRelic relic in RelicRoster.All)
                 Assert.IsTrue(relic.Effects != RelicEffects.None, relic.Id);

@@ -1,6 +1,6 @@
 """The cursed relics: a 16x16 icon each (Ui/relic_icons.png, in RelicRoster.All order), shown beside the portrait.
 
-Order = RelicRoster.All: bone_die, rusty_crown, ferrymans_coin, thorned_rosary.
+Order = RelicRoster.All: bone_die, rusty_crown, ferrymans_coin, thorned_rosary, jesters_rattle (the earned one, last).
 """
 import math
 import os
@@ -8,7 +8,7 @@ import os
 from pixel import C, Img, sheet
 
 ICON = 16
-ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary"]
+ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary", "jesters_rattle"]
 
 
 def icon(relic_id):
@@ -58,6 +58,21 @@ def icon(relic_id):
         img.paint(img.m_rect(5, 13, 10, 13), C.BONE_DARK)
         img.put(3, 3, C.GREEN)
         img.put(13, 3, C.GREEN)
+    elif relic_id == "jesters_rattle":
+        # A fool's stick: a little grinning head in a three-pointed cap on a crimson handle, gold bells on the points.
+        img.paint(img.m_line([(9, 15), (12, 9)], 1), C.CRIMSON)
+        img.paint(img.m_rect(11, 14, 12, 15), C.GOLD_MID)
+        head = img.m_ellipse(7, 8, 3.5, 3.5)
+        img.paint(head, C.BONE)
+        img.put(6, 8, C.BLACK)
+        img.put(8, 8, C.BLACK)
+        img.paint(img.m_rect(6, 10, 8, 10), C.CRIMSON)
+        img.paint(img.m_poly([(5, 5), (1, 2), (3, 6)]), C.CRIMSON)
+        img.paint(img.m_poly([(6, 5), (7, 0), (8, 5)]), C.GOLD)
+        img.paint(img.m_poly([(9, 5), (13, 2), (11, 6)]), C.VIOLET)
+        img.paint(img.m_rect(4, 5, 10, 5), C.GOLD_MID)
+        for x, y in ((1, 2), (7, 0), (13, 2)):
+            img.put(x, y, C.GOLD_LIGHT)
     img.outline(C.BLACK)
     return img
 

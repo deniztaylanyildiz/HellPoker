@@ -12,7 +12,7 @@ namespace HellPoker.Core.Game
     /// it follows from the sentence and the demon's soul line. The deck and the cards are not saved: a resumed run gets a
     /// fresh shuffle, and a hand left behind is forfeited, never played on.
     /// Text format, one "key=value" per line, starting with "v=4". v=4 adds the sinner's class ("class", optional "class.charge" — the power's gauge — and "class.ward"; the older
-    /// "class.charges" / "class.charges.tables" are ignored;
+    /// "class.charges" / "class.charges.tables" are ignored; optional "class.jokers": the Jester's deck — missing, garbled or below the start reads as the start);
     /// later also the events and the relics, each with optional keys); a v=1..3 save reads as a Peasant's run. The hand lines ("hand.*") are optional, so saves made
     /// between hands read as before. v=2 adds Lucifer ("lucifer" at his table, "origin", "attempts"); a v=1 save still reads,
     /// as a run that never met him. v=3 adds the demon's cheats: "malice" (the gauge), "cheat.major" (the big cheat spent at
@@ -34,6 +34,9 @@ namespace HellPoker.Core.Game
 
         /// <summary>The Warlock's ward raised and still waiting ("class.ward", optional).</summary>
         public bool WardRaised { get; }
+
+        /// <summary>The jokers in the Jester's deck ("class.jokers", optional); 0 when not saved or unreadable — the class's start.</summary>
+        public int ClassJokers { get; }
 
         /// <summary>The run's events (v=4, optional): seen events, the cooldown, the next hand's modifier, deferred years, the
         /// sold soul. An empty state for a run without them.</summary>
@@ -75,8 +78,9 @@ namespace HellPoker.Core.Game
 
         public RunSnapshot(string dealerId, int years, int roundsPlayed, RunStats stats, HandInProgress hand = null,
             bool atLucifer = false, string originDealerId = null, int luciferAttempts = 0, int malice = 0, bool majorCheatUsed = false, int grudge = 0,
-            string classId = null, int classCharge = 0, RunEventState events = null, bool wardRaised = false)
+            string classId = null, int classCharge = 0, RunEventState events = null, bool wardRaised = false, int classJokers = 0)
         {
+            ClassJokers = Math.Max(0, classJokers);
             if (classCharge < 0) throw new ArgumentOutOfRangeException(nameof(classCharge));
             ClassCharge = classCharge;
             WardRaised = wardRaised;
@@ -130,6 +134,8 @@ namespace HellPoker.Core.Game
                 lines.Add("class.charge=" + ClassCharge.ToString(CultureInfo.InvariantCulture));
             if (WardRaised)
                 lines.Add("class.ward=1");
+            if (ClassJokers > 0)
+                lines.Add("class.jokers=" + ClassJokers.ToString(CultureInfo.InvariantCulture));
             Events.Encode(lines);
             if (Hand != null)
             {
@@ -206,9 +212,12 @@ namespace HellPoker.Core.Game
                 // The power's gauge; the older per-table "class.charges" keys mean nothing now and are left unread.
                 int charge = version >= 4 && values.ContainsKey("class.charge") ? KeyValues.Int(values, "class.charge") : 0;
                 bool ward = version >= 4 && values.ContainsKey("class.ward") && KeyValues.Flag(values, "class.ward");
+                // The Jester's jokers: a garbled number does not cost the run — it reads as the start (the class clamps it).
+                int jokers = version >= 4 && values.TryGetValue("class.jokers", out string j)
+                             && int.TryParse(j, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0;
 
                 snapshot = new RunSnapshot(dealer, KeyValues.Int(values, "years"), KeyValues.Int(values, "rounds"), stats, DecodeHand(values),
-                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charge, RunEventState.Decode(values), ward);
+                    atLucifer, origin, attempts, malice, majorUsed, grudge, classId, charge, RunEventState.Decode(values), ward, jokers);
                 return true;
             }
             catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is KeyNotFoundException

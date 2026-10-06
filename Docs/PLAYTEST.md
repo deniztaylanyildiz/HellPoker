@@ -7,7 +7,7 @@ K sınıf gücü, L dil (sadece ana menüde), Esc bir üst ekran, Alt+Enter tam 
 Hata olursa: `%USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log`
 (0.1.0 ve öncesi: `...\LocalLow\DefaultCompany\Hellpoker\Player.log`).
 
-Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral) · Hız ayarı: ____ · Müzik / efekt düzeyi: ____ / ____
+Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral / Soytarı) · Hız ayarı: ____ · Müzik / efekt düzeyi: ____ / ____
 
 ---
 
@@ -80,6 +80,7 @@ Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral) · Hız ayarı
 | Köylü (güç: bir eli bedelsiz bırak) | | | | |
 | Büyücü (yalanı görür, Belial'de 2 kasa kartı; güç: duyurulan küçük hileyi engelle) | | | | |
 | Kral (1250 yıl, taç; güç: draw'dan önce bir kartı koru) | | | | |
+| Soytarı (1000 yıl, güç yok; destede joker: tek joker = istediğin kart, iki joker = kayıp; kazanç +1 joker, 10 üstünde kayıp -1) | | | | |
 
 - Rozetteki 5 pipli gösterge (kazanç +1, kayıp +2, çekilme +1, beraberlik 0; dolunca parlar, "HAZIR: K"; K ile açılan güç "GÜÇ AÇIK" yazar ve kullanılana kadar açık kalır) anlaşıldı mı?
 -
@@ -160,3 +161,9 @@ Her hata için: ne yapıyordum → ne oldu → ne bekliyordum (şeytan, sınıf,
 -
 - Bir şeyi değiştirebilseydim:
 -
+
+## Deste sayma (0.1.5)
+
+- Kalan kart sayacını (kasanın kartlarının üstü) fark ettim mi, kart saydım mı?
+- Deste bitince şeytanın karıştırdığını gördüm mü? KARIŞTIR'ı (S, +10 yıl) kullandım mı, ne zaman, değdi mi?
+- Soytarı'da 20 jokere ulaştım mı? Çıngırak emanetinin anı anlaşıldı mı?

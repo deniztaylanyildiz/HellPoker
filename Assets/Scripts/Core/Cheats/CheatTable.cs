@@ -108,6 +108,9 @@ namespace HellPoker.Core.Cheats
 
         // ------------------------------------------------------------------ helpers every cheat leans on
 
+        /// <summary>The most cards a single cheat takes from the deck (The Fall: one for each hand); the deck keeps this many spare.</summary>
+        public const int MostCardsACheatDeals = 2;
+
         /// <summary>The Dead Man's Hand cards are beyond any cheat.</summary>
         public static bool IsImmune(Card card) => CheatRules.IsImmune(card);
 
@@ -177,23 +180,34 @@ namespace HellPoker.Core.Cheats
             return true;
         }
 
-        /// <summary>The player's card at <paramref name="index"/> is replaced by the next card of the deck; false when it is empty.</summary>
+        /// <summary>The player's card at <paramref name="index"/> is replaced by the next card of the deck (passing over jokers:
+        /// a cheat never deals one); false when there is none.</summary>
         public bool RedealPlayerCard(int index, out Card card)
         {
-            card = default;
-            if (Deck.Count == 0) return false;
-            card = Deck.Draw();
+            if (!DrawOrdinary(out card)) return false;
             PlayerHand = PlayerHand.With(index, card);
             return true;
         }
 
         public bool RedealHouseCard(int index, out Card card)
         {
-            card = default;
-            if (Deck.Count == 0) return false;
-            card = Deck.Draw();
+            if (!DrawOrdinary(out card)) return false;
             HouseHand = HouseHand.With(index, card);
             return true;
+        }
+
+        /// <summary>The next card of the deck that is not a joker (the next card itself in a deck without jokers).</summary>
+        private bool DrawOrdinary(out Card card)
+        {
+            card = default;
+            IReadOnlyList<Card> remaining = Deck.Remaining;
+            for (int i = remaining.Count - 1; i >= 0; i--)
+            {
+                if (remaining[i].IsJoker) continue;
+                card = remaining[i];
+                return Deck.Take(card);
+            }
+            return false;
         }
     }
 
@@ -205,7 +219,7 @@ namespace HellPoker.Core.Cheats
             new Card(Rank.Ace, Suit.Spades), new Card(Rank.Ace, Suit.Clubs), new Card(Rank.Eight, Suit.Spades), new Card(Rank.Eight, Suit.Clubs)
         };
 
-        /// <summary>A♠ A♣ 8♠ 8♣ are beyond any cheat, wherever they lie.</summary>
-        public static bool IsImmune(Card card) => Array.IndexOf(DeadMansCards, card) >= 0;
+        /// <summary>A♠ A♣ 8♠ 8♣ are beyond any cheat, wherever they lie — and so is a joker (in a hand or in the deck).</summary>
+        public static bool IsImmune(Card card) => card.IsJoker || Array.IndexOf(DeadMansCards, card) >= 0;
     }
 }

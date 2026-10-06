@@ -100,14 +100,34 @@ namespace HellPoker.Core.Game
 
         public int EventCooldownHands { get; }
 
+        // ------------------------------------------------------------------ the deck
+
+        /// <summary>
+        /// True: the deck goes on from hand to hand (dealt, thrown and drawn cards do not come back) until it is too thin for another
+        /// hand, when the demon shuffles all 52 again — the cards can be counted. False: a fresh shuffle every hand (as it was).
+        /// </summary>
+        public bool ContinuousDeck { get; }
+
+        /// <summary>SHUFFLE between hands (the player's own): the deck back to 52, for this many years on the sentence.</summary>
+        public int ShuffleYears { get; }
+
+        /// <summary>Below this sentence the player may not shuffle (it would be a cheap way to count).</summary>
+        public int ShuffleMinYears { get; }
+
         public GameRules(int startingYears = 1000, int soulThreshold = 2000, int maxDiscards = MaxDiscardPolicy.ClassicLimit,
             int forcedRaiseYears = 250, int houseCardsShown = 2, StakeScale stakes = null, int openingCardsShown = 2,
             int raiseUnitsBeforeDraw = 1, int raiseUnitsAfterDraw = 2, int houseReRaiseUnits = 1,
             int soulWorthYears = 1000, int soulLossPercent = 150, int luciferGateYears = 250, int luciferCastDownYears = 500,
             bool isFinalTable = false, int malicePerHand = 1, int malicePerWin = 1, int maliceLowSentenceYears = 500,
             int maliceLowSentenceBonus = 1, int majorCheatYears = 400, int majorCheatPercent = 50, int grudgeHands = 3,
-            int grudgeMalicePerHand = 1, int eventChancePercent = 12, int eventCooldownHands = 4)
+            int grudgeMalicePerHand = 1, int eventChancePercent = 12, int eventCooldownHands = 4, bool continuousDeck = true,
+            int shuffleYears = 10, int shuffleMinYears = 300)
         {
+            if (shuffleYears < 0) throw new ArgumentOutOfRangeException(nameof(shuffleYears));
+            if (shuffleMinYears < 0) throw new ArgumentOutOfRangeException(nameof(shuffleMinYears));
+            ContinuousDeck = continuousDeck;
+            ShuffleYears = shuffleYears;
+            ShuffleMinYears = shuffleMinYears;
             if (malicePerHand < 0) throw new ArgumentOutOfRangeException(nameof(malicePerHand));
             if (malicePerWin < 0) throw new ArgumentOutOfRangeException(nameof(malicePerWin));
             if (maliceLowSentenceBonus < 0) throw new ArgumentOutOfRangeException(nameof(maliceLowSentenceBonus));
@@ -173,7 +193,7 @@ namespace HellPoker.Core.Game
                 stakes ?? Stakes, OpeningCardsShown, RaiseUnitsBeforeDraw, RaiseUnitsAfterDraw, HouseReRaiseUnits, SoulWorthYears,
                 SoulLossPercent, LuciferGateYears, LuciferCastDownYears, finalTable, MalicePerHand, MalicePerWin, MaliceLowSentenceYears,
                 MaliceLowSentenceBonus, MajorCheatYears, MajorCheatPercent, GrudgeHands, GrudgeMalicePerHand,
-                EventChancePercent, EventCooldownHands);
+                EventChancePercent, EventCooldownHands, ContinuousDeck, ShuffleYears, ShuffleMinYears);
         }
     }
 }

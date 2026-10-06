@@ -86,6 +86,27 @@ namespace HellPoker.Core.Tests
         public PowerDisplay Power { get; private set; } = PowerDisplay.None;
         public void SetPower(PowerDisplay power) => Power = power ?? PowerDisplay.None;
 
+        /// <summary>The deck counter (-1: hidden) and the SHUFFLE button (null: hidden).</summary>
+        public int DeckCount { get; private set; } = -1;
+        public void SetDeckCount(int cards) => DeckCount = cards;
+        public string ShuffleLabel { get; private set; }
+        public bool ShuffleLocked { get; private set; }
+        public void SetShuffle(string label, bool locked)
+        {
+            ShuffleLabel = label;
+            ShuffleLocked = locked;
+        }
+        public event Action ShufflePressed;
+        public void PressShuffle() => ShufflePressed?.Invoke();
+
+        /// <summary>The joker picker as shown; null when closed.</summary>
+        public JokerPick JokerPicker { get; private set; }
+        public void ShowJokerPicker(JokerPick pick) => JokerPicker = pick;
+        public event Action<int, int> JokerStepPressed;
+        public event Action JokerConfirmPressed;
+        public void PressJokerStep(int rank, int suit) => JokerStepPressed?.Invoke(rank, suit);
+        public void PressJokerConfirm() => JokerConfirmPressed?.Invoke();
+
         public bool HandRanksOpen { get; private set; }
         public IPayoutInfo HandRanksPayouts { get; private set; }
 

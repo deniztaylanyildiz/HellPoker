@@ -60,6 +60,13 @@ namespace HellPoker.Presentation.Ui
         public string GreetingAsPeasant;
         public string GreetingAsWarlock;
         public string GreetingAsKing;
+        public string GreetingAsJester;
+
+        /// <summary>The demon held two jokers at the showdown and lost the hand for it (said angry).</summary>
+        public string[] JokerBust;
+
+        /// <summary>The Jester's deck reached twenty jokers (the demon is caught off guard).</summary>
+        public string[] JokerJackpot;
 
         /// <summary>The greeting for a run of this class; null when the demon has none for it.</summary>
         public string GreetingFor(string classId)
@@ -69,6 +76,7 @@ namespace HellPoker.Presentation.Ui
                 case HellPoker.Core.Sinners.Peasant.ClassId: return GreetingAsPeasant;
                 case HellPoker.Core.Sinners.Warlock.ClassId: return GreetingAsWarlock;
                 case HellPoker.Core.Sinners.King.ClassId: return GreetingAsKing;
+                case HellPoker.Core.Sinners.Jester.ClassId: return GreetingAsJester;
                 default: return null;
             }
         }
@@ -196,6 +204,8 @@ namespace HellPoker.Presentation.Ui
                 "Run along. But this is Hell, debtor. Where would you go?",
                 "Scared of a few numbers? Close the book, then. I keep a copy."
             },
+            JokerJackpot = new[] { "Twenty jokers?! That is not in any ledger I keep.", "Twenty! Who let the fools into my vault?" },
+            JokerBust = new[] { "Two jokers. My own ledger laughs at me.", "Two fools in my hand — and I am the third." },
             Backfire = new[]
             {
                 "A clerical error. It will not happen twice.",
@@ -208,6 +218,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "A peasant. Nothing to your name but the debt. Sit, let us count it.",
             GreetingAsWarlock = "A warlock. Keep your little signs off my ledger. Sit.",
             GreetingAsKing = "A king! How fortunate. A crown counts as collateral.",
+            GreetingAsJester = "A jester. Your jokes are not in my ledger — but your jokers are. Sit.",
             Farewell = new[]
             {
                 "Your debt is nearly paid... and someone else has noticed you. My condolences.",
@@ -275,6 +286,8 @@ namespace HellPoker.Presentation.Ui
                 "Exit, pursued by nothing. Where would you go? It's Hell all the way down.",
                 "Walking out on me? How dull. I had such lies left to tell you."
             },
+            JokerJackpot = new[] { "Twenty jokers! Darling, you stole my show.", "Twenty! Even I could not have written that." },
+            JokerBust = new[] { "Two jokers! The joke was on me, darling. Applause, I suppose.", "A double act — and I was the punchline." },
             Backfire = new[]
             {
                 "My tongue... slipped.",
@@ -287,6 +300,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "A peasant in the front row! Do try to keep up, darling.",
             GreetingAsWarlock = "A warlock. How tiresome — you will see through my lines.",
             GreetingAsKing = "A king! Finally, an audience worthy of the show.",
+            GreetingAsJester = "A fellow performer! Bring your jokers, darling — two in a hand and the joke is on you.",
             Farewell = new[]
             {
                 "Oh dear. He has noticed you. Do try to be entertaining, darling.",
@@ -354,6 +368,8 @@ namespace HellPoker.Presentation.Ui
                 "Run, then. The night is everywhere here.",
                 "You came to my garden and you flee it? How very mortal."
             },
+            JokerJackpot = new[] { "Twenty jokers... the night itself is laughing.", "Twenty. How did you— no matter. Take your toy." },
+            JokerBust = new[] { "Two jokers in my hand. Even the night laughs at me.", "Two fools. I will remember this, little jester." },
             Backfire = new[]
             {
                 "The night chose you over me. How rude.",
@@ -365,6 +381,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "A peasant, all calloused hands. Come, rest them in the dark.",
             GreetingAsWarlock = "A warlock. You know a little of the night. Not enough.",
             GreetingAsKing = "A king. Crowns slip so easily in the dark.",
+            GreetingAsJester = "A jester. Let us see who laughs last in the dark.",
             Farewell = new[]
             {
                 "Shh. Someone older than the night is calling you. Go.",
@@ -422,6 +439,8 @@ namespace HellPoker.Presentation.Ui
             Fled = new[] { "You closed your eyes. I did not. The wager is mine.", "There is no leaving in the middle. Not from me." },
             Hunted = new[] { "You ran from my fire. There is nowhere that is not mine.", "Flee the flame, and it follows. It always follows." },
             Scorn = new[] { "You think you can leave me? I am where everything ends.", "Go. Begin again. You will fall to me all the same." },
+            JokerJackpot = new[] { "Twenty jokers. Amusing. Briefly." },
+            JokerBust = new[] { "Two jokers. Laugh, then. Laugh while you can." },
             Backfire = new[]
             {
                 "The fire chose. Not I.",
@@ -467,6 +486,8 @@ namespace HellPoker.Presentation.Ui
             Fled = new[] { "You left mid-hand. It is forfeit." },
             Hunted = new[] { "You ran from my trick. I will not forget it." },
             Scorn = new[] { "Leaving so soon? Afraid?" },
+            JokerJackpot = new[] { "Twenty jokers?!" },
+            JokerBust = new[] { "Two jokers. The joke is on me." },
             Backfire = new[] { "That was not meant for you." },
             Blocked = new[] { "Warded. Hm." },
             EventAccepted = new[] { "So be it." },
@@ -533,6 +554,8 @@ namespace HellPoker.Presentation.Ui
                 "Git bakalım. Ama burası cehennem, borçlu. Nereye gideceksin?",
                 "Birkaç rakamdan mı korktun? Kapat defteri. Bende bir kopyası var."
             },
+            JokerJackpot = new[] { "Yirmi joker mi?! Bu hiçbir defterimde yok.", "Yirmi! Soytarıları kasama kim soktu?" },
+            JokerBust = new[] { "İki joker. Kendi defterim bana gülüyor.", "Elimde iki soytarı — üçüncüsü de benim." },
             Backfire = new[]
             {
                 "Bir kâtip hatası. İki kez olmaz.",
@@ -545,6 +568,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "Bir köylü. Adına borçtan başka bir şey yok. Otur, sayalım.",
             GreetingAsWarlock = "Bir büyücü. İşaretlerini defterimden uzak tut. Otur.",
             GreetingAsKing = "Bir kral! Ne şans. Taç da teminat sayılır.",
+            GreetingAsJester = "Bir soytarı. Şakaların defterimde yok — ama jokerlerin var. Otur.",
             Farewell = new[]
             {
                 "Borcun neredeyse bitti... ve biri seni fark etti. Başın sağ olsun.",
@@ -615,6 +639,8 @@ namespace HellPoker.Presentation.Ui
                 "Çıkış, peşinde kimse yok. Nereye gideceksin? Aşağısı da cehennem.",
                 "Beni mi bırakıyorsun? Ne sıkıcı. Daha anlatacak ne yalanlarım vardı."
             },
+            JokerJackpot = new[] { "Yirmi joker! Canım, gösterimi çaldın.", "Yirmi! Bunu ben bile yazamazdım." },
+            JokerBust = new[] { "İki joker! Şaka bana döndü, canım. Alkış, galiba.", "Çifte numara — ve espri bendim." },
             Backfire = new[]
             {
                 "Dilim... kaydı.",
@@ -627,6 +653,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "Ön sırada bir köylü! Yetişmeye çalış, canım.",
             GreetingAsWarlock = "Bir büyücü. Ne yorucu — repliklerimin içini göreceksin.",
             GreetingAsKing = "Bir kral! Sonunda gösteriye layık bir seyirci.",
+            GreetingAsJester = "Bir meslektaş! Jokerlerini getir, canım — elde iki tane olursa şaka sana döner.",
             Farewell = new[]
             {
                 "Eyvah. O seni fark etti. Eğlendirici olmaya çalış, canım.",
@@ -697,6 +724,8 @@ namespace HellPoker.Presentation.Ui
                 "Kaç o zaman. Burada gece her yerde.",
                 "Bahçeme geldin, şimdi kaçıyor musun? Ne kadar da ölümlüce."
             },
+            JokerJackpot = new[] { "Yirmi joker... gece bile gülüyor.", "Yirmi. Nasıl— neyse. Oyuncağını al." },
+            JokerBust = new[] { "Elimde iki joker. Gece bile bana gülüyor.", "İki soytarı. Bunu unutmayacağım, küçük soytarı." },
             Backfire = new[]
             {
                 "Gece seni bana tercih etti. Ne kaba.",
@@ -708,6 +737,7 @@ namespace HellPoker.Presentation.Ui
             GreetingAsPeasant = "Bir köylü, nasırlı ellerle. Gel, onları karanlıkta dinlendir.",
             GreetingAsWarlock = "Bir büyücü. Geceden biraz anlarsın. Yetmez.",
             GreetingAsKing = "Bir kral. Taçlar karanlıkta ne kolay kayar.",
+            GreetingAsJester = "Bir soytarı. Bakalım karanlıkta son gülen kim olacak.",
             Farewell = new[]
             {
                 "Şşş. Geceden de yaşlı biri seni çağırıyor. Git.",
@@ -767,6 +797,8 @@ namespace HellPoker.Presentation.Ui
             Fled = new[] { "Sen gözlerini kapadın. Ben kapamadım. Bahis benim.", "Ortadan kalkmak yok. Benden olmaz." },
             Hunted = new[] { "Ateşimden kaçtın. Benim olmayan bir yer yok.", "Alevden kaç, peşinden gelir. Hep gelir." },
             Scorn = new[] { "Beni bırakabileceğini mi sanıyorsun? Her şey bende biter.", "Git. Baştan başla. Yine de bana düşeceksin." },
+            JokerJackpot = new[] { "Yirmi joker. Eğlenceli. Kısa bir süre." },
+            JokerBust = new[] { "İki joker. Gül o zaman. Gülebildiğin kadar." },
             Backfire = new[]
             {
                 "Ateş seçti. Ben değil.",
@@ -815,6 +847,8 @@ namespace HellPoker.Presentation.Ui
             Fled = new[] { "Elin ortasında gittin. Ceza yazıldı." },
             Hunted = new[] { "Hilemden kaçtın. Unutmayacağım." },
             Scorn = new[] { "Bu kadar erken mi? Korktun mu?" },
+            JokerJackpot = new[] { "Yirmi joker mi?!" },
+            JokerBust = new[] { "İki joker. Şaka bana döndü." },
             Backfire = new[] { "O sana değildi." },
             Blocked = new[] { "Savuşturuldu. Hm." },
             EventAccepted = new[] { "Öyle olsun." },

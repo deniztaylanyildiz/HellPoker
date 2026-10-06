@@ -79,16 +79,20 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the roster
 
         [Test]
-        public void TheRoster_HasThreeClasses_ThePeasantFirst_EachWithAPower()
+        public void TheRoster_HasFourClasses_ThePeasantFirst_TheJesterWithJokersInsteadOfAPower()
         {
-            CollectionAssert.AreEqual(new[] { "peasant", "warlock", "king" }, SinnerRoster.All.Select(c => c.Id));
+            CollectionAssert.AreEqual(new[] { "peasant", "warlock", "king", "jester" }, SinnerRoster.All.Select(c => c.Id));
             Assert.AreEqual(1000, SinnerRoster.Peasant.StartingYears);
             Assert.AreEqual(1000, SinnerRoster.Warlock.StartingYears);
             Assert.AreEqual(1250, SinnerRoster.King.StartingYears);
             Assert.Less(SinnerRoster.King.StartingYears, DealerRoster.Lilith.SoulThreshold, "The King starts below every soul line.");
             Assert.AreSame(SinnerRoster.King, SinnerRoster.Find("king"));
-            Assert.IsNull(SinnerRoster.Find("jester"));
-            CollectionAssert.AreEqual(new[] { SinnerAbility.FreeFold, SinnerAbility.Ward, SinnerAbility.Protect }, SinnerRoster.All.Select(c => c.Ability));
+            Assert.AreSame(SinnerRoster.Jester, SinnerRoster.Find("jester"));
+            Assert.IsNull(SinnerRoster.Find("thief"));
+            Assert.AreEqual(1000, SinnerRoster.Jester.StartingYears);
+            CollectionAssert.AreEqual(new[] { SinnerAbility.FreeFold, SinnerAbility.Ward, SinnerAbility.Protect, SinnerAbility.None },
+                SinnerRoster.All.Select(c => c.Ability));
+            CollectionAssert.AreEqual(new[] { 0, 0, 0, 2 }, SinnerRoster.All.Select(c => c.StartingJokers));
         }
 
         // ------------------------------------------------------------------ the charge

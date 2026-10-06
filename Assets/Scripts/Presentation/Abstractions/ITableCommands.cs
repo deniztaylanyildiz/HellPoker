@@ -21,6 +21,12 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>K (or the class badge): use the class's power when its gauge is full (the King then picks a card, or stops picking).</summary>
         void UsePower();
 
+        /// <summary>S (or SHUFFLE): between hands, pay to have the deck shuffled back to 52.</summary>
+        void ShuffleDeck();
+
+        /// <summary>The joker picker at the showdown: step the card's rank and / or suit (the arrow keys).</summary>
+        void StepJoker(int rankStep, int suitStep);
+
         /// <summary>Opens or closes the hand ranking panel (H).</summary>
         void ToggleHandRanks();
 

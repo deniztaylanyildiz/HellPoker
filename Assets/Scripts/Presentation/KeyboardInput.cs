@@ -7,7 +7,7 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keyboard shortcuts: Esc one screen up, Alt+Enter full screen; at the table Space/Enter main action, pass or call,
-    /// R raise, D check to draw, K the class's power (the King: protect a card), C call, F fold, 1-5 pick cards, H hand ranks; L the language, on the title menu only;
+    /// R raise, D check to draw, S shuffle (between hands), K the class's power (the King: protect a card), C call, F fold, 1-5 pick cards, H hand ranks, the arrows the joker picker; L the language, on the title menu only;
     /// Q / E or the arrows switch the settings' tabs. While the table animates any of them hurries the animation instead.
     /// Nothing is read while a screen change plays.
     /// </summary>
@@ -76,6 +76,7 @@ namespace HellPoker.Presentation
             else if (keyboard.rKey.wasPressedThisFrame) _table.Bet(BetAction.Raise);
             else if (keyboard.dKey.wasPressedThisFrame) _table.CheckToDraw();
             else if (keyboard.kKey.wasPressedThisFrame) _table.UsePower();
+            else if (keyboard.sKey.wasPressedThisFrame) _table.ShuffleDeck();
             else if (keyboard.cKey.wasPressedThisFrame) _table.Bet(BetAction.Call);
             else if (keyboard.fKey.wasPressedThisFrame) _table.Bet(BetAction.Fold);
             else if (keyboard.digit1Key.wasPressedThisFrame) _table.ToggleDiscard(0);
@@ -83,6 +84,11 @@ namespace HellPoker.Presentation
             else if (keyboard.digit3Key.wasPressedThisFrame) _table.ToggleDiscard(2);
             else if (keyboard.digit4Key.wasPressedThisFrame) _table.ToggleDiscard(3);
             else if (keyboard.digit5Key.wasPressedThisFrame) _table.ToggleDiscard(4);
+            // The joker picker at the showdown: left / right the rank, up / down the suit (nothing happens without a picker).
+            else if (keyboard.leftArrowKey.wasPressedThisFrame) _table.StepJoker(-1, 0);
+            else if (keyboard.rightArrowKey.wasPressedThisFrame) _table.StepJoker(1, 0);
+            else if (keyboard.upArrowKey.wasPressedThisFrame) _table.StepJoker(0, 1);
+            else if (keyboard.downArrowKey.wasPressedThisFrame) _table.StepJoker(0, -1);
         }
     }
 }

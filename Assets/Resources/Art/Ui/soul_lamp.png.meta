@@ -235,7 +235,11 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      soul_lamp_0: -8900508110948064073
+      soul_lamp_1: -3256520867475485748
+      soul_lamp_2: 8426287336402157431
+      soul_lamp_3: -7374234536235664554
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

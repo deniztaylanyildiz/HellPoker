@@ -63,7 +63,7 @@ namespace HellPoker.Core.Tests
             }
         }
 
-        [Test]
+        [Test, Timeout(3600000)]
         public void EveryDealer()
         {
             // HELLPOKER_SOUL_WORTH / HELLPOKER_SOUL_LOSS try other soul numbers without touching the code;
@@ -76,7 +76,9 @@ namespace HellPoker.Core.Tests
                 luciferGateYears: EnvInt("HELLPOKER_LUCIFER_GATE", GameRules.Default.LuciferGateYears),
                 luciferCastDownYears: EnvInt("HELLPOKER_CAST_DOWN", GameRules.Default.LuciferCastDownYears),
                 malicePerWin: EnvInt("HELLPOKER_MALICE_WIN", GameRules.Default.MalicePerWin),
-                maliceLowSentenceBonus: EnvInt("HELLPOKER_MALICE_LOW", GameRules.Default.MaliceLowSentenceBonus));
+                maliceLowSentenceBonus: EnvInt("HELLPOKER_MALICE_LOW", GameRules.Default.MaliceLowSentenceBonus),
+                // HELLPOKER_FRESH_DECK=1: a fresh shuffle every hand (the deck as it was before it was counted).
+                continuousDeck: EnvInt("HELLPOKER_FRESH_DECK", 0) == 0);
             bool cheats = EnvInt("HELLPOKER_CHEATS", 1) != 0;
             // HELLPOKER_EVENTS=0 plays without events between hands.
             bool eventsOn = EnvInt("HELLPOKER_EVENTS", 1) != 0;
@@ -103,12 +105,13 @@ namespace HellPoker.Core.Tests
                               (table.LuciferGateYears > 0
                                   ? $"Lucifer below {table.LuciferGateYears}, cast down to {table.LuciferCastDownYears}."
                                   : "No Lucifer."));
+            report.AppendLine(table.ContinuousDeck ? "The deck goes on from hand to hand (the player never shuffles)." : "A fresh deck every hand.");
             report.AppendLine(cheats
                 ? $"Cheats on. Malice: {string.Join(" / ", DealerRoster.All.Select((d, i) => $"{d.Id} {Tune(d, i).MaliceMax}"))} / lucifer {lucifer.MaliceMax}; " +
                   $"+{table.MalicePerHand} a hand, +{table.MalicePerWin} a win, +{table.MaliceLowSentenceBonus} at or below {table.MaliceLowSentenceYears}."
                 : "Cheats off.");
-            // HELLPOKER_CLASSES ("peasant,warlock,king" by default): which sinner classes to play, each against every demon.
-            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king")
+            // HELLPOKER_CLASSES ("peasant,warlock,king,jester" by default): which sinner classes to play, each against every demon.
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null)
                 .Select(c =>
                 {
@@ -119,6 +122,13 @@ namespace HellPoker.Core.Tests
                         int[] k = king.Split(',').Select(int.Parse).ToArray();
                         return new King(k[0], k[1]);
                     }
+                    // HELLPOKER_JESTER ("start,jokers,lossLine") tries another Jester.
+                    string jester = Environment.GetEnvironmentVariable("HELLPOKER_JESTER");
+                    if (c.Id == Jester.ClassId && jester != null)
+                    {
+                        int[] j = jester.Split(',').Select(int.Parse).ToArray();
+                        return new Jester(j[0], j[1], j[2]);
+                    }
                     return c;
                 }).ToArray();
             // HELLPOKER_CHARGE ("full,win,loss,fold"; 5,1,2,1 by default): how the class power charges.
@@ -128,6 +138,8 @@ namespace HellPoker.Core.Tests
             report.AppendLine("Classes: " + string.Join(", ", classes.Select(c => $"{c.Id} (start {c.StartingYears}, crown {c.WinAntePercent}%)")) +
                               $"; power charge: full {chargeRules.Full}, win +{chargeRules.PerWin}, loss +{chargeRules.PerLoss}, fold +{chargeRules.PerFold}.");
             var powers = new Dictionary<string, (int used, int wards, int runs)>();
+            // The Jester: the jokers at the end of a run (sum, most), and the hands two jokers decided (lost / won).
+            var jokerReport = new List<string>();
 
             report.AppendLine("class    dealer   absolved  damned  unfinished  avg hands  re-raised hands  dead man's hand wins  soul staked  soul saved" +
                               "  | reached lucifer  beat him 1st try  avg attempts  cast downs  wild bill");
@@ -143,6 +155,7 @@ namespace HellPoker.Core.Tests
                 CheatTally tally = TallyFor(dealer.Id);
                 int absolved = 0, damned = 0, hands = 0, deadMan = 0, reRaised = 0, soulStaked = 0, soulSaved = 0;
                 int reached = 0, firstTry = 0, attempts = 0, castDowns = 0, wildBill = 0;
+                int jokersAtEnd = 0, jokersMost = 0, playerBusts = 0, houseBusts = 0, showdowns = 0, jackpots = 0, rattles = 0, rattleFreed = 0;
                 for (int run = 0; run < Runs; run++)
                 {
                     int seed = run * 7919 + 13 + seedShift;
@@ -229,6 +242,13 @@ namespace HellPoker.Core.Tests
                             reRaised++;
                         played++;
                         (seat.IsFinalTable ? luciferTally : tally).Count(game);
+                        if (game.LastRound.Showdown != null)
+                        {
+                            showdowns++;
+                            if (game.LastRound.Showdown.PlayerBust) playerBusts++;
+                            if (game.LastRound.Showdown.HouseBust) houseBusts++;
+                        }
+                        jokersMost = Math.Max(jokersMost, sinner.Jokers);
                         if (game.LastRound.Showdown?.Player.Category == HandCategory.DeadMansHand &&
                             game.LastRound.Showdown.Outcome == ShowdownOutcome.PlayerWins)
                             deadMan++;
@@ -237,6 +257,13 @@ namespace HellPoker.Core.Tests
                     }
 
                     hands += played;
+                    jokersAtEnd += sinner.Jokers;
+                    jackpots += sinner.JokerJackpots;
+                    if (effects.Relics.Contains(RelicIds.JestersRattle))
+                    {
+                        rattles++;
+                        if (game.Phase == GamePhase.Absolved) rattleFreed++;
+                    }
                     powers.TryGetValue(sinnerClass.Id, out var power);
                     powers[sinnerClass.Id] = (power.used + sinner.PowersUsed, power.wards + sinner.WardsUsed, power.runs + 1);
                     if (game.Phase == GamePhase.Absolved) absolved++;
@@ -256,6 +283,11 @@ namespace HellPoker.Core.Tests
                                   $"{hands / (double)Runs,9:0.0}  {reRaiseShare,15}  {deadMan,6}  {Percent(soulStaked),11}  {Percent(soulSaved),10}" +
                                   $"  | {Percent(reached),15}  {firstTryShare,16}  {attempts / (double)Math.Max(1, reached),12:0.00}" +
                                   $"  {castDowns,10}  {wildBill,9}");
+                if (sinnerClass.StartingJokers > 0)
+                    jokerReport.Add($"{dealer.Id,-8} jokers at the end avg {jokersAtEnd / (double)Runs:0.0}, most {jokersMost}; " +
+                                    $"showdowns lost to two jokers {100.0 * playerBusts / Math.Max(1, showdowns):0.0}%, won on the demon's two jokers " +
+                                    $"{100.0 * houseBusts / Math.Max(1, showdowns):0.0}% (of {showdowns} showdowns); twenty jokers {jackpots} times, " +
+                                    $"the Rattle in {Percent(rattles)} of runs (absolved {100.0 * rattleFreed / Math.Max(1, rattles):0.0}% of those)");
             }
 
             report.AppendLine();
@@ -263,6 +295,7 @@ namespace HellPoker.Core.Tests
                 .Select(p => $"{p.Key} {p.Value}/{(accepted.TryGetValue(p.Key, out int a) ? a : 0)}")) : "Events off.");
             report.AppendLine("Class powers used per run: " + string.Join("  ", powers.Select(p =>
                 $"{p.Key} {p.Value.used / (double)Math.Max(1, p.Value.runs):0.00}" + (p.Value.wards > 0 ? $" (wards that struck {p.Value.wards / (double)Math.Max(1, p.Value.runs):0.00})" : ""))));
+            foreach (string line in jokerReport) report.AppendLine("Jester: " + line);
             if (hop) report.AppendLine($"Table hops ({(hopOld ? "old rule: every seat refills" : "charges kept per demon")}): {hops}");
 
             if (cheats)
@@ -341,6 +374,10 @@ namespace HellPoker.Core.Tests
                         game.Draw(Discards(game, drawing));
                         break;
 
+                    case GamePhase.NamingJoker:
+                        game.NameJoker(game.BestJokerCard);   // the best card the joker can be
+                        break;
+
                     case GamePhase.HouseReRaise:
                         reRaised = true;
                         BetOrWalkAway(game, Strength(game) >= HandCategory.OnePair ? BetAction.Call : BetAction.Fold);
@@ -367,7 +404,7 @@ namespace HellPoker.Core.Tests
             if (game.RedrawsLeft <= 0 || Strength(game) < HandCategory.OnePair) return;
             var paired = new HashSet<Rank>(Enumerable.Range(0, Hand.Size).Where(i => !game.IsPlayerCardHidden(i))
                 .GroupBy(i => game.PlayerHand[i].Rank).Where(g => g.Count() >= 2).Select(g => g.Key));
-            int[] lone = Enumerable.Range(0, Hand.Size).Where(i => game.CanRedraw(i) && !paired.Contains(game.PlayerHand[i].Rank))
+            int[] lone = Enumerable.Range(0, Hand.Size).Where(i => game.CanRedraw(i) && !game.PlayerHand[i].IsJoker && !paired.Contains(game.PlayerHand[i].Rank))
                 .OrderBy(i => game.PlayerHand[i].Rank).ToArray();
             if (lone.Length > 0) game.Redraw(lone[0]);
         }
@@ -386,9 +423,11 @@ namespace HellPoker.Core.Tests
             }
             else
             {
-                var visible = Enumerable.Range(0, Hand.Size).Except(hidden).ToList();
+                // A joker stays (the extra ones go first); the rest as before.
+                var jokers = Enumerable.Range(0, Hand.Size).Where(i => game.PlayerHand[i].IsJoker).ToList();
+                var visible = Enumerable.Range(0, Hand.Size).Except(hidden).Except(jokers).ToList();
                 var paired = new HashSet<Rank>(visible.GroupBy(i => game.PlayerHand[i].Rank).Where(g => g.Count() >= 2).Select(g => g.Key));
-                discards = hidden.Concat(visible.Where(i => !paired.Contains(game.PlayerHand[i].Rank))
+                discards = jokers.Skip(1).Concat(hidden).Concat(visible.Where(i => !paired.Contains(game.PlayerHand[i].Rank))
                     .OrderBy(i => game.PlayerHand[i].Rank));
             }
             return discards.Where(i => !game.IsPlayerCardChained(i) && !game.IsPlayerCardThorned(i))
@@ -455,13 +494,15 @@ namespace HellPoker.Core.Tests
         private static ICheat IntentOf(HellPokerGame game) =>
             game.Sinner != null && game.Sinner.Class.SeesLies ? game.PendingCheatTruth ?? game.PendingCheat : game.PendingCheat;
 
-        /// <summary>What the player can read of their hand: visible cards only.</summary>
-        private static HandCategory Strength(HellPokerGame game) => game.PlayerHandNow ?? HandCategory.HighCard;
+        /// <summary>What the player can read of their hand: visible cards only (two jokers lose the hand: nothing).</summary>
+        private static HandCategory Strength(HellPokerGame game) =>
+            Enumerable.Range(0, game.PlayerCardsRevealed).Count(i => game.PlayerHand[i].IsJoker) >= 2 ? HandCategory.HighCard
+                : game.PlayerHandNow ?? HandCategory.HighCard;
 
         /// <summary>A pair among the House's open cards, not counting a face marked false.</summary>
         private static bool HouseShowsPair(HellPokerGame game)
         {
-            return Enumerable.Range(0, game.HouseCardsRevealed).Where(i => !game.IsHouseCardFalse(i))
+            return Enumerable.Range(0, game.HouseCardsRevealed).Where(i => !game.IsHouseCardFalse(i) && !game.HouseCardFace(i).IsJoker)
                 .GroupBy(i => game.HouseCardFace(i).Rank).Any(group => group.Count() >= 2);
         }
     }

@@ -107,10 +107,17 @@ namespace HellPoker.Core.Events
         /// <summary>The cursed relics the run carries (at most <see cref="Relics.RelicRoster.MaxCarried"/>), in the order won.</summary>
         public IReadOnlyList<string> Relics => _relics;
 
-        /// <summary>A relic joins the run; false when it is already carried, unknown, or the run carries all it may.</summary>
+        /// <summary>The relics that count towards the carry limit (an earned reward does not).</summary>
+        public int CarriedOffered => _relics.Count(id => !HellPoker.Core.Relics.RelicRoster.IsReward(id));
+
+        /// <summary>
+        /// A relic joins the run; false when it is already carried, unknown, or (an offered one) the run carries all it may. An earned
+        /// reward (the Jester's Rattle) is beyond the limit.
+        /// </summary>
         public bool AddRelic(string id)
         {
-            if (Relics.Count >= HellPoker.Core.Relics.RelicRoster.MaxCarried || _relics.Contains(id) || HellPoker.Core.Relics.RelicRoster.Find(id) == null)
+            HellPoker.Core.Relics.IRelic relic = HellPoker.Core.Relics.RelicRoster.Find(id);
+            if (relic == null || _relics.Contains(id) || (!relic.IsReward && CarriedOffered >= HellPoker.Core.Relics.RelicRoster.MaxCarried))
                 return false;
             _relics.Add(id);
             if (HellPoker.Core.Relics.RelicRoster.Find(id).Effects.RedrawsPerTable > 0)

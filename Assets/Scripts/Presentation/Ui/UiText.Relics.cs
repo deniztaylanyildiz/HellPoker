@@ -14,6 +14,7 @@ namespace HellPoker.Presentation.Ui
                 case RelicIds.RustyCrown: return L("RUSTY CROWN", "PASLI TAÇ");
                 case RelicIds.FerrymansCoin: return L("FERRYMAN'S COIN", "KAYIKÇI SİKKESİ");
                 case RelicIds.ThornedRosary: return L("THORNED ROSARY", "DİKENLİ TESPİH");
+                case RelicIds.JestersRattle: return L("THE JESTER'S RATTLE", "SOYTARI'NIN ÇINGIRAĞI");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -27,6 +28,7 @@ namespace HellPoker.Presentation.Ui
                 case RelicIds.RustyCrown: return L("A win forgives a twentieth more.", "Kazanç yirmide bir fazla siler.");
                 case RelicIds.FerrymansCoin: return L("The ante is four fifths.", "Ante beşte dört.");
                 case RelicIds.ThornedRosary: return L("The soul burns slower when you lose.", "Kaybedince ruhun daha yavaş yanar.");
+                case RelicIds.JestersRattle: return L("A won hand forgives half an ante more.", "Kazanılan el ante'nin yarısı kadar daha fazla yıl siler.");
                 default: return "";
             }
         }
@@ -39,6 +41,7 @@ namespace HellPoker.Presentation.Ui
                 case RelicIds.RustyCrown: return L("The demon's malice grows faster.", "Şeytanın kötülüğü daha hızlı dolar.");
                 case RelicIds.FerrymansCoin: return L("The House shows one card fewer.", "Kasa bir kart eksik gösterir.");
                 case RelicIds.ThornedRosary: return L("A win forgives a tenth less.", "Kazanç onda bir eksik siler.");
+                case RelicIds.JestersRattle: return L("A lost hand adds half an ante more.", "Kaybedilen el ante'nin yarısı kadar daha fazla yıl ekler.");
                 default: return "";
             }
         }

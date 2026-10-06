@@ -57,6 +57,24 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A power switched on and waiting: the line that stays under the message, the Warlock's shield (<see cref="PowerDisplay.None"/>: off).</summary>
         void SetPower(PowerDisplay power);
 
+        /// <summary>The cards left in the deck, over the House's row (hover: how it works); -1 hides it (the Jester's deck).</summary>
+        void SetDeckCount(int cards);
+
+        /// <summary>The SHUFFLE button under the deal button: its label, or null to hide it; locked buttons stay clickable.</summary>
+        void SetShuffle(string label, bool locked);
+
+        /// <summary>SHUFFLE was pressed.</summary>
+        event Action ShufflePressed;
+
+        /// <summary>The joker picker at the showdown, on this card; null closes it.</summary>
+        void ShowJokerPicker(JokerPick pick);
+
+        /// <summary>The picker's arrows: (rank step, suit step), each -1, 0 or +1.</summary>
+        event Action<int, int> JokerStepPressed;
+
+        /// <summary>The picker's NAME IT.</summary>
+        event Action JokerConfirmPressed;
+
         /// <summary>True while the hand ranking panel is open over the table.</summary>
         bool HandRanksOpen { get; }
 

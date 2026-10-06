@@ -435,7 +435,19 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      curtain_right_hell_0: 7092202717684320445
+      curtain_right_hell_1: 7431115682832168685
+      curtain_right_hell_10: -8266689202637972344
+      curtain_right_hell_11: -6707143283372988199
+      curtain_right_hell_2: -4831377653411757878
+      curtain_right_hell_3: 6581839639152737839
+      curtain_right_hell_4: -8527282012883687511
+      curtain_right_hell_5: 1230632030944790457
+      curtain_right_hell_6: -4226798661509603157
+      curtain_right_hell_7: -8443990226115831986
+      curtain_right_hell_8: 8075178947362388453
+      curtain_right_hell_9: -6294714113189391772
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -210,7 +210,10 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      sinner_icons_0: 1788069455157254974
+      sinner_icons_1: 4655112512800791224
+      sinner_icons_2: -8312788190521596516
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

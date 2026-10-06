@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      suit_diamonds_small_0: 7234921546526753470
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

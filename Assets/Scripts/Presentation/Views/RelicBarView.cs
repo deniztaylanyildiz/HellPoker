@@ -12,11 +12,18 @@ namespace HellPoker.Presentation.Views
     /// <summary>
     /// The run's cursed relics beside the dealer's portrait: an icon each on a black tile (uses left, for one that is used),
     /// stacked down the box's right edge under the intent sign. Hover: the name, the gift and the curse. Click: use it (the Bone Die).
+    /// An earned relic (the Jester's Rattle) sits apart, left of the first tile, in a gold frame; a relic that has just joined the run
+    /// flashes for a moment.
     /// </summary>
     public sealed class RelicBarView : MonoBehaviour
     {
         private const int Tile = 20;
-        private const int Slots = 2;
+        /// <summary>Two offered relics down the edge, the earned one apart (slot 2).</summary>
+        private const int Slots = 3;
+        private const int RewardSlot = 2;
+        private const float NewFlashSeconds = 1.6f;
+        private readonly RelicBadge[] _bySlot = new RelicBadge[Slots];
+        private readonly float[] _flash = new float[Slots];
 
         private AnimationSequencer _sequencer;
         private Action<string> _pressed;
@@ -24,6 +31,9 @@ namespace HellPoker.Presentation.Views
         private GameObject _tooltip;
         private Text _tooltipText;
         private IReadOnlyList<RelicBadge> _relics = new RelicBadge[0];
+
+        /// <summary>True while the tile in <paramref name="slot"/> flashes (a relic just joined); for tests and screenshots.</summary>
+        public bool IsFlashing(int slot) => slot >= 0 && slot < Slots && _flash[slot] > 0f;
 
         /// <summary>The relics on show (for tests and screenshots).</summary>
         public IReadOnlyList<RelicBadge> Relics => _relics;
@@ -54,8 +64,11 @@ namespace HellPoker.Presentation.Views
             {
                 int slot = i;
                 Image tile = UiFactory.CreateImage("Relic" + i, root, Palette.Black);
-                tile.rectTransform.PlaceTL(0, i * (Tile + 2), Tile, Tile);
-                UiFactory.AddBorder(tile.gameObject, Palette.Lilac, 1f);
+                if (i == RewardSlot)
+                    tile.rectTransform.PlaceTL(-(Tile + 4), 0, Tile, Tile);   // apart: left of the first tile
+                else
+                    tile.rectTransform.PlaceTL(0, i * (Tile + 2), Tile, Tile);
+                UiFactory.AddBorder(tile.gameObject, i == RewardSlot ? Palette.GoldLight : Palette.Lilac, 1f);
                 tile.raycastTarget = true;
                 var button = tile.gameObject.AddComponent<Button>();
                 button.targetGraphic = tile;
@@ -63,7 +76,7 @@ namespace HellPoker.Presentation.Views
                 UiFactory.MakeClickOnly(button);
                 button.onClick.AddListener(() =>
                 {
-                    if (slot < _relics.Count) _pressed?.Invoke(_relics[slot].Id);
+                    if (_bySlot[slot] != null) _pressed?.Invoke(_bySlot[slot].Id);
                 });
                 Image icon = UiFactory.CreateImage("Icon", tile.transform, Color.white);
                 icon.raycastTarget = false;
@@ -81,12 +94,13 @@ namespace HellPoker.Presentation.Views
 
         private void ShowTip(int slot)
         {
-            if (slot >= _relics.Count) return;
-            _tooltipText.text = _relics[slot].Name + "\n" + _relics[slot].Description;
+            RelicBadge relic = _bySlot[slot];
+            if (relic == null) return;
+            _tooltipText.text = relic.Name + "\n" + relic.Description;
             // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot * (Tile + 2), 196, textHeight + 4);
+            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot == RewardSlot ? 0 : slot * (Tile + 2), 196, textHeight + 4);
             _tooltip.SetActive(true);
         }
 
@@ -101,15 +115,27 @@ namespace HellPoker.Presentation.Views
 
         private void Apply(IReadOnlyList<RelicBadge> relics)
         {
+            // The offered relics fill the edge in order; the earned one has its own slot. A relic new to the bar flashes.
+            var before = new HashSet<string>();
+            foreach (RelicBadge old in _relics) before.Add(old.Id);
             _relics = relics;
+            Array.Clear(_bySlot, 0, Slots);
+            int next = 0;
+            foreach (RelicBadge relic in relics)
+            {
+                int slot = relic.IsReward ? RewardSlot : next < RewardSlot ? next++ : -1;
+                if (slot < 0) continue;
+                _bySlot[slot] = relic;
+                if (!before.Contains(relic.Id) && (before.Count > 0 || relic.IsReward)) _flash[slot] = NewFlashSeconds;   // not the bar's first filling (a loaded run)
+            }
             for (int i = 0; i < _tiles.Count; i++)
             {
-                bool shown = i < relics.Count;
-                _tiles[i].tile.SetActive(shown);
-                if (!shown) continue;
-                _tiles[i].icon.sprite = UiArt.RelicIcon(relics[i].Id);
+                RelicBadge relic = _bySlot[i];
+                _tiles[i].tile.SetActive(relic != null);
+                if (relic == null) continue;
+                _tiles[i].icon.sprite = UiArt.RelicIcon(relic.Id);
                 _tiles[i].icon.enabled = _tiles[i].icon.sprite != null;
-                _tiles[i].uses.text = relics[i].Uses >= 0 ? relics[i].Uses.ToString() : "";
+                _tiles[i].uses.text = relic.Uses >= 0 ? relic.Uses.ToString() : "";
             }
             if (relics.Count == 0) _tooltip.SetActive(false);
             for (int i = 0; i < _tiles.Count; i++) _tiles[i].tile.GetComponent<Image>().color = Palette.Black;
@@ -118,9 +144,17 @@ namespace HellPoker.Presentation.Views
         /// <summary>A relic being used (the Bone Die picking its card) pulses on a one-second beat until it is used or put away.</summary>
         private void Update()
         {
-            for (int i = 0; i < _tiles.Count && i < _relics.Count; i++)
-                if (_relics[i].Selecting)
+            for (int i = 0; i < _tiles.Count; i++)
+            {
+                if (_flash[i] > 0f)
+                {
+                    _flash[i] -= Time.unscaledDeltaTime;
+                    _tiles[i].tile.GetComponent<Image>().color = _flash[i] > 0f && Mathf.Repeat(_flash[i], 0.3f) < 0.15f ? Palette.Gold : Palette.Black;
+                    continue;
+                }
+                if (_bySlot[i] != null && _bySlot[i].Selecting)
                     _tiles[i].tile.GetComponent<Image>().color = Mathf.Repeat(Time.unscaledTime, 1f) < 0.5f ? Palette.Plum : Palette.Black;
+            }
         }
     }
 }

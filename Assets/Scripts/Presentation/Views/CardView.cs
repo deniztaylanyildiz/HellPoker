@@ -52,6 +52,13 @@ namespace HellPoker.Presentation.Views
         private Image _mark;
         private float _sheen;
 
+        /// <summary>The joker's own face over the card (a grinning fool, no rank or suit).</summary>
+        private Image _jokerFace;
+
+        /// <summary>Sparks over the card while a joker turns into its card.</summary>
+        private Image _sparkle;
+        private const float SparkleDuration = 0.42f;
+
         /// <summary>The state this card will be in once all queued animations have played.</summary>
         public CardSlot Planned { get; private set; } = CardSlot.Empty;
 
@@ -118,6 +125,15 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.Stretch();
             _discardTag = tag.gameObject;
 
+            // A joker's face covers the ordinary face (no rank, no suit); a fool's sparks play over it as it becomes a card.
+            _jokerFace = UiFactory.CreateSprite("JokerFace", _faceGroup.transform, UiArt.CardJoker, Palette.Bone);
+            _jokerFace.rectTransform.Stretch();
+            _jokerFace.enabled = false;
+            _sparkle = UiFactory.CreateImage("JokerSparkle", root, Color.white);
+            _sparkle.raycastTarget = false;
+            _sparkle.rectTransform.PlaceTL(0, 0, Size.x, Size.y);
+            _sparkle.enabled = false;
+
             // A cheat's mark lies over the card (chain, thorn, veil, silver sheen); it turns with the card.
             _mark = UiFactory.CreateImage("CheatMark", _content, Color.white);
             _mark.raycastTarget = false;
@@ -181,6 +197,9 @@ namespace HellPoker.Presentation.Views
                 return FadeOut();
             if (from.Kind == CardSlot.SlotKind.Empty)
                 return target.Kind == CardSlot.SlotKind.Back ? DealIn() : Sequence(DealIn(), FlipTo(target));
+            // A joker becoming its card at the showdown: no flip — it sparkles into the card in place.
+            if (from.Kind == CardSlot.SlotKind.Face && from.Card.IsJoker && target.Kind == CardSlot.SlotKind.Face && target.Mark == CardMark.Joker)
+                return JokerTurns(target);
             if (from.Kind == CardSlot.SlotKind.Face && target.Kind == CardSlot.SlotKind.Face)
                 return Sequence(FlipTo(CardSlot.Back), FlipTo(target));
             return FlipTo(target);
@@ -212,6 +231,31 @@ namespace HellPoker.Presentation.Views
             _content.localScale = new Vector3(pixels / Size.x, 1f, 1f);
         }
 
+        private IEnumerator JokerTurns(CardSlot target)
+        {
+            Sprite[] frames = UiArt.Strip(UiArt.JokerSparkle, Size.x);
+            if (frames == null || frames.Length == 0)
+            {
+                Apply(target);
+                yield break;
+            }
+            _sparkle.enabled = true;
+            _sparkle.transform.SetAsLastSibling();
+            bool turned = false;
+            yield return Tween.Run(SparkleDuration, t =>
+            {
+                int frame = Mathf.Min(frames.Length - 1, (int)(t * frames.Length));
+                _sparkle.sprite = frames[frame];
+                if (!turned && t >= 0.34f)
+                {
+                    turned = true;
+                    Apply(target);   // the card shows under the sparks once the flash is at its brightest
+                }
+            });
+            if (!turned) Apply(target);
+            _sparkle.enabled = false;
+        }
+
         private IEnumerator FadeOut()
         {
             if (_backGroup.activeSelf || _faceGroup.activeSelf)
@@ -234,7 +278,8 @@ namespace HellPoker.Presentation.Views
         /// <summary>The mark's overlay from the card_marks strip; nothing when the art is missing or there is no mark.</summary>
         private void ShowMark(CardMark mark)
         {
-            int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3 : mark == CardMark.Protected ? 4 : -1;
+            int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3
+                : mark == CardMark.Protected ? 4 : mark == CardMark.Joker ? 5 : -1;
             Sprite[] marks = UiArt.Strip(UiArt.CardMarks, Size.x);
             _mark.sprite = frame >= 0 && marks != null && frame < marks.Length ? marks[frame] : null;
             _mark.enabled = _mark.sprite != null;
@@ -256,6 +301,7 @@ namespace HellPoker.Presentation.Views
             _content.anchoredPosition = new Vector2(0f, Lift);
             _contentGroup.alpha = 1f;
             _discardTag.SetActive(false);
+            _sparkle.enabled = false;
 
             bool empty = slot.Kind == CardSlot.SlotKind.Empty;
             _slot.SetActive(empty);
@@ -267,6 +313,18 @@ namespace HellPoker.Presentation.Views
 
             Card card = slot.Card;
             _faceCard = card;
+            // A joker: its own face (when the art is there), nothing of a rank or a suit.
+            bool joker = card.IsJoker;
+            _jokerFace.enabled = joker && _jokerFace.sprite != null;
+            if (joker)
+            {
+                foreach (Text text in new[] { _rankTop, _rankBottom }) text.text = _jokerFace.enabled ? "" : "?";
+                foreach (Image pip in new[] { _suitTop, _suitBottom }) pip.enabled = false;
+                _centerSuit.enabled = false;
+                _centerSymbol.text = _jokerFace.enabled ? "" : "?";
+                _centerSymbol.color = Palette.Crimson;
+                return;
+            }
             Color ink = card.Suit.IsBlack() ? Palette.BlackSuit : Palette.RedSuit;
             string rank = card.Rank.ToShortString();
 

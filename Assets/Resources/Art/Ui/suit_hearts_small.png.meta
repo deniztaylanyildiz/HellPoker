@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      suit_hearts_small_0: 8692350006491889378
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

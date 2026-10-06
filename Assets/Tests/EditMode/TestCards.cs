@@ -5,7 +5,7 @@ using HellPoker.Core.Cards;
 
 namespace HellPoker.Core.Tests
 {
-    /// <summary>Parses compact notation like "AS 10H 8C" (rank + suit letter C/D/H/S).</summary>
+    /// <summary>Parses compact notation like "AS 10H 8C" (rank + suit letter C/D/H/S); "JK1", "JK2"... are jokers.</summary>
     internal static class TestCards
     {
         public static Hand Hand(string notation)
@@ -20,6 +20,9 @@ namespace HellPoker.Core.Tests
 
         public static Card Card(string token)
         {
+            if (token.Length >= 3 && token.StartsWith("JK", StringComparison.OrdinalIgnoreCase))
+                return HellPoker.Core.Cards.Card.Joker(int.Parse(token.Substring(2)));
+
             string rankPart = token.Substring(0, token.Length - 1);
             char suitPart = char.ToUpperInvariant(token[token.Length - 1]);
 

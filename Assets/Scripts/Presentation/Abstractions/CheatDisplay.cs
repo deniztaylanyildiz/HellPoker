@@ -74,6 +74,9 @@ namespace HellPoker.Presentation.Abstractions
         FalseFace,
 
         /// <summary>The King's protection: a small crown, no cheat may touch the card this hand.</summary>
-        Protected
+        Protected,
+
+        /// <summary>A joker turned into this card at the showdown: a tiny fool's cap in the corner, so the player knows which.</summary>
+        Joker
     }
 }

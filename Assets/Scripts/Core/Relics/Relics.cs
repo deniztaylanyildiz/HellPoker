@@ -34,9 +34,18 @@ namespace HellPoker.Core.Relics
         /// <summary>A soul hand's loss surcharge in percent instead of the rule's (the Thorned Rosary: 125); -1: the rule's.</summary>
         public int SoulLossPercent { get; }
 
+        /// <summary>A won hand forgives this share of the ante more, in percent (the Jester's Rattle: 50).</summary>
+        public int WinAntePercent { get; }
+
+        /// <summary>A lost hand adds this share of the ante more, in percent (the Jester's Rattle: 50).</summary>
+        public int LossAntePercent { get; }
+
         public RelicEffects(int antePercent = 100, int winPercent = 100, int houseCardsDelta = 0, int reRaiseExtraUnits = 0,
-            int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1)
+            int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1, int winAntePercent = 0, int lossAntePercent = 0)
         {
+            if (winAntePercent < 0 || lossAntePercent < 0) throw new ArgumentOutOfRangeException(nameof(winAntePercent));
+            WinAntePercent = winAntePercent;
+            LossAntePercent = lossAntePercent;
             if (antePercent <= 0 || winPercent < 0 || reRaiseExtraUnits < 0 || maliceExtraPerHand < 0 || redrawsPerTable < 0)
                 throw new ArgumentOutOfRangeException(nameof(antePercent));
             AntePercent = antePercent;
@@ -54,7 +63,8 @@ namespace HellPoker.Core.Relics
             if (other == null) return this;
             int soul = SoulLossPercent < 0 ? other.SoulLossPercent : other.SoulLossPercent < 0 ? SoulLossPercent : Math.Min(SoulLossPercent, other.SoulLossPercent);
             return new RelicEffects(AntePercent * other.AntePercent / 100, WinPercent * other.WinPercent / 100, HouseCardsDelta + other.HouseCardsDelta,
-                ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerTable + other.RedrawsPerTable, soul);
+                ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerTable + other.RedrawsPerTable, soul,
+                WinAntePercent + other.WinAntePercent, LossAntePercent + other.LossAntePercent);
         }
     }
 
@@ -71,6 +81,12 @@ namespace HellPoker.Core.Relics
 
         /// <summary>A rough estimate of what carrying it is worth over a run, in years (for the balance simulation's player).</summary>
         int ExpectedYears { get; }
+
+        /// <summary>
+        /// Earned, never offered (the Jester's Rattle, for twenty jokers): no event deals it, and it does not count towards
+        /// <see cref="RelicRoster.MaxCarried"/>.
+        /// </summary>
+        bool IsReward { get; }
     }
 
     public static class RelicIds
@@ -79,6 +95,7 @@ namespace HellPoker.Core.Relics
         public const string RustyCrown = "rusty_crown";
         public const string FerrymansCoin = "ferrymans_coin";
         public const string ThornedRosary = "thorned_rosary";
+        public const string JestersRattle = "jesters_rattle";
     }
 
     /// <summary>The Bone Die: once a table, before a draw, a card of yours is thrown back and redealt — but the House re-raises two units.
@@ -88,6 +105,7 @@ namespace HellPoker.Core.Relics
         public string Id => RelicIds.BoneDie;
         public RelicEffects Effects { get; } = new RelicEffects(reRaiseExtraUnits: 1, redrawsPerTable: 1);
         public int ExpectedYears => 25;
+        public bool IsReward => false;
     }
 
     /// <summary>The Rusty Crown: a win forgives a twentieth more — but the demon's malice grows one more every hand.
@@ -97,6 +115,7 @@ namespace HellPoker.Core.Relics
         public string Id => RelicIds.RustyCrown;
         public RelicEffects Effects { get; } = new RelicEffects(winPercent: 105, maliceExtraPerHand: 1);
         public int ExpectedYears => 0;
+        public bool IsReward => false;
     }
 
     /// <summary>The Ferryman's Coin: the ante is four fifths — but the House shows one card fewer. (Three quarters: see the crown.)</summary>
@@ -105,6 +124,7 @@ namespace HellPoker.Core.Relics
         public string Id => RelicIds.FerrymansCoin;
         public RelicEffects Effects { get; } = new RelicEffects(antePercent: 80, houseCardsDelta: -1);
         public int ExpectedYears => 20;
+        public bool IsReward => false;
     }
 
     /// <summary>The Thorned Rosary: the soul burns slower (losses ×1.25 instead of ×1.5) — but a win forgives a tenth less.</summary>
@@ -113,6 +133,19 @@ namespace HellPoker.Core.Relics
         public string Id => RelicIds.ThornedRosary;
         public RelicEffects Effects { get; } = new RelicEffects(winPercent: 90, soulLossPercent: 125);
         public int ExpectedYears => -40;
+        public bool IsReward => false;
+    }
+
+    /// <summary>
+    /// The Jester's Rattle: earned when the Jester's deck reaches twenty jokers (once a run; the jokers go and the count starts again).
+    /// A won hand forgives half an ante more — and a lost one adds half an ante more: the swings, doubled.
+    /// </summary>
+    public sealed class JestersRattle : IRelic
+    {
+        public string Id => RelicIds.JestersRattle;
+        public RelicEffects Effects { get; } = new RelicEffects(winAntePercent: 50, lossAntePercent: 50);
+        public int ExpectedYears => 0;
+        public bool IsReward => true;
     }
 
     /// <summary>Every relic there is, and how many a run may carry.</summary>
@@ -120,7 +153,13 @@ namespace HellPoker.Core.Relics
     {
         public const int MaxCarried = 2;
 
-        public static IReadOnlyList<IRelic> All { get; } = new IRelic[] { new BoneDie(), new RustyCrown(), new FerrymansCoin(), new ThornedRosary() };
+        /// <summary>Every relic, in the icon strip's order (the rewards last).</summary>
+        public static IReadOnlyList<IRelic> All { get; } = new IRelic[] { new BoneDie(), new RustyCrown(), new FerrymansCoin(), new ThornedRosary(), new JestersRattle() };
+
+        /// <summary>The relics an event may offer (not the rewards).</summary>
+        public static IEnumerable<IRelic> Offered => All.Where(r => !r.IsReward);
+
+        public static bool IsReward(string id) => Find(id)?.IsReward ?? false;
 
         public static IRelic Find(string id) => All.FirstOrDefault(r => r.Id == id);
 

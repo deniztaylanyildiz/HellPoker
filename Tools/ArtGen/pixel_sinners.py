@@ -1,6 +1,6 @@
 """The sinner classes: a 48x48 portrait for each (shown at x2 on the choice screen) and a 16x16 badge icon strip.
 
-Same palette as everything else (pixel.py). Order of the icon strip = SinnerRoster.All: peasant, warlock, king.
+Same palette as everything else (pixel.py). Order of the icon strip = SinnerRoster.All: peasant, warlock, king, jester.
 """
 import os
 
@@ -8,7 +8,7 @@ from pixel import C, Img, RAMP_BONE, RAMP_GOLD, RAMP_LILAC, RAMP_RED, sheet
 
 SIZE = 48
 ICON = 16
-ORDER = ["peasant", "warlock", "king"]
+ORDER = ["peasant", "warlock", "king", "jester"]
 
 
 def _backdrop(img, glow):
@@ -106,8 +106,50 @@ def king():
     return img
 
 
+def _jester_cap(img, cx, top, reach, droop, bell):
+    """A fool's cap: three floppy points (crimson, gold, violet) falling to the sides, a gold bell on each tip."""
+    band = img.m_rect(cx - reach // 2, top + droop, cx + reach // 2, top + droop + 2)
+    points = [
+        ([(cx - 3, top + droop), (cx - reach, top + 1), (cx - reach - 2, top + droop + 3), (cx - reach // 2, top + droop)], C.CRIMSON, (cx - reach - 2, top + droop + 3)),
+        ([(cx - 2, top + droop), (cx, top - 1), (cx + 2, top + droop)], C.GOLD, (cx, top - 1)),
+        ([(cx + 3, top + droop), (cx + reach, top + 1), (cx + reach + 2, top + droop + 3), (cx + reach // 2, top + droop)], C.VIOLET, (cx + reach + 2, top + droop + 3)),
+    ]
+    for poly, colour, tip in points:
+        img.paint(img.m_poly(poly), colour)
+    img.paint(band, C.GOLD_MID)
+    for _, _, (bx, by) in points:
+        b = img.m_ellipse(bx, by, bell, bell)
+        img.paint(b, C.GOLD_LIGHT)
+        img.put(int(bx), int(by + bell), C.GOLD_DARK)
+
+
+def jester():
+    img = Img(SIZE, SIZE)
+    _backdrop(img, C.CRIMSON)
+    # Motley: a doublet split crimson and gold, a pointed ruff.
+    body = img.m_poly([(7, 47), (12, 33), (24, 30), (36, 33), (41, 47)])
+    img.paint(body & img.m_rect(0, 0, 23, SIZE), C.CRIMSON)
+    img.paint(body & img.m_rect(24, 0, SIZE, SIZE), C.GOLD_MID)
+    img.dither(body & img.m_rect(0, 40, SIZE, SIZE), C.CLEAR, C.BLOOD_DARK, 0.25)
+    for k, x in enumerate(range(13, 36, 4)):
+        img.paint(img.m_poly([(x, 31), (x + 2, 36), (x + 4, 31)]), C.BONE if k % 2 == 0 else C.LILAC_LIGHT)
+    head = _face(img, 24, 23, C.BONE, C.BONE_DARK)
+    # Painted diamonds under the eyes, a wide grin.
+    for ex in (21, 27):
+        img.put(ex, 25, C.CRIMSON)
+        img.put(ex, 26, C.RED)
+    img.paint(img.m_rect(20, 28, 28, 28), C.BLACK)
+    img.put(19, 27, C.BLACK)
+    img.put(29, 27, C.BLACK)
+    for x in (21, 23, 25, 27):
+        img.put(x, 29, C.BONE_SHADE)
+    _jester_cap(img, 24, 6, 14, 8, 1.6)
+    img.outline(C.BLACK, mask=img.px != C.NIGHT)
+    return img
+
+
 def icon(class_id):
-    """The 16x16 badge: a pitchfork, a glowing eye, a crown."""
+    """The 16x16 badge: a pitchfork, a glowing eye, a crown, a fool's cap."""
     img = Img(ICON, ICON)
     if class_id == "peasant":
         img.paint(img.m_line([(8, 15), (8, 5)], 1), C.BONE_DARK)
@@ -128,11 +170,16 @@ def icon(class_id):
         img.paint(img.m_rect(2, 12, 13, 12), C.GOLD_MID)
         img.put(7, 10, C.RED)
         img.put(8, 10, C.RED)
+    elif class_id == "jester":
+        _jester_cap(img, 8, 3, 6, 5, 1.2)
+        img.paint(img.m_rect(4, 11, 12, 13), C.BONE)
+        img.put(6, 12, C.BLACK)
+        img.put(10, 12, C.BLACK)
     img.outline(C.BLACK)
     return img
 
 
-PORTRAITS = {"peasant": peasant, "warlock": warlock, "king": king}
+PORTRAITS = {"peasant": peasant, "warlock": warlock, "king": king, "jester": jester}
 
 
 def write_all(art_dir):

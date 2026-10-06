@@ -9,8 +9,9 @@ namespace HellPoker.Core.Sinners
         public static readonly SinnerClass Peasant = new Peasant();
         public static readonly SinnerClass Warlock = new Warlock();
         public static readonly SinnerClass King = new King();
+        public static readonly SinnerClass Jester = new Jester();
 
-        public static IReadOnlyList<SinnerClass> All { get; } = new[] { Peasant, Warlock, King };
+        public static IReadOnlyList<SinnerClass> All { get; } = new[] { Peasant, Warlock, King, Jester };
 
         /// <summary>The class with this id; null for an unknown one.</summary>
         public static SinnerClass Find(string id) => All.FirstOrDefault(c => c.Id == id);

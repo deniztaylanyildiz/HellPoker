@@ -280,5 +280,35 @@ namespace HellPoker.Core.Game
         void NextRound();
 
         void Restart();
+
+        // ------------------------------------------------------------------ the deck (counted from hand to hand)
+
+        /// <summary>Cards left in the deck.</summary>
+        int DeckCount { get; }
+
+        /// <summary>The demon shuffled all 52 again as this hand began (the deck was too thin for it).</summary>
+        bool DeckShuffledThisHand { get; }
+
+        /// <summary>Why SHUFFLE cannot be used now; <see cref="ShuffleRefusal.None"/> when it can.</summary>
+        ShuffleRefusal WhyNoShuffle();
+
+        /// <summary>SHUFFLE (between hands, once before each deal): all 52 back and shuffled, for <see cref="GameRules.ShuffleYears"/>.</summary>
+        bool Shuffle();
+
+        // ------------------------------------------------------------------ the jokers (the Jester's deck)
+
+        /// <summary>In <see cref="GamePhase.NamingJoker"/>: every card the player's joker may become (none they hold).</summary>
+        IReadOnlyList<Card> JokerChoices { get; }
+
+        /// <summary>In <see cref="GamePhase.NamingJoker"/>: the card that makes the player's best hand.</summary>
+        Card BestJokerCard { get; }
+
+        /// <summary>In <see cref="GamePhase.NamingJoker"/>: what the player's hand makes with the joker as <paramref name="card"/>.</summary>
+        HandEvaluation EvaluateJokerAs(Card card);
+
+        bool CanNameJoker(Card card);
+
+        /// <summary>The player's joker becomes <paramref name="card"/> (a worse card counts as it is); the showdown is settled.</summary>
+        void NameJoker(Card card);
     }
 }

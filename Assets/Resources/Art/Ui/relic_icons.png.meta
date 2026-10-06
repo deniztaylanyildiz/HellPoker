@@ -285,7 +285,13 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      relic_icons_0: -7588217791283646765
+      relic_icons_1: -8685963078151927365
+      relic_icons_2: -8028903995043012698
+      relic_icons_3: 2596740567920808762
+      relic_icons_4: 9012147161413755756
+      relic_icons_5: -4085115652025253511
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

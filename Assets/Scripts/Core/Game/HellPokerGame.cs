@@ -63,7 +63,10 @@ namespace HellPoker.Core.Game
         }
 
         /// <summary>What a won hand forgives more (the King's crown): a share of the ante.</summary>
-        private int CrownBonus(int ante) => (ante * (Sinner?.Class.WinAntePercent ?? 0) + 99) / 100;
+        private int CrownBonus(int ante) => AnteShare(ante, Sinner?.Class.WinAntePercent ?? 0);
+
+        /// <summary>A share of the ante, in percent, rounded up (the crown, the Rattle).</summary>
+        private static int AnteShare(int ante, int percent) => (ante * percent + 99) / 100;
         private readonly IRandomSource _cheatRandom;
         private IReadOnlyList<int> _drawnIndices = Array.Empty<int>();
 
@@ -148,13 +151,15 @@ namespace HellPoker.Core.Game
                 bool inHand = CurrentStake > 0;
                 int eventPercent = inHand ? ThisHand.WinPercent : (Effects.NextHand ?? HandModifier.None).WinPercent;
                 int relicPercent = (inHand ? Relic : RelicRoster.Combined(Effects.Relics)).WinPercent;
-                return Math.Min(_ledger.Years, Scaled(_payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, int.MaxValue) + CrownBonus(AnteForOutlook),
-                    eventPercent, relicPercent));
+                RelicEffects relic = inHand ? Relic : RelicRoster.Combined(Effects.Relics);
+                return Math.Min(_ledger.Years, Scaled(_payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, int.MaxValue) + CrownBonus(AnteForOutlook)
+                    + AnteShare(AnteForOutlook, relic.WinAntePercent), eventPercent, relicPercent));
             }
         }
 
         private static int Scaled(int years, int eventPercent, int relicPercent) => (int)((long)years * eventPercent / 100 * relicPercent / 100);
-        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake));
+        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake))
+            + AnteShare(AnteForOutlook, (CurrentStake > 0 ? Relic : RelicRoster.Combined(Effects.Relics)).LossAntePercent);
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
         private int AnteForOutlook => CurrentStake > 0 ? Ante : UpcomingAnte;
@@ -175,7 +180,9 @@ namespace HellPoker.Core.Game
             if (_cheats.IsActive && cheatRandom == null) throw new ArgumentNullException(nameof(cheatRandom));
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             _deck = deck ?? throw new ArgumentNullException(nameof(deck));
-            _evaluator = evaluator ?? throw new ArgumentNullException(nameof(evaluator));
+            // Jokers are judged as the best card they can be wherever a hand is judged (without jokers: the plain evaluator).
+            if (evaluator == null) throw new ArgumentNullException(nameof(evaluator));
+            _evaluator = evaluator is WildJokerEvaluator ? evaluator : new WildJokerEvaluator(evaluator);
             _exchanger = exchanger ?? throw new ArgumentNullException(nameof(exchanger));
             _houseStrategy = houseStrategy ?? throw new ArgumentNullException(nameof(houseStrategy));
             _payouts = payouts ?? throw new ArgumentNullException(nameof(payouts));
@@ -188,6 +195,7 @@ namespace HellPoker.Core.Game
         public void Restart()
         {
             _ledger.Reset(Rules.StartingYears);
+            _deck.Reset();   // a new run: a fresh deck
             ClearHand();
             LastRound = null;
             RoundNumber = 0;
@@ -203,7 +211,6 @@ namespace HellPoker.Core.Game
             IsSoulHand = IsSoulAtStake;
             int stakeBase = StakeBase;
             _handPurse = AvailableForNextHand;
-            _deck.Reset();
             Unit = Rules.Stakes.UnitFor(stakeBase);
             // An event's mark on this hand (Charon's half ante, the burning bridge's three units and no cap...).
             ThisHand = Effects.NextHand ?? HandModifier.None;
@@ -213,6 +220,7 @@ namespace HellPoker.Core.Game
             Ante = Math.Min(AnteUnder(stakeBase, ThisHand, Relic), _handPurse);
             TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
+            PrepareDeck();
             PlayerHand = _deck.DealHand();
             HouseHand = _deck.DealHand();
             if (ThisHand.GhostSeed.HasValue)
@@ -228,6 +236,79 @@ namespace HellPoker.Core.Game
             Strike(CheatTiming.AfterDeal);
             NoteCommitment();
             SkipEmptyDecisions();
+        }
+
+        // ------------------------------------------------------------------ the deck (it goes on from hand to hand)
+
+        public int DeckCount => _deck.Count;
+
+        /// <summary>True when this hand began with the demon shuffling a deck run too thin.</summary>
+        public bool DeckShuffledThisHand { get; private set; }
+
+        /// <summary>The player shuffled (SHUFFLE) since the last deal.</summary>
+        public bool ShuffledThisHand { get; private set; }
+
+        /// <summary>How many times the demon shuffled a thin deck, and the player paid to shuffle, at this table.</summary>
+        public int AutoShuffles { get; private set; }
+        public int PlayerShuffles { get; private set; }
+
+        /// <summary>The Jester's deck (jokers in it): a fresh shuffle every hand, nothing to count.</summary>
+        private bool JokerDeck => Sinner != null && Sinner.Class.StartingJokers > 0;
+
+        /// <summary>
+        /// The most cards one hand can take from the deck: both hands, both draws at their fullest, the relics' redraws, the most a
+        /// cheat deals (The Fall: one card for each hand), and a lost soul's ghost hand.
+        /// </summary>
+        public int CardsForAHand
+        {
+            get
+            {
+                HandModifier hand = CurrentStake > 0 ? ThisHand : Effects.NextHand ?? HandModifier.None;
+                RelicEffects relic = CurrentStake > 0 ? Relic : RelicRoster.Combined(Effects.Relics);
+                return 2 * Hand.Size + 2 * Rules.MaxDiscards + relic.RedrawsPerTable + CheatTable.MostCardsACheatDeals
+                       + (hand.GhostSeed.HasValue ? Hand.Size : 0);
+            }
+        }
+
+        /// <summary>
+        /// Before a deal: the deck goes on as it is — unless it could run out within this hand, when the demon shuffles all 52
+        /// again. The Jester's deck (and a table without the rule) is shuffled fresh every hand.
+        /// </summary>
+        private void PrepareDeck()
+        {
+            DeckShuffledThisHand = false;
+            ShuffledThisHand = false;
+            // The Jester's deck: as many jokers as the run has earned (none for any other class).
+            if (_deck is IJokerDeck jokerDeck) jokerDeck.SetJokers(Sinner?.Jokers ?? 0);
+            if (!Rules.ContinuousDeck || JokerDeck)
+            {
+                _deck.Reset();
+                return;
+            }
+            if (_deck.Count >= CardsForAHand) return;
+            _deck.Reset();
+            DeckShuffledThisHand = true;
+            AutoShuffles++;
+        }
+
+        public ShuffleRefusal WhyNoShuffle()
+        {
+            if (!Rules.ContinuousDeck || JokerDeck) return ShuffleRefusal.NoDeckToCount;
+            if (Phase != GamePhase.Betting) return ShuffleRefusal.NotBetweenHands;
+            if (ShuffledThisHand) return ShuffleRefusal.AlreadyShuffled;
+            if (IsSoulAtStake || _ledger.Years + Rules.ShuffleYears >= Rules.SoulThreshold) return ShuffleRefusal.SoulAtStake;
+            if (_ledger.Years < Rules.ShuffleMinYears) return ShuffleRefusal.TooFewYears;
+            return ShuffleRefusal.None;
+        }
+
+        public bool Shuffle()
+        {
+            if (WhyNoShuffle() != ShuffleRefusal.None) return false;
+            _ledger.Add(Rules.ShuffleYears);
+            _deck.Reset();
+            ShuffledThisHand = true;
+            PlayerShuffles++;
+            return true;
         }
 
         // ------------------------------------------------------------------ the demon's cheats
@@ -486,7 +567,7 @@ namespace HellPoker.Core.Game
         }
 
         public HandInProgress CurrentHand =>
-            IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise
+            IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || Phase == GamePhase.HouseReRaise || Phase == GamePhase.NamingJoker
                 ? new HandInProgress(CurrentStake, Ante, IsAfterDraw, IsSoulHand, _sealed, _cheats.Planned?.Id, _cheats.IsResolved)
                 : null;
 
@@ -571,7 +652,9 @@ namespace HellPoker.Core.Game
             }
 
             _playerExchange = _exchanger.Exchange(PlayerHand, discardIndices, _deck);
-            _houseExchange = _exchanger.Exchange(HouseHand, _houseStrategy.ChooseDiscards(HouseHand), _deck);
+            // The House draws what the deck still holds (never more: an empty deck — which a counted deck keeps clear of — is no error).
+            int[] houseDiscards = _houseStrategy.ChooseDiscards(HouseHand).Take(_deck.Count).ToArray();
+            _houseExchange = _exchanger.Exchange(HouseHand, houseDiscards, _deck);
             PlayerHand = _playerExchange.Hand;
             HouseHand = _houseExchange.Hand;
             _drawnIndices = _playerExchange.ReplacedIndices;
@@ -820,10 +903,12 @@ namespace HellPoker.Core.Game
         {
             if (_cheats.Marks.Gaze)
             {
-                ShowdownOutcome outcome = ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand)).Outcome;
+                ShowdownOutcome outcome = JudgeShowdown(null).Outcome;
                 if (outcome == ShowdownOutcome.HouseWins) return true;
                 if (outcome == ShowdownOutcome.PlayerWins) return _cheatRandom.Next(100) < GazeBluffPercent;
             }
+            // Two jokers lose at the showdown: the House does not raise on them.
+            if (JokerResolver.CountJokers(HouseHand) >= 2) return false;
             return _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
         }
 
@@ -840,8 +925,65 @@ namespace HellPoker.Core.Game
         private void FinishShowdown()
         {
             // The showdown stands as it is judged — the only cheat allowed to change it is Lucifer's Fall, in plain sight.
-            ShowdownResult showdown = ShowdownResult.Resolve(_evaluator.Evaluate(PlayerHand), _evaluator.Evaluate(HouseHand));
-            Finish(Strike(CheatTiming.BeforeShowdown, showdown));
+            ShowdownResult showdown = JudgeShowdown(null);
+            ShowdownResult after = Strike(CheatTiming.BeforeShowdown, showdown);
+            if (JokerResolver.CountJokers(PlayerHand) + JokerResolver.CountJokers(HouseHand) == 0)
+            {
+                Finish(after);
+                return;
+            }
+
+            // The Jester's deck: every card turns; a single joker of the player's waits for its name, the House names its own.
+            PlayerCardsRevealed = Hand.Size;
+            HouseCardsRevealed = Hand.Size;
+            if (JokerResolver.CountJokers(PlayerHand) == 1)
+            {
+                Phase = GamePhase.NamingJoker;
+                return;
+            }
+            Finish(JudgeShowdown(null));
+        }
+
+        // ------------------------------------------------------------------ the jokers (the Jester's deck)
+
+        /// <summary>
+        /// The showdown as the jokers make it: the House's single joker as its best card, the player's as <paramref name="named"/>
+        /// (or its best card when null); a side with two jokers or more loses.
+        /// </summary>
+        private ShowdownResult JudgeShowdown(Card? named)
+        {
+            Hand player = named.HasValue ? JokerResolver.Name(PlayerHand, named.Value) ?? PlayerHand : PlayerHand;
+            return ShowdownResult.Judge(_evaluator.Evaluate(player), _evaluator.Evaluate(HouseHand),
+                JokerResolver.CountJokers(PlayerHand) >= 2, JokerResolver.CountJokers(HouseHand) >= 2);
+        }
+
+        public IReadOnlyList<Card> JokerChoices => Phase == GamePhase.NamingJoker ? JokerResolver.Choices(PlayerHand) : Array.Empty<Card>();
+
+        public Card BestJokerCard
+        {
+            get
+            {
+                RequirePhase(GamePhase.NamingJoker);
+                Hand best = JokerResolver.Resolve(PlayerHand);
+                int joker = Enumerable.Range(0, Hand.Size).First(i => PlayerHand[i].IsJoker);
+                return best[joker];
+            }
+        }
+
+        public HandEvaluation EvaluateJokerAs(Card card)
+        {
+            RequirePhase(GamePhase.NamingJoker);
+            Hand named = JokerResolver.Name(PlayerHand, card) ?? throw new ArgumentException($"The joker cannot become {card}.", nameof(card));
+            return _evaluator.Evaluate(named);
+        }
+
+        public bool CanNameJoker(Card card) => Phase == GamePhase.NamingJoker && JokerResolver.Name(PlayerHand, card) != null;
+
+        public void NameJoker(Card card)
+        {
+            RequirePhase(GamePhase.NamingJoker);
+            if (!CanNameJoker(card)) throw new ArgumentException($"The joker cannot become {card}.", nameof(card));
+            Finish(JudgeShowdown(card));
         }
 
         /// <summary>Settles the hand. A null showdown means the player folded.</summary>
@@ -870,7 +1012,8 @@ namespace HellPoker.Core.Game
             }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
                 _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.House.Category, CurrentStake, Ante, LossSurcharge(IsSoulHand)) *
-                                              (ThisHand.LossPercent / 100.0)));   // the lost soul doubles a loss
+                                              (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
+                            + AnteShare(Ante, Relic.LossAntePercent));        // the Rattle: half an ante more
 
             HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;
@@ -879,10 +1022,13 @@ namespace HellPoker.Core.Game
                 : _ledger.Years >= DamnationYears ? GamePhase.Damned
                 : GamePhase.RoundOver;
 
-            LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
-                yearsBefore, _ledger.Years, Phase, freeFold: freeFold);
             // The power charges with every settled hand — but not the one the Peasant walked away from with it (his gauge is empty).
             if (!freeFold) Sinner?.HandSettled(showdown == null, showdown?.Outcome);
+            // The Jester's twenty jokers: the deck is cleared of them, and the first time the Rattle joins the run (beyond the relic limit).
+            bool jackpot = !freeFold && Sinner != null && Sinner.HitJokerJackpot;
+            bool rattle = jackpot && Effects.AddRelic(RelicIds.JestersRattle);
+            LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
+                yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle);
             LapseProtection(tell: false);
         }
 
@@ -898,8 +1044,8 @@ namespace HellPoker.Core.Game
                 // The whole win first (with the King's crown), then an event's and the relics' percents (Charon halves it, Belial's
                 // show doubles it, the Rosary takes a tenth), and only then the sentence's cap: a percent of a capped win would
                 // never bring the last years down to zero.
-                forgiven = Math.Min(_ledger.Years, Scaled(_payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, int.MaxValue) + CrownBonus(Ante),
-                    ThisHand.WinPercent, Relic.WinPercent));
+                forgiven = Math.Min(_ledger.Years, Scaled(_payouts.GetYearsForgiven(playerCategory, CurrentStake, Ante, int.MaxValue) + CrownBonus(Ante)
+                    + AnteShare(Ante, Relic.WinAntePercent), ThisHand.WinPercent, Relic.WinPercent));
                 // The burning bridge brings the sentence down to its line.
                 if (ThisHand.WinSetsYears >= 0 && _ledger.Years > ThisHand.WinSetsYears)
                     forgiven = Math.Max(forgiven, _ledger.Years - ThisHand.WinSetsYears);

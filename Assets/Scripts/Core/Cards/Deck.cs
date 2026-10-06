@@ -5,10 +5,11 @@ using HellPoker.Core.Randomness;
 
 namespace HellPoker.Core.Cards
 {
-    public sealed class Deck : IDeck
+    public sealed class Deck : IDeck, IJokerDeck
     {
         private readonly IShuffler _shuffler;
-        private readonly Card[] _fullSet;
+        private readonly Card[] _ordinary;
+        private Card[] _fullSet;
         private readonly List<Card> _cards;
 
         /// <summary>Standard 52-card deck, shuffled on creation.</summary>
@@ -23,6 +24,8 @@ namespace HellPoker.Core.Cards
             if (cards == null) throw new ArgumentNullException(nameof(cards));
 
             _fullSet = cards.ToArray();
+            _ordinary = _fullSet.Where(card => !card.IsJoker).ToArray();
+            Jokers = _fullSet.Length - _ordinary.Length;
             _cards = new List<Card>(_fullSet.Length);
             Reset();
         }
@@ -61,6 +64,25 @@ namespace HellPoker.Core.Cards
             _cards.Clear();
             _cards.AddRange(_fullSet);
             _shuffler.Shuffle(_cards);
+        }
+
+        public int Jokers { get; private set; }
+
+        /// <summary>The deck holds <paramref name="count"/> jokers from the next <see cref="Reset"/> on (the ordinary cards stay).</summary>
+        public void SetJokers(int count)
+        {
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            if (count == Jokers) return;
+            Jokers = count;
+            // The jokers go in at the bottom (drawn last before a shuffle; a deck that is not shuffled keeps its order on top).
+            _fullSet = CreateJokers(count).Concat(_ordinary).ToArray();
+        }
+
+        /// <summary>Jokers number 1 to <paramref name="count"/>.</summary>
+        public static IEnumerable<Card> CreateJokers(int count)
+        {
+            for (int serial = 1; serial <= count; serial++)
+                yield return Card.Joker(serial);
         }
 
         public static IEnumerable<Card> CreateStandardCards()

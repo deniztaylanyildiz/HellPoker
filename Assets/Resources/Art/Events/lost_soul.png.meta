@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      lost_soul_0: 3720215163177513019
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

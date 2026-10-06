@@ -9,14 +9,18 @@ namespace HellPoker.Presentation.Abstractions
     {
         public static readonly PowerDisplay None = new PowerDisplay(null, false);
 
+        /// <summary>The line is a warning (two jokers in the hand), not a power waiting: it shows in the warning colour.</summary>
+        public bool Warning { get; }
+
         /// <summary>The line that stays on screen while the power waits; null: none.</summary>
         public string Hint { get; }
 
         /// <summary>The Warlock's ward is up: a small shield by the intent sign.</summary>
         public bool WardUp { get; }
 
-        public PowerDisplay(string hint, bool wardUp)
+        public PowerDisplay(string hint, bool wardUp, bool warning = false)
         {
+            Warning = warning;
             Hint = string.IsNullOrEmpty(hint) ? null : hint;
             WardUp = wardUp;
         }

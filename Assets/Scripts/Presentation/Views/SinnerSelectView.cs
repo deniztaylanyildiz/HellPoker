@@ -16,15 +16,23 @@ namespace HellPoker.Presentation.Views
     public sealed class SinnerSelectView : MonoBehaviour, ISinnerSelectView
     {
         private const int SortingOrder = 112;
-        private const int CardWidth = 148;
-        private const int CardSpacing = 8;
+        /// <summary>The widest a card gets (three classes); with more, the cards narrow so the row always fits the 480 px screen.</summary>
+        private const int MaxCardWidth = 148;
+        private const int CardSpacing = 6;
+        private const int ScreenMargin = 4;
         private const int CardsY = 34;
-        private const int CardHeight = 222;
+        private const int CardHeight = 230;
 
         /// <summary>Where the ability text starts, its margin, and the top of CHOOSE: the ability and the price live between.</summary>
         public const int AbilityTop = 152;
-        public const int TextX = 8;
+        public const int TextX = 5;
         public const int ChooseTop = CardHeight - 24;
+
+        /// <summary>The card width for <paramref name="count"/> classes (whole pixels, even).</summary>
+        public static int CardWidthFor(int count) =>
+            Math.Min(MaxCardWidth, (PixelScreen.Width - 2 * ScreenMargin - (Math.Max(1, count) - 1) * CardSpacing) / Math.Max(1, count) / 2 * 2);
+
+        private int CardWidth { get; set; } = MaxCardWidth;
 
         private Canvas _canvas;
         private SalonView _salon;
@@ -73,6 +81,7 @@ namespace HellPoker.Presentation.Views
             if (!string.IsNullOrEmpty(dealerId))
                 _salon.SetSalon(dealerId, SalonMode.Normal, false);
 
+            CardWidth = CardWidthFor(sinners.Count);
             int total = sinners.Count * CardWidth + (sinners.Count - 1) * CardSpacing;
             int left = (PixelScreen.Width - total) / 2;
             for (int i = 0; i < sinners.Count; i++)
@@ -107,7 +116,7 @@ namespace HellPoker.Presentation.Views
             UiFactory.CreateText("Name", card, sinner.Name, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 110, CardWidth, 8);
             UiFactory.CreateText("Title", card, sinner.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter)
-                .rectTransform.PlaceTL(6, 121, CardWidth - 12, 18);
+                .rectTransform.PlaceTL(4, 120, CardWidth - 8, 18);
             UiFactory.CreateText("Start", card, sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter)
                 .rectTransform.PlaceTL(0, 140, CardWidth, 9);
             // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE.

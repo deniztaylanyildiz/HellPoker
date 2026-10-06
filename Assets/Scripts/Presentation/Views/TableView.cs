@@ -72,6 +72,76 @@ namespace HellPoker.Presentation.Views
         public event Action SinnerPressed;
         public event Action<int> EventOptionPressed;
         public event Action<string> RelicPressed;
+        public event Action ShufflePressed;
+        public event Action<int, int> JokerStepPressed;
+        public event Action JokerConfirmPressed;
+
+        private JokerPickerView _jokerPicker;
+        private Text _deckCount;
+        private GameObject _deckTip;
+        private Text _deckTipText;
+        private Button _shuffleButton;
+        private Text _shuffleLabel;
+
+        /// <summary>The deck counter's text (for tests and screenshots); empty while hidden.</summary>
+        public string DeckCountText => _deckCount.gameObject.activeSelf ? _deckCount.text : "";
+
+        public void SetDeckCount(int cards)
+        {
+            _sequencer.Do(() =>
+            {
+                _deckCount.gameObject.SetActive(cards >= 0);
+                if (cards < 0)
+                {
+                    _deckTip.SetActive(false);
+                    return;
+                }
+                _deckCount.text = string.Format(UiText.DeckCountFormat, cards);
+                _deckTipText.text = string.Format(UiText.DeckCountHintFormat, cards);
+            });
+        }
+
+        public void SetShuffle(string label, bool locked)
+        {
+            _sequencer.Do(() =>
+            {
+                _shuffleButton.gameObject.SetActive(label != null);
+                _shuffleLabel.text = label ?? "";
+                _shuffleButton.GetComponent<ButtonFeel>().Locked = locked;
+            });
+        }
+
+        /// <summary>The deck's count over the House's row, left; hovering it tells how the deck works.</summary>
+        private void BuildDeckCounter(Transform screen)
+        {
+            _deckCount = UiFactory.CreateText("DeckCount", screen, "", 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline();
+            _deckCount.rectTransform.PlaceTL(Middle + 4, 27, 72, 9);
+            _deckCount.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _deckCount.raycastTarget = true;
+
+            Image tip = UiFactory.CreateImage("DeckTip", screen, Palette.Black);
+            tip.raycastTarget = false;
+            tip.rectTransform.PlaceTL(Middle + 4, 38, 200, 30);
+            UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
+            _deckTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _deckTipText.rectTransform.PlaceTL(4, 3, 192, 26);
+            _deckTip = tip.gameObject;
+            _deckTip.SetActive(false);
+
+            var hover = _deckCount.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => _deckTip.SetActive(true));
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => _deckTip.SetActive(false));
+            hover.triggers.Add(enter);
+            hover.triggers.Add(exit);
+            _deckCount.gameObject.SetActive(false);
+        }
+
+        /// <summary>The joker picker (for tests and screenshots).</summary>
+        public JokerPickerView JokerPicker => _jokerPicker;
+
+        public void ShowJokerPicker(JokerPick pick) => _jokerPicker.Show(pick);
 
         private RelicBarView _relics;
 
@@ -177,6 +247,13 @@ namespace HellPoker.Presentation.Views
             ((RectTransform)_actionButton.transform).PlaceTL(Middle + MiddleWidth - 96, ControlsY, 96, ButtonHeight);
             _actionButton.onClick.AddListener(() => ActionPressed?.Invoke());
 
+            // SHUFFLE, under the deal button between hands.
+            _shuffleButton = UiFactory.CreateButton("ShuffleButton", screen, "", 8, out _shuffleLabel, ButtonSkin.Ash);
+            ((RectTransform)_shuffleButton.transform).PlaceTL(Middle + MiddleWidth - 96, ControlsY + ButtonHeight + 4, 96, 18);
+            _shuffleButton.onClick.AddListener(() => ShufflePressed?.Invoke());
+            _shuffleButton.gameObject.SetActive(false);
+            BuildDeckCounter(screen);
+
             _raiseButton = CreateBetButton(screen, "RaiseButton", "", BetAction.Raise, Middle, 96, ButtonSkin.Ember, out _raiseLabel);
             _passButton = CreateBetButton(screen, "PassButton", "", BetAction.Pass, Middle + 104, 72, ButtonSkin.Blood, out Text passLabel);
             passLabel.Localized(() => UiText.Pass);
@@ -207,6 +284,9 @@ namespace HellPoker.Presentation.Views
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             // The relics down the portrait box's right edge, under the intent sign.
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
+            // The joker picker sits where the bet controls do (they are hidden while it is open).
+            _jokerPicker = JokerPickerView.Create(screen, Middle, ControlsY - 12, _sequencer, (rank, suit) => JokerStepPressed?.Invoke(rank, suit),
+                () => JokerConfirmPressed?.Invoke());
             _event = EventPanelView.Create(screen, Middle, 60, _sequencer, dealers, index => EventOptionPressed?.Invoke(index));
             _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, () => UiText.HandRanksTableFooter);
             _stage = new Stage(this);
@@ -307,6 +387,7 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _powerHint.text = power.Hint ?? "";
+                _powerHint.color = power.Warning ? Palette.Hell : Palette.GoldLight;
                 _powerHint.gameObject.SetActive(power.Hint != null);
                 _stakeInfo.enabled = power.Hint == null;
                 _malice.SetWard(power.WardUp);
@@ -462,6 +543,8 @@ namespace HellPoker.Presentation.Views
             // A backfire (and the Warlock's ward) belongs to the cheat's effects: it lands on the player's cards.
             if (moment == TableMoment.Backfire || moment == TableMoment.Ward)
                 _cheatEffects.PlayBackfire(text, playerCards);
+            else if (moment == TableMoment.JokerLaugh)
+                _moments.Play(TableMoment.GoodHand, text, playerCards);   // the fool's laugh flares up as a good hand's name does
             else
                 _moments.Play(moment, text, playerCards);
         }

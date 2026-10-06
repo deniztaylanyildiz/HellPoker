@@ -74,6 +74,16 @@ namespace HellPoker.Core.Sinners
         /// number unless the class sees more).</summary>
         public virtual int HouseCardsShownAt(Game.GameRules rules) => rules.HouseCardsShown;
 
+        /// <summary>Jokers in the deck at the start of a run (the Jester's); 0 for a class that plays the plain 52.</summary>
+        public virtual int StartingJokers => 0;
+
+        /// <summary>Above this many jokers a lost hand takes one out of the deck again (the Jester's); never below the start.</summary>
+        public virtual int JokerLossLine => int.MaxValue;
+
+        /// <summary>At this many jokers (reached by a won hand) the jokers go, the count starts again, and the run earns the Jester's
+        /// Rattle (once); 0: never.</summary>
+        public virtual int JokerJackpot => 0;
+
         public override string ToString() => Id;
     }
 
@@ -115,15 +125,30 @@ namespace HellPoker.Core.Sinners
         /// <summary>Switches the power off again; the gauge stays as it is.</summary>
         public void Disarm() => PowerArmed = false;
 
+        /// <summary>
+        /// The jokers in the run's deck (the Jester's; 0 for every other class). A won hand adds one from the next hand on; above
+        /// <see cref="SinnerClass.JokerLossLine"/> a lost hand takes one away; never fewer than the class starts with. A fold or a
+        /// tie changes nothing.
+        /// </summary>
+        public int Jokers { get; private set; }
+
+        /// <summary>The last settled hand brought the jokers to <see cref="SinnerClass.JokerJackpot"/>: they went, the count is the start again.</summary>
+        public bool HitJokerJackpot { get; private set; }
+
+        /// <summary>How many times the run's deck reached the jackpot.</summary>
+        public int JokerJackpots { get; private set; }
+
         /// <summary>How many times the power was used, and how many cheats were warded off (the whole run).</summary>
         public int PowersUsed { get; private set; }
         public int WardsUsed { get; private set; }
 
         /// <param name="charge">The gauge (a saved run's); clamped to 0..full.</param>
         /// <param name="wardRaised">A ward raised and still waiting (a saved run's).</param>
-        public Sinner(SinnerClass sinnerClass, int charge = 0, ChargeRules rules = null, bool wardRaised = false)
+        /// <param name="jokers">The deck's jokers (a saved run's); fewer than the class starts with (or none given) is the start.</param>
+        public Sinner(SinnerClass sinnerClass, int charge = 0, ChargeRules rules = null, bool wardRaised = false, int jokers = 0)
         {
             Class = sinnerClass ?? throw new ArgumentNullException(nameof(sinnerClass));
+            Jokers = Class.StartingJokers > 0 ? Math.Max(Class.StartingJokers, jokers) : 0;
             Rules = rules ?? ChargeRules.Default;
             Charge = Math.Max(0, Math.Min(Rules.Full, charge));
             WardRaised = wardRaised && Class.Ability == SinnerAbility.Ward;
@@ -141,6 +166,21 @@ namespace HellPoker.Core.Sinners
                 : outcome == Game.ShowdownOutcome.HouseWins ? Rules.PerLoss
                 : Rules.PerTie;
             Charge = Math.Min(Rules.Full, Charge + gain);
+
+            HitJokerJackpot = false;
+            if (Class.StartingJokers <= 0 || folded) return;
+            if (outcome == Game.ShowdownOutcome.PlayerWins)
+            {
+                Jokers++;
+                if (Class.JokerJackpot > 0 && Jokers >= Class.JokerJackpot)
+                {
+                    // Twenty jokers: the deck is cleared of them, the count starts again (the table hands out the Rattle).
+                    Jokers = Class.StartingJokers;
+                    HitJokerJackpot = true;
+                    JokerJackpots++;
+                }
+            }
+            else if (outcome == Game.ShowdownOutcome.HouseWins && Jokers > Class.JokerLossLine) Jokers = Math.Max(Class.StartingJokers, Jokers - 1);
         }
 
         /// <summary>Spends the full gauge on <paramref name="ability"/>; false when it is not full (or the class has another power).</summary>

@@ -27,6 +27,9 @@ namespace HellPoker.Core.Game
         Absolved,
 
         /// <summary>Sentence reached the damnation limit. Game over.</summary>
-        Damned
+        Damned,
+
+        /// <summary>The showdown waits for the player to name their joker (the Jester's deck): every card turned, then settled.</summary>
+        NamingJoker
     }
 }

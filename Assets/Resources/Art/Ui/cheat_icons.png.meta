@@ -435,7 +435,19 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      cheat_icons_0: 2768341371238196895
+      cheat_icons_1: -4162014947079524617
+      cheat_icons_10: 3629631956045983702
+      cheat_icons_11: 4866069633145904271
+      cheat_icons_2: -2385537935311913994
+      cheat_icons_3: 2470366061932471135
+      cheat_icons_4: -4603857374672598428
+      cheat_icons_5: -6622927026846174640
+      cheat_icons_6: -706666942748267530
+      cheat_icons_7: 1253853895030567966
+      cheat_icons_8: -3781065828840121772
+      cheat_icons_9: -6676921191127983557
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

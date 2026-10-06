@@ -8,7 +8,8 @@ namespace HellPoker.Core.Draw
 {
     /// <summary>
     /// Plain casino-style play: stand on made hands, keep pairs and better, chase four-card flushes and straights,
-    /// otherwise keep the two highest cards.
+    /// otherwise keep the two highest cards. A joker is kept and planned as the best card it can be; a second joker (or more) is
+    /// thrown back first — two at the showdown lose the hand.
     /// </summary>
     public sealed class HouseDrawStrategy : IDrawStrategy
     {
@@ -25,15 +26,39 @@ namespace HellPoker.Core.Draw
         {
             if (hand == null) throw new ArgumentNullException(nameof(hand));
 
-            var analysis = new HandAnalysis(hand);
-            IEnumerable<int> discards = PickDiscards(hand, analysis);
+            int[] jokers = Enumerable.Range(0, Hand.Size).Where(i => hand[i].IsJoker).ToArray();
+            Hand plan = jokers.Length == 0 ? hand : PlanningHand(hand, jokers);
+            var analysis = new HandAnalysis(plan);
+            IEnumerable<int> discards = PickDiscards(plan, analysis);
+            if (jokers.Length > 0)
+                discards = discards.Where(index => index != jokers[0]).Concat(jokers.Skip(1)).Distinct();
 
-            // If the plan needs more discards than allowed, throw away the lowest cards first.
+            // If the plan needs more discards than allowed, throw away the lowest cards first (extra jokers, rankless, before all).
             return discards
                 .OrderBy(index => hand[index].Rank)
                 .Take(_maxDiscards)
                 .OrderBy(index => index)
                 .ToArray();
+        }
+
+        /// <summary>
+        /// The hand to plan with: the first joker as the best card it can be, the extra jokers (which go back anyway) as low
+        /// cards of new ranks that join nothing.
+        /// </summary>
+        private static Hand PlanningHand(Hand hand, int[] jokers)
+        {
+            var cards = hand.ToArray();
+            var ranks = new HashSet<Rank>(cards.Where(card => !card.IsJoker).Select(card => card.Rank));
+            Suit common = cards.Where(card => !card.IsJoker).GroupBy(card => card.Suit).OrderByDescending(g => g.Count())
+                .Select(g => g.Key).DefaultIfEmpty(Suit.Spades).First();
+            Suit off = common == Suit.Clubs ? Suit.Diamonds : Suit.Clubs;
+            foreach (int extra in jokers.Skip(1))
+            {
+                Rank filler = Enum.GetValues(typeof(Rank)).Cast<Rank>().OrderBy(r => r).First(r => !ranks.Contains(r));
+                ranks.Add(filler);
+                cards[extra] = new Card(filler, off);
+            }
+            return JokerResolver.Resolve(new Hand(cards));
         }
 
         private static IEnumerable<int> PickDiscards(Hand hand, HandAnalysis analysis)

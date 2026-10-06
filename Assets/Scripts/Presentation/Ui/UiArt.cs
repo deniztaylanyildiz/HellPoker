@@ -24,6 +24,10 @@ namespace HellPoker.Presentation.Ui
         public const string CardFace = "Ui/card_face";
         public const string CardBack = "Ui/card_back";
         public const string CardSlot = "Ui/card_slot";
+
+        /// <summary>The joker's face (32×48: a grinning fool, no rank or suit) and its turn into a card (32×48 frames of sparks, once).</summary>
+        public const string CardJoker = "Ui/card_joker";
+        public const string JokerSparkle = "Ui/joker_sparkle";
         public const string Title = "Ui/title";
         public const string Divider = "Ui/divider";
         public const string Coin = "Ui/coin";

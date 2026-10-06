@@ -960,7 +960,40 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      caveman_logo_0: 2305492844214707630
+      caveman_logo_1: -6108206431643825826
+      caveman_logo_10: 4571135505899817386
+      caveman_logo_11: -4640747036145407749
+      caveman_logo_12: -8287956816472313694
+      caveman_logo_13: 2438687531185893644
+      caveman_logo_14: 196995123071678015
+      caveman_logo_15: 889275995238880952
+      caveman_logo_16: -8355145019865140383
+      caveman_logo_17: -6127902675562206005
+      caveman_logo_18: 217040492967123271
+      caveman_logo_19: 2740839327256215866
+      caveman_logo_2: 4949537716793150541
+      caveman_logo_20: -3955756376808981016
+      caveman_logo_21: -2859583621426156272
+      caveman_logo_22: 3438531424725733838
+      caveman_logo_23: 791206616965546894
+      caveman_logo_24: 6853933285925624518
+      caveman_logo_25: -3987537421642144808
+      caveman_logo_26: 7951590897330146811
+      caveman_logo_27: -1031030414452725368
+      caveman_logo_28: 5974041166752672793
+      caveman_logo_29: 1151722638379266545
+      caveman_logo_3: -7780911980541219575
+      caveman_logo_30: 6660300232355145661
+      caveman_logo_31: 1140285802725239476
+      caveman_logo_32: -156265554803630939
+      caveman_logo_4: -51918414219847879
+      caveman_logo_5: 8964728573497930937
+      caveman_logo_6: 8634020433566682760
+      caveman_logo_7: 5144426131694856329
+      caveman_logo_8: 4867493025763925837
+      caveman_logo_9: 4904383531627980448
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

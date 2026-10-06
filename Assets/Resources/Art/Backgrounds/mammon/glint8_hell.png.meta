@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      glint8_hell_0: 8677243748226969606
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

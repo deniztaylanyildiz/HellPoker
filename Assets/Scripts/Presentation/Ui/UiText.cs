@@ -432,5 +432,32 @@ namespace HellPoker.Presentation.Ui
             if (!Lang.IsTurkish) return text.ToUpperInvariant();
             return text.Replace('i', 'İ').Replace('ı', 'I').ToUpperInvariant();
         }
+        // ------------------------------------------------------------------ the deck, counted from hand to hand
+
+        public static string DeckCountFormat => L("DECK {0}", "DESTE {0}");
+        public static string DeckCountHintFormat => L("Cards left in the deck: {0}. When it runs out, or with SHUFFLE, all 52 are shuffled again.",
+            "Destede kalan: {0} kart. Deste bitince ya da KARIŞTIR ile baştan karılır.");
+        public static string ShuffleButtonFormat => L("SHUFFLE +{0}", "KARIŞTIR +{0}");
+        public static string DeckRanOut => L("The deck ran out; the demon shuffles.", "Deste bitti, şeytan desteyi karıyor.");
+        /// <summary>{0} the years paid.</summary>
+        public static string ShuffledFormat => L("You paid {0} years: the demon shuffles all 52.", "{0} yıl ödedin: şeytan 52 kartı karıyor.");
+        public static string ShuffleNotBetweenHands => L("Only between hands, before the deal.", "Ancak eller arasında, dağıtmadan önce karıştırılır.");
+        public static string ShuffleAlreadyDone => L("Once before each hand.", "Her elden önce bir kez.");
+        /// <summary>{0} the least sentence.</summary>
+        public static string ShuffleTooFewYearsFormat => L("Below {0} years the demon will not shuffle for you.", "{0} yılın altında şeytan senin için karıştırmaz.");
+        public static string ShuffleSoul => L("Not with your soul on the table.", "Ruhun masadayken olmaz.");
+        public static string ShuffleJesterDeck => L("The Jester's deck is shuffled every hand.", "Soytarı'nın destesi her el karılır.");
+
+        public static string ShuffleRefused(HellPoker.Core.Game.ShuffleRefusal refusal, int minYears)
+        {
+            switch (refusal)
+            {
+                case HellPoker.Core.Game.ShuffleRefusal.NotBetweenHands: return ShuffleNotBetweenHands;
+                case HellPoker.Core.Game.ShuffleRefusal.AlreadyShuffled: return ShuffleAlreadyDone;
+                case HellPoker.Core.Game.ShuffleRefusal.TooFewYears: return string.Format(ShuffleTooFewYearsFormat, minYears);
+                case HellPoker.Core.Game.ShuffleRefusal.SoulAtStake: return ShuffleSoul;
+                default: return ShuffleJesterDeck;
+            }
+        }
     }
 }

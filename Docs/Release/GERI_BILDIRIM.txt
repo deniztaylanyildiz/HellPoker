@@ -78,8 +78,12 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 11. SINIF
-    Hangi sınıfı seçtin (Köylü / Büyücü / Kral)? Gücünü ve 5 pipli göstergeyi anladın mı? Kaç kez kullandın,
+    Hangi sınıfı seçtin (Köylü / Büyücü / Kral / Soytarı)? Gücünü ve 5 pipli göstergeyi anladın mı? Kaç kez kullandın,
     doğru anda kullanabildin mi, adil miydi?
+    Soytarı'yı denedin mi? Joker kuralı (tek joker istediğin kart, iki joker kayıp) ve destedeki joker sayacı
+    (kazanınca +1, 10'un üstünde kayıpta -1) anlaşıldı mı? El sonundaki kart seçici rahat mıydı?
+    Deste artık eller boyunca devam ediyor: kalan kart sayacını kullandın mı, kart saydın mı? KARIŞTIR'ı (S, +10 yıl)
+    hiç kullandın mı, adil buldun mu?
 
     >
 
