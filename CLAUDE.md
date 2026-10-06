@@ -13,7 +13,7 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 ## Durum
 
-**Demo 1.0 dondu**: etiket `v1.0-demo` (commit `26053783fc7e5da21cdb7750bcdb2f84f1ad4d08`). Phase 2 bundan sonra.
+**Demo 1.0 dondu**: etiket `v1.0-demo` (commit: etiketin işaret ettiği commit). Phase 2 bundan sonra.
 
 ## Oyun
 
@@ -263,7 +263,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   | Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
   | Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
   | Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
-  | Soytarı | %75.9 (%87 / %41) | %77.1 (%86 / %50) | %54.7 (%72 / %42) |
+  | Soytarı | %74.2 (%87 / %42) | %77.3 (%86 / %50) | %54.1 (%72 / %43) |
 
   (0.1.6: Kral bütün eli korur → +1.4 / +0.7 / +5.1; Soytarı 750 yıl → +6.2 / +7.1 / +7.1, Köylü'ye göre −8.0 / −0.9 / +4.4.)
 
@@ -356,7 +356,12 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
       kazanan en zayıf el gibi ödenir (`WinnerBust` → Yüksek Kart'ın kazancı / kaybı; tek taraf battığında kazananın kendi eli ödenir).
       Seçici sadece jokerin kartı sonucu (kazanç / kayıp / beraberlik) değiştirebiliyorsa açılır (`JokerCanChangeTheOutcome`: bütün
       adaylar denenir); değilse joker en iyi karta döner. Mesajlar `JokerDuelWin / Loss / Push`; kahkaha anı ve `JokerBust` sadece
-      şeytan kendi jokerleriyle kaybettiğinde; günlükte `JOKERS ON BOTH SIDES`. Kasanın bahsi temkinli kalır (2+ jokerle re-raise yok);
+      şeytan kendi jokerleriyle kaybettiğinde; günlükte `JOKERS ON BOTH SIDES`.
+      **Jokerle kesinleşen el** (`HellPokerGame.JokerOutcomeIsSettled`): draw'dan sonra sayılar kesin, en az bir tarafta 2+ joker varsa el
+      draw biter bitmez (DrawReveal'e geçmeden) biter; draw'dan önce oyuncunun ulaşabileceği her sayı (zincirli jokerler kalır, en çok
+      MaxDiscards atılır, destedeki jokerler gelebilir) ile şeytanınki (en çok 1 tutar, sonra çekebilir) aynı sonucu veriyorsa biter.
+      Bitiş showdown gibi (`Finish(JudgeShowdown(null))`, o anki potla, çekilme değil); `RoundResult.SettledByJokers`, mesaj
+      `Settled{Win,Loss,Push}Format` (sayılarla), günlükte `SETTLED BY JOKERS`. Kontrol `SkipEmptyDecisions`'ta ve draw'da. Kasanın bahsi temkinli kalır (2+ jokerle re-raise yok);
       kontrol showdown'da, draw'da fazlasını atan kurtulur, çekilen el kurala girmez. El ortasında kapatma `NamingJoker`'ı da forfeit eder.
     - Kasa yapay zekası (`HouseDrawStrategy`) tek jokeri tutar, fazlasını önce atar, jokeri en iyi kart sayarak plan yapar; 2 jokerle re-raise etmez.
     - Hileler jokere dokunmaz (`CheatRules.IsImmune`: joker de bağışık; `CheatTable` desteden `sıradaki kartı` verirken jokerleri atlar,

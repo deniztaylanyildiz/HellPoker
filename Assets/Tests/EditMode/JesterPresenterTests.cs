@@ -138,7 +138,7 @@ namespace HellPoker.Core.Tests
             CollectionAssert.Contains(UiText.Dealer("mammon").JokerBust, said.line);
             Assert.AreEqual(DealerMood.Annoyed, said.mood);
             StringAssert.Contains(UiText.TwoJokersCaption, _view.HouseView.Caption);
-            Assert.AreEqual(string.Format(UiText.HouseBustFormat, -_game.LastRound.YearsChange), _view.Message.Split('\n')[0]);
+            Assert.AreEqual(string.Format(UiText.SettledWinFormat, 0, 2), _view.Message.Split('\n')[0], "Settled by the jokers as the draw ended.");
         }
 
         [Test]
@@ -168,7 +168,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(CardMark.Joker, _view.PlayerView.Slots[4].Mark);
             Assert.AreEqual(new Card(Rank.Ace, Suit.Diamonds), _view.PlayerView.Slots[4].Card);
             Assert.IsTrue(_view.Moments.Any(m => m.moment == TableMoment.JokerLaugh));
-            StringAssert.StartsWith(string.Format(UiText.HouseBustFormat, -_game.LastRound.YearsChange), _view.Message);
+            StringAssert.StartsWith(string.Format(UiText.SettledWinFormat, 1, 2), _view.Message, "Settled by the jokers as the draw ended.");
             StringAssert.Contains("at once", _presenter.Log.ToText());
         }
 
@@ -178,7 +178,7 @@ namespace HellPoker.Core.Tests
             Run("JK1 JK2 AS AH AD", "JK3 JK4 2C 4D 5H", "JK5 " + Blanks.Replace("3S ", ""), jokers: 5);
             ToShowdown();
             Assert.AreEqual(ShowdownOutcome.Push, _game.LastRound.Showdown.Outcome);
-            StringAssert.StartsWith(UiText.JokerDuelPush, _view.Message);
+            StringAssert.StartsWith(string.Format(UiText.SettledPushFormat, 2, 2), _view.Message, "Settled by the jokers as the draw ended.");
             Assert.IsFalse(_view.Moments.Any(m => m.moment == TableMoment.JokerLaugh), "Nobody's jokers sank anybody.");
             StringAssert.Contains("JOKERS ON BOTH SIDES: player 2 vs house 2: Push", _presenter.Log.ToText());
             Assert.AreEqual("Eşit joker: el berabere, yıl değişmez.", WithTurkish(() => UiText.JokerDuelPush));

@@ -2767,3 +2767,43 @@ Oyunu demo sürümü olarak kapat; kurallara, dengeye ve koda (sürüm metni dı
   zip'leri silindi.
 - Git: "Demo 1.0" commit'i ve `v1.0-demo` etiketi (annotated, "Hell Poker Demo 1.0"); commit hash'i CLAUDE.md'ye ayrı bir küçük
   commit'le yazıldı (aynı commit kendi hash'ini içeremez). Push ve GitHub Release kullanıcıda.
+
+## 2026-10-07 — A) Jokerle kesinleşen el hemen biter; B) Demo 1.0 yeniden kapatıldı
+
+### İstek (kullanıcı)
+A) Soytarı'da sonuç jokerlerle kesinleşmişken (ör. iki joker oyuncuda, ya da şeytanda 2+) bahis yaptırma: el o anki potla hemen
+bitsin; ödeme ve joker kuralları aynı. B) Ardından demo kapanışı (önceki turda A'dan önce yapılmıştı; A'dan sonra tekrarlandı).
+
+### A — yapılanlar
+- `HellPokerGame.JokerOutcomeIsSettled() → ShowdownOutcome?`: draw'dan sonra p ve h kesin (Kemik Zar draw'dan önce, hiçbir hile jokere
+  dokunmuyor); en az bir taraf 2+ ise sonuç belli. Draw'dan önce aralıklar: oyuncu [max(zincirli jokerler, p − MaxDiscards),
+  min(5, p + min(destedeki joker, MaxDiscards))], şeytan [max(min(h, 1), h − MaxDiscards), o + min(destedeki joker, MaxDiscards)];
+  her ikili aynı joker kararını vermeli, iki taraf da 2'nin altında kalabiliyorsa kesin değil. (İstekteki "zincirli / dikenli / gizli"
+  jokerden sadece zincirli gerçekten atılamıyor; hiçbir hile jokere dokunmadığı için oyunda bu sayı hep 0, test yansımayla zincirliyor.)
+- `SettleIfJokersDecide`: `SkipEmptyDecisions`'ın başında ve her atlanan kararda (mühürlü el de) ve draw biter bitmez (DrawReveal'e
+  ve draw sonrası hileye geçmeden). Bitiş `Finish(JudgeShowdown(null))`: o anki pot, showdown kaybı / kazancı / beraberliği (çekilme
+  değil), bütün kartlar açık, seçici yok, joker sayacı ve kayıt normal; `RoundResult.SettledByJokers`.
+- Mesajlar (iki dil, sayılarla): "Destedeki jokerler hesaplandı: sende N, şeytanda M. El kesin kaybedildi / kazanıldı, bahis yok." /
+  "El berabere, yıl değişmez."; günlük `SETTLED BY JOKERS: player N vs house M: ...`; şeytan repliği mevcut (JokerBust / Push / HouseWins).
+- Soytarı olmayan sınıflarda deste jokersiz: fonksiyon hep null (test).
+- Önceki üç presenter testi (şeytanın iki jokeri, 2–2) artık draw sonrası kesinleşme mesajını bekliyor.
+- Testler: `JokerSettleTests` (9). Denge — Soytarı: %74.2 (%87 / %42) / %77.3 (%86 / %50) / %54.1 (%72 / %43) (önceki 75.9 / 77.1 / 54.7;
+  −1.7 / +0.2 / −0.6, gürültü içinde: erken biten eller zar akışını kaydırıyor).
+
+### B — Demo 1.0 (tekrar)
+- Sürüm `1.0.0-demo` ("Demo 1.0"), DEMO etiketi, belgeler önceki turdan; CHANGELOG'a A eklendi.
+- Son kontroller: EditMode 818 geçti (+1 explicit), 0 hata; PlayMode 28 geçti (+3 explicit), 0 hata. Geliştirme anahtarları önceki
+  turdaki gibi oyuncunun normal açılışını değiştirmiyor (oyun kodu `HELLPOKER_*` okumuyor; `-fpstour` sadece argümanla; F3 sadece
+  development build).
+- Denge (2000 koşu, değiştirilmedi):
+
+| Sınıf | Mammon | Belial | Lilith |
+|---|---|---|---|
+| Köylü | %83.4 (%89 / %31) | %78.0 (%83 / %42) | %50.3 (%66 / %32) |
+| Büyücü | %84.9 (%89 / %36) | %77.1 (%82 / %45) | %55.3 (%67 / %39) |
+| Kral | %78.8 (%83 / %37) | %72.9 (%77 / %47) | %52.2 (%61 / %40) |
+| Soytarı | %74.2 (%87 / %42) | %77.3 (%86 / %50) | %54.1 (%72 / %43) |
+
+- `Builds/HellPoker-Demo-1.0-win64.zip` (37 202 424 bayt, ~35.5 MB); zip'ten 3 duman turu: çıkış 0, Player.log'da uyarı / hata yok,
+  günlük başlığı "Demo 1.0", exe ikonu şeytan.
+- Git: önceki turdaki `v1.0-demo` etiketi (push edilmemişti) silinip A'yı da içeren yeni "Demo 1.0" commit'ine yeniden kuruldu.

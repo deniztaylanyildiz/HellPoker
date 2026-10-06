@@ -654,6 +654,9 @@ namespace HellPoker.Core.Game
                 return _playerExchange;
             }
 
+            // The cards change no more: if the jokers already decide the hand, it ends here — no betting round after the draw.
+            if (SettleIfJokersDecide()) return _playerExchange;
+
             Phase = GamePhase.DrawReveal;
             Strike(CheatTiming.AfterDraw);
             SkipEmptyDecisions();
@@ -812,12 +815,75 @@ namespace HellPoker.Core.Game
         /// </summary>
         private void SkipEmptyDecisions()
         {
+            if (SettleIfJokersDecide()) return;
             while (IsDecisionPhase(Phase) && !HasRealChoice())
             {
                 DecisionsSkipped++;
                 Advance(Phase);
+                if (SettleIfJokersDecide()) return;
             }
         }
+
+        // ------------------------------------------------------------------ a hand the jokers already decide
+
+        /// <summary>
+        /// The showdown the jokers have already decided, whatever is still to come; null while it is open (the cards may still decide it).
+        /// After the draw the counts are final (the cards change no more: the Bone Die works before the draw, no cheat touches a joker).
+        /// Before it, every count the player could still reach (keeping what cannot be thrown back, throwing up to the draw's limit, drawing
+        /// the deck's jokers) against every count the House could (it keeps one joker at most, then may draw more) must give one outcome.
+        /// A side with two jokers or more loses; both: the fewer wins, as many each is a push; neither: the cards decide — never settled.
+        /// </summary>
+        public ShowdownOutcome? JokerOutcomeIsSettled()
+        {
+            if (PlayerHand == null || HouseHand == null) return null;
+            int p = JokerResolver.CountJokers(PlayerHand), h = JokerResolver.CountJokers(HouseHand);
+            int inDeck = JokerResolver.CountJokers(_deck.Remaining);
+            if (p + h + inDeck == 0) return null;   // a deck without jokers: the cards always decide
+
+            int pMin = p, pMax = p, hMin = h, hMax = h;
+            if (!IsAfterDraw)
+            {
+                int locked = Enumerable.Range(0, Hand.Size).Count(i => PlayerHand[i].IsJoker && IsPlayerCardChained(i));
+                pMin = Math.Max(locked, p - Rules.MaxDiscards);
+                pMax = Math.Min(Hand.Size, p + Math.Min(inDeck, Rules.MaxDiscards));
+                hMin = Math.Max(Math.Min(h, 1), h - Rules.MaxDiscards);
+                hMax = Math.Min(Hand.Size, hMin + Math.Min(inDeck, Rules.MaxDiscards));
+            }
+
+            ShowdownOutcome? settled = null;
+            for (int pj = pMin; pj <= pMax; pj++)
+            for (int hj = hMin; hj <= hMax; hj++)
+            {
+                ShowdownOutcome? outcome = JokerVerdict(pj, hj);
+                if (outcome == null) return null;   // the cards could decide
+                if (settled == null) settled = outcome;
+                else if (settled != outcome) return null;
+            }
+            return settled;
+        }
+
+        /// <summary>The jokers' own verdict: null when neither side holds two (the cards decide).</summary>
+        private static ShowdownOutcome? JokerVerdict(int playerJokers, int houseJokers)
+        {
+            bool playerBust = playerJokers >= ShowdownResult.BustJokers, houseBust = houseJokers >= ShowdownResult.BustJokers;
+            if (!playerBust && !houseBust) return null;
+            if (playerBust && houseBust)
+                return playerJokers < houseJokers ? ShowdownOutcome.PlayerWins : playerJokers > houseJokers ? ShowdownOutcome.HouseWins : ShowdownOutcome.Push;
+            return playerBust ? ShowdownOutcome.HouseWins : ShowdownOutcome.PlayerWins;
+        }
+
+        /// <summary>A hand the jokers have decided ends at once, as a showdown at the stake on the table (no more betting).</summary>
+        private bool SettleIfJokersDecide()
+        {
+            bool open = IsDecisionPhase(Phase) || Phase == GamePhase.Drawing || (IsAfterDraw && Phase != GamePhase.RoundOver && !IsGameOver);
+            if (!open || Phase == GamePhase.HouseReRaise || JokerOutcomeIsSettled() == null) return false;
+            HouseReRaiseAmount = 0;
+            _settledByJokers = true;
+            Finish(JudgeShowdown(null));
+            return true;
+        }
+
+        private bool _settledByJokers;
 
         private bool HasRealChoice()
         {
@@ -1026,7 +1092,8 @@ namespace HellPoker.Core.Game
             bool jackpot = !freeFold && Sinner != null && Sinner.HitJokerJackpot;
             bool rattle = jackpot && Effects.AddRelic(RelicIds.JestersRattle);
             LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
-                yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle);
+                yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle, settledByJokers: _settledByJokers);
+            _settledByJokers = false;
         }
 
         /// <summary>

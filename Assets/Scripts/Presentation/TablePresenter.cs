@@ -1204,6 +1204,8 @@ namespace HellPoker.Presentation
             ShowdownResult showdown = round?.Showdown;
             if (showdown != null)
             {
+                if (round.SettledByJokers)
+                    LogNote($"SETTLED BY JOKERS: player {showdown.PlayerJokers} vs house {showdown.HouseJokers}: {showdown.Outcome} (stake {round.Stake}, hand {_game.RoundNumber})");
                 if (showdown.BothBust)
                     LogNote($"JOKERS ON BOTH SIDES: player {showdown.PlayerJokers} vs house {showdown.HouseJokers}: {showdown.Outcome} (hand {_game.RoundNumber})");
                 else if (showdown.PlayerBust) LogNote($"TWO JOKERS in the player's hand: lost (hand {_game.RoundNumber})");
@@ -1984,6 +1986,14 @@ namespace HellPoker.Presentation
             if (round.Folded)
                 return soulHand ? UiText.SoulFold : string.Format(UiText.FoldFormat, round.YearsChange);
 
+            // The jokers decided the hand before its betting was done: said with the counts.
+            if (round.SettledByJokers)
+            {
+                ShowdownResult s = round.Showdown;
+                string format = s.Outcome == ShowdownOutcome.PlayerWins ? UiText.SettledWinFormat
+                    : s.Outcome == ShowdownOutcome.HouseWins ? UiText.SettledLossFormat : UiText.SettledPushFormat;
+                return string.Format(format, s.PlayerJokers, s.HouseJokers);
+            }
             // Two jokers decide the hand whatever the cards make.
             if (round.Showdown.BothBust)
                 return round.Showdown.Outcome == ShowdownOutcome.PlayerWins ? UiText.JokerDuelWin

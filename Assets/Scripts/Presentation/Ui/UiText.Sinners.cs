@@ -181,6 +181,14 @@ namespace HellPoker.Presentation.Ui
         public static string JokerDuelWin => L("Too many jokers on both sides: you held fewer, you win.", "İkinizde de joker fazla: daha az jokeri olan sen kazandın.");
         public static string JokerDuelLoss => L("Too many jokers on both sides: the demon held fewer, the demon wins.",
             "İkinizde de joker fazla: daha az jokeri olan şeytan kazandı.");
+        /// <summary>The jokers decided the hand before its betting was done: {0} the player's jokers, {1} the demon's.</summary>
+        public static string SettledLossFormat => L("The jokers are counted: you hold {0}, the demon {1}. The hand is lost; no more betting.",
+            "Destedeki jokerler hesaplandı: sende {0}, şeytanda {1}. El kesin kaybedildi, bahis yok.");
+        public static string SettledWinFormat => L("The jokers are counted: you hold {0}, the demon {1}. The hand is won; no more betting.",
+            "Destedeki jokerler hesaplandı: sende {0}, şeytanda {1}. El kesin kazanıldı, bahis yok.");
+        public static string SettledPushFormat => L("The jokers are counted: you hold {0}, the demon {1}. A push; no years change.",
+            "Destedeki jokerler hesaplandı: sende {0}, şeytanda {1}. El berabere, yıl değişmez.");
+
         public static string JokerDuelPush => L("As many jokers each: a push, no years change.", "Eşit joker: el berabere, yıl değişmez.");
 
         /// <summary>How to Play: the Sinners page.</summary>

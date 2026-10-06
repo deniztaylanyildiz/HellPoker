@@ -3,7 +3,8 @@
 Ayrıntılar `Docs/DEVLOG.md`'de.
 
 ## Demo 1.0 (1.0.0-demo) — 2026-10-07
-- İlk demo: üç şeytan + Lucifer, dört sınıf, olaylar, emanetler, sayılan deste; kurallar ve denge 0.1.6 ile aynı.
+- İlk demo: üç şeytan + Lucifer, dört sınıf, olaylar, emanetler, sayılan deste.
+- Soytarı: jokerlerle sonucu kesinleşen el hemen biter, gereksiz bahis turu açılmaz.
 - Ana menüde "DEMO" etiketi; köşedeki sürüm ve koşu günlüğü "Demo 1.0" yazar.
 - Zip: `HellPoker-Demo-1.0-win64.zip`; OKUBENI'de demo içeriği ve bilinen sınırlamalar.
 
