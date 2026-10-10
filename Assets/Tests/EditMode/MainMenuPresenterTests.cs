@@ -21,6 +21,17 @@ namespace HellPoker.Core.Tests
             public event Action ChangeTablePressed;
             public event Action SettingsPressed;
             public event Action RecordsPressed;
+            public event Action ChaptersPressed;
+            public bool ChaptersAvailable { get; private set; }
+            public bool ChaptersInProgress { get; private set; }
+
+            public void SetChapters(bool available, bool inProgress)
+            {
+                ChaptersAvailable = available;
+                ChaptersInProgress = inProgress;
+            }
+
+            public void PressChapters() => ChaptersPressed?.Invoke();
             public event Action Confirmed;
             public event Action LanguagePressed;
 

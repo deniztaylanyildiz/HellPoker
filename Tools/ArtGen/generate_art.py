@@ -1,6 +1,6 @@
 """Generates Hell Poker's 16-bit pixel art into Assets/Resources/Art.
 
-Usage (from the project root):  py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu] [sinners] [events] [relics] [splash]
+Usage (from the project root):  py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu] [sinners] [events] [relics] [floors] [splash]
 Without arguments everything is rebuilt. Then  py Tools/ArtGen/preview.py  for a preview page (local only).
 Needs Pillow and numpy:  py -m pip install --user pillow numpy
 Every image is drawn with the one palette in pixel.py — no anti-aliasing, no colours outside it.
@@ -13,6 +13,7 @@ sys.path.insert(0, HERE)
 
 import pixel_demons  # noqa: E402
 import pixel_events  # noqa: E402
+import pixel_floors  # noqa: E402
 import pixel_menu  # noqa: E402
 import pixel_relics  # noqa: E402
 import pixel_salons  # noqa: E402
@@ -45,6 +46,10 @@ def main(selected):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "relics" in selected:
         for path in pixel_relics.write_all(ART):
+            print("wrote", os.path.relpath(path, ROOT))
+    if not selected or "floors" in selected:
+        # Phase 2: the faces, halls, map and strangers of Mammon's floors.
+        for path in pixel_floors.write_all(ART):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "splash" in selected:
         # The studio logo is not loaded by the game's code: it lives outside Resources, for the splash screen only.

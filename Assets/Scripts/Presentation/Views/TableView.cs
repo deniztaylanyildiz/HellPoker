@@ -472,7 +472,7 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _ante.SetActive(years > 0);
-                _anteAmount.text = string.Format(UiText.AnteFormat, years);
+                _anteAmount.text = string.Format(_currency == Currency.Coins ? UiText.CoinAnteFormat : UiText.AnteFormat, years);
             });
         }
 
@@ -552,6 +552,17 @@ namespace HellPoker.Presentation.Views
         public void Pause(float seconds)
         {
             _sequencer.Wait(seconds);
+        }
+
+        private Currency _currency = Currency.Years;
+
+        public void SetCurrency(Currency currency)
+        {
+            _sequencer.Do(() =>
+            {
+                _currency = currency;
+                _sentence.SetCoins(currency == Currency.Coins);
+            });
         }
     }
 }

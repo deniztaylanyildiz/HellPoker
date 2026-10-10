@@ -52,13 +52,20 @@ namespace HellPoker.Presentation
         private Dealer _pendingDealer;
         private int _pendingSeat = -1;
 
+        /// <summary>Phase 2's chapters (a test build's), apart from the demo's run; null: none.</summary>
+        private readonly IChapterSession _chapters;
+
+        /// <summary>The class choice open now is for a chapter run (not the demo's).</summary>
+        private bool _chapterChoice;
+
         /// <param name="dealers">The demons the player may choose.</param>
         /// <param name="finalDealer">Lucifer, shown locked after them; he is never chosen, only met below the gate.</param>
         public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
             IReadOnlyList<Dealer> dealers, Dealer finalDealer = null, ISinnerSelectView sinnerSelect = null,
-            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null)
+            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null)
         {
+            _chapters = chapters;
             _audio = audio ?? NullAudio.Instance;
             _sinnerSelect = sinnerSelect;
             _classes = (classes ?? SinnerRoster.All).ToArray();
@@ -99,7 +106,13 @@ namespace HellPoker.Presentation
             if (_sinnerSelect != null)
             {
                 _sinnerSelect.SinnerChosen += ChooseSinner;
-                _sinnerSelect.BackPressed += OpenNewRunChoice;
+                _sinnerSelect.BackPressed += BackFromSinners;
+            }
+            _menu.ChaptersPressed += OpenChaptersOrChoose;
+            if (_chapters != null)
+            {
+                _chapters.MenuRequested += OpenMenu;
+                _chapters.NewRunRequested += OpenChapterSinnerChoice;
             }
 
             OpenMenu();
@@ -115,7 +128,7 @@ namespace HellPoker.Presentation
         {
             if (_sinnerSelect != null && _sinnerSelect.IsVisible)
             {
-                OpenNewRunChoice();
+                BackFromSinners();
             }
             else if (_dealerSelect.IsVisible)
             {
@@ -168,8 +181,55 @@ namespace HellPoker.Presentation
             if (_sinnerSelect != null)
             {
                 _sinnerSelect.SinnerChosen -= ChooseSinner;
-                _sinnerSelect.BackPressed -= OpenNewRunChoice;
+                _sinnerSelect.BackPressed -= BackFromSinners;
             }
+            _menu.ChaptersPressed -= OpenChaptersOrChoose;
+            if (_chapters != null)
+            {
+                _chapters.MenuRequested -= OpenMenu;
+                _chapters.NewRunRequested -= OpenChapterSinnerChoice;
+            }
+        }
+
+        // ------------------------------------------------------------------ Phase 2's chapters
+
+        /// <summary>The Phase 2 button: back to the chapter run that waits, or a new one (its class first).</summary>
+        private void OpenChaptersOrChoose()
+        {
+            if (_chapters == null) return;
+            if (_chapters.HasRun)
+                OpenChapters();
+            else
+                OpenChapterSinnerChoice();
+        }
+
+        /// <summary>The class choice for a chapter run, over the first chapter's demon's hall.</summary>
+        private void OpenChapterSinnerChoice()
+        {
+            if (_chapters == null || _sinnerSelect == null) return;
+            _chapterChoice = true;
+            _pendingDealer = _dealers.FirstOrDefault(d => d.Id == DealerRoster.MammonId) ?? _dealers[0];
+            OpenSinnerChoice(curtain: true);
+        }
+
+        private void OpenChapters()
+        {
+            HideAll();
+            _chapters.Show();
+            Curtain();
+        }
+
+        /// <summary>BACK on the class choice: the demon choice for a demo run, the menu for a chapter run.</summary>
+        private void BackFromSinners()
+        {
+            if (_chapterChoice)
+            {
+                _chapterChoice = false;
+                _pendingDealer = null;
+                OpenMenu();
+                return;
+            }
+            OpenNewRunChoice();
         }
 
         /// <summary>
@@ -275,6 +335,7 @@ namespace HellPoker.Presentation
 
         private void OpenNewRunChoice(bool curtain)
         {
+            _chapterChoice = false;
             _changingTables = false;
             _choiceForTables = false;
             ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), soulAtStake: false, isCurrent: false)), curtain);
@@ -314,8 +375,9 @@ namespace HellPoker.Presentation
         {
             _transition.Play();
             _audio.PlaySfx(SfxIds.Transition);
-            bool atTable = !IsMenuOpen;
-            _audio.PlayMusic(atTable ? _session.CurrentDealerId : SfxIds.MenuMusic);
+            bool chapters = _chapters != null && _chapters.IsVisible;
+            bool atTable = !IsMenuOpen && !chapters;
+            _audio.PlayMusic(chapters ? _chapters.MusicId : atTable ? _session.CurrentDealerId : SfxIds.MenuMusic);
             _audio.SetSoulLayer(atTable && _session.AbandonRisk == AbandonRisk.Soul);
         }
 
@@ -329,6 +391,7 @@ namespace HellPoker.Presentation
             _endScreen.Hide();
             _records.Hide();
             _table.SetVisible(false);
+            _chapters?.Hide();
         }
 
         private void ShowEnd(RunSummary summary)
@@ -404,6 +467,13 @@ namespace HellPoker.Presentation
             if (_pendingDealer == null || index < 0 || index >= _classes.Length) return;
             Dealer dealer = _pendingDealer;
             _pendingDealer = null;
+            if (_chapterChoice)
+            {
+                _chapterChoice = false;
+                _chapters.Start(_classes[index]);
+                OpenChapters();
+                return;
+            }
             _session.StartNewRun(dealer, _classes[index]);
             OpenTable();
         }
@@ -434,6 +504,8 @@ namespace HellPoker.Presentation
         private void OpenMenu()
         {
             HideAll();
+            _chapterChoice = false;
+            _menu.SetChapters(_chapters != null, _chapters != null && _chapters.HasRun);
             _menu.Show(_session.CanContinue);
             Curtain();
         }

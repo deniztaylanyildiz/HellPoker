@@ -1,0 +1,38 @@
+HELL POKER {VERSION} — PHASE 2 İLK TEST
+
+Bu build, demonun yanına Phase 2'nin ilk bölümünü ekler. Demo (YENİ OYUN / DEVAM ET) olduğu gibi duruyor.
+Phase 2'ye ana menüdeki turuncu "PHASE 2 TESTİ" düğmesinden girilir.
+
+NE VAR
+1. Sınıf seçimi (Köylü, Büyücü, Kral, Soytarı) → 1. Bölüm: Mammon'un Kasası.
+2. Harita: 8 kat, 6 şerit. 1. kattaki herhangi bir masadan başla, sonra yalnızca yanan (çerçeveli) düğümlere inebilirsin.
+   Düğümün üstüne gelince ne olduğu yazar. Fare ya da oklar + Enter.
+   - İblis masası (kartlar): 3 el, COIN için. 2 el kazanırsan +5 coin.
+   - Bekçi (altın göz): Tahsildar'a karşı 5 el, hileleriyle. 3 el kazanırsan +15 coin ve bir emanet.
+     Kazandığın her elde coin'inin %5'ini alır (en çok 5).
+   - Bir yabancı (kukuletalı): Araf Tefecisi, Mammon'un Defteri ya da Kumarbaz Hayalet. Kabul et ya da geç.
+   - Kara Pazar (terazi): lanetli emanetler (45 / 50 / 60), emanet atmak (25), İblisin Gözü (20),
+     Soytarı için joker ekle / çıkar (20). Borçla bir şey alınmaz.
+   - Hazine (5. kat): +20 coin.
+   - Araf Ateşi (8. kat): Mammon'un masası için bir lütuf: ilk hilesini boz / bir laneti sustur /
+     karıştır ve ilk el ante'siz (1 yıl).
+3. Katlarda ceza DEĞİŞMEZ, her şey coin'le oynanır. Ante 4 coin, artırma 4 (değişten sonra 8), masada en çok 24.
+   Kazanç en çok ×3 öder. Coin eksiye düşebilir (borç, kırmızı görünür).
+4. Kapı: Mammon 70 coin haraç alır. Eksik her coin (borç dahil) +5 yıl olarak cezana yazılır.
+5. Mammon'un masası: 8 el, YIL için (demodaki kurallar). Ruhun masadaysa 8 elden sonra da bırakmaz.
+6. 8 elden sonra bölüm biter; bu test burada sona erer (2. bölüm henüz açık değil).
+
+BİLİNEN EKSİKLER (bilerek)
+- Phase 2 koşusu KAYDEDİLMEZ: oyunu kapatırsan bölüm baştan başlar. (Menüye dönüp "PHASE 2: DEVAM" ile sürer.)
+- Koşu günlüğü (runs klasörü) Phase 2'yi yazmıyor; geri bildirimi aşağıdaki sorularla yaz.
+- Sadece 1. Bölüm var. Belial, Lilith ve Lucifer bölümleri yok.
+
+BAKMANI İSTEDİĞİM ŞEYLER
+- Haritada yol seçmek anlaşılır mı? Düğüm açıklamaları yeterli mi?
+- Kapıya kaç coin ile vardın? Haracı tam ödeyebildin mi? Kara Pazar'dan bir şey aldın mı?
+- Bekçi'ye (Tahsildar) gittin mi? Tahsildar'ın payı hissediliyor mu?
+- Araf Ateşi'nde hangisini seçtin, neden?
+- Mammon'un masasına kaç yılla oturdun, kaç yılla kalktın?
+- Panellerdeki yazılar, butonlar okunuyor mu? Türkçe / İngilizce hata gördün mü?
+
+Klasör: {FOLDER}

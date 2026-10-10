@@ -15,6 +15,10 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Phase 2 (sürüyor):** tasarım `Docs/PHASE2_CHAPTERS.md`. 1. Bölüm (Mammon'un Kasası) oynanabilir: ana menüde **PHASE 2 TESTİ**
+(sınıf → harita → kat masaları coin'le → kapıda haraç → Mammon 8 el). Demo (YENİ OYUN / DEVAM) dokunulmadan duruyor. Phase 2 koşusu
+henüz kaydedilmiyor; 2./3. bölüm ve Lucifer finali yok. Test build'i `HellPokerBuild.WindowsPhase2` (Komutlar'da).
+
 ## Oyun
 
 Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasaya (House)** karşı oynar.
@@ -467,6 +471,7 @@ Assets/Scripts/
                    FirstCheatBreaker (Ateş). Demo'ya kancalar (varsayılan kapalı): IHouseFoldStrategy, HellPokerGame.HouseCardsOpenAtDeal,
                    RunEffects.SilenceCurse / CombinedRelics, Sinner.ChangeJokers.
                    Simülasyon: Tests/EditMode/ChapterSimulation (Explicit, -testFilter HellPoker.Core.Tests.ChapterSimulation)
+                   ChapterCast (kat yüzleri: "imp" Sikke İblisi, "collector" Tahsildar), ChapterRun.OpenBossTable / BossTableOver / LeaveBossTable.
     Cheats/        ICheat (Id, Tier, Timing, CanApply, Apply → CheatResult), CheatIds, CheatTable (+ CheatMarks, CheatRules.IsImmune),
                    ICheatPolicy / DemonCheatPolicy (küçük / büyük / yalan), ICheatGuard (engelleme kancası), CheatSession (gösterge,
                    seçim, vuruş, işaretler; HellPokerGame beş anda Strike çağırır), Mammon/Belial/Lilith/LuciferCheats (hile başına bir sınıf)
@@ -489,6 +494,17 @@ Assets/Scripts/
     Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
                    + UiText.Cheats (iki dilli), Lang (dil), LocalizedText (`Localized()`: dille değişen sabit etiket), PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
+    Phase 2 sunumu: ChapterPresenter (IChapterSession / IChapterCommands: harita, paneller, kat maçları, kapı, boss, bölüm sonu; kendi
+    masasını — ikinci bir TableView "ChapterTableCanvas" + TablePresenter — ilk bölüm başlarken kurar, demo'nun masası ayrı kalır),
+    ChapterMapView (1. kat üstte, kapı altta; yollar tek dokuya piksel piksel; düğümler 20×20 çerçeveli, seçilebilir olan yanıp söner,
+    klavye seçimi kor; üzerine gelince açıklama), ChapterPanelView (portre, başlık, metin; yükseklik içeriğe göre; seçenekler alttan,
+    4'ten fazlaysa iki sütun; işaret edilenin açıklaması üstünde), Abstractions/IChapterViews (ChapterMapState, PanelCard, PanelOption),
+    Currency (ITableView.SetCurrency: yıl / coin; SentenceView coin'de eksi ve kırmızı). TablePresenter'da bölüm modu: SitAtFloor /
+    SitAtBoss, ChapterTableFinished, CoinMode (sayaç = kese, metinler coin, KARIŞTIR / LEAVE yok, kayıt / rekor / Lucifer kapısı yok,
+    isim altında el sayacı). Menü: PHASE 2 TESTİ (IMainMenuView.SetChapters, ChaptersPressed). Metinler: UiText.Chapters.cs
+    (+ DealerText imp / collector). Çizim: Tools/ArtGen/pixel_floors.py (generate_art.py floors): iki portre (7 durum), iki salon,
+    Ui/chapter_map, Ui/map_nodes (NodeKind sırası + kapı), Events/ altında 5 yabancı. Testler: ChapterPresenterTests, ChapterMenuTests,
+    PlayMode ChapterJourneyTests (+ [Explicit] ChapterScreenshots, 70–83).
     TablePresenter (masa; IRunSession: yeni koşu, devam (Resume), LEAVE isteği, masa değiştirme (ceza taşınır), kayıt / rekor, RunEnded;
     her masada oyunu Func<Dealer, IHellPokerGame> ile kurar), MainMenuPresenter (tüm ekranlar arası gezinme, Esc, geçişler),
     SettingsPresenter (ayar ekranı ↔ GameSettings ↔ hız / pencere), UnityDisplayMode, DealerCards, KeyboardInput,
@@ -653,6 +669,8 @@ py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: şeytan kar
 # DİKKAT: son player build'den sonra yeni bir script KLASÖRÜ eklendiyse build.log'da "error CS0234/CS0246" satırları çıkar: Bee eski
 # player DAG'ının dosya listesiyle ilk csc'yi dener, sonra listeyi yenileyip derler. Hüküm "Build Finished, Result: ..." satırı ve çıkış kodu.
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.Windows -logFile build.log
+# Phase 2 build (demodan ayrı): Builds/Phase2 + Builds/HellPoker-1.1.0-phase2-win64.zip, sürüm sadece build için 1.1.0-phase2
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.WindowsPhase2 -logFile build.log
 # Player log (Company "Deniz", Product "Hell Poker"): %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log
 # Duman testi (her build): HellPoker.exe -fpstour → menü, seçim, salonlar, Lucifer; log'da hata olmamalı.
 # FPS ölçümü: development build (Builds/WindowsDev, F3 açık), sonra her ekranı gezip log'a yazan tur:

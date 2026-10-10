@@ -1,6 +1,7 @@
 # Phase 2 — Bölümler, katlar ve coin ekonomisi (tasarım notu)
 
-Durum: **tasarım**, henüz kod yok. Kaynak: kullanıcının taslağı ve cevapları (2026-10-10, iki tur).
+Durum: **1. Bölüm oynanabilir** (2026-10-10: Core + sunum + çizim; ana menüde PHASE 2 TESTİ). 2./3. bölüm, Lucifer finali, kayıt yok.
+Kaynak: kullanıcının taslağı ve cevapları (2026-10-10, dört tur).
 Kararlar koda girince ilgili kısımlar CLAUDE.md'ye taşınır.
 
 ## Koşunun akışı

@@ -45,6 +45,10 @@ namespace HellPoker.Presentation.Views
         public event Action ChangeTablePressed;
         public event Action SettingsPressed;
         public event Action RecordsPressed;
+        public event Action ChaptersPressed;
+
+        private GameObject _chaptersButton;
+        private bool _chaptersInProgress;
         public event Action Confirmed;
         public event Action LanguagePressed;
 
@@ -121,7 +125,11 @@ namespace HellPoker.Presentation.Views
             GameObject settings = CreateMenuButton(buttons, "SettingsButton", () => UiText.SettingsButton, ButtonSkin.Ash, () => SettingsPressed?.Invoke());
             GameObject howToPlay = CreateMenuButton(buttons, "HowToPlayButton", () => UiText.HowToPlay, ButtonSkin.Ash, () => ShowRules(true));
             GameObject records = CreateMenuButton(buttons, "RecordsButton", () => UiText.Records, ButtonSkin.Ash, () => RecordsPressed?.Invoke());
-            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, settings, howToPlay, records });
+            // Phase 2's chapters, apart from the demo's run (a test build's door to them).
+            _chaptersButton = CreateMenuButton(buttons, "ChaptersButton", () => _chaptersInProgress ? UiText.ChaptersContinueButton : UiText.ChaptersButton,
+                ButtonSkin.Ember, () => ChaptersPressed?.Invoke());
+            _chaptersButton.SetActive(false);
+            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, _chaptersButton, settings, howToPlay, records });
             _quitButton = CreateMenuButton(buttons, "QuitButton", () => UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
             LayOut();
 
@@ -303,6 +311,14 @@ namespace HellPoker.Presentation.Views
             ShowPage(Page.Rules);
             _rulesPanel.SetActive(show);
             _front.SetActive(!show);
+        }
+
+        public void SetChapters(bool available, bool inProgress)
+        {
+            _chaptersInProgress = inProgress;
+            _chaptersButton.SetActive(available);
+            _chaptersButton.GetComponentInChildren<LocalizedText>()?.Rewrite();
+            LayOut();
         }
 
         public void Show(bool canContinue)

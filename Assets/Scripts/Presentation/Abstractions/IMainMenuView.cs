@@ -11,6 +11,12 @@ namespace HellPoker.Presentation.Abstractions
         event Action SettingsPressed;
         event Action RecordsPressed;
 
+        /// <summary>The Phase 2 test button (the chapters).</summary>
+        event Action ChaptersPressed;
+
+        /// <summary>The Phase 2 test button: shown when <paramref name="available"/>, reading "go on" while a chapter run waits.</summary>
+        void SetChapters(bool available, bool inProgress);
+
 
         /// <summary>The player accepted the warning open over the menu (New Game or Quit over a run in progress).</summary>
         event Action Confirmed;

@@ -148,7 +148,7 @@ namespace HellPoker.Presentation.Ui
                 case DealerRoster.BelialId: return tr ? BelialTr : Belial;
                 case DealerRoster.LilithId: return tr ? LilithTr : Lilith;
                 case DealerRoster.LuciferId: return tr ? LuciferTr : Lucifer;
-                default: return tr ? UnknownTr : Unknown;
+                default: return ChapterFace(id, tr) ?? (tr ? UnknownTr : Unknown);
             }
         }
 

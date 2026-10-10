@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Chapters;
 using HellPoker.Core.Cheats;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Evaluation;
@@ -493,7 +494,7 @@ namespace HellPoker.Presentation
 
         public void RequestLeave()
         {
-            if (!Playing || _pendingEvent != null || Hurry() || _game.IsGameOver) return;
+            if (!Playing || _pendingEvent != null || _seat != null || Hurry() || _game.IsGameOver) return;
 
             // A finished hand counts as "between hands": move on to the next one first.
             if (_game.Phase == GamePhase.RoundOver)
@@ -594,6 +595,7 @@ namespace HellPoker.Presentation
             // Per-table charges are kept per demon: a table never sat at is full, one the player comes back to has what was left
             // there (changing seats refills nothing). Lucifer's table is full at every summons; a fall lands on the demon's own count.
             bool fresh = change == SeatChange.Summoned;
+            _seat = null;   // the demo's tables: no chapter around them
             _effects.SitAt(dealer.Id, fresh);
             // A new table closes the Bone Die's pick; the Peasant's free fold waits for his fold.
             _redrawing = false;
@@ -637,6 +639,14 @@ namespace HellPoker.Presentation
         /// </summary>
         private void ShowSentenceLine()
         {
+            if (CoinMode)
+            {
+                // A floor counts coins toward the gate's tribute.
+                int tribute = _seat.Run.Rules.Tribute;
+                _view.Sentence.SetLimit(Math.Max(1, tribute), string.Format(UiText.TributeLineFormat, tribute));
+                _view.Sentence.SetLabel(UiText.CoinsLabel);
+                return;
+            }
             if (_game.Rules.IsFinalTable)
             {
                 int gate = _game.Rules.LuciferGateYears;
@@ -647,6 +657,185 @@ namespace HellPoker.Presentation
 
             _view.Sentence.SetSoulLine(_game.Rules.SoulThreshold);
             _view.Sentence.SetLabel(UiText.YearsLabel);
+        }
+
+        // ------------------------------------------------------------------ Phase 2: a chapter's tables
+
+        /// <summary>
+        /// One of a chapter's tables: a floor match, played for coins (the purse is the counter, the gate's tribute its line), or the
+        /// chapter demon's table, played for years for a set number of hands. Nothing of the demo's run is touched: no save, no records,
+        /// no Lucifer's gate, no leaving; the chapter (<see cref="ChapterTableFinished"/>) decides what comes after.
+        /// </summary>
+        private sealed class ChapterSeat
+        {
+            public ChapterRun Run;
+
+            /// <summary>The floor match; null at the demon's table.</summary>
+            public FloorTable Floor;
+
+            public IPayoutInfo Payouts;
+            public int SettledRound = -1;
+
+            /// <summary>What the last floor hand did to the purse (the toll included); null before the first.</summary>
+            public FloorHand LastHand;
+        }
+
+        private ChapterSeat _seat;
+        private string _seatTitleShown;
+
+        /// <summary>A chapter's table is over: its last hand was settled and NEXT pressed (or the run ended at it).</summary>
+        public event Action ChapterTableFinished;
+
+        /// <summary>True while the table is one of a chapter's.</summary>
+        public bool AtChapterTable => _seat != null;
+
+        /// <summary>The floor match at the table; null at the demon's table and outside a chapter.</summary>
+        public FloorTable Floor => _seat?.Floor;
+
+        /// <summary>What the last floor hand did to the purse; null before it.</summary>
+        public FloorHand LastFloorHand => _seat?.LastHand;
+
+        /// <summary>A floor's table: everything is counted in coins.</summary>
+        private bool CoinMode => _seat?.Floor != null;
+
+        /// <summary>What the payout panel and the hand ranks show: a floor's (capped) payouts, or the demon's own.</summary>
+        private IPayoutInfo ShownPayouts => _seat?.Payouts ?? _dealer.Payouts;
+
+        /// <summary>
+        /// A floor match of a chapter: an imp's table or the warden's, for coins. The run's sinner and relics sit down with the player;
+        /// the face across the table is the chapter's (<see cref="ChapterCast"/>), playing by the chapter demon's table rules.
+        /// </summary>
+        public void SitAtFloor(FloorTable table, ChapterRun run)
+        {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (run == null) throw new ArgumentNullException(nameof(run));
+            Dealer boss = run.Rules.Boss;
+            var house = new Dealer(ChapterCast.HouseOf(table, run.Rules), boss.MaxDiscards, boss.HouseCardsShown, boss.Payouts,
+                soulThreshold: boss.SoulThreshold);
+            SeatChapter(table.Game, house, new ChapterSeat { Run = run, Floor = table, Payouts = new FloorPayoutTable(boss.Payouts, run.Rules.MultiplierCap) });
+        }
+
+        /// <summary>The chapter demon's table after the gate: years, the demon's own rules, <see cref="ChapterRules.BossHands"/> hands.</summary>
+        public void SitAtBoss(IHellPokerGame game, ChapterRun run)
+        {
+            if (game == null) throw new ArgumentNullException(nameof(game));
+            if (run == null) throw new ArgumentNullException(nameof(run));
+            SeatChapter(game, run.Rules.Boss, new ChapterSeat { Run = run, Payouts = run.Rules.Boss.Payouts });
+        }
+
+        private void SeatChapter(IHellPokerGame game, Dealer dealer, ChapterSeat seat)
+        {
+            if (_view.IsBusy) _view.SkipAnimations();
+            _seat = seat;
+            _sinner = seat.Run.Sinner;
+            _effects = seat.Run.Effects;
+            _loggedJokers = _sinner.Jokers;
+            _pendingEvent = null;
+            _redrawing = false;
+            _game = game;
+            _abandoned = false;
+            _lastLine = null;
+            _dealer = dealer;
+            _dealerText = UiText.Dealer(dealer.Id);
+            _discards.Clear();
+            _finalStretchAnnounced = false;
+            _soulShown = false;
+            _stats = null;   // a chapter's tables keep no demo story, records or save
+            _settledRound = game.RoundNumber;
+            _gate = new LuciferGate(0, 0);
+            _origin = null;
+            _originMalice = null;
+            _seatTitleShown = SeatTitle();
+            _audio.SetSoulLayer(false);
+
+            _view.SetCurrency(CoinMode ? Currency.Coins : Currency.Years);
+            _view.Dealer.SetDealer(SeatCard());
+            _view.Payouts.SetTable(seat.Payouts);
+            _view.SetSoul(SoulGauge.Hidden);
+            if (!_game.IsSoulAtStake)
+            {
+                ShowSentenceLine();
+                _view.Sentence.SetYears(CoinMode ? seat.Run.Purse.Coins : _game.Years, animate: false);
+            }
+            string classId = _sinner.Id;
+            Say(d => d.GreetingFor(classId) ?? UiText.Pick(d.Greeting, 0), DealerMood.Neutral);
+            Refresh();
+        }
+
+        /// <summary>A chapter's hand was just settled: a floor's goes to the purse (once).</summary>
+        private void SettleChapterHand()
+        {
+            if (_seat == null || _game.LastRound == null || _seat.SettledRound == _game.RoundNumber) return;
+            if (_game.Phase != GamePhase.RoundOver && !_game.IsGameOver) return;
+            _seat.SettledRound = _game.RoundNumber;
+            if (_seat.Floor != null)
+                _seat.LastHand = _seat.Floor.Settle();
+        }
+
+        /// <summary>The last hand of the chapter's table has been played (the demon's: unless the soul keeps the player there).</summary>
+        private bool SeatOver()
+        {
+            if (_seat == null || _game.Phase != GamePhase.RoundOver) return false;
+            return CoinMode ? _seat.Floor.IsOver : _seat.Run.BossTableOver(_game.RoundNumber, _game.IsSoulAtStake);
+        }
+
+        /// <summary>Under the name: the hand count (a floor: and the wins against what the match needs).</summary>
+        private string SeatTitle()
+        {
+            bool between = _game.Phase == GamePhase.Betting;
+            if (CoinMode)
+            {
+                FloorTable floor = _seat.Floor;
+                int hand = Math.Max(1, Math.Min(floor.HandsToPlay, floor.HandsPlayed + (between ? 1 : 0)));
+                return string.Format(UiText.FloorSeatTitleFormat, hand, floor.HandsToPlay, floor.Wins, floor.WinsNeeded);
+            }
+            int played = Math.Max(1, _game.RoundNumber + (between ? 1 : 0));
+            int limit = _seat.Run.Rules.BossHands;
+            return played > limit ? string.Format(UiText.BossSoulSeatTitleFormat, played, limit) : string.Format(UiText.BossSeatTitleFormat, played, limit);
+        }
+
+        private DealerCard SeatCard()
+        {
+            DealerText text = UiText.Dealer(_dealer.Id);
+            return new DealerCard(_dealer.Id, text.Name, SeatTitle(), text.Description, null, _dealer.SoulThreshold);
+        }
+
+        private void ShowSeatTitle()
+        {
+            if (_seat == null) return;
+            string title = SeatTitle();
+            if (title == _seatTitleShown) return;
+            _seatTitleShown = title;
+            _view.Dealer.Relabel(SeatCard());
+        }
+
+        /// <summary>A chapter's table adds its word under the result: the Collector's toll; the demon letting go — or not.</summary>
+        private string WithSeatLine(string message)
+        {
+            if (_seat == null) return message;
+            if (CoinMode)
+                return _seat.LastHand != null && _seat.LastHand.Toll > 0 ? message + "\n" + string.Format(UiText.CoinTollFormat, _seat.LastHand.Toll) : message;
+            if (_game.RoundNumber < _seat.Run.Rules.BossHands) return message;
+            string name = UiText.NameInSentence(_dealerText);
+            return message + "\n" + string.Format(_game.IsSoulAtStake ? UiText.BossSoulHoldsFormat : UiText.BossDoneFormat, name);
+        }
+
+        /// <summary>A floor hand's result in coins (the purse's own change: a free ante, the toll apart).</summary>
+        private static string CoinResultMessage(RoundResult round, FloorHand hand)
+        {
+            int coins = Math.Abs(hand?.Coins ?? -round.YearsChange);
+            if (round.Folded) return round.FreeFold ? UiText.FreeFoldMessage : string.Format(UiText.CoinFoldFormat, coins);
+            if (round.HouseFolded) return string.Format(UiText.CoinHouseFoldedFormat, coins);
+            ShowdownResult s = round.Showdown;
+            if (s.Outcome == ShowdownOutcome.HouseWins && s.PlayerBust) return string.Format(UiText.CoinJokerLossFormat, coins);
+            if (s.Outcome == ShowdownOutcome.PlayerWins && s.HouseBust) return string.Format(UiText.CoinJokerWinFormat, coins);
+            string player = UiText.CategoryName(s.Player.Category), house = UiText.CategoryName(s.House.Category);
+            switch (s.Outcome)
+            {
+                case ShowdownOutcome.PlayerWins: return string.Format(UiText.CoinWinFormat, player, house, coins);
+                case ShowdownOutcome.HouseWins: return string.Format(UiText.CoinLossFormat, house, player, coins);
+                default: return string.Format(UiText.CoinPushFormat, player, house);
+            }
         }
 
         public void Dispose()
@@ -676,7 +865,8 @@ namespace HellPoker.Presentation
                 case GamePhase.Betting:
                     _view.PlaySfx(SfxIds.Deal);
                     int deckBefore = _game.DeckCount;
-                    _game.PlaceBet();
+                    if (CoinMode) _seat.Floor.Deal();   // the match counts its hands
+                    else _game.PlaceBet();
                     if (_game.DeckShuffledThisHand)
                         LogNote($"deck ran out: the demon shuffles ({deckBefore} cards left, {_game.Years} years, hand {_game.RoundNumber})");
                     _discards.Clear();
@@ -707,12 +897,22 @@ namespace HellPoker.Presentation
                     PlayCheatStrikes(before);
                     break;
                 case GamePhase.RoundOver:
+                    if (_seat != null && SeatOver())
+                    {
+                        ChapterTableFinished?.Invoke();   // the chapter takes it from here (the map, the next chapter)
+                        return;
+                    }
                     _game.NextRound();
                     break;
                 case GamePhase.NamingJoker:
                     ConfirmJoker();
                     return;
                 default:
+                    if (_seat != null)
+                    {
+                        ChapterTableFinished?.Invoke();   // damned or free at a chapter's table: the chapter tells it
+                        return;
+                    }
                     // The run is over: the end screen takes it from here (or, with nobody listening, a fresh run).
                     if (RunEnded != null)
                     {
@@ -1053,7 +1253,8 @@ namespace HellPoker.Presentation
                 // A called re-raise is on the table now. The hand is already settled in the game, so the counter shows
                 // the sentence as it stood before it, minus the table, until the result comes in.
                 _view.SetPot(_game.LastRound.Stake);
-                _view.Sentence.SetYears(_game.LastRound.YearsBefore - _game.LastRound.Stake, animate: true);
+                _view.Sentence.SetYears(CoinMode ? _seat.Run.Purse.Coins - _game.LastRound.Stake : _game.LastRound.YearsBefore - _game.LastRound.Stake,
+                    animate: true);
                 _view.SetStakeInfo(null);
             }
             // Cards a cheat hid stay dark while the House turns its cards: only the result shows them.
@@ -1155,14 +1356,14 @@ namespace HellPoker.Presentation
                 _view.SetDeck(string.Format(UiText.DeckCountFormat, _game.DeckCount), string.Format(UiText.DeckCountHintFormat, _game.DeckCount));
             // Shown when it can be used — and, dimmed, when only its years stand in the way (they would put the soul on the table).
             bool offer = (refusal == ShuffleRefusal.None || refusal == ShuffleRefusal.WouldStakeSoul) && !SoulMode && _pendingEvent == null
-                         && !_game.IsGameOver;
+                         && !_game.IsGameOver && !CoinMode;
             _view.SetShuffle(offer ? string.Format(UiText.ShuffleButtonFormat, _game.Rules.ShuffleYears) : null, refusal != ShuffleRefusal.None);
         }
 
         /// <summary>S or SHUFFLE: between hands, the years paid and all 52 shuffled — or the reason it cannot be done now.</summary>
         public void ShuffleDeck()
         {
-            if (!Playing || _pendingEvent != null || Hurry()) return;
+            if (!Playing || _pendingEvent != null || CoinMode || Hurry()) return;
             ShuffleRefusal refusal = _game.WhyNoShuffle();
             if (refusal != ShuffleRefusal.None)
             {
@@ -1353,7 +1554,7 @@ namespace HellPoker.Presentation
             if (_view.HandRanksOpen)
                 _view.HideHandRanks();
             else
-                _view.ShowHandRanks(_dealer.Payouts, IntentFootnote());
+                _view.ShowHandRanks(ShownPayouts, IntentFootnote());
         }
 
         public bool CloseOverlay()
@@ -1420,8 +1621,8 @@ namespace HellPoker.Presentation
             if (_view.IsBusy) _view.SkipAnimations();
 
             _dealerText = UiText.Dealer(_dealer.Id);
-            _view.Dealer.Relabel(DealerCards.Describe(_dealer));
-            _view.Payouts.SetTable(_dealer.Payouts);
+            _view.Dealer.Relabel(_seat != null ? SeatCard() : DealerCards.Describe(_dealer));
+            _view.Payouts.SetTable(ShownPayouts);
             if (!SoulMode && _game.Phase != GamePhase.Damned)
                 ShowSentenceLine();
 
@@ -1436,7 +1637,7 @@ namespace HellPoker.Presentation
             }
 
             if (_view.HandRanksOpen)
-                _view.ShowHandRanks(_dealer.Payouts, IntentFootnote());
+                _view.ShowHandRanks(ShownPayouts, IntentFootnote());
             if (_lastLine != null)
                 _view.Dealer.SetLine(_lastLine());
             if (_pendingEvent != null)
@@ -1491,7 +1692,11 @@ namespace HellPoker.Presentation
         {
             // A language change only rewrites words: the gate is not passed again, nothing is settled or saved.
             if (!_relabelling)
+            {
                 PassThroughGate();
+                SettleChapterHand();
+            }
+            ShowSeatTitle();
             // A power switched on stays on through bets, turned cards and the draw prompt — it closes only when used, switched off,
             // or when its moment has gone. The Bone Die's pick goes when no card may be rolled any more (the draw passed, the hand ended).
             if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
@@ -1535,7 +1740,7 @@ namespace HellPoker.Presentation
                 SaveRun();
             }
             ShowMalice();
-            _view.SetLeave(_game.Phase != GamePhase.Betting ? LeaveState.Hidden
+            _view.SetLeave(_game.Phase != GamePhase.Betting || _seat != null ? LeaveState.Hidden
                 : _game.Rules.IsFinalTable ? LeaveState.Summoned
                 : _game.IsSoulAtStake ? LeaveState.Locked : LeaveState.Open);
             bool finalTable = _game.Rules.IsFinalTable;
@@ -1636,10 +1841,10 @@ namespace HellPoker.Presentation
             }
             else
             {
-                _view.Sentence.SetYears(_game.Years, animate: true);
+                _view.Sentence.SetYears(CoinMode ? _seat.Run.Purse.Coins : _game.Years, animate: true);
                 ShowStakeInfo();
                 _view.SetAnte(_game.UpcomingAnte);
-                _view.SetMessage(string.Format(UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
+                _view.SetMessage(string.Format(CoinMode ? UiText.CoinPromptBetFormat : UiText.PromptBetFormat, _game.UpcomingAnte), Tone.Neutral);
             }
             _view.SetAction(_pendingEvent == null ? UiText.Deal : null);   // an event waits for its answer first
 
@@ -1731,7 +1936,7 @@ namespace HellPoker.Presentation
             }
             else
             {
-                _view.SetMessage(string.Format(UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
+                _view.SetMessage(string.Format(CoinMode ? UiText.CoinPromptReRaiseFormat : UiText.PromptReRaiseFormat, _game.HouseReRaiseAmount), Tone.Warning);
                 _view.SetBetControls(BetControls.Answer(string.Format(UiText.CallFormat, _game.HouseReRaiseAmount), FoldLabel));
             }
         }
@@ -1778,13 +1983,13 @@ namespace HellPoker.Presentation
             }
 
             _view.SetPot(_game.CurrentStake);
-            _view.Sentence.SetYears(_game.YearsOffTable, animate: true);
+            _view.Sentence.SetYears(CoinMode ? _seat.Run.Purse.Coins - _game.CurrentStake : _game.YearsOffTable, animate: true);
             ShowStakeInfo();
         }
 
         private void ShowStakeInfo()
         {
-            _view.SetStakeInfo(string.Format(UiText.StakeInfoFormat, _game.LeastYearsForgiven, _game.LeastYearsAdded));
+            _view.SetStakeInfo(string.Format(CoinMode ? UiText.CoinStakeInfoFormat : UiText.StakeInfoFormat, _game.LeastYearsForgiven, _game.LeastYearsAdded));
         }
 
         /// <summary>The soul bar: what is left, and how much of it is on the table — in shares of a soul, never in years.</summary>
@@ -1862,6 +2067,12 @@ namespace HellPoker.Presentation
                 // Damned at the draw: the thorn took the last of the soul, nobody folded.
                 _view.Player.SetCaption(round.ThornDamned ? UiText.ThornedCaption : UiText.FoldedCaption, Tone.Bad);
             }
+            else if (round.HouseFolded)
+            {
+                // A floor's imp gave up its hand facing the raise: no showdown, the stake is the player's.
+                _view.House.SetCaption(UiText.HouseFoldedCaption, Tone.Bad);
+                _view.Player.SetCaption(string.Format(UiText.WinnerFormat, UiText.PlayerCaption), Tone.Triumph);
+            }
             else
             {
                 // Both hands by name; the winner's is lit and marked.
@@ -1875,7 +2086,9 @@ namespace HellPoker.Presentation
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
             if (round != null && !_relabelling)
             {
-                if (playerWon)
+                if (round.HouseFolded)
+                    _view.PlaySfx(SfxIds.WinSmall);
+                else if (playerWon)
                     _view.PlaySfx(showdown.Player.Category >= HandCategory.TwoPair ? SfxIds.WinBig : SfxIds.WinSmall);
                 else if (houseWon || (round.Folded && !round.FreeFold))
                     _view.PlaySfx(SfxIds.Loss);
@@ -1894,7 +2107,7 @@ namespace HellPoker.Presentation
             }
             else
             {
-                _view.Sentence.SetYears(_game.Years, animate: true);
+                _view.Sentence.SetYears(CoinMode ? _seat.Run.Purse.Coins : _game.Years, animate: true);
             }
 
             switch (_game.Phase)
@@ -1904,17 +2117,19 @@ namespace HellPoker.Presentation
                     _view.SetMessage(deadMansHand ? UiText.AbsolvedMessage : BeatLucifer ? UiText.MorningStarFallsMessage : UiText.ServedMessage,
                         Tone.Triumph);
                     if (!_relabelling) Say(d => d.Absolved, DealerMood.Annoyed);
-                    _view.SetAction(UiText.TheEnd);
+                    _view.SetAction(_seat != null ? UiText.ChapterTheEnd : UiText.TheEnd);
                     break;
                 case GamePhase.Damned:
                     _view.SetMessage(UiText.DamnedMessage, Tone.Doom);
                     if (!_relabelling) Say(d => d.Damned, DealerMood.Gloating);
-                    _view.SetAction(UiText.TheEnd);
+                    _view.SetAction(_seat != null ? UiText.ChapterTheEnd : UiText.TheEnd);
                     break;
                 default:
                     if (round == null) break;   // only a finished run can come here without a hand
-                    _view.SetMessage(WithJackpot(WithCheatLog(ResultMessage(round, soulHand), soulHand), round),
-                        playerWon ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
+                    // A floor speaks in coins (its numbers are the purse's, the Collector's toll included); the cheat's log has no years then.
+                    string result = CoinMode ? CoinResultMessage(round, _seat.LastHand) : ResultMessage(round, soulHand);
+                    _view.SetMessage(WithSeatLine(WithJackpot(WithCheatLog(result, soulHand || CoinMode), round)),
+                        playerWon || round.HouseFolded ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     if (IsHoldingTheLastYear)
                     {
                         // Not a bug: an ordinary table keeps the last year for Lucifer — and says so.
@@ -1925,7 +2140,7 @@ namespace HellPoker.Presentation
                     {
                         SayRoundLine(round);
                     }
-                    _view.SetAction(UiText.Next);
+                    _view.SetAction(_seat != null && SeatOver() ? (CoinMode ? UiText.ToTheMap : UiText.LeaveTheVault) : UiText.Next);
                     break;
             }
         }
@@ -1938,7 +2153,8 @@ namespace HellPoker.Presentation
 
             if (!playerWon) return;
             HandCategory category = round.Showdown.Player.Category;
-            if (category == HandCategory.DeadMansHand)
+            // On a floor the Dead Man's Hand frees nobody: it flares up as any good hand does.
+            if (category == HandCategory.DeadMansHand && !CoinMode)
                 _view.PlayMoment(TableMoment.DeadMansHand, playerCards: DeadMansCards(_game.PlayerHand));
             else if (category >= HandCategory.TwoPair)
                 _view.PlayMoment(TableMoment.GoodHand, string.Format(UiText.GoodHandFormat, UiText.CategoryNameUpper(category)));
@@ -1965,7 +2181,9 @@ namespace HellPoker.Presentation
         private void SayRoundLine(RoundResult round)
         {
             int counter = _game.RoundNumber;
-            if (round.JokerJackpot)
+            if (round.HouseFolded)
+                Say(d => d.PlayerWins, counter, DealerMood.Annoyed);   // a floor's imp gave up its hand
+            else if (round.JokerJackpot)
                 Say(d => d.JokerJackpot, counter, DealerMood.Annoyed);   // the demon did not see that coming
             else if (!round.Folded && round.Showdown.HouseBust && round.Showdown.Outcome == ShowdownOutcome.PlayerWins)
                 Say(d => d.JokerBust, counter, DealerMood.Annoyed);   // the demon's own jokers sank him

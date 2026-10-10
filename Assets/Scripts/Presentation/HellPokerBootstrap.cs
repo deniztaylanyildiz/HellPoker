@@ -56,6 +56,7 @@ namespace HellPoker.Presentation
         [SerializeField] private int _seed = 666;
 
         private TablePresenter _tablePresenter;
+        private ChapterPresenter _chapterPresenter;
         private MainMenuPresenter _menuPresenter;
         private SettingsPresenter _settingsPresenter;
 
@@ -106,10 +107,27 @@ namespace HellPoker.Presentation
             EndScreenView endScreen = EndScreenView.Create(transform, UiArt.Dealers);
             RecordsView records = RecordsView.Create(transform);
             ScreenTransitionView transition = ScreenTransitionView.Create(transform);
-            _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
-                new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio);
 
-            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter);
+            // Phase 2's chapters: a table of their own (its view, its presenter), the map and its panel. The demo's run is never touched.
+            // Its table is built when a chapter first starts, so the demo's screens stay the only ones until then.
+            ChapterMapView chapterMap = ChapterMapView.Create(transform);
+            ChapterPanelView chapterPanel = ChapterPanelView.Create(transform, UiArt.Dealers);
+            _chapterPresenter = new ChapterPresenter(chapterMap, chapterPanel, () =>
+                {
+                    UiArt.Salons.Preload(new[] { Core.Chapters.ChapterCast.ImpId, Core.Chapters.ChapterCast.CollectorId });
+                    TableView chapterTableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
+                    chapterTableView.name = "ChapterTableCanvas";
+                    chapterTableView.Audio = audio;
+                    chapterTableView.SetVisible(false);
+                    var presenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), chapterTableView,
+                        settings, audio: audio);
+                    return (presenter, chapterTableView);
+                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh());
+
+            _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
+                new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter);
+
+            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter, _chapterPresenter);
 
             // Development builds (and the editor): F3 shows the frame rate. Any build: -fpstour walks every screen, measures, quits
             // (also the release build's smoke test: its log must stay clean through every screen change).
@@ -176,6 +194,7 @@ namespace HellPoker.Presentation
             _tablePresenter?.CloseLog();   // a run still going is written as it stands
             UiFactory.ButtonClicked = null;   // the scene's sound goes with it
             _menuPresenter?.Dispose();
+            _chapterPresenter?.Dispose();   // and the chapter's table with it
             _tablePresenter?.Dispose();
             _settingsPresenter?.Dispose();
         }

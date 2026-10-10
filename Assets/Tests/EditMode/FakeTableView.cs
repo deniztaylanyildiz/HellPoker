@@ -207,6 +207,11 @@ namespace HellPoker.Core.Tests
         public List<float> Pauses { get; } = new List<float>();
 
         public void Pause(float seconds) => Pauses.Add(seconds);
+
+        /// <summary>What the counter counts (Phase 2's floors: coins).</summary>
+        public Currency Currency { get; private set; } = Currency.Years;
+
+        public void SetCurrency(Currency currency) => Currency = currency;
         public void SetVisible(bool visible) => Visible = visible;
         public void PressMenu() => MenuPressed?.Invoke();
 

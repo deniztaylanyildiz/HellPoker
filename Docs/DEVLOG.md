@@ -2869,3 +2869,44 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Testler: EditMode 851 geçti (+2 explicit atlandı), 0 hata; ante değişikliğinden sonra `ChapterTests` 33/33.
 - Açık: kapıdaki coin üst sınıra yakın (74.6); sınıf kırılımı ante 4'te ölçülmedi; Ateş seçimlerinin değeri ancak boss simülasyonuyla
   ölçülebilir; B2/B3 haritaları ve olayları.
+
+### Phase 2 build'i, demodan ayrı (aynı gün)
+- İstek: "bir build alalım, demoya karışmayalım, o ayrı".
+- `HellPokerBuild.WindowsPhase2` (menü: Hell Poker ▸ Build Windows (Phase 2)): `Builds/Phase2/HellPoker.exe` + `Builds/HellPoker-1.1.0-phase2-win64.zip`.
+  Build kendi sürümünü taşır (`1.1.0-phase2`, menü köşesinde "v1.1.0-phase2"); proje sürümü (`1.0.0-demo`) build'den hemen sonra geri
+  konur (diske hiç yazılmaz). Demo'nun `Builds/Windows` klasörü ve `HellPoker-Demo-1.0-win64.zip` dokunulmadı.
+- Sonuç: Build Finished Success, çıkış 0, 114 MB (zip 35 MB). Duman turu (`-fpstour`): çıkış 0, Player.log'da hata yok.
+- Not: Phase 2'nin sunumu henüz yok; bu build oynanışta demo ile aynı (Core'daki bölüm kodu ve kancalar içinde ama kullanılmıyor).
+
+### Phase 2 sunumu: 1. Bölüm oynanabilir (aynı gün)
+- İstek: "son bölüm güncellemelerinin olduğu bir build istiyordum" → "oturum önemli değil, acelemiz yok, tasarımlarını yap ve bana test için
+  phase2 ilk test dosyasını ver".
+- Kararlar (benim, belgelendi): Phase 2 menüde ayrı bir düğme (PHASE 2 TESTİ), demo'nun koşusu / kaydı / masası hiç değişmez; bölümün
+  kendi masası (ikinci TableView + TablePresenter) ilk bölüm başlarken kurulur (aynı isimli düğmeler demo testlerini şaşırtmasın).
+  Harita yukarıdan aşağı (1. kat üstte, kapı altta: kasaya iniş). Phase 2 koşusu bu testte kaydedilmiyor.
+- Core: `ChapterCast` (imp, collector), `ChapterRun.OpenBossTable` (koruma: `FirstCheatBreaker`; ateşin ante'siz eli = 1 yıl ante,
+  `HandModifier.AntePercent` 1), `BossTableOver`, `LeaveBossTable`.
+- Sunum: `ChapterPresenter`, `ChapterMapView`, `ChapterPanelView`, `IChapterViews` (map state, panel card), `Currency` +
+  `ITableView.SetCurrency`, `SentenceView` coin modu (eksi, kırmızı, eksi işareti), TablePresenter bölüm modu (`SitAtFloor`, `SitAtBoss`,
+  `ChapterTableFinished`; coin metinleri, kese sayacı, haraç çizgisi, isim altında "El 2/3 · kazanılan 1, gereken 2", iblis elini
+  bırakınca "ELİ BIRAKTI", katta Ölü Adamın Eli sahnesi yok), menü düğmesi ve yönlendirme (`IMainMenuView.SetChapters`,
+  `MainMenuPresenter` + `IChapterSession`), klavye (haritada oklar / Enter / Esc; bölüm masasında masa tuşları o masaya).
+- Metinler: `UiText.Chapters.cs` (iki dil) + Sikke İblisi ve Tahsildar replikleri (iki dil).
+- Çizim: `pixel_floors.py` (`generate_art.py floors`): Sikke İblisi ve Tahsildar portreleri (7 durum), iki salon (sayım odası, haraç
+  kapısı; katmanlı), harita zemini, 7 düğüm ikonu, 5 yabancı portresi (Tefeci, Kumarbaz Hayalet, Çalıntı Mal Tüccarı, hazine, ateş).
+- Testler: `ChapterPresenterTests` (8; bütün bölümü kapıdan Mammon'a kadar oynayan test dahil), `ChapterMenuTests` (5), PlayMode
+  `ChapterJourneyTests` (menü → sınıf → harita → iblis masası; demo'nun oyunu boş kalır), `ChapterScreenshots` [Explicit] (70–83,
+  İngilizce ve Türkçe bakıldı).
+- Test notu: `Docs/Release/PHASE2_TEST.txt` (zip'e girer).
+
+### Phase 2 testleri, build ve commit (aynı gün)
+- İstek: PlayMode'u tek başına çalıştır (önceki koşu bellek yüzünden düşmüştü), geçerse Phase 2 zip'i, zip'ten duman turu, demo'nun YENİ
+  OYUN akışı; temizse commit "Phase 2: Bölüm 1 oynanabilir test" (etiket / push yok).
+- Neden: önceki PlayMode koşusu açılışta yarıda kesilmişti (play.log Unity'nin başlangıcında bitiyor). Makinede 7.4 GB RAM var; iki
+  batchmode Unity (EditMode + PlayMode) aynı anda çalışınca biri düşüyor. **Testleri her zaman sırayla, tek Unity ile çalıştır.**
+- PlayMode tek başına: 29 geçti (+4 explicit), 0 hata (ChapterJourneyTests dahil). EditMode: 864 geçti (+2 explicit), 0 hata;
+  kapıdaki eksik coin → ceza (`TheGateWritesTheMissingCoinsOnTheSentence`) ve zip adı (`ReleaseVersionTests`) geçti.
+- `HellPokerBuild.WindowsPhase2`: "Build Finished, Result: Success", `Builds/HellPoker-1.1.0-phase2-win64.zip` 37 366 138 bayt; içinde
+  OKUBENI / GERI_BILDIRIM / PHASE2_TEST. Zip'ten `-fpstour` (demo YENİ OYUN → Mammon / Belial / Lilith masaları → Lucifer): çıkış 0,
+  Player.log'da uyarı / hata yok, ~60 FPS. Not: duman turu PHASE 2 TESTİ düğmesine basmıyor; bölüm akışı PlayMode'da sınanıyor.
+- Commit: "Phase 2: Bölüm 1 oynanabilir test".

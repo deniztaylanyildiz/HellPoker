@@ -4,6 +4,7 @@ using System.Linq;
 using HellPoker.Core.Cards;
 using HellPoker.Core.Cheats;
 using HellPoker.Core.Events;
+using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
 using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
@@ -282,5 +283,46 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The chapter is over (after its demon): a silenced curse speaks again.</summary>
         public void EndChapter() => Effects.LiftSilence();
+
+        // ------------------------------------------------------------------ the demon's table, after the gate
+
+        /// <summary>The dice of the demon's table under the chapter's seed.</summary>
+        public const int BossStream = 13;
+
+        /// <summary>A free ante at the demon's table is the smallest there is: one year (a hand needs an ante on the table).</summary>
+        public const int FreeAntePercent = 1;
+
+        /// <summary>
+        /// The chapter's demon, for years, after the tribute: the run's sentence, sinner, relics and deck, the demon's own rules and
+        /// cheats behind the fire's breaker (when chosen), and the fire's free ante on the first hand. Played for
+        /// <see cref="ChapterRules.BossHands"/> hands (<see cref="BossTableOver"/>).
+        /// </summary>
+        /// <param name="table">The table's numbers (the sentence's stakes, the soul, the final stretch).</param>
+        public HellPokerGame OpenBossTable(GameRules table)
+        {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            Dealers.Dealer boss = Rules.Boss;
+            Effects.SitAt(boss.Id, fresh: true);
+            HellPokerGame game = HellPokerGameFactory.Create(table, boss, RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner);
+            game.UseEffects(Effects);
+            game.TakeOver(Years, 0);
+            if (DeckCards.Count > 0 && game.Phase == GamePhase.Betting) game.RestoreDeck(DeckCards);
+            if (FreeBossAnte) Effects.NextHand = new HandModifier(antePercent: FreeAntePercent);
+            FreeBossAnte = false;
+            return game;
+        }
+
+        /// <summary>
+        /// The demon lets the player go after the chapter's hands — unless the soul is on the table: then the hands go on until it is
+        /// won back (or burns away).
+        /// </summary>
+        public bool BossTableOver(int handsPlayed, bool soulAtStake) => handsPlayed >= Rules.BossHands && !soulAtStake;
+
+        /// <summary>The sentence the player leaves the demon's table with (it goes on to the next chapter; 0 when the Dead Man's Hand freed them).</summary>
+        public void LeaveBossTable(int years)
+        {
+            if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
+            Years = years;
+        }
     }
 }

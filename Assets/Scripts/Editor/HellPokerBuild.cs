@@ -1,5 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -43,7 +44,7 @@ namespace HellPoker.Editor
         }
 
         /// <summary>The build folder and the tester notes into one zip, under a folder named for the version.</summary>
-        public static void Pack(string buildFolder, string zipPath, string version)
+        public static void Pack(string buildFolder, string zipPath, string version, params string[] extraNotes)
         {
             string root = $"HellPoker-{HellPoker.Core.Game.ReleaseVersion.FileName(version)}/";
             if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -56,7 +57,7 @@ namespace HellPoker.Editor
                     if (relative.Split('/')[0].EndsWith("_DoNotShip")) continue;   // Burst's debug info stays home
                     zip.CreateEntryFromFile(file, root + relative, System.IO.Compression.CompressionLevel.Optimal);
                 }
-                foreach (string note in new[] { "OKUBENI.txt", "GERI_BILDIRIM.txt" })
+                foreach (string note in new[] { "OKUBENI.txt", "GERI_BILDIRIM.txt" }.Concat(extraNotes ?? new string[0]))
                 {
                     string text = File.ReadAllText(Path.Combine(ReleaseTexts, note)).Replace("{VERSION}",
                         HellPoker.Core.Game.ReleaseVersion.IsDemo(version) ? HellPoker.Core.Game.ReleaseVersion.Display(version) : version)
@@ -65,6 +66,31 @@ namespace HellPoker.Editor
                     using (var writer = new StreamWriter(entry.Open(), new UTF8Encoding(true)))   // with a BOM, for Notepad
                         writer.Write(text.Replace("\r\n", "\n").Replace("\n", "\r\n"));
                 }
+            }
+        }
+
+        /// <summary>Phase 2's builds, kept apart from the demo's (its folder, its zip and its version stay untouched).</summary>
+        public const string Phase2Folder = "Builds/Phase2";
+        public const string Phase2Version = "1.1.0-phase2";
+
+        /// <summary>
+        /// A Phase 2 build in Builds/Phase2, packed as Builds/HellPoker-1.1.0-phase2-win64.zip. The build carries its own version
+        /// (the menu corner reads "v1.1.0-phase2"); the project's version (the demo's) is put back right after the build.
+        /// </summary>
+        [MenuItem("Hell Poker/Build Windows (Phase 2)")]
+        public static void WindowsPhase2()
+        {
+            if (!Build(Phase2Folder, BuildOptions.None, Phase2Version)) return;
+            string zip = $"Builds/HellPoker-{HellPoker.Core.Game.ReleaseVersion.FileName(Phase2Version)}-win64.zip";
+            try
+            {
+                Pack(Phase2Folder, zip, Phase2Version, "PHASE2_TEST.txt");
+                Debug.Log($"Hell Poker packed: {Path.GetFullPath(zip)} ({new FileInfo(zip).Length / (1024 * 1024)} MB).");
+            }
+            catch (IOException exception)
+            {
+                Debug.LogError($"Hell Poker: the zip could not be written: {exception.Message}");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
             }
         }
 
@@ -97,8 +123,9 @@ namespace HellPoker.Editor
             AssetDatabase.SaveAssets();
         }
 
+        /// <param name="version">The build's own version, in place of the project's for this build only (null: the project's).</param>
         /// <returns>True when the build succeeded (batchmode exits with 1 when it did not).</returns>
-        private static bool Build(string folder, BuildOptions buildOptions)
+        private static bool Build(string folder, BuildOptions buildOptions, string version = null)
         {
             if (!File.Exists(HellPokerSceneBuilder.ScenePath))
                 HellPokerSceneBuilder.Build();
@@ -117,7 +144,18 @@ namespace HellPoker.Editor
                 options = buildOptions
             };
 
-            BuildReport report = BuildPipeline.BuildPlayer(options);
+            // The version is swapped after the splash settings are saved and put back before anything else can save or exit.
+            string projectVersion = PlayerSettings.bundleVersion;
+            BuildReport report;
+            try
+            {
+                if (version != null) PlayerSettings.bundleVersion = version;
+                report = BuildPipeline.BuildPlayer(options);
+            }
+            finally
+            {
+                PlayerSettings.bundleVersion = projectVersion;
+            }
             BuildSummary summary = report.summary;
             if (summary.result == BuildResult.Succeeded)
             {

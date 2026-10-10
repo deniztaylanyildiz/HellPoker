@@ -17,11 +17,15 @@ namespace HellPoker.Presentation
         private IMenuCommands _menu;
         private ISettingsCommands _settings;
 
-        public void Bind(ITableCommands table, IMenuCommands menu, ISettingsCommands settings)
+        /// <summary>Phase 2: the chapter's map and panels, and the chapter's own table (null: none).</summary>
+        private IChapterCommands _chapters;
+
+        public void Bind(ITableCommands table, IMenuCommands menu, ISettingsCommands settings, IChapterCommands chapters = null)
         {
             _table = table;
             _menu = menu;
             _settings = settings;
+            _chapters = chapters;
         }
 
         private void Update()
@@ -39,10 +43,27 @@ namespace HellPoker.Presentation
 
             if (_menu.IsTransitioning) return;
 
+            // The chapter's map and its panels: the arrows pick, Enter / Space go, Esc closes what it can (else the menu).
+            if (_chapters != null && _chapters.IsMapOpen && !_menu.IsMenuOpen)
+            {
+                if (keyboard.escapeKey.wasPressedThisFrame)
+                {
+                    if (!_chapters.Back()) _menu.GoBack();
+                }
+                else if (keyboard.spaceKey.wasPressedThisFrame || enter) _chapters.Confirm();
+                else if (keyboard.leftArrowKey.wasPressedThisFrame) _chapters.Step(-1, 0);
+                else if (keyboard.rightArrowKey.wasPressedThisFrame) _chapters.Step(1, 0);
+                else if (keyboard.upArrowKey.wasPressedThisFrame) _chapters.Step(0, -1);
+                else if (keyboard.downArrowKey.wasPressedThisFrame) _chapters.Step(0, 1);
+                return;
+            }
+            // At one of the chapter's tables every table key goes to that table.
+            ITableCommands table = _chapters != null && _chapters.IsAtTable && _chapters.Table != null ? _chapters.Table : _table;
+
             if (keyboard.escapeKey.wasPressedThisFrame)
             {
                 // A panel over the table closes first; only then does Esc leave the table.
-                if (_menu.IsMenuOpen || !_table.CloseOverlay())
+                if (_menu.IsMenuOpen || !table.CloseOverlay())
                     _menu.GoBack();
                 return;
             }
@@ -66,29 +87,29 @@ namespace HellPoker.Presentation
 
             if (keyboard.hKey.wasPressedThisFrame)
             {
-                _table.ToggleHandRanks();
+                table.ToggleHandRanks();
                 return;
             }
 
             // One action per frame at most: Space and Enter together still count once.
             if (keyboard.spaceKey.wasPressedThisFrame || enter)
-                _table.PerformAction();
-            else if (keyboard.rKey.wasPressedThisFrame) _table.Bet(BetAction.Raise);
-            else if (keyboard.dKey.wasPressedThisFrame) _table.CheckToDraw();
-            else if (keyboard.kKey.wasPressedThisFrame) _table.UsePower();
-            else if (keyboard.sKey.wasPressedThisFrame) _table.ShuffleDeck();
-            else if (keyboard.cKey.wasPressedThisFrame) _table.Bet(BetAction.Call);
-            else if (keyboard.fKey.wasPressedThisFrame) _table.Bet(BetAction.Fold);
-            else if (keyboard.digit1Key.wasPressedThisFrame) _table.ToggleDiscard(0);
-            else if (keyboard.digit2Key.wasPressedThisFrame) _table.ToggleDiscard(1);
-            else if (keyboard.digit3Key.wasPressedThisFrame) _table.ToggleDiscard(2);
-            else if (keyboard.digit4Key.wasPressedThisFrame) _table.ToggleDiscard(3);
-            else if (keyboard.digit5Key.wasPressedThisFrame) _table.ToggleDiscard(4);
+                table.PerformAction();
+            else if (keyboard.rKey.wasPressedThisFrame) table.Bet(BetAction.Raise);
+            else if (keyboard.dKey.wasPressedThisFrame) table.CheckToDraw();
+            else if (keyboard.kKey.wasPressedThisFrame) table.UsePower();
+            else if (keyboard.sKey.wasPressedThisFrame) table.ShuffleDeck();
+            else if (keyboard.cKey.wasPressedThisFrame) table.Bet(BetAction.Call);
+            else if (keyboard.fKey.wasPressedThisFrame) table.Bet(BetAction.Fold);
+            else if (keyboard.digit1Key.wasPressedThisFrame) table.ToggleDiscard(0);
+            else if (keyboard.digit2Key.wasPressedThisFrame) table.ToggleDiscard(1);
+            else if (keyboard.digit3Key.wasPressedThisFrame) table.ToggleDiscard(2);
+            else if (keyboard.digit4Key.wasPressedThisFrame) table.ToggleDiscard(3);
+            else if (keyboard.digit5Key.wasPressedThisFrame) table.ToggleDiscard(4);
             // The joker picker at the showdown: left / right the rank, up / down the suit (nothing happens without a picker).
-            else if (keyboard.leftArrowKey.wasPressedThisFrame) _table.StepJoker(-1, 0);
-            else if (keyboard.rightArrowKey.wasPressedThisFrame) _table.StepJoker(1, 0);
-            else if (keyboard.upArrowKey.wasPressedThisFrame) _table.StepJoker(0, 1);
-            else if (keyboard.downArrowKey.wasPressedThisFrame) _table.StepJoker(0, -1);
+            else if (keyboard.leftArrowKey.wasPressedThisFrame) table.StepJoker(-1, 0);
+            else if (keyboard.rightArrowKey.wasPressedThisFrame) table.StepJoker(1, 0);
+            else if (keyboard.upArrowKey.wasPressedThisFrame) table.StepJoker(0, 1);
+            else if (keyboard.downArrowKey.wasPressedThisFrame) table.StepJoker(0, -1);
         }
     }
 }
