@@ -171,14 +171,18 @@ namespace HellPoker.Core.Relics
 
         public static IRelic Find(string id) => All.FirstOrDefault(r => r.Id == id);
 
-        /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone.</summary>
-        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null)
+        /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone, the one
+        /// named <paramref name="amplified"/> counts twice (Phase 2's Desire: its gift and its curse doubled).</summary>
+        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null, string amplified = null)
         {
             RelicEffects all = RelicEffects.None;
             foreach (string id in ids ?? Enumerable.Empty<string>())
             {
                 IRelic relic = Find(id);
-                if (relic != null) all = all.With(id == silenced ? relic.Boon : relic.Effects);
+                if (relic == null) continue;
+                RelicEffects effects = id == silenced ? relic.Boon : relic.Effects;
+                all = all.With(effects);
+                if (id == amplified) all = all.With(effects);
             }
             return all;
         }

@@ -43,11 +43,16 @@ namespace HellPoker.Core.Tests
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(b => b.Trim()).ToArray();
 
             var report = new StringBuilder();
-            string payouts = win < 0 && loss < 0 ? "each chapter's own (Mammon wins 175%, losses 125%)" : $"wins {win}%, losses {loss}% of the demon's own";
+            string payouts = win < 0 && loss < 0
+                ? $"each boss's own (wins / losses: Mammon {ChapterRules.For(1).BossWinPercent}/{ChapterRules.For(1).BossLossPercent}, " +
+                  $"Belial {ChapterRules.BelialWinPercent}/{ChapterRules.BelialLossPercent}, Lilith {ChapterRules.LilithWinPercent}/{ChapterRules.LilithLossPercent}, " +
+                  $"Lucifer {ChapterRules.LuciferWinPercent}/{ChapterRules.LuciferLossPercent})"
+                : $"wins {win}%, losses {loss}% of the demon's own";
             report.AppendLine($"Phase 2 demon tables: {Runs} runs per class × boss. Payouts: {payouts}; " +
                               $"+{extra} years on every bar (the tribute's). Soul line: Mammon 200%, Belial 175%, Lilith 150% of the bar's start " +
-                              $"(soul worth {GameRules.Default.SoulWorthYears}); Lucifer: his fixed stakes, cast down above start + {BossTable.LuciferGateMargin}.");
-            report.AppendLine("Targets: Mammon 15-25 hands; damned (Lucifer: cast down) 10-20% at every boss.");
+                              $"(soul worth {GameRules.Default.SoulWorthYears}); Lucifer: stakes on the bar, cast down past " +
+                              $"{EnvInt("HELLPOKER_LUCIFER_GATE", ChapterRules.LuciferCastDownPercent)}% of the start.");
+            report.AppendLine("Targets: Mammon 15-25 hands / damned 10-20%; Belial 15-25 / 15-25%; Lilith 20-30 / 20-30%; Lucifer 15-25 / cast down 30-50%.");
             report.AppendLine("Player: the balance simulation's (no relics; the class's power and charge as at any table).");
             report.AppendLine();
             report.AppendLine("class     boss      bar   hands avg (p10/p50/p90)   beaten   damned / cast down   soul reached   Dead Man's Hand");
@@ -74,18 +79,14 @@ namespace HellPoker.Core.Tests
         {
             var sinner = new Sinner(sinnerClass);
             bool lucifer = bossId == DealerRoster.LuciferId;
-            Dealer boss = lucifer ? DealerRoster.Lucifer : DealerRoster.Find(bossId);
-            if (lucifer && EnvInt("HELLPOKER_LUCIFER_SCALED", 0) == 1)
-                // His stakes measured against the bar, as at the other demons' tables (a tenth, the 30% cap) instead of 50 / 150.
-                boss = new Dealer(boss.Id, boss.MaxDiscards, boss.HouseCardsShown, boss.Payouts, boss.Betting, boss.SoulThreshold, null,
-                    isFinalTable: true, boss.MaliceMax, boss.Cheats, boss.BackfirePercent);
+            // Lucifer: his stakes measured against the bar (Phase 2's), or — HELLPOKER_LUCIFER_FIXED=1 — the demo's 50 / 150.
+            Dealer boss = lucifer ? (EnvInt("HELLPOKER_LUCIFER_FIXED", 0) == 1 ? DealerRoster.Lucifer : BossTable.Lucifer) : DealerRoster.Find(bossId);
             ChapterRules chapter = lucifer ? null : ChapterRules.For(Array.IndexOf(BossShares.Bosses, bossId) + 1);
             int soulLine = chapter?.SoulLinePercent ?? 101;
-            if (win < 0) win = chapter?.BossWinPercent ?? 100;
-            if (loss < 0) loss = chapter?.BossLossPercent ?? 100;
+            if (win < 0) win = chapter?.BossWinPercent ?? ChapterRules.LuciferWinPercent;
+            if (loss < 0) loss = chapter?.BossLossPercent ?? ChapterRules.LuciferLossPercent;
             HellPokerGame game = BossTable.Create(GameRules.Default, boss, bar, soulLine, win, loss, seed, sinner, sinner);
-            int marginPercent = EnvInt("HELLPOKER_LUCIFER_MARGIN", -1);
-            int gate = marginPercent >= 0 ? bar + bar * marginPercent / 100 : BossTable.LuciferGate(bar);
+            int gate = BossTable.LuciferGate(bar, EnvInt("HELLPOKER_LUCIFER_GATE", ChapterRules.LuciferCastDownPercent));
             int hands = 0;
             bool soul = false, castDown = false;
             while (!BossTable.IsOver(game.Phase))

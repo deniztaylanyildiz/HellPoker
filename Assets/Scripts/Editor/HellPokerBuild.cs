@@ -71,11 +71,11 @@ namespace HellPoker.Editor
 
         /// <summary>Phase 2's builds, kept apart from the demo's (its folder, its zip and its version stay untouched).</summary>
         public const string Phase2Folder = "Builds/Phase2";
-        public const string Phase2Version = "1.1.0-phase2";
+        public const string Phase2Version = "1.2.0-phase2";
 
         /// <summary>
-        /// A Phase 2 build in Builds/Phase2, packed as Builds/HellPoker-1.1.0-phase2-win64.zip. The build carries its own version
-        /// (the menu corner reads "v1.1.0-phase2"); the project's version (the demo's) is put back right after the build.
+        /// A Phase 2 build in Builds/Phase2, packed as Builds/HellPoker-1.2.0-phase2-win64.zip. The build carries its own version
+        /// (the menu corner reads "v1.2.0-phase2"); the project's version (the demo's) is put back right after the build.
         /// </summary>
         [MenuItem("Hell Poker/Build Windows (Phase 2)")]
         public static void WindowsPhase2()

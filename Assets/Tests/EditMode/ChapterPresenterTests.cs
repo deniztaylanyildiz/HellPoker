@@ -7,6 +7,7 @@ using HellPoker.Core.Game;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Abstractions;
+using HellPoker.Presentation.Settings;
 using HellPoker.Presentation.Ui;
 using NUnit.Framework;
 
@@ -101,7 +102,7 @@ namespace HellPoker.Core.Tests
             _panel.Press(0);
             Assert.IsFalse(_panel.IsOpen);
             Assert.AreEqual(6, _map.State.Choices.Count);
-            Assert.AreEqual(30, _map.State.Coins, "the Peasant's purse");
+            Assert.AreEqual(90, _map.State.Coins, "the Peasant's purse");
             Assert.IsTrue(_chapters.HasRun);
             Assert.IsTrue(_chapters.IsMapOpen);
         }
@@ -117,10 +118,11 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(Currency.Coins, _tableView.Currency);
             Assert.AreEqual(ChapterCast.ImpId, _tableView.DealerView.Dealer.Id);
             Assert.AreEqual(UiText.CoinsLabel, _tableView.SentenceView.Label);
-            Assert.AreEqual(30, _tableView.SentenceView.Years, "the counter is the purse");
+            Assert.AreEqual(90, _tableView.SentenceView.Years, "the counter is the purse");
             Assert.AreEqual(LeaveState.Hidden, _tableView.Leave, "no leaving a chapter's table");
             ChapterRules rules = _chapters.Run.Rules;
-            Assert.AreEqual(string.Format(UiText.FloorSeatTitleFormat, rules.ImpCoins, rules.Ante, rules.AnteStepHands),
+            Assert.AreEqual(10, rules.ImpCoinsAt(0), "the first floor's imp: half a purse, a warm-up");
+            Assert.AreEqual(string.Format(UiText.FloorSeatTitleFormat, 10, rules.Ante, rules.AnteStepHands),
                 _tableView.DealerView.Dealer.Title, "the imp's purse and the ante under its name");
         }
 
@@ -153,7 +155,7 @@ namespace HellPoker.Core.Tests
             {
                 if (_panel.IsOpen)
                 {
-                    Assert.AreNotEqual(UiText.GateTitle, _panel.Card.Title, "a purse of one coin never reaches the gate");
+                    Assert.AreNotEqual(UiText.GateTitle(1), _panel.Card.Title, "a purse of one coin never reaches the gate");
                     _panel.Press(_panel.Card.Options.Count - 1);
                 }
                 else if (_chapters.IsAtTable) _table.PerformAction();
@@ -182,9 +184,9 @@ namespace HellPoker.Core.Tests
                 if (_panel.IsOpen)
                 {
                     PanelCard card = _panel.Card;
-                    if (card.Title == UiText.ChapterDoneTitle || card.Title == UiText.ChapterDamnedTitle) break;
-                    if (card.Title == UiText.GateTitle) sawGate = true;
-                    _panel.Press(card.Options.Count - 1);   // the way out: leave, pass, on (the fire's shuffle)
+                    if (card.Title == UiText.LootTitle || card.Title == UiText.ChapterDamnedTitle) break;
+                    if (card.Title == UiText.GateTitle(1)) sawGate = true;
+                    _panel.Press(card.Options.Count - 1);   // the way out: leave, pass, on (the fire's rest)
                 }
                 else if (_chapters.IsAtTable)
                 {
@@ -198,8 +200,9 @@ namespace HellPoker.Core.Tests
             }
             Assert.IsTrue(sawGate, "the last floor leads to the gate");
             Assert.IsTrue(sawBoss, "the gate leads to Mammon's table");
-            Assert.That(new[] { UiText.ChapterDoneTitle, UiText.ChapterDamnedTitle }, Does.Contain(_panel.Card.Title));
-            Assert.IsFalse(_chapters.HasRun, "the chapter is over");
+            Assert.That(new[] { UiText.LootTitle, UiText.ChapterDamnedTitle }, Does.Contain(_panel.Card.Title));
+            if (_panel.Card.Title == UiText.ChapterDamnedTitle) Assert.IsFalse(_chapters.HasRun, "a burned soul ends the run");
+            else Assert.IsTrue(_chapters.Run.BossBeaten, "the spoils of a beaten demon");
         }
 
         [Test]
@@ -209,24 +212,126 @@ namespace HellPoker.Core.Tests
             ChapterRun run = _chapters.Run;
             run.Purse.Add(5000);
             int guard = 0;
-            while (!(_panel.IsOpen && _panel.Card.Title == UiText.GateTitle) && guard++ < 3000)
+            while (!(_panel.IsOpen && _panel.Card.Title == UiText.GateTitle(1)) && guard++ < 3000)
             {
                 if (_panel.IsOpen) _panel.Press(_panel.Card.Options.Count - 1);
                 else if (_chapters.IsAtTable) Act();
                 else _map.Press(_map.State.Choices.First());
             }
-            run.Purse.Add(40 - run.Purse.Coins);   // short of the Peasant's 90
+            run.Purse.Add(40 - run.Purse.Coins);   // short of the Peasant's 150 (90 + 60)
             int coins = run.Purse.Coins, years = run.Years, owed = run.YearsOwed;
+            Assert.AreEqual(555, run.TributeYears(coins), "40 coins pay 39 (the last coin stays): 111 missing");
             _panel.Press(0);   // PAY AND SIT
-            Assert.AreEqual(years + run.TributeYears(coins) + owed, run.Years);
-            Assert.AreEqual(250, run.TributeYears(coins));
+            int bar = years + 555 + owed;
+            Assert.AreEqual(bar - bar / 10, run.Years, "the tribute's years on the bar — and the fire's rest (the last answer) a tenth off");
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number on the counter");
             Assert.AreEqual("MAMMON'S BAR", _tableView.SentenceView.Label);
-            Assert.AreEqual(run.Years * 2, _table.Game.Rules.SoulThreshold, "Mammon's soul line: twice his bar");
+            Assert.AreEqual(run.BossBarStart * 2, _table.Game.Rules.SoulThreshold, "Mammon's soul line: twice his bar");
             Assert.AreEqual(0, _table.Game.Rules.ForcedRaiseYears, "no final stretch on a bar");
             Assert.AreEqual(DealerRoster.MammonId, _tableView.DealerView.Dealer.Id);
             Assert.AreEqual(run.Years, _table.Game.Years);
+
+            // The demon's table never tells years: the bet, the stake line and the prompt are shares of the bar.
+            StringAssert.Contains("%", _tableView.StakeInfo);
+            StringAssert.DoesNotContain("years", _tableView.StakeInfo);
+            StringAssert.Contains("% of the bar", _tableView.Message);
+            Assert.Less(_tableView.Ante, 100, "the ante as a percent of the bar, not its years");
+        }
+
+        [Test]
+        public void ARunIsSavedAndContinued_AHandLeftInTheMiddleIsLost()
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            Begin();
+            _map.Press(_map.State.Choices.First());
+            _table.PerformAction();   // the deal: a hand in the middle
+            Assert.IsTrue(archive.HasRun, "saved at every step");
+            ChapterSave saved = archive.LoadRun();
+            Assert.Greater(saved.HandStake, 0, "the hand in the middle is in the save");
+            Assert.AreEqual("imp", saved.Match);
+            Assert.AreEqual(_chapters.Run.Purse.Coins, saved.Coins, "the purse is settled only at the hand's end");
+
+            // The game closes and opens again: a fresh presenter on the same save.
+            _chapters.Dispose();
+            _tableView = new FakeTableView();
+            _table = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), _tableView);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            Assert.IsTrue(_chapters.CanContinue);
+            Assert.IsFalse(_chapters.HasRun, "nothing in memory yet");
+            _chapters.Continue();
+            Assert.AreEqual(UiText.LostHandTitle, _panel.Card.Title, "the hand left behind is lost");
+            Assert.AreEqual(saved.Coins - saved.HandStake, _chapters.Run.Purse.Coins, "the stake is lost");
+            Assert.AreEqual(1, _chapters.Run.Trail.Count, "back where it was");
+            _panel.Press(0);
+            Assert.IsTrue(_chapters.IsAtTable, "the match goes on");
+            Assert.AreEqual(1, _table.Floor.HandsPlayed, "the lost hand counts");
+        }
+
+        /// <summary>A presenter sitting at Lucifer's table (a run saved there), its bar set to <paramref name="bar"/>, the next deal stacked.</summary>
+        private ChapterArchive SitAtLucifer(int bar, string deal)
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            archive.SaveRun(new ChapterSave
+            {
+                ClassId = Core.Sinners.Peasant.ClassId, Seed = 7, Chapter = 3, Lucifer = true, LuciferBarStart = 1050, Coins = 40, Years = 1,
+                Match = "lucifer", BossBar = 1050, NodeDone = true, BossBeaten = true, LootTaken = true
+            });
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters.Continue();
+            Assert.IsTrue(_chapters.IsAtTable, "straight back to his table");
+            Assert.AreEqual(JourneyStage.Lucifer, _chapters.Journey.Stage);
+            var game = (HellPokerGame)_table.Game;
+            game.TakeOver(bar, 0);
+            var head = TestCards.Cards(deal).ToList();
+            game.RestoreDeck(head.Concat(Core.Cards.Deck.CreateStandardCards().Where(c => !head.Contains(c))).ToList());
+            return archive;
+        }
+
+        private void PlayUntilAPanel()
+        {
+            int guard = 0;
+            while (!_panel.IsOpen && guard++ < 200) _table.PerformAction();
+        }
+
+        [Test]
+        public void LucifersBarEmpty_IsSalvation_AndTheRunsSummary()
+        {
+            ChapterArchive archive = SitAtLucifer(50, "AS AC 8S 8C 2D 9H 9D 4C 5C 6H");   // the Dead Man's Hand: nothing breaks it
+            PlayUntilAPanel();
+            Assert.AreEqual(UiText.FreedTitle, _panel.Card.Title);
+            StringAssert.Contains(UiText.SinnerName(Core.Sinners.Peasant.ClassId), _panel.Card.Text, "the run's summary");
+            Assert.AreEqual(JourneyEnd.Freed, _chapters.Journey.End);
+            Assert.AreEqual(1, archive.LoadRecords().Freed);
+            Assert.IsFalse(archive.HasRun, "a finished run leaves no save");
+        }
+
+        [Test]
+        public void LucifersBarPastAQuarterMore_CastsTheRunDown()
+        {
+            ChapterArchive archive = SitAtLucifer(1310, "3D 5C 7H JC KD 9C 9D 9H 9S 2C");   // nothing against four nines, 2 below his gate
+            PlayUntilAPanel();
+            Assert.AreEqual(UiText.FallTitle, _panel.Card.Title);
+            Assert.AreEqual(JourneyEnd.CastDown, _chapters.Journey.End);
+            Assert.AreEqual(1, archive.LoadRecords().CastDown);
+        }
+
+        [Test]
+        public void AbandoningARun_CountsItDamned_AndClearsTheSave()
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            Begin();
+            Assert.IsTrue(archive.HasRun);
+            _chapters.Abandon();
+            Assert.IsFalse(archive.HasRun);
+            Assert.AreEqual(1, archive.LoadRecords().Abandoned);
+            Assert.AreEqual(1, archive.LoadRecords().Runs);
+            Assert.IsFalse(_chapters.CanContinue);
         }
 
         [Test]

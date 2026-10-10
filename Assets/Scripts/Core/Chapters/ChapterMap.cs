@@ -48,16 +48,13 @@ namespace HellPoker.Core.Chapters
 
     /// <summary>
     /// A chapter's map: <see cref="ChapterRules.Floors"/> floors of <see cref="ChapterRules.Lanes"/> nodes. The first floor is all
-    /// tables (the player picks where to start), the fifth all treasure, the last all purgatory fire. In between: tables and events
+    /// tables (the player picks where to start), the <see cref="ChapterRules.TreasureFloor"/> all treasure, the last all purgatory fire. In between: tables and events
     /// early, the black market from the third floor, the hardest mix on the sixth and seventh. <see cref="ChapterRules.MaxWardens"/>
     /// wardens stand from the fourth floor on, one in each group of neighbouring lanes, and every start has a path to one. Every node
     /// leads straight on, sometimes also one lane aside; paths never cross. The same seed gives the same map.
     /// </summary>
     public sealed class ChapterMap
     {
-        /// <summary>The floor (0-based) of the treasure: the fifth.</summary>
-        public const int TreasureFloor = 4;
-
         /// <summary>A node leads one lane aside this often (each side).</summary>
         public const int BranchPercent = 35;
 
@@ -90,11 +87,11 @@ namespace HellPoker.Core.Chapters
             for (int f = 0; f < floors; f++)
             {
                 kinds[f] = new NodeKind[lanes];
-                for (int l = 0; l < lanes; l++) kinds[f][l] = KindAt(f, floors, random);
+                for (int l = 0; l < lanes; l++) kinds[f][l] = KindAt(f, floors, rules.TreasureFloor, random);
             }
 
             // The wardens: one in each group of neighbouring lanes, on a floor from the fourth on (not the treasure's, not the fire's).
-            int[] wardenFloors = Enumerable.Range(WardenFromFloor, floors - 1 - WardenFromFloor).Where(f => f != TreasureFloor).ToArray();
+            int[] wardenFloors = Enumerable.Range(WardenFromFloor, floors - 1 - WardenFromFloor).Where(f => f != rules.TreasureFloor).ToArray();
             var wardens = new List<(int floor, int lane)>();
             for (int g = 0; g < rules.MaxWardens; g++)
             {
@@ -162,13 +159,13 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>What a node on floor <paramref name="floor"/> holds (the weights: tables and events early, the hardest mix late; the
         /// wardens are placed apart).</summary>
-        private static NodeKind KindAt(int floor, int floors, IRandomSource random)
+        private static NodeKind KindAt(int floor, int floors, int treasureFloor, IRandomSource random)
         {
             if (floor == 0) return NodeKind.Table;
-            if (floor == TreasureFloor) return NodeKind.Treasure;
+            if (floor == treasureFloor) return NodeKind.Treasure;
             if (floor == floors - 1) return NodeKind.PurgatoryFire;
 
-            bool late = floor > TreasureFloor;
+            bool late = floor > treasureFloor;
             var weights = new List<(NodeKind kind, int weight)>
             {
                 (NodeKind.Table, late ? 20 : 55),

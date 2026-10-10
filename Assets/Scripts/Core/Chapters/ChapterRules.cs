@@ -76,11 +76,26 @@ namespace HellPoker.Core.Chapters
         /// <summary>A map holds at most this many wardens.</summary>
         public int MaxWardens { get; }
 
+        /// <summary>The floor (0-based) that is all treasure: the fifth in the first chapter, the sixth / seventh later.</summary>
+        public int TreasureFloor { get; }
+
+        /// <summary>The first floor's imps are weaker (a warm-up table): their purse.</summary>
+        public int FirstImpCoins { get; }
+
+        /// <summary>An imp's purse never holds more than this share of what it sat down with (the rest goes to the vault).</summary>
+        public int HousePurseCapPercent { get; }
+
         public ChapterRules(int number, string bossId, int soulLinePercent, int ante, int tributeOverStart, int pricePercent, int impReRaisePercent,
             int impCoins, int wardenCoins, int yearsPerMissingCoin = 5, int anteStepHands = 3, int anteStep = 1, int wardenRelicCoins = 10,
             int capAntes = 6, int multiplierCap = 3, HandCategory impStrongFrom = HandCategory.TwoPair, int impFoldPercent = 40,
-            int wardenTollPercent = 5, int treasureCoins = 20, int floors = 8, int lanes = 6, int maxWardens = 2, int wardenTollMax = 5)
+            int wardenTollPercent = 5, int treasureCoins = 20, int floors = 8, int lanes = 6, int maxWardens = 2, int wardenTollMax = 5,
+            int treasureFloor = 4, int firstImpCoins = -1, int housePurseCapPercent = 200)
         {
+            if (treasureFloor < 2 || treasureFloor >= floors - 2) throw new ArgumentOutOfRangeException(nameof(treasureFloor));
+            if (housePurseCapPercent < 100) throw new ArgumentOutOfRangeException(nameof(housePurseCapPercent));
+            TreasureFloor = treasureFloor;
+            FirstImpCoins = firstImpCoins > 0 ? firstImpCoins : Math.Max(1, impCoins / 2);
+            HousePurseCapPercent = housePurseCapPercent;
             if (number <= 0) throw new ArgumentOutOfRangeException(nameof(number));
             if (string.IsNullOrEmpty(bossId)) throw new ArgumentException("A chapter needs its demon.", nameof(bossId));
             if (soulLinePercent <= 100 || ante <= 0 || tributeOverStart < 0 || pricePercent <= 0) throw new ArgumentOutOfRangeException(nameof(ante));
@@ -117,9 +132,12 @@ namespace HellPoker.Core.Chapters
             MaxWardens = maxWardens;
         }
 
-        /// <summary>The designer's chapters: 1 Mammon (soul line 2× his bar), 2 Belial (1.75×), 3 Lilith (1.5×). The floors: a match goes
-        /// on until a purse is empty (an imp 30 / 40 / 50 coins, a warden 60 / 80 / 100), the ante grows by one every three hands; the
-        /// tribute is the class's starting purse + 60 / 75 / 90.</summary>
+        /// <summary>
+        /// The designer's chapters: 1 Mammon's Vault (8 floors, soul line 2× his bar), 2 Belial's Stage (10 floors, 1.75×), 3 Lilith's
+        /// Night (12 floors, 1.5×). The floors: a match goes on until a purse is empty (an imp 20 / 30 / 40 coins — the first floor's
+        /// half —, a warden 40 / 60 / 80), the ante grows by one every three hands; the tribute is the class's starting purse
+        /// + 60 / 75 / 90.
+        /// </summary>
         public static ChapterRules For(int chapter)
         {
             switch (chapter)
@@ -127,26 +145,40 @@ namespace HellPoker.Core.Chapters
                 // Mammon's table: wins 175%, losses 125% of his payouts (BossSimulation 2026-10-10: 17.5 hands, 11% damned; at
                 // 100 / 100 it was 54 hands).
                 case 1: return new ChapterRules(1, DealerRoster.MammonId, soulLinePercent: 200, ante: 4, tributeOverStart: 60, pricePercent: 100,
-                    impReRaisePercent: 10, impCoins: 30, wardenCoins: 60, maxWardens: 3).WithBossPayouts(175, 125);
-                case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 8, tributeOverStart: 75, pricePercent: 120,
-                    impReRaisePercent: 20, impCoins: 40, wardenCoins: 80);
-                case 3: return new ChapterRules(3, DealerRoster.LilithId, soulLinePercent: 150, ante: 10, tributeOverStart: 90, pricePercent: 140,
-                    impReRaisePercent: 30, impCoins: 50, wardenCoins: 100);
+                    impReRaisePercent: 10, impCoins: 20, wardenCoins: 40, maxWardens: 3).WithBossPayouts(175, 125);
+                case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 5, tributeOverStart: 75, pricePercent: 120,
+                    impReRaisePercent: 20, impCoins: 30, wardenCoins: 60, treasureCoins: 25, floors: 10, treasureFloor: 5)
+                    .WithBossPayouts(BelialWinPercent, BelialLossPercent);
+                case 3: return new ChapterRules(3, DealerRoster.LilithId, soulLinePercent: 150, ante: 6, tributeOverStart: 90, pricePercent: 140,
+                    impReRaisePercent: 30, impCoins: 40, wardenCoins: 80, treasureCoins: 30, floors: 12, treasureFloor: 6)
+                    .WithBossPayouts(LilithWinPercent, LilithLossPercent);
                 default: throw new ArgumentOutOfRangeException(nameof(chapter), "There are three chapters.");
             }
         }
 
         public const int Chapters = 3;
 
+        /// <summary>The boss tables' payout percents (BossSimulation 2026-10-10, see PHASE2_CHAPTERS.md): Belial 16.5 hands / 20.5% damned,
+        /// Lilith 23.1 / 22.1%.</summary>
+        public const int BelialWinPercent = 140, BelialLossPercent = 115, LilithWinPercent = 130, LilithLossPercent = 80;
+
+        /// <summary>Lucifer's table: his payouts' percents and the cast-down line (the bar past this share of its start). BossSimulation
+        /// 2026-10-10: 22.6 hands, 43% cast down (at 150 / 100: 66% cast down, most of them on the first hands).</summary>
+        public const int LuciferWinPercent = 110, LuciferLossPercent = 45, LuciferCastDownPercent = 125;
+
+        /// <summary>The coins of an imp on <paramref name="floor"/> (0-based): the first floor's are weaker.</summary>
+        public int ImpCoinsAt(int floor) => floor == 0 ? FirstImpCoins : ImpCoins;
+
         /// <summary>The same chapter with other numbers (the tuning's knobs); the starting purses and the boss's percents go along.</summary>
         public ChapterRules With(int? ante = null, int? tributeOverStart = null, int? impReRaisePercent = null, int? impFoldPercent = null,
             int? impCoins = null, int? wardenCoins = null, int? anteStepHands = null, int? capAntes = null, int? multiplierCap = null,
-            int? soulLinePercent = null) =>
+            int? soulLinePercent = null, int? firstImpCoins = null) =>
             new ChapterRules(Number, BossId, soulLinePercent ?? SoulLinePercent, ante ?? Ante, tributeOverStart ?? TributeOverStart, PricePercent,
                 impReRaisePercent ?? ImpReRaisePercent, impCoins ?? ImpCoins, wardenCoins ?? WardenCoins, YearsPerMissingCoin,
                 anteStepHands ?? AnteStepHands, AnteStep, WardenRelicCoins, capAntes ?? CapAntes, multiplierCap ?? MultiplierCap, ImpStrongFrom,
                 impFoldPercent ?? ImpFoldPercent,
-                WardenTollPercent, TreasureCoins, Floors, Lanes, MaxWardens, WardenTollMax)
+                WardenTollPercent, TreasureCoins, Floors, Lanes, MaxWardens, WardenTollMax, TreasureFloor,
+                firstImpCoins ?? (impCoins.HasValue ? -1 : FirstImpCoins), HousePurseCapPercent)
             {
                 StartPercent = StartPercent,
                 BossWinPercent = BossWinPercent,
@@ -167,16 +199,16 @@ namespace HellPoker.Core.Chapters
         /// <summary>The ante of a match's hand <paramref name="hand"/> (1 = the first): 4, 4, 4, 5, 5, 5, 6...</summary>
         public int AnteAt(int hand) => Ante + Math.Max(0, hand - 1) / AnteStepHands * AnteStep;
 
-        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 30, the Jester 40, the Warlock 50, the
-        /// King 100 (any other: the Peasant's).</summary>
+        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 90, the Jester 120, the Warlock 150, the
+        /// King 300 (any other: the Peasant's).</summary>
         public static int StartingCoinsFor(string classId)
         {
             switch (classId)
             {
-                case Sinners.King.ClassId: return 100;
-                case Sinners.Warlock.ClassId: return 50;
-                case Sinners.Jester.ClassId: return 40;
-                default: return 30;
+                case Sinners.King.ClassId: return 300;
+                case Sinners.Warlock.ClassId: return 150;
+                case Sinners.Jester.ClassId: return 120;
+                default: return 90;
             }
         }
 

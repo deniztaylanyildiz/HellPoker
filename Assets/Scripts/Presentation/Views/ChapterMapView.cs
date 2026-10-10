@@ -24,10 +24,20 @@ namespace HellPoker.Presentation.Views
         private const int SideWidth = 124;
         private const int MapLeft = 140;
         private const int LaneStep = 54;
-        private const int FloorTop = 22;
-        private const int FloorStep = 28;
-        private const int NodeFrame = 20;
         private const int IconSize = 16;
+
+        /// <summary>The map's bottom: the gate's icon and its words under the last floor end above it.</summary>
+        private const int MapBottom = 266;
+
+        /// <summary>Eight floors start under the prompt with room to spare; ten and twelve start higher.</summary>
+        private static int FloorTopFor(int floors) => floors > 8 ? 16 : 22;
+
+        /// <summary>Eight floors get 28 pixels each and a 20-pixel frame; ten and twelve are packed closer (twelve: 19, a frame of 18).</summary>
+        private static int FloorStepFor(int floors) => Math.Min(28, (MapBottom - FloorTopFor(floors) - IconSize - 2) / Math.Max(1, floors));
+
+        private int _floorStep = 28;
+        private int FloorTop => FloorTopFor(_state?.Map.FloorCount ?? 8);
+        private int NodeFrame => Math.Min(20, _floorStep - 1);
 
         /// <summary>The icons' order in Ui/map_nodes.png: the node kinds, then the gate.</summary>
         public const string NodeIcons = "Ui/map_nodes";
@@ -35,6 +45,11 @@ namespace HellPoker.Presentation.Views
 
         private Canvas _canvas;
         private RectTransform _screen;
+        private Image _backdrop;
+        private int _backdropChapter = 1;
+
+        /// <summary>The map's backdrop of a chapter (Mammon's vault, Belial's curtained stage, Lilith's violet night).</summary>
+        public static string BackdropOf(int chapter) => chapter == 2 ? "Ui/chapter_map_belial" : chapter == 3 ? "Ui/chapter_map_lilith" : "Ui/chapter_map";
         private RawImage _paths;
         private Texture2D _pathTexture;
         private Text _title;
@@ -79,8 +94,8 @@ namespace HellPoker.Presentation.Views
 
         private void Build(RectTransform screen)
         {
-            Image backdrop = UiFactory.CreateSprite("Backdrop", screen, "Ui/chapter_map", Palette.Night);
-            backdrop.rectTransform.Stretch();
+            _backdrop = UiFactory.CreateSprite("Backdrop", screen, "Ui/chapter_map", Palette.Night);
+            _backdrop.rectTransform.Stretch();
 
             _pathTexture = new Texture2D(PixelScreen.Width, PixelScreen.Height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             _paths = new GameObject("Paths", typeof(RectTransform)).AddComponent<RawImage>();
@@ -119,9 +134,8 @@ namespace HellPoker.Presentation.Views
             // The gate above the last floor.
             _gate = UiFactory.CreateImage("Gate", screen, Color.white);
             _gate.raycastTarget = false;
-            _gate.rectTransform.PlaceTL(LaneX(2.5f) - IconSize / 2, GateY, IconSize, IconSize);
             _gateLabel = UiFactory.CreateText("GateLabel", screen, "", 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline();
-            _gateLabel.rectTransform.PlaceTL(LaneX(2.5f) + IconSize / 2 + 4, GateY + 4, 160, 9);
+            PlaceGate();
             _gateLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             _prompt = UiFactory.CreateText("Prompt", screen, "", 8, Palette.Bone, TextAnchor.MiddleCenter).WithOutline();
@@ -138,19 +152,31 @@ namespace HellPoker.Presentation.Views
             _tip.SetActive(false);
         }
 
-        private static int LaneX(float lane) => MapLeft + 10 + Mathf.RoundToInt(lane * LaneStep) + NodeFrame / 2;
+        private static int LaneX(float lane) => MapLeft + 10 + Mathf.RoundToInt(lane * LaneStep) + 10;
 
-        private static int FloorY(int floor, int floors) => FloorTop + floor * FloorStep + NodeFrame / 2;
+        private int FloorY(int floor, int floors) => FloorTop + floor * _floorStep + NodeFrame / 2;
 
         /// <summary>The gate's icon, under the last floor.</summary>
-        private const int GateY = FloorTop + 8 * FloorStep + 2;
+        private int GateY => FloorTop + (_state?.Map.FloorCount ?? 8) * _floorStep + 2;
 
         public void Show(ChapterMapState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;
-            if (_nodes.Count == 0 || !ReferenceEquals(_builtFor, state.Map)) BuildNodes(state.Map);
+            if (_nodes.Count == 0 || !ReferenceEquals(_builtFor, state.Map))
+            {
+                _floorStep = FloorStepFor(state.Map.FloorCount);
+                BuildNodes(state.Map);
+                PlaceGate();
+            }
+            if (state.Chapter != _backdropChapter)
+            {
+                _backdropChapter = state.Chapter;
+                Sprite sprite = UiArt.Sprite(BackdropOf(state.Chapter)) ?? UiArt.Sprite("Ui/chapter_map");
+                _backdrop.sprite = sprite;
+                _backdrop.color = sprite != null ? Color.white : Palette.Night;
+            }
 
             _title.text = state.Title;
             _coins.text = state.Coins.ToString();
@@ -159,9 +185,15 @@ namespace HellPoker.Presentation.Views
             Sprite[] icons = UiArt.Strip(NodeIcons, IconSize);
             _gate.sprite = icons != null && icons.Length > GateIcon ? icons[GateIcon] : null;
             _gate.color = _gate.sprite != null ? Color.white : Palette.Gold;
-            _gateLabel.text = UiText.GateTitle;
+            _gateLabel.text = state.GateLabel;
             DrawPaths(state);
             Paint();
+        }
+
+        private void PlaceGate()
+        {
+            _gate.rectTransform.PlaceTL(LaneX(2.5f) - IconSize / 2, GateY, IconSize, IconSize);
+            _gateLabel.rectTransform.PlaceTL(LaneX(2.5f) + IconSize / 2 + 4, GateY + 4, 160, 9);
         }
 
         /// <summary>The map the node widgets were built for (a new chapter run builds them again).</summary>
@@ -200,7 +232,7 @@ namespace HellPoker.Presentation.Views
                 inside.rectTransform.PlaceTL(1, 1, NodeFrame - 2, NodeFrame - 2);
                 Image icon = UiFactory.CreateImage("Icon", frame.transform, Color.white);
                 icon.raycastTarget = false;
-                icon.rectTransform.PlaceTL(2, 2, IconSize, IconSize);
+                icon.rectTransform.PlaceTL((NodeFrame - IconSize) / 2, (NodeFrame - IconSize) / 2, IconSize, IconSize);
                 int kind = (int)node.Kind;
                 icon.sprite = icons != null && kind < icons.Length ? icons[kind] : null;
                 if (icon.sprite == null) icon.color = FallbackColor(node.Kind);

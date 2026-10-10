@@ -464,6 +464,8 @@ namespace HellPoker.Core.Tests
         {
             if (action == BetAction.Fold && game.Sinner?.Ability == SinnerAbility.FreeFold && game.WhyNoPower() == PowerRefusal.None)
                 game.UsePower();
+            else if (action == BetAction.Raise && !game.CanBet(BetAction.Raise, out _))
+                game.Bet(BetAction.Pass);   // a raise refused (Phase 2's sleepless hands): the player passes
             else
                 game.Bet(action);
         }

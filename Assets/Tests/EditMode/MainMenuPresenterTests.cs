@@ -32,6 +32,8 @@ namespace HellPoker.Core.Tests
             }
 
             public void PressChapters() => ChaptersPressed?.Invoke();
+            public event Action ChaptersContinuePressed;
+            public void PressChaptersContinue() => ChaptersContinuePressed?.Invoke();
             public event Action Confirmed;
             public event Action LanguagePressed;
 
@@ -274,10 +276,13 @@ namespace HellPoker.Core.Tests
             public int DealersShown { get; private set; }
             public event Action BackPressed;
 
-            public void Show(HellPoker.Core.Game.RecordBook records, IReadOnlyList<DealerCard> dealers)
+            public string Phase2 { get; private set; }
+
+            public void Show(HellPoker.Core.Game.RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
             {
                 IsVisible = true;
                 DealersShown = dealers.Count;
+                Phase2 = phase2;
             }
 
             public void Hide() => IsVisible = false;

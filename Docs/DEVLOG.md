@@ -2961,3 +2961,30 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   oranlı Lucifer denemesi bellek azlığı yüzünden Claude Code tarafından durduruldu; kullanıcı isteyince yeniden çalıştırılacak.
 - Açık (kullanıcıya): Lucifer'in sabit bahisleriyle bar bitmiyor (kapı payı +%100'de bile %82 düşüş) — bahis bara oranlı mı olsun?
   Masadaki diğer yıl sayıları (ante, pot, sonuç) da gizlensin mi? Belial / Lilith yüzdeleri. Phase 2 build'i bu turdan sonra alınmadı.
+
+### Phase 2 tamamlandı: Bölüm 2-3, Lucifer finali, kayıt (aynı gün)
+- İstek ("Phase 2'yi tamamla"): A) 1. bölüm düzeltmeleri (keseler 90 / 120 / 150 / 300, iblis 20 / 30 / 40 ve bekçi 40 / 60 / 80, 1. kat
+  iblisi yarım kese, iblis kesesi en çok 2 kat, Ganimet paneli, boss masasında yıl yok — barın yüzdesi, Ateşte dinlen); B) ayrı Phase 2
+  kaydı / DEVAM / onaylı yeni koşu / günlük / rekorlar; C) çok bölümlü koşu; D) Belial'in Sahnesi; E) Lilith'in Gecesi; F) Lucifer finali;
+  G) ayar simülasyonları; H) çizim ve iki dilli metin; I) testler, PHASE2_TEST.txt, 1.2.0 build + zip'ten duman, commit. Demo'ya dokunma,
+  testleri ve simülasyonları tek Unity ile sırayla çalıştır, test geçmezse dur, bitmeden commit yok.
+- Core: `ChapterJourney` (bölümden bölüme koşu, Lucifer, son), `ChapterSave` (`p2=1`), `ChapterRecords` (`p2r=1`), `ChapterRules.For(1..3)`,
+  `TableMarks` (açık kart, yalan, gizli, kazanç %, bedava el), `FloorEvents` (6 yeni olay), `ChapterCast` (4 yeni yüz), `BossTable.Lucifer`
+  (bara oranlı bahis, %125 düşüş), `NightNurseCheat`. Demo'ya kancalar (varsayılan kapalı): `HellPokerGame.RaiseForbidden`,
+  `ShowFalseFace`, `RunEffects.Amplify`, `RelicRoster.Combined(..., amplified)`.
+- Sunum: `ChapterPresenter` yeniden yazıldı (ganimet, Lucifer, kurtuluş / düşüş, kayıt ve devam, yarım elin kaybı), `TablePresenter.BarMode`
+  (yüzdeler), harita 10 / 12 kat, menüde PHASE 2: DEVAM ve onay, rekorlarda Phase 2 satırı, `ChapterArchive`.
+- Çizim: `pixel_floors2.py` (Maske İblisi, Sahte Peygamber, Pervane İblisi, Gece Hemşiresi; salonlar, iki harita, altı yabancı).
+- Kararlarım: kapı son sikkeyi almaz (`TributePaid`); Gece Hemşiresi Gece Örtüsü'nün ikonu / adıyla; Tahsildar eski göstergesiyle, diğer
+  bekçiler her el; Uykusuzluk'un kaybedilen eli ante'yi iade eder; boss ödeme yüzdeleri Belial 140 / 115, Lilith 130 / 80 (ruh çizgisi
+  aynı), Lucifer 110 / 45. Boss metinleri İngilizcede cinsiyetsiz ("empty the bar"; Lilith ve Gece Hemşiresi için).
+- Duman turu (`FpsTour`) artık Phase 2'yi de geziyor: Mammon'un ganimetinde kayıtlı koşu (`ChapterPresenter.PrepareTour`) → DEVAM →
+  coin → 2. bölüm başlığı → Belial haritası → iblis masası. DİKKAT: gerçek build'de bu tur oyuncunun Phase 2 kaydının üstüne yazar
+  (demo turu demo kaydına zaten yazıyordu).
+- Testler: EditMode 900 (896 geçti, 4 explicit, 0 hata); PlayMode gruplar halinde 17 + 3 + 8 + 3 = 31 geçti, 0 hata (yeni:
+  `MammonsSpoilsLeadIntoBelialsStage`, `LucifersTableCountsInPercentOfHisBar`); `ChapterScreenshots.CaptureTheLaterChapters` (84–93) bakıldı.
+- Simülasyon tabloları: `PHASE2_CHAPTERS.md` yedinci tur. Özet: 1. bölümde kesesi boşalan %14.3 (Köylü 21.6, Kral 0.7: fark >15 puan,
+  sayıları kullanıcı seçecek); 2. bölüm 1 coin'le başlıyor, kesesi boşalan %59-76 (bölüm başı kese desteği denemesi `HELLPOKER_REFILL=1`:
+  Lucifer'e ulaşan %7 → %32); bosslar hedeflerde.
+- Build: `Builds/HellPoker-1.2.0-phase2-win64.zip`; zip'ten `-fpstour`: çıkış 0, Player.log'da hata / uyarı yok, her ekran ~60 FPS.
+- Açık (kullanıcıya): Köylü–Kral farkı; 2. bölüm ekonomisi (bölüm başı kese?); tam haraç %33 (hedef 40-60); masa 4.3 el (hedef 5-10).

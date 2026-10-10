@@ -130,6 +130,7 @@ namespace HellPoker.Core.Events
         {
             if (!_relics.Remove(id)) return false;
             if (SilencedCurse == id) SilencedCurse = null;
+            if (AmplifiedRelic == id) AmplifiedRelic = null;
             return true;
         }
 
@@ -146,8 +147,22 @@ namespace HellPoker.Core.Events
 
         public void LiftSilence() => SilencedCurse = null;
 
-        /// <summary>What the relics carried do to a hand, a silenced curse left out.</summary>
-        public HellPoker.Core.Relics.RelicEffects CombinedRelics => HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse);
+        /// <summary>The relic whose gift and curse count twice for now (Phase 2's Desire, until the chapter ends); null for none.</summary>
+        public string AmplifiedRelic { get; private set; }
+
+        /// <summary>A carried relic counts twice until <see cref="LiftAmplify"/>; false when it is not carried.</summary>
+        public bool Amplify(string id)
+        {
+            if (!_relics.Contains(id)) return false;
+            AmplifiedRelic = id;
+            return true;
+        }
+
+        public void LiftAmplify() => AmplifiedRelic = null;
+
+        /// <summary>What the relics carried do to a hand, a silenced curse left out (a desired relic twice).</summary>
+        public HellPoker.Core.Relics.RelicEffects CombinedRelics =>
+            HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse, AmplifiedRelic);
 
         private readonly Game.TableCharges _redraws;
 

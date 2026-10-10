@@ -14,6 +14,7 @@ sys.path.insert(0, HERE)
 import pixel_demons  # noqa: E402
 import pixel_events  # noqa: E402
 import pixel_floors  # noqa: E402
+import pixel_floors2  # noqa: E402
 import pixel_menu  # noqa: E402
 import pixel_relics  # noqa: E402
 import pixel_salons  # noqa: E402
@@ -48,8 +49,8 @@ def main(selected):
         for path in pixel_relics.write_all(ART):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "floors" in selected:
-        # Phase 2: the faces, halls, map and strangers of Mammon's floors.
-        for path in pixel_floors.write_all(ART):
+        # Phase 2: the faces, halls, maps and strangers of Mammon's floors, then Belial's and Lilith's.
+        for path in pixel_floors.write_all(ART) + pixel_floors2.write_all(ART):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "splash" in selected:
         # The studio logo is not loaded by the game's code: it lives outside Resources, for the splash screen only.

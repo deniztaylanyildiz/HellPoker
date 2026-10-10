@@ -80,7 +80,8 @@ namespace HellPoker.Core.Tests
             int[] steps = EnvInts("HELLPOKER_ANTE_STEPS") ?? new[] { designer.AnteStepHands };
             ChapterRules Rules((int imp, int warden) purse, int step) => designer.With(EnvInt("HELLPOKER_ANTE", designer.Ante),
                 EnvInt("HELLPOKER_TRIBUTE", designer.TributeOverStart), imp?[0], imp != null && imp.Length > 1 ? imp[1] : (int?)null,
-                purse.imp, purse.warden, step, EnvInt("HELLPOKER_CAP", designer.CapAntes), EnvInt("HELLPOKER_MULT", designer.MultiplierCap))
+                purse.imp, purse.warden, step, EnvInt("HELLPOKER_CAP", designer.CapAntes), EnvInt("HELLPOKER_MULT", designer.MultiplierCap),
+                firstImpCoins: EnvInt("HELLPOKER_FIRST_IMP", purse.imp / 2))
                 .WithStartPercent(EnvInt("HELLPOKER_START", 100));
             SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
@@ -187,7 +188,14 @@ namespace HellPoker.Core.Tests
         {
             var sinner = new Sinner(sinnerClass);
             var effects = new RunEffects();
-            var run = ChapterRun.Begin(rules, sinner, effects, seed);
+            PlayFloorsAndGate(ChapterRun.Begin(rules, sinner, effects, seed), seed, tally);
+        }
+
+        /// <summary>A chapter's floors and its gate; false when the purse went empty on the way.</summary>
+        private static bool PlayFloorsAndGate(ChapterRun run, int seed, Tally tally)
+        {
+            ChapterRules rules = run.Rules;
+            RunEffects effects = run.Effects;
             var random = new SystemRandomSource(RandomSeeds.Derive(seed, 99));
             var payouts = new FloorPayoutTable(rules.Boss.Payouts, rules.MultiplierCap);
             int start = run.Purse.Coins;
@@ -227,7 +235,7 @@ namespace HellPoker.Core.Tests
                             if (table.IsWarden) tally.BrokeAtWarden++;
                             else tally.BrokeAtImp++;
                             tally.BrokeFloors += next.Floor + 1;
-                            return;
+                            return false;
                         }
                         break;
 
@@ -257,7 +265,10 @@ namespace HellPoker.Core.Tests
                         tally.EventsSeen++;
                         Bump(tally.Offered, offer.Id);
                         bool behind = run.Purse.Coins < start + rules.TributeOverStart * (next.Floor + 1) / rules.Floors;
-                        bool take = offer.Id != FloorEventIds.MammonsLedger && behind;
+                        // Coins for years only behind the pace; the tables' marks (the witness, the show, insomnia) and desire always.
+                        bool forCoins = offer.Id == FloorEventIds.Usurer || offer.Id == FloorEventIds.GamblerGhost || offer.Id == FloorEventIds.FalseCoin
+                                        || offer.Id == FloorEventIds.NightBargain;
+                        bool take = offer.Id != FloorEventIds.MammonsLedger && (!forCoins || behind);
                         if (!take) break;
                         Bump(tally.Accepted, offer.Id);
                         offer.Accept(run);
@@ -270,7 +281,7 @@ namespace HellPoker.Core.Tests
                         break;
 
                     case NodeKind.PurgatoryFire:
-                        FireChoice choice = run.CanTend(FireChoice.SilenceCurse) ? FireChoice.SilenceCurse : FireChoice.BreakFirstCheat;
+                        FireChoice choice = run.CanTend(FireChoice.SilenceCurse) ? FireChoice.SilenceCurse : FireChoice.RestByTheFire;
                         run.TendFire(choice, choice == FireChoice.SilenceCurse ? effects.Relics[0] : null);
                         Bump(tally.Fire, choice);
                         break;
@@ -290,6 +301,123 @@ namespace HellPoker.Core.Tests
                 tally.BuyersShort += toll.Missing;
                 if (toll.PaidInFull) tally.BuyersPaidFull++;
             }
+            return true;
+        }
+
+        // ------------------------------------------------------------------ a whole run: the three chapters, then Lucifer
+
+        private sealed class RunTally
+        {
+            public int Runs, ReachedLucifer, Freed, CastDown;
+            public readonly Tally[] Chapters = { new Tally(), new Tally(), new Tally() };
+            public readonly int[] BossSat = new int[4], BossDamned = new int[4];
+            public readonly List<int>[] BossHands = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+        }
+
+        /// <summary>
+        /// Not a real test either: whole Phase 2 runs (Mammon, Belial, Lilith, Lucifer) for every class, with the designer's numbers, and
+        /// per chapter: the purses emptied, the coins at the gate, the tributes paid in full; per demon: the hands and the souls lost;
+        /// per class: Lucifer reached and freedom. HELLPOKER_RUNS (1000) runs a class. Run with
+        ///   -testPlatform EditMode -testFilter HellPoker.Core.Tests.ChapterSimulation.WholeRun
+        /// </summary>
+        [Test, Timeout(3600000)]
+        public void WholeRun()
+        {
+            int runs = EnvInt("HELLPOKER_RUNS", 1000);
+            int seedShift = EnvInt("HELLPOKER_SEED", 0);
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
+            var report = new StringBuilder();
+            report.AppendLine($"Phase 2 whole runs: {runs} per class, the designer's numbers. Player: the chapter simulation's on the floors, the balance " +
+                              "simulation's at the tables; a demon's spoils: a relic while a slot is free, else the coins.");
+            report.AppendLine("Targets: purse emptied 10-25% a chapter; tribute paid in full 40-60%; Mammon 15-25 hands / 10-20% damned, Belial 15-25 / 15-25%, " +
+                              "Lilith 20-30 / 20-30%, Lucifer 15-25 / cast down 30-50%.");
+            report.AppendLine();
+            report.AppendLine("class     ch  reached  purse emptied  coins at gate (p10/p50/p90)  paid full  boss hands (p50)  boss damned");
+            var all = new RunTally();
+            var perClass = new List<(SinnerClass, RunTally)>();
+            foreach (SinnerClass cls in classes)
+            {
+                var tally = new RunTally();
+                for (int run = 0; run < runs; run++) PlayWholeRun(cls, run * 7919 + 29 + seedShift, tally, all);
+                perClass.Add((cls, tally));
+                for (int ch = 0; ch < 3; ch++)
+                {
+                    Tally t = tally.Chapters[ch];
+                    report.AppendLine($"{cls.Id,-9} {ch + 1,2}  {t.Runs,7}  {Pct(t.Broke, t.Runs),13}  {Avg(t.CoinsAtGate, t.Reached),6} ({Percentiles(t.Gate)})" +
+                                      $"{"",-6}  {Pct(t.PaidFull, t.Reached),9}  {AvgOf(tally.BossHands[ch]),5} ({Median(tally.BossHands[ch])})" +
+                                      $"{"",-6}  {Pct(tally.BossDamned[ch], tally.BossSat[ch]),10}");
+                }
+                report.AppendLine($"{cls.Id,-9} lucifer: sat {tally.BossSat[3]}, hands {AvgOf(tally.BossHands[3])} ({Median(tally.BossHands[3])}), " +
+                                  $"cast down {Pct(tally.CastDown, tally.BossSat[3])}, soul lost {Pct(tally.BossDamned[3], tally.BossSat[3])}");
+            }
+            report.AppendLine();
+            report.AppendLine("class     reached Lucifer   freed");
+            foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
+                report.AppendLine($"{cls?.Id ?? "all",-9} {Pct(t.ReachedLucifer, t.Runs),15}  {Pct(t.Freed, t.Runs),6}");
+
+            TestContext.WriteLine(report.ToString());
+            Assert.Pass(report.ToString());
+        }
+
+        private static string Median(List<int> values) => values.Count == 0 ? "-" : values.OrderBy(v => v).ElementAt(values.Count / 2).ToString();
+
+        private static void PlayWholeRun(SinnerClass cls, int seed, RunTally tally, RunTally all)
+        {
+            foreach (RunTally t in new[] { tally, all }) t.Runs++;
+            ChapterJourney journey = ChapterJourney.Begin(cls, seed);
+            for (int ch = 1; ; ch++)
+            {
+                var chapterTally = new Tally();
+                bool alive = PlayFloorsAndGate(journey.Run, seed + ch * 101, chapterTally);
+                tally.Chapters[ch - 1].Add(chapterTally);
+                all.Chapters[ch - 1].Add(chapterTally);
+                if (!alive) return;
+
+                HellPokerGame boss = journey.Run.OpenBossTable(GameRules.Default);
+                int hands = PlayDemon(boss, null, journey.Run.Rules.Boss.Payouts);
+                foreach (RunTally t in new[] { tally, all })
+                {
+                    t.BossSat[ch - 1]++;
+                    t.BossHands[ch - 1].Add(hands);
+                    if (boss.Phase == GamePhase.Damned) t.BossDamned[ch - 1]++;
+                }
+                if (boss.Phase != GamePhase.Absolved) return;
+                journey.Run.LeaveBossTable(0);
+                if (ch == ChapterRules.Chapters) break;
+                string relic = journey.Run.LootOffers.FirstOrDefault();
+                if (relic == null || !journey.Run.TakeLoot(relic)) journey.Run.TakeLootCoins();
+                // HELLPOKER_REFILL=1: every chapter starts with at least the class's purse (a knob to compare; the designer's rule carries the rest).
+                journey.NextChapter(EnvInt("HELLPOKER_REFILL", 0) == 1 ? ChapterRules.StartingCoinsFor(cls.Id) : 0);
+            }
+
+            foreach (RunTally t in new[] { tally, all }) t.ReachedLucifer++;
+            HellPokerGame lucifer = journey.OpenLuciferTable(GameRules.Default);
+            int luciferHands = PlayDemon(lucifer, journey, BossTable.Lucifer.Payouts);
+            bool castDown = lucifer.Phase == GamePhase.RoundOver && journey.IsCastDown(lucifer.Years);
+            foreach (RunTally t in new[] { tally, all })
+            {
+                t.BossSat[3]++;
+                t.BossHands[3].Add(luciferHands);
+                if (castDown) t.CastDown++;
+                else if (lucifer.Phase == GamePhase.Damned) t.BossDamned[3]++;
+                else if (lucifer.Phase == GamePhase.Absolved) t.Freed++;
+            }
+        }
+
+        /// <summary>A demon's table played out by the balance simulation's player: until the bar is empty, the soul burns, or (Lucifer)
+        /// the player is cast down. Returns the hands.</summary>
+        private static int PlayDemon(HellPokerGame game, ChapterJourney lucifer, IPayoutInfo payouts)
+        {
+            int hands = 0;
+            while (!BossTable.IsOver(game.Phase) && hands < 2000)
+            {
+                BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), payouts);
+                hands++;
+                if (lucifer != null && game.Phase == GamePhase.RoundOver && lucifer.IsCastDown(game.Years)) break;
+                if (game.Phase == GamePhase.RoundOver) game.NextRound();
+            }
+            return hands;
         }
 
         /// <summary>The coins the player keeps after a purchase (an empty purse loses the run at the next table).</summary>

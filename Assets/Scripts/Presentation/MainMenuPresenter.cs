@@ -109,6 +109,7 @@ namespace HellPoker.Presentation
                 _sinnerSelect.BackPressed += BackFromSinners;
             }
             _menu.ChaptersPressed += OpenChaptersOrChoose;
+            _menu.ChaptersContinuePressed += ContinueChapters;
             if (_chapters != null)
             {
                 _chapters.MenuRequested += OpenMenu;
@@ -184,6 +185,7 @@ namespace HellPoker.Presentation
                 _sinnerSelect.BackPressed -= BackFromSinners;
             }
             _menu.ChaptersPressed -= OpenChaptersOrChoose;
+            _menu.ChaptersContinuePressed -= ContinueChapters;
             if (_chapters != null)
             {
                 _chapters.MenuRequested -= OpenMenu;
@@ -193,14 +195,37 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ Phase 2's chapters
 
-        /// <summary>The Phase 2 button: back to the chapter run that waits, or a new one (its class first).</summary>
+        /// <summary>The Phase 2 button: a new run (its class first) — over a run that waits only once the player agrees to lose it.</summary>
         private void OpenChaptersOrChoose()
         {
             if (_chapters == null) return;
-            if (_chapters.HasRun)
-                OpenChapters();
-            else
+            if (!_chapters.CanContinue)
+            {
                 OpenChapterSinnerChoice();
+                return;
+            }
+            DealerText mammon = UiText.Dealer(DealerRoster.MammonId);
+            string taunt = mammon?.Scorn == null ? null : UiText.Pick(mammon.Scorn, Environment.TickCount & int.MaxValue);
+            _asking = Asking.NewChapterRun;
+            _menu.AskToConfirm(taunt, UiText.ChaptersAbandonWarning, UiText.AbandonButton);
+        }
+
+        /// <summary>Phase 2's records in a line for the records screen; null without the chapters or before any run.</summary>
+        private string Phase2Records()
+        {
+            Core.Chapters.ChapterRecords r = _chapters?.Records;
+            if (r == null || r.Runs == 0) return null;
+            return string.Format(UiText.RecordsPhase2Format, r.Runs, r.Freed, r.Damned, r.LuciferReached,
+                r.FastestFreedom.HasValue ? r.FastestFreedom.Value.ToString() : "—");
+        }
+
+        /// <summary>Phase 2's CONTINUE: the run that waits (the saved one is loaded).</summary>
+        private void ContinueChapters()
+        {
+            if (_chapters == null || !_chapters.CanContinue) return;
+            HideAll();
+            _chapters.Continue();
+            Curtain();
         }
 
         /// <summary>The class choice for a chapter run, over the first chapter's demon's hall.</summary>
@@ -254,7 +279,7 @@ namespace HellPoker.Presentation
             }
             else if (_records.IsVisible)
             {
-                _records.Show(_session.Records, _dealerCards);
+                _records.Show(_session.Records, _dealerCards, Phase2Records());
             }
             else if (_endScreen.IsVisible && _lastSummary != null)
             {
@@ -291,7 +316,7 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>What the open warning is about.</summary>
-        private enum Asking { Nothing, NewGame, Quit }
+        private enum Asking { Nothing, NewGame, Quit, NewChapterRun }
 
         private Asking _asking;
 
@@ -303,6 +328,11 @@ namespace HellPoker.Presentation
                 _quitter.Quit();
             else if (asking == Asking.NewGame)
                 AbandonAndChoose();
+            else if (asking == Asking.NewChapterRun)
+            {
+                _chapters?.Abandon();
+                OpenChapterSinnerChoice();
+            }
         }
 
         /// <summary>
@@ -405,7 +435,7 @@ namespace HellPoker.Presentation
         private void OpenRecords()
         {
             HideAll();
-            _records.Show(_session.Records, _dealerCards);
+            _records.Show(_session.Records, _dealerCards, Phase2Records());
             Curtain();
         }
 
@@ -457,7 +487,9 @@ namespace HellPoker.Presentation
         {
             HideAll();
             _sinnerSelect.Show(_classes.Select(c => new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id),
-                UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id), string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
+                UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id), _chapterChoice
+                    ? string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id))
+                    : string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
                 _pendingDealer?.Id);
             if (curtain) Curtain();
         }
@@ -505,7 +537,7 @@ namespace HellPoker.Presentation
         {
             HideAll();
             _chapterChoice = false;
-            _menu.SetChapters(_chapters != null, _chapters != null && _chapters.HasRun);
+            _menu.SetChapters(_chapters != null, _chapters != null && _chapters.CanContinue);
             _menu.Show(_session.CanContinue);
             Curtain();
         }

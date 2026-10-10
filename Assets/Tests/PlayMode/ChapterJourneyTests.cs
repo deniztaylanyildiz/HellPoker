@@ -80,6 +80,66 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsNull(demo.Game, "the demo's run is untouched");
             Assert.AreEqual(1, ((TablePresenter)Chapters.Table).Floor.HandsPlayed);
         }
+
+        /// <summary>A Phase 2 run saved before the scene loads (the menu then offers CONTINUE).</summary>
+        internal static IEnumerator LoadWithSave(ChapterSave save)
+        {
+            HellPokerBootstrap.BatchStore.Clear();
+            if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
+            new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            HellPokerScreenshots.Press("ChaptersContinueButton");
+            yield return new WaitForSeconds(0.6f);
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator MammonsSpoilsLeadIntoBelialsStage()
+        {
+            yield return LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 7, 1, "loot"));
+            var panel = UnityEngine.Object.FindFirstObjectByType<ChapterPanelView>();
+            var map = UnityEngine.Object.FindFirstObjectByType<ChapterMapView>();
+            Assert.IsTrue(panel.IsOpen);
+            Assert.AreEqual(Presentation.Ui.UiText.LootTitle, panel.Card.Title, "the spoils of Mammon");
+            int coins = Chapters.Run.Purse.Coins;
+            HellPokerScreenshots.Press("PanelOption" + (panel.Card.Options.Count - 1));   // the coins
+            yield return null;
+            Assert.AreEqual(2, Chapters.Journey.Chapter, "the second chapter");
+            Assert.AreEqual(Core.Dealers.DealerRoster.BelialId, Chapters.Run.Rules.BossId);
+            Assert.AreEqual(coins + ChapterRun.LootCoins, Chapters.Run.Purse.Coins, "the coins of the spoils go along");
+            Assert.AreEqual(10, Chapters.Run.Map.FloorCount);
+            Assert.IsTrue(panel.IsOpen, "the chapter's opening words");
+            HellPokerScreenshots.Press("PanelOption0");   // DESCEND
+            yield return null;
+            Assert.IsTrue(map.IsVisible);
+
+            MapNode first = Chapters.Run.Choices.OrderBy(n => n.Lane).First();
+            HellPokerScreenshots.Find<Button>($"Node{first.Floor}_{first.Lane}").onClick.Invoke();
+            yield return WaitForChapterTable();
+            Assert.IsTrue(Chapters.IsAtTable, "Belial's first imp");
+            Chapters.Table.PerformAction();
+            yield return WaitForChapterTable();
+            Assert.AreEqual(1, ((TablePresenter)Chapters.Table).Floor.HandsPlayed);
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator LucifersTableCountsInPercentOfHisBar()
+        {
+            yield return LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Warlock, 9, 3, "lucifer"));
+            var panel = UnityEngine.Object.FindFirstObjectByType<ChapterPanelView>();
+            Assert.IsTrue(panel.IsOpen);
+            Assert.AreEqual(Presentation.Ui.UiText.LuciferCallsTitle, panel.Card.Title);
+            HellPokerScreenshots.Press("PanelOption0");
+            yield return WaitForChapterTable();
+            Assert.IsTrue(Chapters.IsAtTable);
+            Assert.AreEqual(JourneyStage.Lucifer, Chapters.Journey.Stage);
+            var table = (TablePresenter)Chapters.Table;
+            Assert.IsNull(table.Floor, "no coins at his table");
+            Chapters.Table.PerformAction();   // the deal
+            yield return WaitForChapterTable();
+            Assert.AreNotEqual(Core.Game.GamePhase.Betting, table.Game.Phase, "a hand is under way");
+        }
     }
 
     /// <summary>
@@ -119,7 +179,7 @@ namespace HellPoker.PlayMode.Tests
                         yield return new WaitForSeconds(0.2f);
                         yield return HellPokerScreenshots.Shot($"{shot++}_panel_{Slug(card.Title)}");
                     }
-                    if (card.Title == Presentation.Ui.UiText.ChapterDoneTitle || card.Title == Presentation.Ui.UiText.ChapterDamnedTitle
+                    if (card.Title == Presentation.Ui.UiText.LootTitle || card.Title == Presentation.Ui.UiText.ChapterDamnedTitle
                         || card.Title == Presentation.Ui.UiText.PurseEmptyTitle)
                         break;
                     HellPokerScreenshots.Press("PanelOption" + (card.Options.Count - 1));
@@ -153,6 +213,52 @@ namespace HellPoker.PlayMode.Tests
             }
             yield return new WaitForSeconds(0.3f);
             yield return HellPokerScreenshots.Shot($"{shot}_chapter_end");
+        }
+
+        /// <summary>The later chapters (84–93): Belial's and Lilith's opening words and maps, an imp's table in each, Belial's and
+        /// Lilith's tables (the bar in percent), Lucifer's call and his table.</summary>
+        [UnityTest, Timeout(600000)]
+        public IEnumerator CaptureTheLaterChapters()
+        {
+            int shot = 84;
+            for (int chapter = 2; chapter <= 3; chapter++)
+            {
+                ChapterSave opening = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, chapter, "chapter");
+                opening.Coins = 120;
+                yield return ChapterJourneyTests.LoadWithSave(opening);
+                yield return new WaitForSeconds(0.3f);
+                yield return HellPokerScreenshots.Shot($"{shot++}_chapter{chapter}_intro");
+                HellPokerScreenshots.Press("PanelOption0");
+                yield return new WaitForSeconds(0.3f);
+                yield return HellPokerScreenshots.Shot($"{shot++}_chapter{chapter}_map");
+                MapNode first = ChapterJourneyTests.Chapters.Run.Choices.OrderBy(n => n.Lane).First();
+                HellPokerScreenshots.Find<Button>($"Node{first.Floor}_{first.Lane}").onClick.Invoke();
+                yield return ChapterJourneyTests.WaitForChapterTable();
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return ChapterJourneyTests.WaitForChapterTable();
+                yield return new WaitForSeconds(0.5f);
+                yield return HellPokerScreenshots.Shot($"{shot++}_chapter{chapter}_imp");
+
+                ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, chapter, "");
+                boss.NodeDone = false;
+                boss.Match = "boss";
+                boss.BossBarStart = boss.BossBar = 2000;
+                yield return ChapterJourneyTests.LoadWithSave(boss);
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return ChapterJourneyTests.WaitForChapterTable();
+                yield return new WaitForSeconds(0.5f);
+                yield return HellPokerScreenshots.Shot($"{shot++}_chapter{chapter}_boss");
+            }
+
+            yield return ChapterJourneyTests.LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"));
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot($"{shot++}_lucifer_calls");
+            HellPokerScreenshots.Press("PanelOption0");
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            yield return new WaitForSeconds(0.5f);
+            yield return HellPokerScreenshots.Shot($"{shot}_lucifer_table");
         }
 
         private static string Slug(string title) =>

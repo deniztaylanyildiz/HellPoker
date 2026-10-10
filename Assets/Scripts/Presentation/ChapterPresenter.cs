@@ -2,21 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Chapters;
-using HellPoker.Core.Events;
+using HellPoker.Core.Dealers;
 using HellPoker.Core.Game;
 using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation.Abstractions;
+using HellPoker.Presentation.Settings;
 using HellPoker.Presentation.Ui;
 
 namespace HellPoker.Presentation
 {
     /// <summary>
-    /// Phase 2: one chapter, from its first floor to the demon's table. The map (<see cref="IChapterMapView"/>) shows the floors and
-    /// where the player may go; a panel over it (<see cref="IChapterPanelView"/>) tells each node — the treasure, the black market,
-    /// a stranger's offer, the purgatory fire, the gate's tribute, a match's end — and takes the answer. Table and warden matches,
-    /// and the demon's own table, are played at a table of their own (a <see cref="TablePresenter"/> on its own view), which says
-    /// when it is done. Knows the chapter's rules only through Core (<see cref="ChapterRun"/>); the demo's run is never touched.
+    /// Phase 2: a whole run (<see cref="ChapterJourney"/>) — three chapters, each from its first floor to its demon's table, then
+    /// Lucifer's. The map (<see cref="IChapterMapView"/>) shows the floors and where the player may go; a panel over it
+    /// (<see cref="IChapterPanelView"/>) tells each node — a chapter's opening, the treasure, the black market, a stranger's offer, the
+    /// purgatory fire, the gate's tribute, a match's end, a demon's spoils, the run's end — and takes the answer. Floor matches, the
+    /// demons' tables and Lucifer's are played at a table of their own (a <see cref="TablePresenter"/> on its own view), which says when
+    /// it is done. The run is saved apart from the demo's (<see cref="ChapterArchive"/>) at every node, every answer and every step of a
+    /// hand; a hand left in the middle is lost on the next launch. Knows the chapters' rules only through Core; the demo's run is never
+    /// touched.
     /// </summary>
     public sealed class ChapterPresenter : IChapterCommands, IChapterSession, IDisposable
     {
@@ -31,20 +35,28 @@ namespace HellPoker.Presentation
         private readonly IAudio _audio;
         private readonly GameRules _bossTable;
         private readonly Func<int> _newSeed;
-        private readonly int _chapter;
+        private readonly ChapterArchive _archive;
+        private readonly IRunLogSink _logSink;
+        private ChapterRecords _records;
 
-        private ChapterRun _run;
-        private readonly List<MapNode> _trail = new List<MapNode>();
+        private ChapterJourney _journey;
         private MapNode _selected;
         private bool _visible;
         private bool _atTable;
         private bool _ended;
+        private RunLog _log;
 
-        /// <summary>The floor match at the table (null at the demon's table and on the map).</summary>
+        /// <summary>The current node is done (its match over, its panel answered).</summary>
+        private bool _nodeDone = true;
+
+        /// <summary>The panel that waits for its answer (for the save): see <see cref="ChapterSave.Pending"/>.</summary>
+        private string _pending;
+
+        /// <summary>The floor match at the table (null at a demon's table and on the map).</summary>
         private FloorTable _match;
 
-        /// <summary>The demon's game, once the gate is passed.</summary>
-        private IHellPokerGame _bossGame;
+        /// <summary>The demon's game (or Lucifer's), once a gate is passed.</summary>
+        private HellPokerGame _bossGame;
 
         private PanelCard _card;
         private readonly List<Action> _answers = new List<Action>();
@@ -52,11 +64,14 @@ namespace HellPoker.Presentation
         public event Action MenuRequested;
         public event Action NewRunRequested;
 
-        /// <param name="bossTable">The numbers of the demon's table (the sentence's stakes, the soul line is the demon's own).</param>
-        /// <param name="newSeed">A master seed for each new chapter run.</param>
+        /// <param name="bossTable">The numbers of the demons' tables (the soul's worth, the cheats' pace, the deck).</param>
+        /// <param name="newSeed">A master seed for each new run.</param>
         /// <param name="buildTable">The chapter's own table (a view and a presenter apart from the demo's), built when first needed.</param>
+        /// <param name="archive">Where the run and the records are kept; null: nothing is kept.</param>
+        /// <param name="logSink">Where the run's diary is written; null: none.</param>
         public ChapterPresenter(IChapterMapView map, IChapterPanelView panel, Func<(TablePresenter presenter, ITableView view)> buildTable,
-            IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, int chapter = 1)
+            IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, ChapterArchive archive = null,
+            IRunLogSink logSink = null)
         {
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
@@ -65,7 +80,9 @@ namespace HellPoker.Presentation
             _audio = audio ?? NullAudio.Instance;
             _bossTable = bossTable ?? GameRules.Default;
             _newSeed = newSeed ?? throw new ArgumentNullException(nameof(newSeed));
-            _chapter = chapter;
+            _archive = archive;
+            _logSink = logSink;
+            _records = archive?.LoadRecords() ?? new ChapterRecords();
 
             _map.NodePressed += PressNode;
             _map.MenuPressed += RequestMenu;
@@ -78,17 +95,20 @@ namespace HellPoker.Presentation
             if (_table != null) return;
             (_table, _tableView) = _buildTable();
             _table.ChapterTableFinished += TableFinished;
+            _table.ChapterTableChanged += Save;
             _tableView.MenuPressed += RequestMenu;
         }
 
         public void Dispose()
         {
+            CloseLog();
             _map.NodePressed -= PressNode;
             _map.MenuPressed -= RequestMenu;
             _panel.OptionPressed -= Answer;
             Lang.Changed -= OnLanguageChanged;
             if (_table == null) return;
             _table.ChapterTableFinished -= TableFinished;
+            _table.ChapterTableChanged -= Save;
             _tableView.MenuPressed -= RequestMenu;
             _table.Dispose();
         }
@@ -96,42 +116,89 @@ namespace HellPoker.Presentation
         /// <summary>The chapter's table (the keys go to it while it is on screen); null before the first chapter.</summary>
         public ITableCommands Table => _table;
 
-        /// <summary>The chapter run (for tests); null before the first.</summary>
-        public ChapterRun Run => _run;
+        /// <summary>The whole run (for tests); null before the first.</summary>
+        public ChapterJourney Journey => _journey;
+
+        /// <summary>The chapter being played (for tests); null before the first.</summary>
+        public ChapterRun Run => _journey?.Run;
+
+        /// <summary>Phase 2's records (for tests and the records screen).</summary>
+        public ChapterRecords Records => _records;
 
         /// <summary>The panel on show (for tests); null when none.</summary>
         public PanelCard Panel => _panel.IsOpen ? _card : null;
 
-        public bool HasRun => _run != null && !_ended;
+        private ChapterRun _run => _journey?.Run;
+
+        public bool HasRun => _journey != null && !_ended;
+
+        /// <summary>A run waits: in memory, or saved from an earlier session.</summary>
+        public bool CanContinue => HasRun || (_archive?.HasRun ?? false);
+
         public bool IsVisible => _visible;
         public bool IsMapOpen => _visible && !_atTable;
         public bool IsAtTable => _visible && _atTable;
 
-        /// <summary>The chapter's demon's music on the map and at every table of the chapter.</summary>
-        public string MusicId => (_run?.Rules ?? ChapterRules.For(_chapter)).BossId;
+        /// <summary>The music of the screen: the chapter's demon (Lucifer's at the end).</summary>
+        public string MusicId => _journey?.Stage == JourneyStage.Lucifer ? DealerRoster.LuciferId : (_run?.Rules ?? ChapterRules.For(1)).BossId;
 
         // ------------------------------------------------------------------ the run
 
         public void Start(SinnerClass sinnerClass)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
+            if (HasRun) Abandon();
             EnsureTable();
-            ChapterRules rules = ChapterRules.For(_chapter);
-            _run = ChapterRun.Begin(rules, new Sinner(sinnerClass), new RunEffects(), _newSeed());
-            _trail.Clear();
+            _journey = ChapterJourney.Begin(sinnerClass, _newSeed());
             _match = null;
             _bossGame = null;
             _atTable = false;
             _ended = false;
+            _nodeDone = true;
             _selected = PickDefault(_run.Choices);
             _visible = true;
+            _records.RunStarted();
+            _archive?.SaveRecords(_records);
+            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, BossShares.Total(sinnerClass.Id), DateTime.Now);
+            Note($"phase 2 run: {sinnerClass.Id}, {_run.Purse.Coins} coins, sentence {BossShares.Total(sinnerClass.Id)} years");
             ShowMap();
-            ShowIntro();
+            ShowChapterOpening();
+        }
+
+        /// <summary>The run that waits: the one in memory, or the saved one (a hand left in the middle is lost now).</summary>
+        public void Continue()
+        {
+            if (HasRun)
+            {
+                Show();
+                return;
+            }
+            ChapterSave save = _archive?.LoadRun();
+            if (save == null) return;
+            EnsureTable();
+            Resume(save);
+        }
+
+        /// <summary>The run in progress is given up: it counts as damned (a new run over it).</summary>
+        public void Abandon()
+        {
+            if (_journey == null || _ended)
+            {
+                if (_journey == null && _archive?.LoadRun() is ChapterSave saved)
+                {
+                    _records.RunEnded(JourneyEnd.Abandoned, saved.Lucifer ? 4 : saved.Chapter, saved.ClassId, 0);
+                    _archive.SaveRecords(_records);
+                    _archive.ClearRun();
+                }
+                return;
+            }
+            Note("abandoned for a new run");
+            FinishRun(JourneyEnd.Abandoned, show: false);
         }
 
         public void Show()
         {
-            if (_run == null) return;
+            if (_journey == null) return;
             _visible = true;
             if (_atTable && _tableView != null)
             {
@@ -163,7 +230,7 @@ namespace HellPoker.Presentation
 
         private void ShowMap()
         {
-            if (_run == null) return;
+            if (_journey == null) return;
             _tableView?.SetVisible(false);
             _map.Show(MapState());
         }
@@ -181,13 +248,19 @@ namespace HellPoker.Presentation
             lines.Add(UiText.MapRelicsLabel);
             if (_run.Effects.Relics.Count == 0) lines.Add("  " + UiText.MapNoRelics);
             foreach (string id in _run.Effects.Relics)
-                lines.Add("  " + UiText.RelicName(id) + (id == _run.Effects.SilencedCurse ? " (" + UiText.MapSilenced + ")" : ""));
+            {
+                string mark = id == _run.Effects.SilencedCurse ? " (" + UiText.MapSilenced + ")" : id == _run.Effects.AmplifiedRelic ? " (" + UiText.MapDesired + ")" : "";
+                lines.Add("  " + UiText.RelicName(id) + mark);
+            }
             if (_run.ImpsEyeNext) lines.Add(UiText.MapEyeReady);
+            if (_run.NextTableMarks.HidesAll) lines.Add(UiText.MapSpectacleReady);
+            if (_run.NextTableMarks.FreeHands > 0) lines.Add(UiText.MapInsomniaReady);
 
             string title = string.Format(UiText.ChapterTitleFormat, rules.Number, UiText.ChapterName(rules.Number));
             string prompt = _run.Current == null ? UiText.MapPromptStart : UiText.MapPrompt;
-            return new ChapterMapState(_run.Map, _run.Current, _atTable || _panel.IsOpen ? Array.Empty<MapNode>() : _run.Choices.ToArray(), _selected,
-                _trail.ToArray(), title, prompt, _run.Purse.Coins, lines, Describe);
+            MapNode[] choices = _atTable || _panel.IsOpen || !_nodeDone ? Array.Empty<MapNode>() : _run.Choices.ToArray();
+            return new ChapterMapState(_run.Map, _run.Current, choices, _selected, _run.Trail.ToArray(), title, prompt, _run.Purse.Coins, lines, Describe,
+                UiText.GateTitle(rules.Number), rules.Number);
         }
 
         /// <summary>A node in words: its name and what waits there.</summary>
@@ -197,10 +270,11 @@ namespace HellPoker.Presentation
             string what;
             switch (node.Kind)
             {
-                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, rules.ImpCoins, rules.Ante, rules.AnteStepHands); break;
+                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, rules.ImpCoinsAt(node.Floor), rules.Ante, rules.AnteStepHands); break;
                 case NodeKind.Warden:
+                    string warden = UiText.NameInSentence(UiText.Dealer(ChapterCast.WardenOf(rules)));
                     what = string.Format(UiText.NodeWardenFormat, rules.WardenCoins, rules.Ante, rules.AnteStepHands, rules.WardenTollPercent,
-                        rules.WardenTollMax);
+                        rules.WardenTollMax, warden) + "\n" + UiText.WardenTrick(rules.BossId);
                     break;
                 case NodeKind.Event: what = UiText.NodeEvent; break;
                 case NodeKind.BlackMarket: what = UiText.NodeMarket; break;
@@ -218,7 +292,7 @@ namespace HellPoker.Presentation
 
         private void PressNode(int floor, int lane)
         {
-            if (!IsMapOpen || _panel.IsOpen || _run == null) return;
+            if (!IsMapOpen || _panel.IsOpen || _journey == null || _ended || !_nodeDone) return;
             MapNode node = _run.Choices.FirstOrDefault(n => n.Floor == floor && n.Lane == lane);
             if (node == null) return;
             Go(node);
@@ -227,7 +301,7 @@ namespace HellPoker.Presentation
         private void Go(MapNode node)
         {
             _run.MoveTo(node);
-            _trail.Add(node);
+            _nodeDone = false;
             _selected = PickDefault(_run.Choices);
             switch (node.Kind)
             {
@@ -237,8 +311,8 @@ namespace HellPoker.Presentation
                     return;
                 case NodeKind.Treasure:
                     _run.TakeTreasure();
-                    ShowPanel(new PanelCard("Events/treasure", null, UiText.TreasureTitle, string.Format(UiText.TreasureTextFormat, _run.Rules.TreasureCoins),
-                        new[] { new PanelOption(UiText.TreasureTake) }), new Action[] { Onward });
+                    Note($"chapter {_journey.Chapter} floor {node.Floor + 1}: treasure +{_run.Rules.TreasureCoins} (purse {_run.Purse.Coins})");
+                    ShowTreasure();
                     break;
                 case NodeKind.BlackMarket:
                     ShowMarket(_run.OpenMarket(), null);
@@ -253,27 +327,32 @@ namespace HellPoker.Presentation
                     break;
             }
             ShowMap();
+            Save();
         }
 
         /// <summary>Back to the map after a node — or, past the last floor, on to the gate.</summary>
         private void Onward()
         {
             ClosePanel();
+            _nodeDone = true;
             if (_run.AtGate)
             {
                 ShowGate();
+                Save();
                 return;
             }
             ShowMap();
+            Save();
         }
 
         // ------------------------------------------------------------------ the panels
 
-        private void ShowPanel(PanelCard card, IReadOnlyList<Action> answers)
+        private void ShowPanel(PanelCard card, IReadOnlyList<Action> answers, string pending = null)
         {
             _answers.Clear();
             _answers.AddRange(answers);
             _card = card;
+            _pending = pending;
             _panel.Show(card);
             if (!_atTable) _map.Show(MapState());   // the choices go dark under a panel
         }
@@ -281,6 +360,7 @@ namespace HellPoker.Presentation
         private void ClosePanel()
         {
             _card = null;
+            _pending = null;
             _answers.Clear();
             _panel.Hide();
         }
@@ -289,15 +369,25 @@ namespace HellPoker.Presentation
         {
             if (_card == null || index < 0 || index >= _answers.Count) return;
             _answers[index]?.Invoke();
+            Save();
         }
 
-        private void ShowIntro()
+        /// <summary>A chapter opens: its name, its demon, what waits below.</summary>
+        private void ShowChapterOpening()
         {
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             string text = string.Format(UiText.IntroFormat, rules.Floors, boss, _run.Tribute, rules.YearsPerMissingCoin, _run.Purse.Coins);
-            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, string.Format(UiText.ChapterTitleFormat, rules.Number, UiText.ChapterName(rules.Number)),
-                text, new[] { new PanelOption(UiText.PanelDescend) }), new Action[] { () => { ClosePanel(); ShowMap(); } });
+            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, string.Format(UiText.ChapterTitleFormat, rules.Number,
+                    UiText.ChapterName(rules.Number)), text, new[] { new PanelOption(UiText.PanelDescend) }),
+                new Action[] { () => { ClosePanel(); ShowMap(); } }, "chapter");
+            Save();
+        }
+
+        private void ShowTreasure()
+        {
+            ShowPanel(new PanelCard("Events/treasure", null, UiText.TreasureTitle, string.Format(UiText.TreasureTextFormat, _run.Rules.TreasureCoins),
+                new[] { new PanelOption(UiText.TreasureTake) }), new Action[] { Onward }, "treasure");
         }
 
         // ------------------------------------------------------------------ the black market
@@ -316,7 +406,11 @@ namespace HellPoker.Presentation
                     string.Format(UiText.MarketRelicDetailFormat, UiText.RelicGift(id), UiText.RelicCurse(id)) + why, can));
                 answers.Add(() =>
                 {
-                    if (market.BuyRelic(id)) ShowMarket(market, UiText.RelicName(id));
+                    if (market.BuyRelic(id))
+                    {
+                        Note($"black market: bought {id} for {offer.Price} (purse {_run.Purse.Coins})");
+                        ShowMarket(market, UiText.RelicName(id));
+                    }
                 });
             }
             foreach (string id in _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray())
@@ -357,41 +451,75 @@ namespace HellPoker.Presentation
             string text = string.Format(UiText.MarketTextFormat, _run.Purse.Coins);
             if (bought != null) text += "\n" + string.Format(UiText.MarketBoughtFormat, bought);
             int selected = _card != null && _card.Title == UiText.MarketTitle ? Math.Min(_card.Selected, options.Count - 1) : options.Count - 1;
-            ShowPanel(new PanelCard("Events/black_market", UiText.MarketOwner, UiText.MarketTitle, text, options, selected), answers);
+            ShowPanel(new PanelCard("Events/black_market", UiText.MarketOwner, UiText.MarketTitle, text, options, selected), answers, "market");
             if (!_atTable) _map.Show(MapState());   // the purse and the relics on the side change with every purchase
         }
 
         // ------------------------------------------------------------------ an offer
 
-        private void ShowOffer(IFloorEvent offer)
+        private string OfferText(IFloorEvent offer)
         {
-            string text;
+            string boss = UiText.NameInSentence(UiText.Dealer(_run.Rules.BossId));
+            string format = UiText.FloorEventTextFormat(offer.Id);
             switch (offer.Id)
             {
-                case FloorEventIds.Usurer:
-                    text = string.Format(UiText.FloorEventTextFormat(offer.Id), PurgatoryUsurer.Coins, PurgatoryUsurer.Years);
-                    break;
-                case FloorEventIds.MammonsLedger:
-                    text = string.Format(UiText.FloorEventTextFormat(offer.Id), MammonsLedger.YearsNow, MammonsLedger.YearsBack);
-                    break;
-                default:
-                    text = string.Format(UiText.FloorEventTextFormat(offer.Id), _run.Purse.Coins / 2, _run.Rules.MultiplierCap);
-                    break;
+                case FloorEventIds.Usurer: return string.Format(format, PurgatoryUsurer.Coins, PurgatoryUsurer.Years, boss);
+                case FloorEventIds.MammonsLedger: return string.Format(format, MammonsLedger.YearsNow, MammonsLedger.YearsBack);
+                case FloorEventIds.GamblerGhost: return string.Format(format, _run.Purse.Coins / 2, _run.Rules.MultiplierCap);
+                case FloorEventIds.LyingWitness: return string.Format(format, LyingWitness.Price, LyingWitness.LiePercent);
+                case FloorEventIds.Spectacle: return string.Format(format, Spectacle.WinPercent / 100.0);
+                case FloorEventIds.FalseCoin: return string.Format(format, FalseCoin.Coins, FalseCoin.Years);
+                case FloorEventIds.NightBargain: return string.Format(format, NightBargain.Coins, NightBargain.Years);
+                case FloorEventIds.Insomnia: return string.Format(format, Insomnia.Hands);
+                default: return format;
             }
+        }
+
+        private void ShowOffer(IFloorEvent offer)
+        {
             string portrait = offer.Id == FloorEventIds.MammonsLedger ? _run.Rules.BossId : "Events/" + offer.Id;
-            ShowPanel(new PanelCard(portrait, UiText.FloorEventOwner(offer.Id), UiText.FloorEventTitle(offer.Id), text,
+            ShowPanel(new PanelCard(portrait, UiText.FloorEventOwner(offer.Id), UiText.FloorEventTitle(offer.Id), OfferText(offer),
                     new[] { new PanelOption(UiText.EventAccept), new PanelOption(UiText.EventPass, isLeave: true) }),
                 new Action[]
                 {
                     () =>
                     {
-                        offer.Accept(_run);
-                        ClosePanel();
-                        if (_run.PendingGamble != null) StartMatch(_run.PendingGamble);
-                        else Onward();
+                        if (offer is Desire desire && _run.Effects.Relics.Count > 1)
+                        {
+                            ShowDesireChoice(desire);
+                            return;
+                        }
+                        TakeOffer(offer);
                     },
-                    Onward
-                });
+                    () =>
+                    {
+                        Note($"offer {offer.Id}: passed");
+                        Onward();
+                    }
+                }, "event:" + offer.Id);
+        }
+
+        private void TakeOffer(IFloorEvent offer)
+        {
+            offer.Accept(_run);
+            Note($"offer {offer.Id}: taken (purse {_run.Purse.Coins}, owed {_run.YearsOwed})");
+            ClosePanel();
+            if (_run.PendingGamble != null) StartMatch(_run.PendingGamble);
+            else Onward();
+        }
+
+        private void ShowDesireChoice(Desire desire)
+        {
+            var relics = _run.Effects.Relics.ToArray();
+            var options = relics.Select(id => new PanelOption(UiText.RelicName(id), string.Format(UiText.MarketRelicDetailFormat, UiText.RelicGift(id),
+                UiText.RelicCurse(id)))).ToList();
+            var answers = relics.Select(id => (Action)(() =>
+            {
+                desire.RelicId = id;
+                TakeOffer(desire);
+            })).ToList();
+            ShowPanel(new PanelCard("Events/" + desire.Id, UiText.FloorEventOwner(desire.Id), UiText.DesireWhich, UiText.DesireWhichText, options),
+                answers, "event:" + desire.Id);
         }
 
         // ------------------------------------------------------------------ the purgatory fire
@@ -405,7 +533,8 @@ namespace HellPoker.Presentation
                     {
                         new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)),
                         new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence),
-                        new PanelOption(UiText.FireShuffle, string.Format(UiText.FireShuffleDetailFormat, ChapterRun.FreeAntePercent))
+                        new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, UiText.GenitiveInSentence(UiText.Dealer(_run.Rules.BossId)),
+                            ChapterRun.RestBarPercent))
                     }),
                 new Action[]
                 {
@@ -417,8 +546,8 @@ namespace HellPoker.Presentation
                         if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
                         else ShowSilenceChoice(relics);
                     },
-                    () => Tend(FireChoice.ShuffleAndFreeAnte, null, UiText.FireDoneShuffle)
-                });
+                    () => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest)
+                }, "fire");
         }
 
         private void ShowSilenceChoice(IReadOnlyList<string> relics)
@@ -428,14 +557,15 @@ namespace HellPoker.Presentation
                 string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(id))))).ToList();
             options.Add(new PanelOption(UiText.Back, null, isLeave: true));
             answers.Add(ShowFire);
-            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireSilenceWhich, UiText.FireSilenceWhichText, options), answers);
+            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireSilenceWhich, UiText.FireSilenceWhichText, options), answers, "fire");
         }
 
         private void Tend(FireChoice choice, string relicId, string done)
         {
             _run.TendFire(choice, relicId);
+            Note($"purgatory fire: {choice}{(relicId != null ? " " + relicId : "")}");
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, done, new[] { new PanelOption(UiText.PanelOn) }),
-                new Action[] { Onward });
+                new Action[] { Onward }, "fire.done");
         }
 
         // ------------------------------------------------------------------ the floors' matches
@@ -444,35 +574,57 @@ namespace HellPoker.Presentation
         {
             ClosePanel();
             _match = table;
+            _bossGame = null;
             _atTable = true;
             _map.Hide();
             _table.SitAtFloor(table, _run);
             if (_visible) _tableView.SetVisible(true);
             Curtain();
+            Save();
         }
 
-        /// <summary>A chapter's table said it is done: a floor match goes back to the map, the demon's table ends the chapter.</summary>
+        /// <summary>A chapter's table said it is done: a floor match goes back to the map, a demon's table ends the chapter (or the run).</summary>
         private void TableFinished()
         {
+            if (_journey == null || _ended) return;
+            if (_journey.Stage == JourneyStage.Lucifer)
+            {
+                ResolveLucifer();
+                return;
+            }
             if (_bossGame != null)
             {
-                EndChapter();
+                ResolveBoss();
                 return;
             }
             if (_match == null) return;
+            FinishMatch();
+        }
 
+        private void FinishMatch()
+        {
             FloorTable match = _match;
             bool gamble = match == _run.PendingGamble;
             int relicsBefore = _run.Effects.Relics.Count;
             _run.FinishTable(match);
+            _journey.FloorHands += match.HandsPlayed;
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
+            string kind = gamble ? "gambler's hand" : match.IsWarden ? "warden" : "imp's table";
+            Note($"chapter {_journey.Chapter} floor {(_run.Current?.Floor ?? 0) + 1}: {kind}, {match.HandsPlayed} hands, {Signed(match.Coins)} coins" +
+                 (match.TollTaken > 0 ? $", toll {match.TollTaken}" : "") + (match.CoinsToVault > 0 ? $", {match.CoinsToVault} to the vault" : "") +
+                 $" (purse {_run.Purse.Coins})" + (given != null ? $", relic {given}" : ""));
             _match = null;
             _atTable = false;
             _tableView.SetVisible(false);
             ShowMap();
             Curtain();
-            if (_run.PurseEmptied) ShowPurseEmptied(match);
-            else ShowMatchEnd(match, gamble, given);
+            if (_run.PurseEmptied)
+            {
+                FinishRun(JourneyEnd.PurseEmptied, house: ChapterCast.HouseOf(match, _run.Rules), hands: match.HandsPlayed);
+                return;
+            }
+            ShowMatchEnd(match, gamble, given);
+            Save();
         }
 
         private void ShowMatchEnd(FloorTable match, bool gamble, string relicGiven)
@@ -489,22 +641,7 @@ namespace HellPoker.Presentation
                 lines.Add(string.Format(UiText.MatchRelicFormat, UiText.RelicName(relicGiven), UiText.RelicGift(relicGiven), UiText.RelicCurse(relicGiven)));
             lines.Add(string.Format(UiText.MatchPurseFormat, _run.Purse.Coins));
             ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, title, string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) }),
-                new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } });
-        }
-
-        /// <summary>The player's purse went empty at a floor's table: the run is over (damned).</summary>
-        private void ShowPurseEmptied(FloorTable match)
-        {
-            string house = ChapterCast.HouseOf(match, _run.Rules);
-            string text = string.Format(UiText.PurseEmptyTextFormat, UiText.NameInSentence(UiText.Dealer(house)), match.HandsPlayed);
-            _ended = true;
-            ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, UiText.PurseEmptyTitle, text,
-                    new[] { new PanelOption(UiText.ChapterNewRun), new PanelOption(UiText.Menu, isLeave: true) }),
-                new Action[]
-                {
-                    () => { ClosePanel(); NewRunRequested?.Invoke(); },
-                    () => { ClosePanel(); _run = null; MenuRequested?.Invoke(); }
-                });
+                new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } }, "matchend");
         }
 
         private static string Signed(int coins) => coins > 0 ? "+" + coins : coins < 0 ? "−" + (-coins) : "0";
@@ -512,7 +649,7 @@ namespace HellPoker.Presentation
         private void ShowWardenRelic()
         {
             string id = _run.WardenRelicWaiting;
-            string collector = ChapterCast.WardenOf(_run.Rules);
+            string warden = ChapterCast.WardenOf(_run.Rules);
             var options = new List<PanelOption> { new PanelOption(string.Format(UiText.WardenCoinsFormat, _run.Rules.WardenRelicCoins)) };
             var answers = new List<Action> { () => { _run.TakeWardenCoins(); Onward(); } };
             foreach (string carried in _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray())
@@ -522,9 +659,9 @@ namespace HellPoker.Presentation
                     string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(swap))));
                 answers.Add(() => { _run.SwapForWardenRelic(swap); Onward(); });
             }
-            ShowPanel(new PanelCard(collector, UiText.Dealer(collector).Name, UiText.WardenRelicTitle,
+            ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.WardenRelicTitle,
                 string.Format(UiText.WardenRelicTextFormat, UiText.RelicName(id), UiText.RelicGift(id), UiText.RelicCurse(id), _run.Rules.WardenRelicCoins),
-                options), answers);
+                options), answers, "warden");
         }
 
         // ------------------------------------------------------------------ the gate and the demon
@@ -535,59 +672,436 @@ namespace HellPoker.Presentation
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             int coins = _run.Purse.Coins;
             int tribute = _run.Tribute;
-            int missing = Math.Max(0, tribute - coins);
+            int missing = tribute - _run.TributePaid(coins);
             int after = _run.Years + _run.TributeYears(coins) + _run.YearsOwed;
+            if (_run.RestedByTheFire) after -= after * ChapterRun.RestBarPercent / 100;
             var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, tribute, coins) };
             lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing, _run.TributeYears(coins))
-                : string.Format(UiText.GatePaidFormat, coins - tribute));
+                : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
             if (_run.YearsOwed > 0) lines.Add(string.Format(UiText.GateOwedFormat, _run.YearsOwed));
             lines.Add(string.Format(UiText.GateAfterFormat, after));
-            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle, string.Join("\n", lines),
-                new[] { new PanelOption(UiText.GatePay) }), new Action[] { SitWithTheDemon });
+            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle(rules.Number), string.Join("\n", lines),
+                new[] { new PanelOption(UiText.GatePay) }), new Action[] { SitWithTheDemon }, "gate");
         }
 
         private void SitWithTheDemon()
         {
             ClosePanel();
-            _run.PayTribute();
+            GateToll toll = _run.PayTribute();
+            Note($"chapter {_journey.Chapter} gate: tribute {_run.Tribute}, had {toll.CoinsBefore}, missing {toll.Missing} (+{toll.YearsForMissing} years)" +
+                 (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}");
             _bossGame = _run.OpenBossTable(_bossTable);
-            _atTable = true;
-            _map.Hide();
-            _table.SitAtBoss(_bossGame, _run);
-            if (_visible) _tableView.SetVisible(true);
-            Curtain();
+            Note($"{_run.Rules.BossId}'s table: bar {_run.BossBarStart} years, soul line {_bossGame.Rules.SoulThreshold}");
+            SitAtBoss();
         }
 
-        private void EndChapter()
+        private void SitAtBoss()
         {
-            IHellPokerGame game = _bossGame;
+            _match = null;
+            _atTable = true;
+            _map.Hide();
+            _table.SitAtBoss(_bossGame, _run, _run.BossBarStart);
+            if (_visible) _tableView.SetVisible(true);
+            Curtain();
+            Save();
+        }
+
+        private void ResolveBoss()
+        {
+            HellPokerGame game = _bossGame;
             ChapterRules rules = _run.Rules;
-            string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
-            string title, text;
-            _run.LeaveBossTable(game.Years);   // the bar as the demon's table left it: empty when he is beaten
-            if (game.Phase == GamePhase.Damned)
-            {
-                title = UiText.ChapterDamnedTitle;
-                text = string.Format(UiText.ChapterDamnedTextFormat, boss);
-            }
-            else
-            {
-                title = UiText.ChapterDoneTitle;
-                text = string.Format(UiText.ChapterDoneTextFormat, boss, game.RoundNumber, _run.Purse.Coins);
-            }
-            _run.EndChapter();
-            _ended = true;
+            _journey.BossHands[_journey.BossIndex] = game.RoundNumber;
+            _bossGame = null;
             _atTable = false;
             _tableView.SetVisible(false);
+            if (game.Phase == GamePhase.Damned)
+            {
+                Note($"{rules.BossId}: the soul burned after {game.RoundNumber} hands");
+                ShowMap();
+                Curtain();
+                FinishRun(JourneyEnd.Damned, house: rules.BossId);
+                return;
+            }
+            _run.LeaveBossTable(0);
+            Note($"{rules.BossId}: beaten in {game.RoundNumber} hands");
+            if (_journey.Chapter >= ChapterRules.Chapters)
+            {
+                Curtain();
+                ShowLuciferCalls();
+                return;
+            }
             ShowMap();
             Curtain();
-            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, title, text,
+            ShowLoot();
+        }
+
+        // ------------------------------------------------------------------ the spoils of a beaten demon
+
+        private void ShowLoot()
+        {
+            ChapterRules rules = _run.Rules;
+            string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
+            var options = new List<PanelOption>();
+            var answers = new List<Action>();
+            bool full = _run.Effects.CarriedOffered >= RelicRoster.MaxCarried;
+            foreach (string id in _run.LootOffers)
+            {
+                string relic = id;
+                options.Add(new PanelOption(UiText.RelicName(relic), string.Format(UiText.MarketRelicDetailFormat, UiText.RelicGift(relic),
+                    UiText.RelicCurse(relic)) + (full ? "\n" + UiText.LootSwapNote : "")));
+                answers.Add(() =>
+                {
+                    if (full) ShowLootSwap(relic);
+                    else if (_run.TakeLoot(relic)) LootTaken(relic);
+                });
+            }
+            options.Add(new PanelOption(string.Format(UiText.WardenCoinsFormat, ChapterRun.LootCoins)));
+            answers.Add(() =>
+            {
+                if (_run.TakeLootCoins()) LootTaken(null);
+            });
+            string text = string.Format(UiText.LootTextFormat, boss, _journey.BossHands[_journey.BossIndex], ChapterRun.LootCoins);
+            ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.LootTitle, text, options), answers, "loot");
+        }
+
+        private void ShowLootSwap(string relic)
+        {
+            var carried = _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray();
+            var options = carried.Select(id => new PanelOption(string.Format(UiText.WardenSwapFormat, UiText.RelicName(id)),
+                string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(id)))).ToList();
+            var answers = carried.Select(id => (Action)(() =>
+            {
+                if (_run.TakeLoot(relic, id)) LootTaken(relic);
+            })).ToList();
+            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
+            answers.Add(ShowLoot);
+            ShowPanel(new PanelCard(_run.Rules.BossId, UiText.Dealer(_run.Rules.BossId).Name, UiText.LootSwapTitle,
+                string.Format(UiText.LootSwapTextFormat, UiText.RelicName(relic)), options), answers, "loot");
+        }
+
+        private void LootTaken(string relic)
+        {
+            Note(relic != null ? $"spoils: {relic}" : $"spoils: +{ChapterRun.LootCoins} coins (purse {_run.Purse.Coins})");
+            ClosePanel();
+            _journey.NextChapter();
+            Note($"chapter {_journey.Chapter}: {_run.Rules.BossId}, purse {_run.Purse.Coins}, bar {_run.Years}");
+            _nodeDone = true;
+            _selected = PickDefault(_run.Choices);
+            ShowMap();
+            Curtain();
+            ShowChapterOpening();
+        }
+
+        // ------------------------------------------------------------------ Lucifer
+
+        private void ShowLuciferCalls()
+        {
+            int bar = BossShares.For(_journey.Sinner.Id, DealerRoster.LuciferId);
+            _map.Hide();
+            ShowPanel(new PanelCard(DealerRoster.LuciferId, UiText.Dealer(DealerRoster.LuciferId).Name, UiText.LuciferCallsTitle,
+                    string.Format(UiText.LuciferCallsTextFormat, ChapterRules.LuciferCastDownPercent - 100),
+                    new[] { new PanelOption(UiText.LuciferSit) }),
+                new Action[] { SitWithLucifer }, "lucifer");
+            Save();
+        }
+
+        private void SitWithLucifer()
+        {
+            ClosePanel();
+            _bossGame = _journey.OpenLuciferTable(_bossTable);
+            Note($"lucifer's table: bar {_journey.LuciferBarStart}, cast down above {BossTable.LuciferGate(_journey.LuciferBarStart)}");
+            SitAtLucifer();
+        }
+
+        private void SitAtLucifer()
+        {
+            _match = null;
+            _atTable = true;
+            _map.Hide();
+            _table.SitAtLucifer(_bossGame, _run, _journey.LuciferBarStart, BossTable.LuciferGate(_journey.LuciferBarStart), _journey.IsCastDown);
+            if (_visible) _tableView.SetVisible(true);
+            Curtain();
+            Save();
+        }
+
+        private void ResolveLucifer()
+        {
+            HellPokerGame game = _bossGame;
+            _journey.BossHands[3] = game.RoundNumber;
+            _bossGame = null;
+            _atTable = false;
+            _tableView.SetVisible(false);
+            JourneyEnd end = game.Phase == GamePhase.Absolved ? JourneyEnd.Freed
+                : game.Phase == GamePhase.Damned ? JourneyEnd.Damned : JourneyEnd.CastDown;
+            Note($"lucifer: {end} after {game.RoundNumber} hands (bar {game.Years})");
+            Curtain();
+            FinishRun(end, house: DealerRoster.LuciferId);
+        }
+
+        // ------------------------------------------------------------------ the end of the run
+
+        private void FinishRun(JourneyEnd end, bool show = true, string house = null, int hands = 0)
+        {
+            ChapterJourney journey = _journey;
+            int deepest = journey.Stage == JourneyStage.Lucifer ? 4 : journey.Chapter;
+            journey.Finish(end);
+            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands);
+            _archive?.SaveRecords(_records);
+            _archive?.ClearRun();
+            _log?.End(end.ToString().ToUpperInvariant(), _run.Years, journey.TotalHands);
+            CloseLog();
+            _log = null;
+            _ended = true;
+            _atTable = false;
+            _match = null;
+            _bossGame = null;
+            if (!show) return;
+
+            string portrait = house ?? _run.Rules.BossId;
+            string title, text;
+            switch (end)
+            {
+                case JourneyEnd.PurseEmptied:
+                    title = UiText.PurseEmptyTitle;
+                    text = string.Format(UiText.PurseEmptyTextFormat, UiText.NameInSentence(UiText.Dealer(portrait)), hands);
+                    break;
+                case JourneyEnd.CastDown:
+                    title = UiText.FallTitle;
+                    text = UiText.FallText;
+                    break;
+                case JourneyEnd.Freed:
+                    title = UiText.FreedTitle;
+                    text = UiText.FreedText;
+                    break;
+                default:
+                    title = UiText.ChapterDamnedTitle;
+                    text = string.Format(UiText.ChapterDamnedTextFormat, UiText.NameInSentence(UiText.Dealer(portrait)));
+                    break;
+            }
+            text += "\n\n" + Summary(journey);
+            ShowMap();
+            ShowPanel(new PanelCard(portrait, UiText.Dealer(portrait).Name, title, text,
                     new[] { new PanelOption(UiText.ChapterNewRun), new PanelOption(UiText.Menu, isLeave: true) }),
                 new Action[]
                 {
                     () => { ClosePanel(); NewRunRequested?.Invoke(); },
-                    () => { ClosePanel(); _run = null; MenuRequested?.Invoke(); }
+                    () => { ClosePanel(); _journey = null; MenuRequested?.Invoke(); }
                 });
+        }
+
+        /// <summary>The run in a few lines: the class, the hands, the coins left, every demon's hands.</summary>
+        private string Summary(ChapterJourney journey)
+        {
+            string Hands(int boss) => journey.BossHands[boss] > 0 ? journey.BossHands[boss].ToString() : "—";
+            return string.Format(UiText.RunSummaryFormat, UiText.SinnerName(journey.Sinner.Id), journey.TotalHands, journey.Run.Purse.Coins,
+                Hands(0), Hands(1), Hands(2), Hands(3));
+        }
+
+        // ------------------------------------------------------------------ the save
+
+        private void Save()
+        {
+            if (_archive == null || _journey == null || _ended || _journey.IsOver) return;
+            ChapterSave save = _journey.Capture();
+            save.NodeDone = _nodeDone;
+            save.Pending = _pending;
+            if (_match != null)
+            {
+                save.Match = _match == _run.PendingGamble ? "gamble" : _match.IsWarden ? "warden" : "imp";
+                save.MatchHouse = _match.HousePurse?.Coins ?? -1;
+                save.MatchHands = _match.HandsPlayed;
+                save.MatchMarks = _match.Marks.Encode();
+                save.GambleStake = _match.HousePurse == null ? _match.AnteNow : 0;
+                save.Deck = _match.DeckCards.ToList();
+                CaptureHand(save, _match.Game, _match.HandInPlay);
+            }
+            else if (_bossGame != null)
+            {
+                save.Match = _journey.Stage == JourneyStage.Lucifer ? "lucifer" : "boss";
+                save.BossBar = _bossGame.Years;
+                save.MatchHands = _bossGame.RoundNumber;
+                save.Malice = _bossGame.Malice;
+                save.MajorUsed = _bossGame.MajorCheatUsed;
+                save.Deck = _bossGame.DeckCards.ToList();
+                CaptureHand(save, _bossGame, _bossGame.CurrentHand != null);
+            }
+            _archive.SaveRun(save);
+        }
+
+        private static void CaptureHand(ChapterSave save, HellPokerGame game, bool inHand)
+        {
+            HandInProgress hand = inHand ? game.CurrentHand : null;
+            if (hand == null) return;
+            save.HandStake = hand.Stake;
+            save.HandAnte = hand.Ante;
+            save.HandSealed = hand.IsSealed;
+            save.HandAfterDraw = hand.IsAfterDraw;
+            save.HandSoul = hand.IsSoulHand;
+        }
+
+        /// <summary>A saved run comes back where it was left; a hand left in the middle is lost now (no way out of a bad hand).</summary>
+        private void Resume(ChapterSave save)
+        {
+            ChapterJourney journey;
+            try { journey = ChapterJourney.Restore(save); }
+            catch (ArgumentException)
+            {
+                _archive?.ClearRun();
+                return;
+            }
+            _journey = journey;
+            _ended = false;
+            _visible = true;
+            _atTable = false;
+            _match = null;
+            _bossGame = null;
+            _nodeDone = save.NodeDone;
+            _selected = PickDefault(_run.Choices);
+            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", journey.Sinner.Id, _run.Years, DateTime.Now,
+                Math.Max(1, journey.TotalHands));
+            Note($"resumed: chapter {journey.Chapter}{(journey.Stage == JourneyStage.Lucifer ? " (lucifer)" : "")}, purse {_run.Purse.Coins}");
+            bool handLost = save.HandStake > 0;
+
+            switch (save.Match)
+            {
+                case "imp":
+                case "warden":
+                {
+                    FloorTable table = _run.ReopenTable(TableMarks.Decode(save.MatchMarks), save.MatchHouse);
+                    table.Resume(handLost ? Math.Max(0, save.MatchHands - 1) : save.MatchHands);
+                    _match = table;
+                    if (handLost)
+                    {
+                        int lost = table.ForfeitHand(save.HandStake);
+                        Note($"a hand left in the middle is lost: {lost} coins");
+                        if (table.IsOver)
+                        {
+                            _atTable = true;
+                            ShowMap();
+                            FinishMatch();
+                            return;
+                        }
+                        ShowLostHand(string.Format(UiText.LostHandCoinsFormat, -lost), () => StartMatch(table));
+                        return;
+                    }
+                    StartMatch(table);
+                    return;
+                }
+                case "gamble":
+                    if (handLost)
+                    {
+                        int lost = -_run.Purse.Add(-Math.Min(save.HandStake, Math.Max(0, _run.Purse.Coins - 1)));   // half the purse, never all
+                        Note($"the gambler's hand left in the middle is lost: {lost} coins");
+                        _nodeDone = false;
+                        ShowLostHand(string.Format(UiText.LostHandCoinsFormat, lost), Onward);
+                        return;
+                    }
+                    StartMatch(_run.OpenGamble(Math.Max(1, save.GambleStake)));
+                    return;
+                case "boss":
+                case "lucifer":
+                {
+                    bool lucifer = save.Match == "lucifer";
+                    HellPokerGame game = lucifer
+                        ? journey.OpenLuciferTable(_bossTable, save.BossBar, save.MatchHands, save.LuciferBarStart)
+                        : _run.ReopenBossTable(_bossTable, save.BossBarStart, save.BossBar, save.MatchHands);
+                    game.RestoreMalice(save.Malice, save.MajorUsed);
+                    _bossGame = game;
+                    if (handLost)
+                    {
+                        game.ForfeitHand(new HandInProgress(save.HandStake, Math.Min(save.HandAnte, save.HandStake), save.HandAfterDraw, save.HandSoul,
+                            save.HandSealed));
+                        Note($"a hand left in the middle is lost: the bar is {game.Years}");
+                        bool over = game.IsGameOver || (lucifer && journey.IsCastDown(game.Years));
+                        Action sit = lucifer ? (Action)SitAtLucifer : SitAtBoss;
+                        if (over)
+                        {
+                            _atTable = true;
+                            ShowLostHand(UiText.LostHandBar, () => { if (lucifer) ResolveLucifer(); else ResolveBoss(); });
+                            return;
+                        }
+                        ShowLostHand(UiText.LostHandBar, sit);
+                        return;
+                    }
+                    if (lucifer) SitAtLucifer();
+                    else SitAtBoss();
+                    return;
+                }
+            }
+
+            ShowMap();
+            Curtain();
+            ShowPending(save.Pending);
+        }
+
+        private void ShowLostHand(string text, Action then)
+        {
+            ShowMap();
+            Curtain();
+            ShowPanel(new PanelCard(null, null, UiText.LostHandTitle, text, new[] { new PanelOption(UiText.PanelOn) }),
+                new Action[] { () => { ClosePanel(); then(); } });
+        }
+
+        /// <summary>The panel a saved run was waiting at.</summary>
+        private void ShowPending(string pending)
+        {
+            if (string.IsNullOrEmpty(pending))
+            {
+                if (_run.WardenRelicWaiting != null) ShowWardenRelic();
+                else if (!_nodeDone && _run.Current != null) Onward();
+                return;
+            }
+            if (pending.StartsWith("event:", StringComparison.Ordinal))
+            {
+                IFloorEvent offer = FloorEventDeck.Find(pending.Substring("event:".Length));
+                if (offer != null && offer.CanAppear(_run)) ShowOffer(offer);
+                else Onward();
+                return;
+            }
+            switch (pending)
+            {
+                case "chapter": ShowChapterOpening(); break;
+                case "treasure": ShowTreasure(); break;
+                case "market": ShowMarket(_run.OpenMarket(), null); break;
+                case "fire": ShowFire(); break;
+                case "gate": ShowGate(); break;
+                case "warden": ShowWardenRelic(); break;
+                case "loot": ShowLoot(); break;
+                case "lucifer": ShowLuciferCalls(); break;
+                default: Onward(); break;   // a match's end, the fire's answer: already done
+            }
+        }
+
+        /// <summary>The smoke tour's starting point (<see cref="FpsTour"/>): a run saved at Mammon's spoils, ready to be continued.</summary>
+        internal void PrepareTour(SinnerClass sinnerClass) => PrepareSave(sinnerClass, 1, "loot");
+
+        /// <summary>A save placed for the tour and the scene tests: Mammon's spoils ("loot"), a chapter's opening words ("chapter",
+        /// with <paramref name="chapter"/>) or Lucifer's call after Lilith ("lucifer").</summary>
+        internal void PrepareSave(SinnerClass sinnerClass, int chapter, string pending) =>
+            _archive?.SaveRun(PlacedSave(sinnerClass, _newSeed(), chapter, pending));
+
+        internal static ChapterSave PlacedSave(SinnerClass sinnerClass, int seed, int chapter, string pending)
+        {
+            ChapterJourney journey = ChapterJourney.Begin(sinnerClass, seed);
+            journey.Run.PayTribute();
+            if (pending != "chapter") journey.Run.LeaveBossTable(0);
+            ChapterSave save = journey.Capture();
+            save.Chapter = chapter;
+            save.NodeDone = true;
+            save.Pending = pending;
+            return save;
+        }
+
+        // ------------------------------------------------------------------ the log
+
+        private void Note(string text) => _log?.Note(text);
+
+        /// <summary>The run's diary is written as it stands (the game closing; a run that ended).</summary>
+        public void CloseLog()
+        {
+            if (_log == null || _logSink == null) return;
+            try { _logSink.Write(_log); }
+            catch (Exception) { /* a log never stops the game */ }
         }
 
         private void Curtain()
@@ -629,7 +1143,7 @@ namespace HellPoker.Presentation
                 Answer(_card.Selected);
                 return;
             }
-            if (_selected != null && _run.Choices.Contains(_selected)) Go(_selected);
+            if (_selected != null && _nodeDone && !_ended && _run.Choices.Contains(_selected)) Go(_selected);
         }
 
         public bool Back()
@@ -653,7 +1167,7 @@ namespace HellPoker.Presentation
 
         private void OnLanguageChanged()
         {
-            if (_run == null || !_visible || _atTable) return;
+            if (_journey == null || !_visible || _atTable) return;
             _map.Show(MapState());
         }
     }

@@ -319,6 +319,75 @@ Maç bonusu karşılaştırması (hepsi): +3 → %44.7 / 68.1 coin / eksik 29.7;
   oranlı, kapı başlangıç +%25; deneme sırada). Kodda kapı şimdilik `BossTable.LuciferGateMargin` = +100.
 - Bilinen: masada ante, pot, "Kazanç: en az" ve sonuç mesajları hâlâ yılla yazılıyor; sadece sayaç rakamsız (kullanıcıya soruldu).
 
+## Yedinci tur: Phase 2 tamamlandı — Bölüm 2-3, Lucifer finali, kayıt (2026-10-10)
+
+**Kural (kullanıcı):**
+- Keseler Köylü 90 / Soytarı 120 / Büyücü 150 / Kral 300. İblis: Masa 20 / 30 / 40, Bekçi 40 / 60 / 80 (B1 / B2 / B3); 1. kattaki
+  iblisin kesesi yarım. İblisin kesesi başlangıcının en çok 2 katı olur, fazlası kasaya gider (`HousePurseCapPercent` 200).
+- Şeytan yenilince **Ganimet**: rastgele 3 emanet ya da 30 coin (emanet yeri doluysa değiş). Lucifer'den sonra yok.
+- Boss masasında yıl yok: ante, pot, kazanç / kayıp satırı, artırma ve sonuç **barın yüzdesi** (`TablePresenter.BarMode`). Katlar coin'le,
+  demo masası aynı.
+- Ateş: "karıştır + ilk el ante'siz" yerine **Ateşte dinlen**: bar %10 kısa başlar (`ChapterRun.RestBarPercent`).
+- **Bölüm 2 — Belial'in Sahnesi:** 10 kat (K1 masa, K6 hazine +25, K10 ateş), bekçi K4'ten, en çok 2, her başlangıç şeridinden
+  ulaşılır; Kara Pazar K3'ten. Ante 5 (+1 / 3 el), fiyatlar ×1.2, haraç = başlangıç + 75. Bekçi **Sahte Peygamber**: her elde açık
+  kartlarından biri yalan (Büyücü görür). Olaylar: Yalancı Tanık (15 coin, bir iblis kartını gör, %25 yalan), Gösteri (kasa kart
+  açmaz, kazanç ×1.5, en çok ×3), Sahte Sikke (+40 coin, bar +150).
+- **Bölüm 3 — Lilith'in Gecesi:** 12 kat (K1 masa, K7 hazine +30, K12 ateş), ante 6, fiyatlar ×1.4, haraç = başlangıç + 90. Bekçi
+  **Gece Hemşiresi**: değiştirilen kartlardan biri kapalı gelir, showdown'da açılır. Olaylar: Gece Pazarlığı (+50, bar +200), Arzu (bir
+  emanetin lütfu ve laneti bölüm boyunca iki kat), Uykusuzluk (sonraki masa: 3 el ante'siz ve artırmasız).
+- **Lucifer:** Lilith'ten sonra ganimet yok, geçiş, doğrudan masası. Bahisleri bara oranlı. Bar başlangıcın %125'ini geçerse düşüş →
+  "DÜŞTÜN" (lanet). Bar boşalırsa "KURTULUŞ" + özet.
+- Bölümden bölüme kese, emanetler, şarj ve jokerler taşınır; susturma ve Arzu biter; her bölüm taze deste; her bölümü başlık açar.
+- Ayrı Phase 2 kaydı (`p2=1`, `phase2.save`), menüde Phase 2 DEVAM; yeni koşu eskisini lanetli sayar (onaylı). Ayrı rekorlar
+  (`p2r=1`, `phase2.records`) ve koşu günlüğü.
+
+**Kararlarım (belgede, kullanıcıya bildirildi):**
+- Kapı son sikkeyi almaz (`ChapterRun.TributePaid` = en çok kese − 1): yoksa tam haraç ödeyen oyuncu 0 coin'le 2. bölüme iniyor ve hemen
+  kaybediyordu. Eksik yine bara yazılır.
+- Gece Hemşiresi'nin hilesi Gece Örtüsü'nün ikonunu / adını kullanır (`NightNurseCheat`, AfterDraw). Mammon'un Tahsildar'ı eski
+  göstergesiyle (her el değil). Diğer bekçiler her el hile yapar (`WardenMalice` 1).
+- Uykusuzluk'un artırmasız elleri kaybedilirse ante iade edilir (ante'siz el).
+- El ortasında kapatılan Phase 2 eli açılışta kaybedilmiş sayılır (katta o elin bahsi, boss masasında demo'nun `ForfeitHand`'i).
+
+**Simülasyon** (sınıf başına 2000 koşu, aksi yazmıyorsa).
+
+Bölüm 1 katları (yeni varsayılanlar), kesesi boşalan:
+
+| Ayar | Köylü | Büyücü | Kral | Soytarı | Hepsi | Tam haraç | Masa eli |
+|---|---|---|---|---|---|---|---|
+| **Varsayılan** | %21.6 | %8.4 | %0.7 | %26.7 | %14.3 | %33.4 | 4.3 |
+| 1. kat iblisi 5 | %22.4 | %8.6 | %0.9 | %26.2 | | | |
+| Ante +1 / 5 el | %19.0 | %7.5 | %0.7 | %25.4 | | %33.7 | 4.6 |
+| Ante +1 / 8 el | %17.6 | %6.6 | %0.5 | %24.4 | | | 4.8 |
+
+- Hedef ortalaması tuttu (%10-25), ama **Köylü–Kral farkı 18-21 puan** (>15): sayıları kullanıcı seçecek. Tam haraç %33 (hedef 40-60),
+  masa 4.3 el (hedef 5-10). Varsayılanlar değiştirilmedi.
+
+Boss ödeme yüzdeleri (`BossSimulation`, hepsi):
+
+| Boss | Kazanç / kayıp % | El | Lanet / düşüş | |
+|---|---|---|---|---|
+| Mammon | 175 / 125 | ~17.5 | %11.1 | aynı kaldı |
+| Belial | 175 / 100 | 9.4 | %14.1 | |
+| Belial | **140 / 115** | 16.5 | %20.5 | seçildi |
+| Belial | 125 / 110 | 21.7 | %21.6 | |
+| Lilith | 175 / 75 | 13.9 | %14.0 | |
+| Lilith | **130 / 80** | 23.1 | %22.1 | seçildi (ruh çizgisi aynı) |
+| Lucifer | 150 / 100 | 10.4 | %66 | |
+| Lucifer | 120 / 55 | 18.6 | %50.5 | |
+| Lucifer | 100 / 45 | 26.9 | %45.7 | |
+| Lucifer | **110 / 45** | 22.6 | %43.1 | seçildi |
+| Lucifer | 115 / 40 | 22.5 | %36.1 | |
+
+Bütün koşu (`ChapterSimulation.WholeRun`, sınıf başına 1000 koşu, tasarımcı kuralı):
+- 2. bölümde kesesi boşalan **%59-76**, 3. bölümde %48-75: kapıdaki haraç keseyi ~1 coin'e indiriyor, 2. bölüm 1 coin'le başlıyor.
+- Lucifer'e ulaşan %7.2, kurtulan %4.4 (Köylü 8.5 / 4.6, Büyücü 7.9 / 4.8, Kral 10.9 / 7.1, Soytarı 1.6 / 1.0).
+- Koşu içinde bosslar: Mammon ~20-22 el / %8-11 lanet (Soytarı 12 / %19), Belial ~18-23 / %17-21 (Soytarı %29), Lilith ~29-33 / %14-19
+  (Soytarı %38), Lucifer ~26-29 el / %35-46 düşüş.
+- Deneme `HELLPOKER_REFILL=1` (her bölüm en az sınıfın başlangıç kesesiyle başlar): 2. bölümde kesesi boşalan Köylü %37.5, Büyücü %17.2,
+  Kral %3, Soytarı %38.8; Lucifer'e ulaşan / kurtulan hepsi %31.6 / %20 (Köylü 23.2 / 11.8, Büyücü 38.3 / 26.1, Kral 55.8 / 37.2,
+  Soytarı 9.1 / 4.9). **Uygulanmadı**: bölüm başı kese kuralı kullanıcının kararı.
+
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

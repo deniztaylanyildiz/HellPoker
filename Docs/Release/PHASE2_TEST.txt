@@ -1,47 +1,53 @@
-HELL POKER {VERSION} — PHASE 2 İLK TEST
+HELL POKER {VERSION} — PHASE 2 TESTİ (BÖLÜM 1-3 + LUCIFER)
 
-Bu build, demonun yanına Phase 2'nin ilk bölümünü ekler. Demo (YENİ OYUN / DEVAM ET) olduğu gibi duruyor.
-Phase 2'ye ana menüdeki turuncu "PHASE 2 TESTİ" düğmesinden girilir.
+Bu build, demonun yanına Phase 2'nin tamamını ekler. Demo (YENİ OYUN / DEVAM ET) olduğu gibi duruyor.
+Phase 2'ye ana menüdeki turuncu "PHASE 2 TESTİ" düğmesinden girilir; yarım kalan koşu "PHASE 2: DEVAM" ile sürer.
 
 NE VAR
-1. Sınıf seçimi (Köylü, Büyücü, Kral, Soytarı) → 1. Bölüm: Mammon'un Kasası.
-2. Harita: 8 kat, 6 şerit. 1. kattaki herhangi bir masadan başla, sonra yalnızca yanan (çerçeveli) düğümlere inebilirsin.
-   Düğümün üstüne gelince ne olduğu yazar. Fare ya da oklar + Enter.
-   - İblis masası (kartlar): 30 coinli bir iblis. Bir kese boşalana kadar oynanır, masadan kalkılmaz.
+1. Sınıf seçimi (Köylü, Büyücü, Kral, Soytarı) → 1. Bölüm: Mammon'un Kasası → 2. Bölüm: Belial'in Sahnesi →
+   3. Bölüm: Lilith'in Gecesi → Lucifer. Her bölümü bir başlık paneli açar.
+2. Harita: 6 şerit; 1. bölüm 8 kat, 2. bölüm 10, 3. bölüm 12. 1. kattaki herhangi bir masadan başla, sonra yalnızca yanan
+   (çerçeveli) düğümlere inebilirsin. Düğümün üstüne gelince ne olduğu yazar. Fare ya da oklar + Enter.
+   - İblis masası (kartlar): bir kese boşalana kadar oynanır, masadan kalkılmaz. İblisin kesesi 20 / 30 / 40 coin
+     (bölüme göre), 1. kattaki iblisinki yarım. Kesesi başlangıcının 2 katını geçemez, fazlası kasaya gider.
      İblisin kesesi boşalırsa düğüm geçilir. Senin kesen boşalırsa KOŞU BİTER.
-   - Bekçi (altın göz): Tahsildar, 60 coin ve hileleri. Kesesini boşaltırsan bir emanet.
-     Kazandığın her elde coin'inin %5'ini alır (en çok 5).
-   - Bir yabancı (kukuletalı): Araf Tefecisi, Mammon'un Defteri ya da Kumarbaz Hayalet. Kabul et ya da geç.
-     Kumarbaz'da kaybedersen sadece ortaya koyduğun yarı gider.
-   - Kara Pazar (terazi): lanetli emanetler (45 / 50 / 60), emanet atmak (25), İblisin Gözü (20),
-     Soytarı için joker ekle / çıkar (20). Hiçbir şey son coinini almaz.
-   - Hazine (5. kat): +20 coin.
-   - Araf Ateşi (8. kat): Mammon'un masası için bir lütuf: ilk hilesini boz / bir laneti sustur /
-     karıştır ve ilk el ante'siz (1 yıl).
-3. Katlarda ceza DEĞİŞMEZ, her şey coin'le oynanır. Başlangıç kesesi sınıfa göre: Köylü 30, Soytarı 40, Büyücü 50, Kral 100.
-   Ante 4 coin ve her 3 elde +1 (4, 4, 4, 5...); artırma 1 ante (değişten sonra 2), masada en çok 6 ante.
-   Kazanç en çok ×3 öder. Coin 0'ın altına inmez: ante'ye yetmezse kalanla all-in oynarsın.
-   İblisin adının altında kesesi ve ante yazar.
-4. Kapı: Mammon haraç alır: başlangıç kesen + 60 (Köylü 90, Soytarı 100, Büyücü 110, Kral 160).
-   Eksik her coin +5 yıl olarak cezana yazılır.
-5. Mammon'un masası: cezanın Mammon'a düşen payı (Köylü / Büyücü 1300, Kral 1600, Soytarı 1000 yıl; kapıdaki eksik de eklenir)
-   Mammon'un CAN BARIDIR. Sağ üstte sadece bar görünür, rakam yok. Kazandığın el barı kısaltır, kaybettiğin uzatır.
-   Bar biterse Mammon yenilir. Bar ruh çizgisine (başlangıcın 2 katı) ulaşırsa ruhun masaya gelir; ruhunu kaybedersen lanetlenirsin.
-   Sabit el sayısı yok.
-6. Mammon yenilince bölüm biter; bu test burada sona erer (2. bölüm henüz açık değil).
+   - Bekçi (altın göz): 40 / 60 / 80 coin. Kesesini boşaltırsan bir emanet.
+     Mammon'da Tahsildar (kazandığın elden pay alır), Belial'de Sahte Peygamber (her elde açık kartlarından biri yalan;
+     Büyücü yalanı görür), Lilith'te Gece Hemşiresi (değiştirdiğin kartlardan biri kapalı gelir, showdown'da açılır).
+   - Bir yabancı (kukuletalı): bölüme göre teklifler. Kabul et ya da geç.
+     Mammon: Araf Tefecisi, Mammon'un Defteri, Kumarbaz Hayalet.
+     Belial: Yalancı Tanık, Gösteri, Sahte Sikke.  Lilith: Gece Pazarlığı, Arzu, Uykusuzluk.
+   - Kara Pazar (terazi): lanetli emanetler, emanet atmak, İblisin Gözü, Soytarı için joker ekle / çıkar.
+     Fiyatlar 2. bölümde ×1.2, 3. bölümde ×1.4. Hiçbir şey son coinini almaz.
+   - Hazine: +20 / +25 / +30 coin.
+   - Araf Ateşi (son kat): şeytanın masası için bir lütuf: ilk hilesini boz / bir laneti sustur / ATEŞTE DİNLEN (bar %10 kısa başlar).
+3. Katlarda ceza DEĞİŞMEZ, her şey coin'le oynanır. Başlangıç kesesi: Köylü 90, Soytarı 120, Büyücü 150, Kral 300.
+   Ante 4 / 5 / 6 coin (bölüme göre) ve her 3 elde +1. Kazanç en çok ×3 öder. Coin 0'ın altına inmez.
+4. Kapı: şeytan haraç alır: başlangıç kesen + 60 / 75 / 90. Kapı SON COININI ALMAZ. Eksik her coin şeytanın barına yazılır.
+5. Şeytanın masası: cezanın o şeytana düşen payı onun CAN BARIDIR. Bu masada YIL YOK: ante, masadaki bahis, kazanç / kayıp
+   ve sonuç barın yüzdesiyle yazılır. Bar biterse şeytan yenilir; bar ruh çizgisine ulaşırsa ruhun masaya gelir.
+6. Mammon ve Belial yenilince GANİMET: 3 emanetten biri ya da 30 coin. Kese, emanetler, sınıf gücünün şarjı ve jokerler sonraki
+   bölüme taşınır; deste tazelenir.
+7. Lilith yenilince Lucifer çağırır. Barı boşalırsa KURTULUŞ. Bar başlangıcının %125'ini geçerse DÜŞTÜN (lanet).
+8. Koşu kaydedilir: her düğümde, her elden sonra, her panel seçiminde. El ortasında oyunu kapatırsan o el kaybedilmiş sayılır.
+   Koşu sürerken PHASE 2 TESTİ'ne basarsan önce sorar; onaylarsan eski koşu lanetli sayılır.
+9. Rekorlar ekranında ayrı bir Phase 2 satırı var. Koşu günlüğü (runs klasörü) Phase 2 koşularını da yazar.
 
-BİLİNEN EKSİKLER (bilerek)
-- Phase 2 koşusu KAYDEDİLMEZ: oyunu kapatırsan bölüm baştan başlar. (Menüye dönüp "PHASE 2: DEVAM" ile sürer.)
-- Koşu günlüğü (runs klasörü) Phase 2'yi yazmıyor; geri bildirimi aşağıdaki sorularla yaz.
-- Sadece 1. Bölüm var. Belial, Lilith ve Lucifer bölümleri yok.
+BİLİNEN SORUNLAR
+- 2. bölüm çok zor başlıyor: 1. bölümün kapısında haracı tam ödeyen oyuncu 2. bölüme genelde 1 coin'le iniyor (simülasyonda
+  2. bölümde kesesi boşalan %59-76). Bölüm başında kese desteği gerekip gerekmediği bu testten sonra karar verilecek.
+- Sınıflar arasında fark büyük: 1. bölümde kesesi boşalan Köylü ~%22, Kral ~%1 (simülasyon).
+- Gece Hemşiresi'nin hilesi Lilith'in Gece Örtüsü ikonunu ve adını kullanıyor.
+- Ödeme tablosu boss masasında şeytanın kendi çarpanlarını gösterir; barın yüzdesine çevrilmiş ödeme ayrıca yazmıyor.
 
 BAKMANI İSTEDİĞİM ŞEYLER
-- Haritada yol seçmek anlaşılır mı? Düğüm açıklamaları yeterli mi?
-- Kapıya kaç coin ile vardın? Haracı tam ödeyebildin mi? Kara Pazar'dan bir şey aldın mı?
-- Kesen boşaldı mı? Hangi katta, hangi sınıfla? Bir masa kaç el sürdü, uzun geldi mi?
-- Bekçi'ye (Tahsildar) gittin mi? Tahsildar'ın payı hissediliyor mu?
-- Araf Ateşi'nde hangisini seçtin, neden?
-- Mammon'un masası kaç el sürdü? Rakamsız bar anlaşılır mı, yoksa sayıyı görmek ister miydin?
+- Hangi bölüme kadar indin? Kesen nerede boşaldı, hangi sınıfla? 2. bölüme kaç coin'le başladın?
+- Bir masa kaç el sürdü, uzun geldi mi? İblis kesesinin üst sınırı hissediliyor mu?
+- Belial'in Sahte Peygamberi ve Lilith'in Gece Hemşiresi anlaşılır mı?
+- Ganimette ne seçtin, neden? Ateşte dinlenmek işe yaradı mı?
+- Boss masasında yüzdelerle oynamak anlaşılır mı, yoksa sayıyı görmek ister miydin?
+- Lucifer'e ulaştın mı? Kaç el sürdü, düştün mü?
+- Kapatıp DEVAM ile açtığında koşu kaldığın yerden sürdü mü?
 - Panellerdeki yazılar, butonlar okunuyor mu? Türkçe / İngilizce hata gördün mü?
 
 Klasör: {FOLDER}

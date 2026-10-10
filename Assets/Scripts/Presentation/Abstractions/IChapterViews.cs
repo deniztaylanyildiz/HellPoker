@@ -33,9 +33,17 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>What a node is, in words (its hover box).</summary>
         public Func<MapNode, string> Describe { get; }
 
+        /// <summary>The words by the gate under the last floor (the chapter's own gate).</summary>
+        public string GateLabel { get; }
+
+        /// <summary>The chapter (1-3): the map's backdrop.</summary>
+        public int Chapter { get; }
+
         public ChapterMapState(ChapterMap map, MapNode current, IReadOnlyCollection<MapNode> choices, MapNode selected, IReadOnlyList<MapNode> trail,
-            string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe)
+            string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe, string gateLabel = null, int chapter = 1)
         {
+            GateLabel = gateLabel ?? "";
+            Chapter = chapter;
             Map = map ?? throw new ArgumentNullException(nameof(map));
             Current = current;
             Choices = choices ?? Array.Empty<MapNode>();
@@ -149,16 +157,28 @@ namespace HellPoker.Presentation.Abstractions
     /// <summary>What the title menu needs of Phase 2's chapters.</summary>
     public interface IChapterSession
     {
-        /// <summary>A chapter run is going on (it can be gone back to).</summary>
+        /// <summary>A chapter run is going on in this session.</summary>
         bool HasRun { get; }
+
+        /// <summary>A run waits to be gone back to: in this session, or saved from an earlier one.</summary>
+        bool CanContinue { get; }
+
+        /// <summary>Phase 2's own records (for the records screen).</summary>
+        Core.Chapters.ChapterRecords Records { get; }
 
         bool IsVisible { get; }
 
         /// <summary>The music the chapter's screen plays now.</summary>
         string MusicId { get; }
 
-        /// <summary>A new chapter run as this class.</summary>
+        /// <summary>A new chapter run as this class (a run in progress is abandoned: it counts as damned).</summary>
         void Start(Core.Sinners.SinnerClass sinnerClass);
+
+        /// <summary>Back to the run that waits (the saved one is loaded; a hand left in the middle is lost).</summary>
+        void Continue();
+
+        /// <summary>The run that waits is given up (it counts as damned).</summary>
+        void Abandon();
 
         void Show();
 

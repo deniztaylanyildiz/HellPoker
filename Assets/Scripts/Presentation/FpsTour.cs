@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using System.Text;
+using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
 using HellPoker.Presentation.Views;
 using UnityEngine;
@@ -21,14 +22,41 @@ namespace HellPoker.Presentation
         private const float Window = 4f;
 
         private TablePresenter _table;
+        private ChapterPresenter _chapters;
         private readonly StringBuilder _report = new StringBuilder();
 
         public static bool IsRequested => System.Environment.GetCommandLineArgs().Contains(Argument);
 
-        public void Run(TablePresenter table)
+        /// <param name="chapters">Phase 2's chapters: the tour also crosses from the first chapter into the second (a run saved at
+        /// Mammon's spoils, continued from the menu). Null: the demo alone.</param>
+        public void Run(TablePresenter table, ChapterPresenter chapters = null)
         {
             _table = table;
+            _chapters = chapters;
             StartCoroutine(Tour());
+        }
+
+        /// <summary>Phase 2: Mammon's spoils → the second chapter's opening → Belial's map → the first imp's table.</summary>
+        private IEnumerator ChapterLeg()
+        {
+            _chapters.PrepareTour(Core.Sinners.SinnerRoster.Peasant);
+            Press("MenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+            Press("ChaptersContinueButton");
+            yield return new WaitForSecondsRealtime(Settle);
+            yield return Measure("p2 spoils");
+            int coins = _chapters.Panel?.Options.Count ?? 1;
+            Press("PanelOption" + (coins - 1));   // the coins
+            yield return new WaitForSecondsRealtime(Settle);
+            Debug.Log($"Hell Poker Phase 2 tour: chapter {_chapters.Journey?.Chapter}, demon {_chapters.Run?.Rules.BossId}, " +
+                      $"floors {_chapters.Run?.Map.FloorCount}, purse {_chapters.Run?.Purse.Coins}");
+            Press("PanelOption0");   // DESCEND
+            yield return new WaitForSecondsRealtime(Settle);
+            yield return Measure("p2 belial map");
+            MapNode first = _chapters.Run?.Choices.OrderBy(n => n.Lane).FirstOrDefault();
+            if (first != null) Press($"Node{first.Floor}_{first.Lane}");
+            yield return new WaitForSecondsRealtime(Settle);
+            yield return Measure("p2 belial imp");
         }
 
         private IEnumerator Tour()
@@ -62,6 +90,8 @@ namespace HellPoker.Presentation
             // The summoning scene (the dark falling, his words) plays out before the hall is measured.
             yield return new WaitForSecondsRealtime(Settle * 4);
             yield return Measure(_table.IsAtFinalTable ? "lucifer" : "lucifer (not summoned)");
+
+            if (_chapters != null) yield return ChapterLeg();
 
             Debug.Log(_report.ToString());
             Application.Quit();

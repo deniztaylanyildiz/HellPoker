@@ -96,9 +96,28 @@ namespace HellPoker.Core.Chapters
     /// </summary>
     public static class BossTable
     {
-        /// <summary>At Lucifer's table the player is cast down — the run is over — once the bar climbs past its start by this much
-        /// (his gate at the demo's table: summoned at 250, cast down above it; two of his antes of room).</summary>
-        public const int LuciferGateMargin = 100;
+        /// <summary>
+        /// Lucifer at the end of Phase 2: the demo's Morning Star (his temper, his cheats and The Fall, his payouts) but with his stakes
+        /// measured against the bar like every other demon's (his fixed 50 / 150 would never empty a bar of a thousand years).
+        /// </summary>
+        public static Dealer Lucifer
+        {
+            get
+            {
+                Dealer l = DealerRoster.Lucifer;
+                return new Dealer(l.Id, l.MaxDiscards, l.HouseCardsShown, l.Payouts, l.Betting, l.SoulThreshold, null, isFinalTable: true,
+                    l.MaliceMax, l.Cheats, l.BackfirePercent);
+            }
+        }
+
+        /// <summary>Lucifer's gate: past <see cref="ChapterRules.LuciferCastDownPercent"/> of its start the player is cast down — the run
+        /// is over.</summary>
+        public static int LuciferGate(int start, int castDownPercent = ChapterRules.LuciferCastDownPercent) =>
+            (int)((long)start * castDownPercent / 100);
+
+        /// <summary>The player is cast down from Lucifer's table: the bar climbed past the gate.</summary>
+        public static bool CastDown(int bar, int start, int castDownPercent = ChapterRules.LuciferCastDownPercent) =>
+            bar > LuciferGate(start, castDownPercent);
 
         /// <summary>The table's rules for a bar of <paramref name="bar"/> years (the template gives the rest: cheats, deck, events).</summary>
         public static GameRules Rules(GameRules template, Dealer boss, int bar, int soulLinePercent)
@@ -124,8 +143,5 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The demon is beaten (the bar is empty) or the soul burned: the table is over.</summary>
         public static bool IsOver(GamePhase phase) => phase == GamePhase.Absolved || phase == GamePhase.Damned;
-
-        /// <summary>Lucifer's gate for a bar that started at <paramref name="start"/>: above it the player is cast down.</summary>
-        public static int LuciferGate(int start) => start + LuciferGateMargin;
     }
 }

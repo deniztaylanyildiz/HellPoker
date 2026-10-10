@@ -51,7 +51,7 @@ namespace HellPoker.Presentation.Views
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
-        public void Show(RecordBook records, IReadOnlyList<DealerCard> dealers)
+        public void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
         {
             var lines = new List<string>
             {
@@ -73,6 +73,11 @@ namespace HellPoker.Presentation.Views
                 lines.Add(string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(dealer.Id)), records.AbsolutionsAt(dealer.Id)));
             lines.Add(string.Format(UiText.RecordsClassesFormat, string.Join(" · ",
                 HellPoker.Core.Sinners.SinnerRoster.All.Select(c => UiText.SinnerName(c.Id) + " " + records.AbsolutionsAs(c.Id)))));
+            if (!string.IsNullOrEmpty(phase2))
+            {
+                lines.Add("");
+                lines.Add(phase2);
+            }
             _body.text = string.Join("\n", lines);
 
             _canvas.enabled = true;

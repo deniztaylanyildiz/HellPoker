@@ -1,0 +1,5 @@
+# Hell Poker backdrop motion (Tools/ArtGen). Generated: do not edit.
+layer glint0 49 36 12 10 1 0 0 0
+layer glint1 423 36 12 10 1 0 0 6
+particles wisps 0 134 136 112 5
+particles wisps 344 0 136 246 7

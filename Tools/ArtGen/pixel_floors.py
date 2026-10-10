@@ -24,12 +24,20 @@ RAMP_SACK = [C.BONE_SHADE, C.BONE_DARK, C.BONE_MID]
 
 # ================================================================== THE COIN IMP — small, green, greedy, a sack of coins in his arms
 
-def imp(p):
+# An imp's colours: Mammon's green one; Belial's and Lilith's imps (pixel_floors2) are the same little devil in their own colours.
+MAMMON_IMP = {"skin": RAMP_GREEN, "dark": C.GREEN_DARK, "mid": C.GREEN, "light": C.GREEN_LIGHT, "wings": [C.BLOOD_DARK, C.BLOOD, C.CRIMSON],
+              "vein": C.BLOOD_DARK, "inner_ear": C.CRIMSON, "cheek": C.CRIMSON, "iris": C.AMBER, "accent": C.GREEN_DARK, "flash_map": None,
+              "extra": None}
+
+
+def imp(p, scheme=None):
+    s_ = scheme or MAMMON_IMP
     p = D.defaults(p)
     img = Img(SIZE, SIZE)
     ox, oy = p["dx"], p["dy"]
     hx, hy = ox, oy + p["hdy"]
     t = p["t"]
+    skin3 = s_["skin"][:3]
 
     # Little bat wings behind him, flapping a pixel.
     flap = 1 if t % 2 else 0
@@ -37,19 +45,19 @@ def imp(p):
         wing = img.m_poly([(48 + s * 12 + ox, 64 + oy), (48 + s * 38 + ox, 42 + oy - flap), (48 + s * 33 + ox, 55 + oy),
                            (48 + s * 41 + ox, 60 + oy - flap), (48 + s * 30 + ox, 67 + oy), (48 + s * 35 + ox, 76 + oy),
                            (48 + s * 17 + ox, 76 + oy)])
-        img.shade(wing, [C.BLOOD_DARK, C.BLOOD, C.CRIMSON], shadow=1)
-        img.paint(img.m_line([(48 + s * 15 + ox, 66 + oy), (48 + s * 36 + ox, 45 + oy - flap)], 1) & wing, C.BLOOD_DARK)
-        img.paint(img.m_line([(48 + s * 16 + ox, 70 + oy), (48 + s * 38 + ox, 61 + oy - flap)], 1) & wing, C.BLOOD_DARK)
+        img.shade(wing, s_["wings"], shadow=1)
+        img.paint(img.m_line([(48 + s * 15 + ox, 66 + oy), (48 + s * 36 + ox, 45 + oy - flap)], 1) & wing, s_["vein"])
+        img.paint(img.m_line([(48 + s * 16 + ox, 70 + oy), (48 + s * 38 + ox, 61 + oy - flap)], 1) & wing, s_["vein"])
 
     # A tail with an arrow tip, curling up on the right.
     tail = img.m_line(bezier([(60 + ox, 90 + oy), (80 + ox, 94), (88 + ox, 78), (80 + ox, 70)], 16), 2)
-    img.paint(tail, C.GREEN_DARK)
-    img.paint(img.m_poly([(76 + ox, 64), (84 + ox, 68), (78 + ox, 72)]), C.GREEN_DARK)
+    img.paint(tail, s_["dark"])
+    img.paint(img.m_poly([(76 + ox, 64), (84 + ox, 68), (78 + ox, 72)]), s_["dark"])
 
     # A pot belly.
     body = img.m_ellipse(48 + ox, 82 + oy, 17, 15)
-    img.shade(body, RAMP_GREEN[:3], shadow=2)
-    img.dither(img.m_ellipse(48 + ox, 86 + oy, 10, 8) & body, C.GREEN, C.GREEN_LIGHT, 0.35)
+    img.shade(body, skin3, shadow=2)
+    img.dither(img.m_ellipse(48 + ox, 86 + oy, 10, 8) & body, s_["mid"], s_["light"], 0.35)
 
     # The sack of coins, clutched in front; a coin or two spill out of the neck.
     sack = img.m_ellipse(48 + ox, 90 + oy, 14, 9) | img.m_poly([(41 + ox, 83 + oy), (55 + ox, 83 + oy), (52 + ox, 76 + oy), (44 + ox, 76 + oy)])
@@ -60,30 +68,32 @@ def imp(p):
     D.coin(img, 52 + ox, 73 + oy, edge=t % 4 == 3)
     for s in (-1, 1):   # little clawed hands round the sack
         hand = img.m_ellipse(48 + s * 13 + ox, 86 + oy, 3.5, 3)
-        img.shade(hand, RAMP_GREEN[:3], shadow=1)
+        img.shade(hand, skin3, shadow=1)
 
     # Big pointed ears, little horns, a round head.
     for s in (-1, 1):
         ear = img.m_poly([(48 + s * 12 + hx, 40 + hy), (48 + s * 33 + hx, 27 + hy), (48 + s * 20 + hx, 50 + hy)])
-        img.shade(ear, RAMP_GREEN[:3], shadow=1)
-        img.paint(img.m_line([(48 + s * 16 + hx, 42 + hy), (48 + s * 28 + hx, 31 + hy)], 1) & ear, C.CRIMSON)
+        img.shade(ear, skin3, shadow=1)
+        img.paint(img.m_line([(48 + s * 16 + hx, 42 + hy), (48 + s * 28 + hx, 31 + hy)], 1) & ear, s_["inner_ear"])
         horn = img.m_poly([(48 + s * 6 + hx, 35 + hy), (48 + s * 11 + hx, 24 + hy), (48 + s * 11 + hx, 36 + hy)])
         img.paint(horn, C.BONE_DARK)
         img.put(48 + s * 11 + hx, 24 + hy, C.BONE)
     head = img.m_ellipse(48 + hx, 47 + hy, 16, 14)
-    img.shade(head, RAMP_GREEN, shadow=2)
+    img.shade(head, s_["skin"], shadow=2)
     for cx in (37, 59):
-        img.dither(img.m_ellipse(cx + hx, 52 + hy, 3, 2), C.GREEN, C.CRIMSON, 0.5)
+        img.dither(img.m_ellipse(cx + hx, 52 + hy, 3, 2), s_["mid"], s_["cheek"], 0.5)
 
-    D.brows(img, 44 + hx, 52 + hx, 40 + hy, p["brows"], C.GREEN_DARK)
-    D.eye(img, 42 + hx, 45 + hy, p["eyes"], C.AMBER, p["glow"], inner_left=False, lid=C.GREEN_DARK)
-    D.eye(img, 54 + hx, 45 + hy, p["eyes"], C.AMBER, p["glow"], inner_left=True, lid=C.GREEN_DARK)
-    img.put(46 + hx, 50 + hy, C.GREEN_DARK)
-    img.put(50 + hx, 50 + hy, C.GREEN_DARK)
+    D.brows(img, 44 + hx, 52 + hx, 40 + hy, p["brows"], s_["dark"])
+    D.eye(img, 42 + hx, 45 + hy, p["eyes"], s_["iris"], p["glow"], inner_left=False, lid=s_["dark"])
+    D.eye(img, 54 + hx, 45 + hy, p["eyes"], s_["iris"], p["glow"], inner_left=True, lid=s_["dark"])
+    img.put(46 + hx, 50 + hy, s_["dark"])
+    img.put(50 + hx, 50 + hy, s_["dark"])
     kind = p["mouth"] if p["mouth"] != "rest" else "grin"
-    D.mouth(img, 48 + hx, 53 + hy, kind, width=12, teeth=C.BONE, lips=C.GREEN_DARK)
+    D.mouth(img, 48 + hx, 53 + hy, kind, width=12, teeth=C.BONE, lips=s_["dark"])
     if kind in ("grin", "laugh"):
         img.put(50 + hx, 54 + hy, C.GOLD_LIGHT)   # the one gold tooth
+    if s_["extra"]:
+        s_["extra"](img, p, hx, hy)
 
     if p["mouth"] == "laugh" or p["eyes"] == "squint":
         for i in range(3):
@@ -93,7 +103,7 @@ def imp(p):
         D.steam(img, 66 + hx, 30 + hy, (p["steam"] + 1) % 3)
     if p["sparkle"]:
         D.sparkle(img, 56 + hx, 43 + hy)
-    return D.finish(img, p, C.GREEN_DARK)
+    return D.finish(img, p, s_["accent"], flash_map=s_["flash_map"])
 
 
 # ================================================================== THE COLLECTOR — a deep hood, two golden eyes, the ledger and the chain

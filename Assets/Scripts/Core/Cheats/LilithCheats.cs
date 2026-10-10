@@ -29,6 +29,30 @@ namespace HellPoker.Core.Cheats
     }
 
     /// <summary>
+    /// The Night Nurse's veil (Phase 2, Lilith's warden; after the draw): one of the cards the player just drew comes to them in
+    /// the dark and is seen only at the showdown. It is the Night Veil (its id, its mark, its words), at the draw instead of the deal.
+    /// </summary>
+    public sealed class NightNurseCheat : ICheat
+    {
+        public string Id => CheatIds.NightVeil;
+        public CheatTier Tier => CheatTier.Minor;
+        public CheatTiming Timing => CheatTiming.AfterDraw;
+
+        public bool CanApply(CheatTable table) => Targets(table).Any();
+
+        public CheatResult Apply(CheatTable table)
+        {
+            int index = table.Pick(Targets(table));
+            if (index < 0) return CheatResult.Fizzled(Id);
+            table.Marks.HiddenFromPlayer.Add(table.PlayerHand[index]);
+            return new CheatResult(Id, CheatOutcome.Played, new[] { index });
+        }
+
+        private static IEnumerable<int> Targets(CheatTable table) =>
+            table.PlayerTargets(i => table.DrawnIndices.Contains(i) && !table.Marks.HiddenFromPlayer.Contains(table.PlayerHand[i]));
+    }
+
+    /// <summary>
     /// Thorn (minor, before the draw): a thorn in a card the player would want to throw back (one the House's logic would
     /// toss; any card for a made hand) — throwing it back costs a betting unit, at once.
     /// </summary>

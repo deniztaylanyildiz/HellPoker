@@ -15,12 +15,20 @@ namespace HellPoker.Core.Chapters
 
         public int Cap { get; }
 
-        public FloorPayoutTable(IPayoutInfo source, int cap)
+        /// <summary>A win pays this share of itself (Belial's Show: 150), never more than the capped multiplier's win.</summary>
+        public int WinPercent { get; }
+
+        public FloorPayoutTable(IPayoutInfo source, int cap, int winPercent = 100)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
             if (cap < 1) throw new ArgumentOutOfRangeException(nameof(cap));
+            if (winPercent <= 0) throw new ArgumentOutOfRangeException(nameof(winPercent));
             Cap = cap;
+            WinPercent = winPercent;
         }
+
+        private int Boosted(int win, int stake, int ante) =>
+            WinPercent == 100 ? win : Math.Min(Math.Max(win, Settlement(stake, ante, Cap)), (int)((long)win * WinPercent / 100));
 
         public bool IsAbsolution(HandCategory category) => false;
 
@@ -31,7 +39,7 @@ namespace HellPoker.Core.Chapters
         public int FoldPercentAfterDraw => 100;
 
         public int GetYearsForgiven(HandCategory playerCategory, int stake, int ante, int currentYears) =>
-            Math.Min(currentYears, Settlement(stake, ante, GetMultiplier(playerCategory)));
+            Math.Min(currentYears, Boosted(Settlement(stake, ante, GetMultiplier(playerCategory)), stake, ante));
 
         public int GetYearsAdded(HandCategory houseCategory, int stake, int ante, int surchargePercent = 100) =>
             Surcharged(Settlement(stake, ante, GetMultiplier(houseCategory)), surchargePercent);
@@ -42,7 +50,8 @@ namespace HellPoker.Core.Chapters
             return Surcharged(stake, surchargePercent);
         }
 
-        public int GetLeastYearsForgiven(int stake, int ante, int currentYears) => Math.Min(currentYears, Settlement(stake, ante, 1));
+        public int GetLeastYearsForgiven(int stake, int ante, int currentYears) =>
+            Math.Min(currentYears, Boosted(Settlement(stake, ante, 1), stake, ante));
 
         public int GetLeastYearsAdded(int stake, int ante, int surchargePercent = 100) => Surcharged(Settlement(stake, ante, 1), surchargePercent);
 

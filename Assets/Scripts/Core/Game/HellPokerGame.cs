@@ -137,6 +137,22 @@ namespace HellPoker.Core.Game
 
         private bool _limitedHand;
 
+        /// <summary>Phase 2's floors: the player may not raise (Insomnia's free hands); false at every table.</summary>
+        public bool RaiseForbidden { get; set; }
+
+        /// <summary>Phase 2's floors: a House card shows a false face (a card out of the deck) until the showdown — a lying witness's
+        /// word, as False Face does. False when no hand is in play or the deck has no card to lie with.</summary>
+        public bool ShowFalseFace(int index, IRandomSource random)
+        {
+            if (!InPlay || index < 0 || index >= Hand.Size || random == null) return false;
+            Card real = HouseHand[index];
+            Card[] faces = _deck.Remaining.Where(c => !c.IsJoker && !c.Equals(real)).ToArray();
+            if (faces.Length == 0) return false;
+            _cheats.Marks.FakeHouseIndex = index;
+            _cheats.Marks.FakeHouseFace = faces[random.Next(faces.Length)];
+            return true;
+        }
+
         private StakeScale Stakes => StakesOverride ?? Rules.Stakes;
 
         /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
@@ -497,6 +513,12 @@ namespace HellPoker.Core.Game
             if (action == BetAction.Call)
             {
                 reason = "There is nothing to call.";
+                return false;
+            }
+
+            if (action == BetAction.Raise && RaiseForbidden)
+            {
+                reason = "No raising on this hand.";
                 return false;
             }
 

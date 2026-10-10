@@ -114,7 +114,7 @@ namespace HellPoker.Presentation
             ChapterPanelView chapterPanel = ChapterPanelView.Create(transform, UiArt.Dealers);
             _chapterPresenter = new ChapterPresenter(chapterMap, chapterPanel, () =>
                 {
-                    UiArt.Salons.Preload(new[] { Core.Chapters.ChapterCast.ImpId, Core.Chapters.ChapterCast.CollectorId });
+                    UiArt.Salons.Preload(Core.Chapters.ChapterCast.All);
                     TableView chapterTableView = TableView.Create(transform, UiArt.Dealers, UiArt.Salons);
                     chapterTableView.name = "ChapterTableCanvas";
                     chapterTableView.Audio = audio;
@@ -122,7 +122,7 @@ namespace HellPoker.Presentation
                     var presenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), chapterTableView,
                         settings, audio: audio);
                     return (presenter, chapterTableView);
-                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh());
+                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs);
 
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter);
@@ -134,7 +134,7 @@ namespace HellPoker.Presentation
             if (Debug.isDebugBuild)
                 FpsCounter.Create(transform);
             if (FpsTour.IsRequested)
-                gameObject.AddComponent<FpsTour>().Run(_tablePresenter);
+                gameObject.AddComponent<FpsTour>().Run(_tablePresenter, _chapterPresenter);
         }
 
         /// <summary>
@@ -192,6 +192,7 @@ namespace HellPoker.Presentation
         private void OnDestroy()
         {
             _tablePresenter?.CloseLog();   // a run still going is written as it stands
+            _chapterPresenter?.CloseLog();
             UiFactory.ButtonClicked = null;   // the scene's sound goes with it
             _menuPresenter?.Dispose();
             _chapterPresenter?.Dispose();   // and the chapter's table with it

@@ -32,9 +32,12 @@ namespace HellPoker.Core.Tests
         private sealed class FakeChapters : IChapterSession
         {
             public bool HasRun { get; set; }
+            public bool CanContinue => HasRun;
+            public Core.Chapters.ChapterRecords Records { get; } = new Core.Chapters.ChapterRecords();
             public bool IsVisible { get; private set; }
             public string MusicId => "mammon";
             public SinnerClass Started { get; private set; }
+            public int Abandoned { get; private set; }
             public event Action MenuRequested;
             public event Action NewRunRequested;
 
@@ -42,6 +45,14 @@ namespace HellPoker.Core.Tests
             {
                 Started = sinnerClass;
                 HasRun = true;
+            }
+
+            public void Continue() => IsVisible = true;
+
+            public void Abandon()
+            {
+                Abandoned++;
+                HasRun = false;
             }
 
             public void Show() => IsVisible = true;
@@ -101,17 +112,33 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void AChapterRunInProgressIsGoneBackTo()
+        public void AChapterRunInProgressIsGoneBackTo_ByContinue()
         {
             _menu.PressChapters();
             _sinners.Choose(0);
             _chapters.AskForMenu();
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsFalse(_chapters.IsVisible);
-            Assert.IsTrue(_menu.ChaptersInProgress);
-            _menu.PressChapters();
+            Assert.IsTrue(_menu.ChaptersInProgress, "CONTINUE shows while a run waits");
+            _menu.PressChaptersContinue();
             Assert.IsTrue(_chapters.IsVisible, "straight back to the chapter, no class choice");
             Assert.IsFalse(_sinners.IsVisible);
+        }
+
+        [Test]
+        public void ANewChapterRunOverOneInProgressAsksFirst_AndAbandonsIt()
+        {
+            _menu.PressChapters();
+            _sinners.Choose(0);
+            _chapters.AskForMenu();
+            _sinners.Hide();
+            _menu.PressChapters();
+            Assert.IsTrue(_menu.IsConfirming, "a run waits: the player is asked first");
+            Assert.IsFalse(_sinners.IsVisible);
+            Assert.AreEqual(0, _chapters.Abandoned);
+            _menu.Confirm();
+            Assert.AreEqual(1, _chapters.Abandoned, "the old run is given up (damned)");
+            Assert.IsTrue(_sinners.IsVisible, "then the class choice");
         }
 
         [Test]

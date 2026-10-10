@@ -259,7 +259,7 @@ namespace HellPoker.Core.Tests
         {
             var purse = new CoinPurse(100);
             FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
-                DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"), freeFirstAnte: true);
+                DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"), new TableMarks(freeHands: 1));
             FloorHand hand = PlayOne(table);
             Assert.AreEqual(-(5 + 5 * 2) + 5, hand.Coins);
         }
@@ -271,9 +271,10 @@ namespace HellPoker.Core.Tests
             FloorTable table = FloorTable.Warden(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
                 DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
             FloorHand hand = PlayOne(table);
-            Assert.AreEqual(15, hand.Coins);
-            Assert.AreEqual(5, hand.Toll, "a twentieth of the purse after the win (5.75), rounded down");
-            Assert.AreEqual(110, purse.Coins);
+            Assert.IsTrue(hand.Won);
+            Assert.That(hand.Coins, Is.InRange(10, 15), "a royal flush pays 15 (the warden's cheat — a tithe — may take one ante off it)");
+            Assert.AreEqual((100 + hand.Coins) * 5 / 100, hand.Toll, "a twentieth of the purse after the win, rounded down");
+            Assert.AreEqual(100 + hand.Coins - hand.Toll, purse.Coins);
         }
 
         [Test]
@@ -288,7 +289,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheImpsEyeShowsAnImpsCardFromTheDeal()
         {
-            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(100), 1, impsEye: true);
+            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(100), 1, marks: new TableMarks(openCard: true));
             table.Deal();
             Assert.AreEqual(1, table.Game.HouseCardsRevealed);
             FloorTable plain = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(100), 1);
@@ -371,7 +372,7 @@ namespace HellPoker.Core.Tests
             ChapterRules rules = ChapterRules.For(1);
             var expected = new Dictionary<string, (int start, int tribute)>
             {
-                { Sinners.Peasant.ClassId, (30, 90) }, { Jester.ClassId, (40, 100) }, { Warlock.ClassId, (50, 110) }, { King.ClassId, (100, 160) }
+                { Sinners.Peasant.ClassId, (90, 150) }, { Jester.ClassId, (120, 180) }, { Warlock.ClassId, (150, 210) }, { King.ClassId, (300, 360) }
             };
             foreach (var pair in expected)
             {
@@ -379,8 +380,8 @@ namespace HellPoker.Core.Tests
                 Assert.AreEqual(pair.Value.start, run.Purse.Coins, pair.Key);
                 Assert.AreEqual(pair.Value.tribute, run.Tribute, pair.Key);
             }
-            Assert.AreEqual(30 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
-            Assert.AreEqual(100 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
+            Assert.AreEqual(90 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
+            Assert.AreEqual(300 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
             Assert.AreEqual(13, Run(13).Purse.Coins, "a later chapter starts with what is left, nothing added");
         }
 
@@ -410,13 +411,14 @@ namespace HellPoker.Core.Tests
             Assert.Throws<InvalidOperationException>(() => run.MoveTo(far));
         }
 
-        [TestCase(90, 0, 0)]
-        [TestCase(110, 0, 20)]
-        [TestCase(50, 200, 0)]
-        [TestCase(0, 450, 0)]
+        [TestCase(151, 0, 1)]
+        [TestCase(150, 5, 1)]
+        [TestCase(170, 0, 20)]
+        [TestCase(50, 505, 1)]
+        [TestCase(0, 750, 0)]
         public void AtTheGateEveryMissingCoinIsFiveYears(int coins, int years, int left)
         {
-            ChapterRun run = Run(coins);   // a Peasant: the tribute is 30 + 60
+            ChapterRun run = Run(coins);   // a Peasant: the tribute is 90 + 60
             GateToll toll = run.PayTribute();
             Assert.AreEqual(years, toll.YearsForMissing);
             Assert.AreEqual(1000 + years, run.Years);
@@ -427,9 +429,9 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheUsurersYearsAreWrittenOnAtTheGate()
         {
-            ChapterRun run = Run(70);
+            ChapterRun run = Run(130);
             new PurgatoryUsurer().Accept(run);
-            Assert.AreEqual(100, run.Purse.Coins);
+            Assert.AreEqual(160, run.Purse.Coins);
             Assert.AreEqual(1000, run.Years, "the floors never touch the sentence");
             GateToll toll = run.PayTribute();
             Assert.AreEqual(100, toll.YearsOwed);
@@ -440,7 +442,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void MammonsLedgerStrikesYearsNowAndWritesMoreBack()
         {
-            ChapterRun run = Run(90);
+            ChapterRun run = Run(151);
             new MammonsLedger().Accept(run);
             Assert.AreEqual(800, run.Years);
             run.PayTribute();
@@ -574,7 +576,7 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the fire
 
         [Test]
-        public void TheFireBreaksACheatSilencesACurseOrShufflesForAFreeAnteAtTheDemonsTable()
+        public void TheFireBreaksACheatSilencesACurseOrLetsThePlayerRest()
         {
             ChapterRun run = Run();
             Stand(run, new MapNode(7, 0, NodeKind.PurgatoryFire, Array.Empty<int>()));
@@ -589,9 +591,12 @@ namespace HellPoker.Core.Tests
             run.EndChapter();
             Assert.AreEqual(1, run.Effects.CombinedRelics.MaliceExtraPerHand, "until the chapter ends");
 
-            Assert.IsTrue(run.TendFire(FireChoice.ShuffleAndFreeAnte));
-            Assert.IsTrue(run.FreeBossAnte);
-            Assert.IsEmpty(run.DeckCards);
+            Assert.IsTrue(run.TendFire(FireChoice.RestByTheFire));
+            Assert.IsTrue(run.RestedByTheFire);
+            HellPokerGame game = run.OpenBossTable(GameRules.Default);
+            Assert.AreEqual(900, game.Years, "the bar starts a tenth shorter (1000 → 900)");
+            Assert.AreEqual(900, run.BossBarStart);
+            Assert.IsFalse(run.RestedByTheFire, "once");
         }
 
         private sealed class FakeCheat : Cheats.ICheat
@@ -641,7 +646,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1300, run.Years, "the Peasant's share at Mammon");
             run.Purse.Add(50 - run.Purse.Coins);
             run.PayTribute();
-            Assert.AreEqual(1300 + 40 * 5, run.Years, "40 coins short of 90: +200 on his bar");
+            Assert.AreEqual(1300 + 101 * 5, run.Years, "50 coins pay 49 of 150 (the last coin stays): +505 on his bar");
+            Assert.AreEqual(1, run.Purse.Coins, "the gate never takes the last coin");
         }
 
         [Test]

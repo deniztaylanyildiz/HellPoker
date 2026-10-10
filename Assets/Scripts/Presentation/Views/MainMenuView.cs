@@ -47,8 +47,9 @@ namespace HellPoker.Presentation.Views
         public event Action RecordsPressed;
         public event Action ChaptersPressed;
 
+        public event Action ChaptersContinuePressed;
         private GameObject _chaptersButton;
-        private bool _chaptersInProgress;
+        private GameObject _chaptersContinueButton;
         public event Action Confirmed;
         public event Action LanguagePressed;
 
@@ -126,10 +127,12 @@ namespace HellPoker.Presentation.Views
             GameObject howToPlay = CreateMenuButton(buttons, "HowToPlayButton", () => UiText.HowToPlay, ButtonSkin.Ash, () => ShowRules(true));
             GameObject records = CreateMenuButton(buttons, "RecordsButton", () => UiText.Records, ButtonSkin.Ash, () => RecordsPressed?.Invoke());
             // Phase 2's chapters, apart from the demo's run (a test build's door to them).
-            _chaptersButton = CreateMenuButton(buttons, "ChaptersButton", () => _chaptersInProgress ? UiText.ChaptersContinueButton : UiText.ChaptersButton,
-                ButtonSkin.Ember, () => ChaptersPressed?.Invoke());
+            _chaptersContinueButton = CreateMenuButton(buttons, "ChaptersContinueButton", () => UiText.ChaptersContinueButton, ButtonSkin.Ember,
+                () => ChaptersContinuePressed?.Invoke());
+            _chaptersContinueButton.SetActive(false);
+            _chaptersButton = CreateMenuButton(buttons, "ChaptersButton", () => UiText.ChaptersButton, ButtonSkin.Ember, () => ChaptersPressed?.Invoke());
             _chaptersButton.SetActive(false);
-            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, _chaptersButton, settings, howToPlay, records });
+            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, _chaptersContinueButton, _chaptersButton, settings, howToPlay, records });
             _quitButton = CreateMenuButton(buttons, "QuitButton", () => UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
             LayOut();
 
@@ -315,9 +318,8 @@ namespace HellPoker.Presentation.Views
 
         public void SetChapters(bool available, bool inProgress)
         {
-            _chaptersInProgress = inProgress;
             _chaptersButton.SetActive(available);
-            _chaptersButton.GetComponentInChildren<LocalizedText>()?.Rewrite();
+            _chaptersContinueButton.SetActive(available && inProgress);
             LayOut();
         }
 
