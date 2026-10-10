@@ -22,8 +22,8 @@ namespace HellPoker.Core.Chapters
     /// <summary>
     /// The black market (a floor node): three cursed relics the run does not carry, the stronger gift the dearer (45 / 50 / 60
     /// coins in the first chapter), and services — throw a relic away (25), the imp's eye (20: one of the next imp's cards plays face
-    /// up), a joker in or out of the Jester's deck (20). Prices grow with the chapter (<see cref="ChapterRules.PricePercent"/>). Nothing is bought on debt, and nothing
-    /// turns coins into years.
+    /// up), a joker in or out of the Jester's deck (20). Prices grow with the chapter (<see cref="ChapterRules.PricePercent"/>). Nothing takes the purse's last coin,
+    /// and nothing turns coins into years.
     /// </summary>
     public sealed class BlackMarket
     {
@@ -66,6 +66,9 @@ namespace HellPoker.Core.Chapters
             _relics = byStrength.Select((id, i) => new RelicOffer(id, run.Rules.Price(RelicPrices[skip + i]))).ToList();
         }
 
+        /// <summary>A price the purse can pay and still hold a coin: an empty purse would lose at the next table before a card is dealt.</summary>
+        public bool CanPay(int price) => _run.Purse.Coins > price;
+
         public int DropPrice => _run.Rules.Price(DropRelicPrice);
         public int EyePrice => _run.Rules.Price(ImpsEyePrice);
         public int JokerServicePrice => _run.Rules.Price(JokerPrice);
@@ -73,7 +76,7 @@ namespace HellPoker.Core.Chapters
         public bool CanBuyRelic(string id)
         {
             int i = _relics.FindIndex(o => o.RelicId == id);
-            return i >= 0 && _run.Effects.CarriedOffered < RelicRoster.MaxCarried && _run.Purse.Coins >= _relics[i].Price;
+            return i >= 0 && _run.Effects.CarriedOffered < RelicRoster.MaxCarried && CanPay(_relics[i].Price);
         }
 
         public bool BuyRelic(string id)
@@ -88,7 +91,7 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
-        public bool CanDropRelic(string id) => _run.Effects.Relics.Contains(id) && !RelicRoster.IsReward(id) && _run.Purse.Coins >= DropPrice;
+        public bool CanDropRelic(string id) => _run.Effects.Relics.Contains(id) && !RelicRoster.IsReward(id) && CanPay(DropPrice);
 
         public bool DropRelic(string id)
         {
@@ -98,7 +101,7 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
-        public bool CanBuyImpsEye => !_run.ImpsEyeNext && _run.Purse.Coins >= EyePrice;
+        public bool CanBuyImpsEye => !_run.ImpsEyeNext && CanPay(EyePrice);
 
         /// <summary>One of the next imp's cards plays face up from the deal.</summary>
         public bool BuyImpsEye()
@@ -111,7 +114,7 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The Jester's deck: a joker in (+1) or out (−1; never below the start).</summary>
         public bool CanChangeJokers(int delta) =>
-            _run.Sinner.Class.StartingJokers > 0 && _run.Purse.Coins >= JokerServicePrice && (delta > 0 || _run.Sinner.Jokers > _run.Sinner.Class.StartingJokers);
+            _run.Sinner.Class.StartingJokers > 0 && CanPay(JokerServicePrice) && (delta > 0 || _run.Sinner.Jokers > _run.Sinner.Class.StartingJokers);
 
         public bool ChangeJokers(int delta)
         {

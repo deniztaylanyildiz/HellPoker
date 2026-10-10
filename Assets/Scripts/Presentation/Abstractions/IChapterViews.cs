@@ -24,7 +24,7 @@ namespace HellPoker.Presentation.Abstractions
         public string Title { get; }
         public string Prompt { get; }
 
-        /// <summary>The purse: below zero is a debt (red).</summary>
+        /// <summary>The purse (never below zero).</summary>
         public int Coins { get; }
 
         /// <summary>The side panel's lines under the purse (tribute, sentence, what is owed, the relics...).</summary>

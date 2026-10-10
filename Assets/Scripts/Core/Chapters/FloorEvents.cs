@@ -57,7 +57,8 @@ namespace HellPoker.Core.Chapters
         }
     }
 
-    /// <summary>The Gambler's Ghost: half the purse on one hand, nothing to raise. Never offered to a purse in debt.</summary>
+    /// <summary>The Gambler's Ghost: half the purse on one hand, nothing to raise; a loss costs that half and no more. Never offered
+    /// to a purse of less than two coins.</summary>
     public sealed class GamblerGhost : IFloorEvent
     {
         public string Id => FloorEventIds.GamblerGhost;

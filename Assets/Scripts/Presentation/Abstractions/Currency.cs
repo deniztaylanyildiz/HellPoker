@@ -5,7 +5,10 @@ namespace HellPoker.Presentation.Abstractions
     {
         Years,
 
-        /// <summary>The floors' coins: the counter may go below zero (a debt, shown red).</summary>
-        Coins
+        /// <summary>The floors' coins (never below zero: an empty purse ends the run).</summary>
+        Coins,
+
+        /// <summary>A chapter demon's health bar (Phase 2): the counter shows the bar alone, no number.</summary>
+        Bar
     }
 }

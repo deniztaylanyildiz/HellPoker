@@ -27,9 +27,9 @@ namespace HellPoker.Presentation.Ui
         public static string MapFloorFormat => L("FLOOR {0}", "KAT {0}");
         public static string MapCoinsLabel => L("COINS", "COIN");
         public static string MapTributeFormat => L("Tribute at the gate: {0}", "Kapıda haraç: {0}");
-        public static string MapYearsFormat => L("Sentence: {0} years", "Ceza: {0} yıl");
+        /// <summary>{0} the years of the run's share at the chapter's demon (his bar), {1} his name with its genitive, in a sentence.</summary>
+        public static string MapYearsFormat => L("{1} bar: {0} years", "{1} barı: {0} yıl");
         public static string MapOwedFormat => L("Owed at the gate: +{0} years", "Kapıda borç: +{0} yıl");
-        public static string MapDebtNoteFormat => L("In debt: each coin short is {0} years at the gate", "Borçtasın: kapıda eksik her coin {0} yıl");
         public static string MapPromptStart => L("Choose where to start.", "Nereden başlayacağını seç.");
         public static string MapPrompt => L("Choose your way down.", "Aşağı inen yolunu seç.");
         public static string MapKeysHint => L("Click a lit node  ·  arrows + Enter  ·  Esc menu", "Yanan düğüme tıkla  ·  oklar + Enter  ·  Esc menü");
@@ -51,13 +51,13 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        /// <summary>{0} hands, {1} wins needed, {2} the match bonus.</summary>
-        public static string NodeTableFormat => L("{0} hands against an imp, for coins. Win {1}: +{2} coins.",
-            "Bir iblise karşı {0} el, coin için. {1} el kazan: +{2} coin.");
+        /// <summary>{0} the imp's coins, {1} the first ante, {2} hands between the ante's steps.</summary>
+        public static string NodeTableFormat => L("An imp with {0} coins. Play until one purse is empty. Ante {1}, +1 every {2} hands.",
+            "{0} coinli bir iblis. Bir kese boşalana kadar oynanır. Ante {1}, her {2} elde +1.");
 
-        /// <summary>{0} hands, {1} wins needed, {2} the bonus, {3} his toll percent, {4} the toll's most a hand.</summary>
-        public static string NodeWardenFormat => L("{0} hands against the Collector and his cheats. Win {1}: +{2} coins and a relic. He takes {3}% of your coins from every hand you win (at most {4}).",
-            "Tahsildar'a ve hilelerine karşı {0} el. {1} el kazan: +{2} coin ve bir emanet. Kazandığın her elde coin'inin %{3} kadarını alır (en çok {4}).");
+        /// <summary>{0} his coins, {1} the first ante, {2} hands between the ante's steps, {3} his toll percent, {4} the toll's most a hand.</summary>
+        public static string NodeWardenFormat => L("The Collector, {0} coins and his cheats. Empty his purse: a relic. Ante {1}, +1 every {2} hands. He takes {3}% of your coins from every hand you win (at most {4}).",
+            "Tahsildar: {0} coin ve hileleri. Kesesini boşalt: bir emanet. Ante {1}, her {2} elde +1. Kazandığın her elde coin'inin %{3} kadarını alır (en çok {4}).");
         public static string NodeEvent => L("Someone waits here with an offer.", "Burada biri bir teklifle bekliyor.");
         public static string NodeMarket => L("Cursed relics and services, for coins.", "Lanetli emanetler ve hizmetler, coin karşılığı.");
         public static string NodeTreasureFormat => L("Coins between the bones: +{0}.", "Kemiklerin arasında coin: +{0}.");
@@ -69,27 +69,36 @@ namespace HellPoker.Presentation.Ui
         public static string PanelLeave => L("LEAVE", "AYRIL");
         public static string PanelDescend => L("DESCEND", "İN");
 
-        /// <summary>{0} floors, {1} the demon's name, {2} tribute, {3} years a missing coin, {4} the demon's hands, {5} coins to start.</summary>
+        /// <summary>{0} floors, {1} the demon's name, {2} tribute, {3} years a missing coin, {4} coins to start.</summary>
         public static string IntroFormat => L(
-            "{0} floors down to {1}'s table. On the floors you play for COINS: your sentence stays as it is.\n" +
-            "At the gate {1} takes a tribute of {2} coins. Every coin you lack — a debt too — is {3} years.\n" +
-            "Then {4} hands at his table, for YEARS.\n\nYou start with {5} coins.",
-            "{1} masasına {0} kat. Katlarda COIN için oynarsın: cezan olduğu gibi kalır.\n" +
-            "Kapıda {1} {2} coin haraç alır. Eksik her coin — borç da — {3} yıldır.\n" +
-            "Sonra masasında {4} el, YIL için.\n\n{5} coin ile başlarsın.");
+            "{0} floors down to {1}'s table. On the floors you play for COINS: your sentence stays as it is. " +
+            "If your purse empties at a table, the run is over.\n" +
+            "At the gate {1} takes a tribute of {2} coins. Every coin you lack is {3} years on his bar.\n" +
+            "Then his table: your share of the sentence is his health bar. Empty it to pass.\n\nYou start with {4} coins.",
+            "{1} masasına {0} kat. Katlarda COIN için oynarsın: cezan olduğu gibi kalır. " +
+            "Bir masada kesen boşalırsa koşu biter.\n" +
+            "Kapıda {1} {2} coin haraç alır. Eksik her coin barına {3} yıl ekler.\n" +
+            "Sonra masası: cezanın ona düşen payı onun can barıdır. Geçmek için boşalt.\n\n{4} coin ile başlarsın.");
 
         public static string TreasureTitle => L("TREASURE", "HAZİNE");
         public static string TreasureTextFormat => L("Coins scattered between the bones of the last ones who came this way.  +{0} coins.",
             "Bu yoldan son geçenlerin kemikleri arasına saçılmış coinler.  +{0} coin.");
         public static string TreasureTake => L("TAKE", "AL");
 
-        public static string MatchWonTitle => L("MATCH WON", "MAÇ KAZANILDI");
-        public static string MatchLostTitle => L("MATCH LOST", "MAÇ KAYBEDİLDİ");
+        public static string MatchWonTitle => L("ITS PURSE IS EMPTY", "KESESİ BOŞALDI");
 
-        /// <summary>{0} hands won, {1} hands played, {2} coins the hands brought (signed), {3} wins needed.</summary>
-        public static string MatchTextFormat => L("Hands won: {0} of {1} (needed {3}).\nThe hands: {2} coins.",
-            "Kazanılan el: {0}/{1} (gereken {3}).\nEller: {2} coin.");
-        public static string MatchBonusFormat => L("Match bonus: +{0} coins.", "Maç bonusu: +{0} coin.");
+        /// <summary>{0} hands played, {1} hands won, {2} coins the hands brought (signed).</summary>
+        public static string MatchTextFormat => L("Its purse ran dry. Hands played: {0}, won: {1}.\nThe hands: {2} coins.",
+            "Kesesi boşaldı. Oynanan el: {0}, kazanılan: {1}.\nEller: {2} coin.");
+        public static string GambleOverTitle => L("THE GHOST'S HAND", "HAYALETİN ELİ");
+
+        /// <summary>{0} coins the hand brought (signed).</summary>
+        public static string GambleTextFormat => L("One hand, played. {0} coins.", "Tek el oynandı. {0} coin.");
+        public static string PurseEmptyTitle => L("YOUR PURSE IS EMPTY", "KESEN BOŞALDI");
+
+        /// <summary>{0} who emptied it, {1} hands at that table.</summary>
+        public static string PurseEmptyTextFormat => L("{0} took your last coin (hands at its table: {1}). Without a coin there is no way down: the run is over, and you are damned.",
+            "{0} son coinini aldı (masasında oynanan el: {1}). Coinsiz aşağı inilmez: koşu bitti, lanetlendin.");
         public static string MatchTollFormat => L("The Collector's share: −{0} coins.", "Tahsildar'ın payı: −{0} coin.");
 
         /// <summary>{0} relic name, {1} gift, {2} curse.</summary>
@@ -127,7 +136,7 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>{0} jokers in the deck now.</summary>
         public static string MarketJokerDetailFormat => L("Your deck holds {0} jokers. Two in one hand lose it.", "Destende {0} joker var. Bir elde iki joker eli kaybettirir.");
-        public static string MarketNoCoins => L("Not enough coins. Nothing is sold on debt.", "Yeterli coin yok. Borçla satış yapılmaz.");
+        public static string MarketNoCoins => L("Not enough coins. Nothing here takes your last coin.", "Yeterli coin yok. Burada hiçbir şey son coinini almaz.");
         public static string MarketFull => L("You carry all the relics you may.", "Taşıyabileceğin kadar emanet taşıyorsun.");
         public static string MarketBoughtFormat => L("Bought: {0}.", "Alındı: {0}.");
         public static string MarketEyeWaits => L("An eye already waits for the next imp.", "Sıradaki iblis için zaten bir göz bekliyor.");
@@ -172,23 +181,20 @@ namespace HellPoker.Presentation.Ui
         public static string GatePaidFormat => L("Paid in full. {0} coins go on with you.", "Tamamı ödendi. {0} coin seninle devam eder.");
         public static string GateOwedFormat => L("The floors' bargains come due: +{0} years.", "Katlardaki pazarlıkların bedeli: +{0} yıl.");
 
-        /// <summary>{0} the sentence after, {1} the demon's hands.</summary>
-        public static string GateAfterFormat => L("You sit down with {0} years. {1} hands at his table.", "{0} yılla oturursun. Masasında {1} el.");
+        /// <summary>{0} the demon's bar as his table begins (years).</summary>
+        public static string GateAfterFormat => L("His bar: {0} years of your sentence. Empty it — or lose your soul trying.",
+            "Barı: cezandan {0} yıl. Boşalt — ya da bu uğurda ruhunu kaybet.");
         public static string GatePay => L("PAY AND SIT", "ÖDE VE OTUR");
 
         public static string ChapterDoneTitle => L("THE VAULT IS BEHIND YOU", "KASA ARKANDA KALDI");
 
-        /// <summary>{0} the demon, {1} hands, {2} the sentence, {3} coins carried on.</summary>
-        public static string ChapterDoneTextFormat => L("{0} lets you go after {1} hands.\nSentence: {2} years.\nCoins carried on: {3}.\n\nThe test ends here: the next chapter is not open yet.",
-            "{0} seni {1} elden sonra bırakıyor.\nCeza: {2} yıl.\nYanında kalan coin: {3}.\n\nTest burada bitiyor: sonraki bölüm henüz açık değil.");
+        /// <summary>{0} the demon, {1} hands, {2} coins carried on.</summary>
+        public static string ChapterDoneTextFormat => L("{0} is beaten: his bar emptied in {1} hands.\nCoins carried on: {2}.\n\nThe test ends here: the next chapter is not open yet.",
+            "{0} yenildi: barı {1} elde boşaldı.\nYanında kalan coin: {2}.\n\nTest burada bitiyor: sonraki bölüm henüz açık değil.");
         public static string ChapterDamnedTitle => L("DAMNED", "LANETLENDİN");
 
         /// <summary>{0} the demon.</summary>
         public static string ChapterDamnedTextFormat => L("Your soul burned away at {0}'s table. The run is over.", "Ruhun {0} masasında yanıp kül oldu. Koşu bitti.");
-        public static string ChapterFreeTitle => L("WILD BILL'S ESCAPE", "WILD BILL'İN KAÇIŞI");
-
-        /// <summary>{0} the demon.</summary>
-        public static string ChapterFreeTextFormat => L("The Dead Man's Hand at {0}'s table. You walk free.", "{0} masasında Ölü Adamın Eli. Özgürsün.");
         public static string ChapterNewRun => L("NEW RUN", "YENİ KOŞU");
 
         // ------------------------------------------------------------------ the floors' offers (events)
@@ -222,8 +228,8 @@ namespace HellPoker.Presentation.Ui
                     "\"{0} coin, dostum, hemen şimdi. Masasına oturduğunda Mammon cezana {1} yıl ekleyecek. Makul bir faiz. Cehennem için.\"");
                 case FloorEventIds.MammonsLedger: return L("\"I strike {0} years off your sentence now. At my table I write back {1}. Interest, you understand.\"",
                     "\"Cezandan şimdi {0} yıl siliyorum. Masamda {1} yıl geri yazarım. Faiz, anlarsın.\"");
-                default: return L("\"Half your purse — {0} coins — on one hand. No raises, no folding. Win and it pays up to ×{1}.\"",
-                    "\"Kesenin yarısı — {0} coin — tek bir ele. Artırma yok, çekilme yok. Kazanırsan ×{1} katına kadar öder.\"");
+                default: return L("\"Half your purse — {0} coins — on one hand. No raises, no folding. Lose and the half is mine; win and it pays up to ×{1}.\"",
+                    "\"Kesenin yarısı — {0} coin — tek bir ele. Artırma yok, çekilme yok. Kaybedersen yarısı benim; kazanırsan ×{1} katına kadar öder.\"");
             }
         }
 
@@ -253,23 +259,33 @@ namespace HellPoker.Presentation.Ui
         public static string CoinTollFormat => L("The Collector takes his share: −{0} coins.", "Tahsildar payını alıyor: −{0} coin.");
         public static string HouseFoldedCaption => L("GAVE UP", "ELİ BIRAKTI");
 
-        /// <summary>{0} this hand, {1} hands, {2} won, {3} needed.</summary>
-        public static string FloorSeatTitleFormat => L("Hand {0} of {1} · won {2}, need {3}", "El {0}/{1} · kazanılan {2}, gereken {3}");
+        /// <summary>{0} the imp's coins, {1} the ante now, {2} hands until it grows.</summary>
+        public static string FloorSeatTitleFormat => L("Purse {0} · ante {1} (+1 in {2})", "Kesesi {0} · ante {1} ({2} elde +1)");
 
-        /// <summary>{0} this hand, {1} the hands.</summary>
-        public static string BossSeatTitleFormat => L("Hand {0} of {1}", "El {0}/{1}");
+        /// <summary>{0} the stake (the gambler's ghost: no purse to show).</summary>
+        public static string GambleSeatTitleFormat => L("One hand · {0} coins", "Tek el · {0} coin");
 
-        /// <summary>{0} hands played, {1} the hands (the soul keeps the player past them).</summary>
-        public static string BossSoulSeatTitleFormat => L("Hand {0} · your soul holds you here", "El {0} · ruhun seni burada tutuyor");
+        /// <summary>{0} this hand.</summary>
+        public static string BossSeatTitleFormat => L("Hand {0} · empty his bar", "El {0} · barını boşalt");
+
+        /// <summary>{0} this hand (the soul is on the table).</summary>
+        public static string BossSoulSeatTitleFormat => L("Hand {0} · your soul is on the table", "El {0} · ruhun masada");
+
+        /// <summary>{0} the demon's name with its genitive ("MAMMON'S" / "MAMMON'UN"): the counter's label over the health bar.</summary>
+        public static string BarLabelFormat => L("{0} BAR", "{0} BARI");
+
+        /// <summary>The end of the bar the counter fills toward (no number).</summary>
+        public static string BarSoulLine => L("Your soul at the end", "Sonunda ruhun");
+
+        /// <summary>{0} the demon's name with its genitive, in a sentence ("Mammon's" / "Mammon'un").</summary>
+        public static string BossBeatenFormat => L("{0} bar is empty. He is beaten.", "{0} barı boşaldı. Yenildi.");
+
+        /// <summary>{0} the demon's name with its genitive, in a sentence.</summary>
+        public static string BossDeadMansHandFormat => L("The Dead Man's Hand empties {0} bar at once. He is beaten.",
+            "Ölü Adamın Eli {0} barını bir anda boşalttı. Yenildi.");
         public static string ToTheMap => L("TO THE MAP", "HARİTAYA");
         public static string LeaveTheVault => L("LEAVE THE VAULT", "KASADAN ÇIK");
         public static string ChapterTheEnd => L("ON", "DEVAM");
-
-        /// <summary>{0} the demon's name.</summary>
-        public static string BossSoulHoldsFormat => L("Your soul is on the table: {0} does not let you go.", "Ruhun masada: {0} seni bırakmıyor.");
-
-        /// <summary>{0} the demon's name.</summary>
-        public static string BossDoneFormat => L("The last hand is played. {0} lets you go.", "Son el oynandı. {0} seni bırakıyor.");
 
         // ------------------------------------------------------------------ the faces of the floors
 

@@ -15,7 +15,7 @@ namespace HellPoker.Presentation.Views
     /// side, the vault's gate under them. The paths are drawn pixel by pixel into one texture (dotted; the trail walked in gold,
     /// the ways open from here in amber). The nodes are 16×16 icons in 20×20 frames: the ones the player may step to blink their frame,
     /// the keyboard's pick is framed in ember, the trail is lit, the rest of the map is dimmed. Hovering a node tells what waits there.
-    /// The side panel on the left: the chapter, the purse (a debt in red), the tribute, the sentence, the relics; MENU at the bottom.
+    /// The side panel on the left: the chapter, the purse, the tribute, the sentence, the relics; MENU at the bottom.
     /// </summary>
     public sealed class ChapterMapView : MonoBehaviour, IChapterMapView
     {
@@ -154,7 +154,6 @@ namespace HellPoker.Presentation.Views
 
             _title.text = state.Title;
             _coins.text = state.Coins.ToString();
-            _coins.color = state.Coins < 0 ? Palette.Hell : Palette.GoldLight;
             _lines.text = string.Join("\n", state.Lines);
             _prompt.text = state.Prompt;
             Sprite[] icons = UiArt.Strip(NodeIcons, IconSize);

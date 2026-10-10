@@ -134,7 +134,7 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Holds the next updates back for a moment, to let a reveal sink in.</summary>
         void Pause(float seconds);
 
-        /// <summary>What the counter and the ante count: years (every demon's table) or coins (a floor's table; a debt shows red).</summary>
+        /// <summary>What the counter and the ante count: years (every demon's table) or coins (a floor's table).</summary>
         void SetCurrency(Currency currency);
     }
 }

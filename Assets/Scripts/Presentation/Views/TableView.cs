@@ -561,7 +561,7 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _currency = currency;
-                _sentence.SetCoins(currency == Currency.Coins);
+                _sentence.SetNumberHidden(currency == Currency.Bar);
             });
         }
     }

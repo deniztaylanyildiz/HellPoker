@@ -117,7 +117,7 @@ namespace HellPoker.Presentation
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
             EnsureTable();
             ChapterRules rules = ChapterRules.For(_chapter);
-            _run = new ChapterRun(rules, new Sinner(sinnerClass), new RunEffects(), sinnerClass.StartingYears, 0, _newSeed());
+            _run = ChapterRun.Begin(rules, new Sinner(sinnerClass), new RunEffects(), _newSeed());
             _trail.Clear();
             _match = null;
             _bossGame = null;
@@ -173,11 +173,10 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             var lines = new List<string>
             {
-                string.Format(UiText.MapTributeFormat, rules.Tribute),
-                string.Format(UiText.MapYearsFormat, _run.Years)
+                string.Format(UiText.MapTributeFormat, _run.Tribute),
+                string.Format(UiText.MapYearsFormat, _run.Years, UiText.GenitiveInSentence(UiText.Dealer(rules.BossId)))
             };
             if (_run.YearsOwed > 0) lines.Add(string.Format(UiText.MapOwedFormat, _run.YearsOwed));
-            if (_run.Purse.InDebt) lines.Add(string.Format(UiText.MapDebtNoteFormat, rules.YearsPerMissingCoin));
             lines.Add("");
             lines.Add(UiText.MapRelicsLabel);
             if (_run.Effects.Relics.Count == 0) lines.Add("  " + UiText.MapNoRelics);
@@ -198,9 +197,9 @@ namespace HellPoker.Presentation
             string what;
             switch (node.Kind)
             {
-                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, rules.TableHands, rules.TableWinsNeeded, rules.TableBonus); break;
+                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, rules.ImpCoins, rules.Ante, rules.AnteStepHands); break;
                 case NodeKind.Warden:
-                    what = string.Format(UiText.NodeWardenFormat, rules.WardenHands, rules.WardenWinsNeeded, rules.WardenBonus, rules.WardenTollPercent,
+                    what = string.Format(UiText.NodeWardenFormat, rules.WardenCoins, rules.Ante, rules.AnteStepHands, rules.WardenTollPercent,
                         rules.WardenTollMax);
                     break;
                 case NodeKind.Event: what = UiText.NodeEvent; break;
@@ -296,7 +295,7 @@ namespace HellPoker.Presentation
         {
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
-            string text = string.Format(UiText.IntroFormat, rules.Floors, boss, rules.Tribute, rules.YearsPerMissingCoin, rules.BossHands, _run.Purse.Coins);
+            string text = string.Format(UiText.IntroFormat, rules.Floors, boss, _run.Tribute, rules.YearsPerMissingCoin, _run.Purse.Coins);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, string.Format(UiText.ChapterTitleFormat, rules.Number, UiText.ChapterName(rules.Number)),
                 text, new[] { new PanelOption(UiText.PanelDescend) }), new Action[] { () => { ClosePanel(); ShowMap(); } });
         }
@@ -465,33 +464,47 @@ namespace HellPoker.Presentation
             FloorTable match = _match;
             bool gamble = match == _run.PendingGamble;
             int relicsBefore = _run.Effects.Relics.Count;
-            int coinsBefore = _run.Purse.Coins;
             _run.FinishTable(match);
-            int bonus = _run.Purse.Coins - coinsBefore;
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
             _match = null;
             _atTable = false;
             _tableView.SetVisible(false);
             ShowMap();
             Curtain();
-            ShowMatchEnd(match, gamble, bonus, given);
+            if (_run.PurseEmptied) ShowPurseEmptied(match);
+            else ShowMatchEnd(match, gamble, given);
         }
 
-        private void ShowMatchEnd(FloorTable match, bool gamble, int bonus, string relicGiven)
+        private void ShowMatchEnd(FloorTable match, bool gamble, string relicGiven)
         {
             string house = ChapterCast.HouseOf(match, _run.Rules);
-            string title = match.MatchWon ? UiText.MatchWonTitle : UiText.MatchLostTitle;
+            string title = gamble ? UiText.GambleOverTitle : UiText.MatchWonTitle;
             var lines = new List<string>
             {
-                string.Format(UiText.MatchTextFormat, match.Wins, match.HandsPlayed, Signed(match.Coins), match.WinsNeeded)
+                gamble ? string.Format(UiText.GambleTextFormat, Signed(match.Coins))
+                    : string.Format(UiText.MatchTextFormat, match.HandsPlayed, match.Wins, Signed(match.Coins))
             };
             if (match.TollTaken > 0) lines.Add(string.Format(UiText.MatchTollFormat, match.TollTaken));
-            if (!gamble && bonus > 0) lines.Add(string.Format(UiText.MatchBonusFormat, bonus));
             if (relicGiven != null)
                 lines.Add(string.Format(UiText.MatchRelicFormat, UiText.RelicName(relicGiven), UiText.RelicGift(relicGiven), UiText.RelicCurse(relicGiven)));
             lines.Add(string.Format(UiText.MatchPurseFormat, _run.Purse.Coins));
             ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, title, string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) }),
                 new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } });
+        }
+
+        /// <summary>The player's purse went empty at a floor's table: the run is over (damned).</summary>
+        private void ShowPurseEmptied(FloorTable match)
+        {
+            string house = ChapterCast.HouseOf(match, _run.Rules);
+            string text = string.Format(UiText.PurseEmptyTextFormat, UiText.NameInSentence(UiText.Dealer(house)), match.HandsPlayed);
+            _ended = true;
+            ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, UiText.PurseEmptyTitle, text,
+                    new[] { new PanelOption(UiText.ChapterNewRun), new PanelOption(UiText.Menu, isLeave: true) }),
+                new Action[]
+                {
+                    () => { ClosePanel(); NewRunRequested?.Invoke(); },
+                    () => { ClosePanel(); _run = null; MenuRequested?.Invoke(); }
+                });
         }
 
         private static string Signed(int coins) => coins > 0 ? "+" + coins : coins < 0 ? "−" + (-coins) : "0";
@@ -521,13 +534,14 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             int coins = _run.Purse.Coins;
-            int missing = Math.Max(0, rules.Tribute - coins);
-            int after = _run.Years + rules.TributeYears(coins) + _run.YearsOwed;
-            var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, rules.Tribute, coins) };
-            lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing, rules.TributeYears(coins))
-                : string.Format(UiText.GatePaidFormat, coins - rules.Tribute));
+            int tribute = _run.Tribute;
+            int missing = Math.Max(0, tribute - coins);
+            int after = _run.Years + _run.TributeYears(coins) + _run.YearsOwed;
+            var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, tribute, coins) };
+            lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing, _run.TributeYears(coins))
+                : string.Format(UiText.GatePaidFormat, coins - tribute));
             if (_run.YearsOwed > 0) lines.Add(string.Format(UiText.GateOwedFormat, _run.YearsOwed));
-            lines.Add(string.Format(UiText.GateAfterFormat, after, rules.BossHands));
+            lines.Add(string.Format(UiText.GateAfterFormat, after));
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle, string.Join("\n", lines),
                 new[] { new PanelOption(UiText.GatePay) }), new Action[] { SitWithTheDemon });
         }
@@ -550,21 +564,16 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             string title, text;
-            _run.LeaveBossTable(game.Years);   // the sentence as the demon's table left it (the side panel shows it)
+            _run.LeaveBossTable(game.Years);   // the bar as the demon's table left it: empty when he is beaten
             if (game.Phase == GamePhase.Damned)
             {
                 title = UiText.ChapterDamnedTitle;
                 text = string.Format(UiText.ChapterDamnedTextFormat, boss);
             }
-            else if (game.Phase == GamePhase.Absolved)
-            {
-                title = UiText.ChapterFreeTitle;
-                text = string.Format(UiText.ChapterFreeTextFormat, boss);
-            }
             else
             {
                 title = UiText.ChapterDoneTitle;
-                text = string.Format(UiText.ChapterDoneTextFormat, boss, game.RoundNumber, _run.Years, _run.Purse.Coins);
+                text = string.Format(UiText.ChapterDoneTextFormat, boss, game.RoundNumber, _run.Purse.Coins);
             }
             _run.EndChapter();
             _ended = true;

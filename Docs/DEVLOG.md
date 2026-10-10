@@ -2910,3 +2910,54 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   OKUBENI / GERI_BILDIRIM / PHASE2_TEST. Zip'ten `-fpstour` (demo YENİ OYUN → Mammon / Belial / Lilith masaları → Lucifer): çıkış 0,
   Player.log'da uyarı / hata yok, ~60 FPS. Not: duman turu PHASE 2 TESTİ düğmesine basmıyor; bölüm akışı PlayMode'da sınanıyor.
 - Commit: "Phase 2: Bölüm 1 oynanabilir test".
+
+### Katlar: sikkesi biten kaybeder (aynı gün)
+- İstek: borç kalksın, kese 0'ın altına inmesin; masada kese boşalırsa koşu biter ("Kesen boşaldı", lanet). Ante'ye yetmeyen all-in.
+  Sınıfa göre başlangıç kesesi (Köylü 30, Soytarı 40, Büyücü 50, Kral 100), bölüm başı +20 kalksın. İblisin kesesi (Masa 30, Bekçi 60;
+  B2 40 / 80, B3 50 / 100), isim altında görünsün; el sınırı ve maç bonusu kalksın, masa bir kese boşalana kadar; ante her 3 elde +1;
+  masadan kalkmak yok. Haraç = başlangıç kesesi + 60 / 75 / 90. Simülasyon: kesesi boşalan %10-20, tam haraç %40-60, masa 6-10 el;
+  tutmazsa önce iblis kesesi, sonra ante hızı; Köylü'nün ölümü çok yüksekse söyle. Demo'ya dokunma, commit yok. Sonra build.
+- Core: `CoinPurse` (0'ın altına inmez, `Add` gerçekte oynayanı döner), `FloorTable` (iblisin `HousePurse`'ü, bitiş = bir kese boş,
+  `PlayerBroke` / `HouseBroke`, `AnteNow` / `HandsToNextAnte`; el, kaybeden kesenin içindekinden fazlasını almaz), `ChapterRules`
+  (`ImpCoins`, `WardenCoins`, `AnteAt`, `AnteStepHands`, `TributeOverStart`, `StartingCoinsFor`, `TributeFor`; tuning için `With(...)`,
+  `WithStartPercent`), `ChapterRun` (`Begin`, `Tribute`, `TributeYears`, `PurseEmptied`; bonus yok), `BlackMarket.CanPay` (son sikkeyi
+  almaz). Demo'ya iki kanca (varsayılan null, davranış aynı): `HellPokerGame.StakesOverride`, `StakeLimit`.
+- Sunum: "KESEN BOŞALDI" paneli (YENİ KOŞU / MENÜ), iblis masasında isim altında "Kesesi 30 · ante 4 (3 elde +1)", maç sonu "KESESİ
+  BOŞALDI", Kumarbaz'ın tek eli için ayrı başlık, metinlerde borç yok. Demo'nun sayacındaki kırmızı borç gösterimi geri alındı
+  (`SentenceView` demo hâline döndü; `TableView.SetCurrency` sadece ante metnini değiştiriyor).
+- Kararlarım (belgede): Kara Pazar son sikkeyi almaz; Kumarbaz'da kayıp ortaya konan yarıyla sınırlı; Tahsildar'ın payı kasaya gider;
+  Phase 2 kayıt / rekor yazmadığı için "lanet" şimdilik sadece `ChapterRun.PurseEmptied`.
+- Testler: `ChapterTests` (kese 0'ın altına inmez, iblisin kesesiyle sınırlı ödeme, all-in, iblis kesesine göre tavan, ante artışı,
+  sınıf keseleri / haraç, boş kese koşuyu bitirir, Kumarbaz'ın kaybı, Pazar son sikkeyi almaz), `ChapterPresenterTests` (kesesi boşalan
+  iblis, koşuyu bitiren boş kese paneli, kapıda eksik sikke). EditMode 871 geçti (+2 explicit), PlayMode 29 geçti (+4 explicit), 0 hata.
+  `ChapterScreenshots` güncellendi (tur iblisleri 1 sikkeyle oturtuyor; `HELLPOKER_SHOT_BROKE=1` ile gerçek kese).
+- **Simülasyon** (tablo `PHASE2_CHAPTERS.md`, beşinci tur): varsayılanla kesesi boşalan **%48.5** (Köylü %59.9, Büyücü %44.9, Kral %20.7,
+  Soytarı %68.5), tam haraç %46.4, masa 6.4 / Bekçi 10.7 el. İblis kesesi (5'e kadar) ve ante hızı hedefe indirmiyor (en iyi %34).
+  Asıl düğme başlangıç kesesi: ×3 + iblis 20 / 40 → %18.5 ölüm, %48 tam haraç (ama sınıf farkı sürüyor: Köylü %25.6, Kral %2.4).
+  **Varsayılanlar değiştirilmedi** — başlangıç keseleri kullanıcının kararı.
+- Bulgu: sadece pas geçen, kart değiştirmeyen tur oyuncusu tek iblise 130 elde 2100 sikke kaybetti: iblisin kesesinin üst sınırı yok,
+  kazandıkça büyüyor (tavan iki keseden küçüğüne bağlı). Simülasyonun oyuncusunda masa ort. 6-7 el.
+- Build: `Builds/HellPoker-1.1.0-phase2-win64.zip` (37 367 519 bayt), zip'ten `-fpstour`: çıkış 0, Player.log temiz.
+- Açık: başlangıç keseleri / sınıf farkı; iblisin kesesine üst sınır gerekir mi.
+
+### Bosslar: şeytanların can barı (aynı gün)
+- İstek: ceza bosslara bölünsün (sınıf × boss tablosu, 20 / 30 / 34 / 16); boss masasında o bosstaki pay şeytanın can barı, yıl ve rakam
+  yok; kazanç kısaltır, kayıp uzatır, 0'da şeytan yenilir; haraç eksiği masa başlamadan bara; sabit el sayısı ve Lilith sonrası son hüküm
+  kalksın; ruh çizgisi barın başlangıcına oranla (×2 / ×1.75 / ×1.5); Lucifer bugünkü kurallarıyla, düşüş koşuyu bitirir. Simülasyon:
+  sınıf başına el sayısı ve boss başına lanet; hedef Mammon 15-25 el, lanet %10-20; tutmazsa ödeme yüzdesi. Demo'ya dokunma, commit yok.
+- Core: `BossBar.cs` — `BossShares` (tablo), `ScaledPayoutTable` (kazanç / kayıp yüzdesi), `BossTable` (`Rules`: bar = başlangıç cezası,
+  ruh çizgisi bar × yüzde, son 250 ve Lucifer kapısı yok; `Create`, `IsOver`, `LuciferGate`). `ChapterRules`: `BossHands` yerine
+  `SoulLinePercent`, `BossWinPercent / BossLossPercent` (`WithBossPayouts`; Mammon 175 / 125). `ChapterRun`: `Begin` payı alır,
+  `OpenBossTable` barla kurar, `BossBarStart`, `BossTableOver(phase)`, `BossBeaten`. Demo koduna dokunulmadı (yeni kanca yok).
+- Sunum: `Currency.Bar` → sayaç rakamsız (`SentenceView.SetNumberHidden`), etiket "MAMMON'S BAR" / "MAMMON'UN BARI", çizgi "Sonunda
+  ruhun"; isim altında "El 3 · barını boşalt" / "ruhun masada"; bar bitince "Mammon'un barı boşaldı. Yenildi." (Ölü Adamın Eli'yle
+  ayrı metin), düğme KASADAN ÇIK; bölüm sonu "yenildi: barı N elde boşaldı". Haritada "Mammon'un barı: 1300 yıl", kapıda bar.
+  Wild Bill paneli kalktı (Ölü Adamın Eli bossu yenmek sayılır).
+- Testler: `ChapterTests` (+5: pay tablosu, haraç bara, boss masası kuralları, bar boşalınca yenilme, ölçekli ödeme), presenter testi
+  (bar modu, etiket, ruh çizgisi). EditMode 876 geçti (+3 explicit), PlayMode 29 geçti (+4 explicit). Ekran görüntüsü: Mammon masasında
+  sadece bar.
+- Simülasyon (`BossSimulation`, tablo `PHASE2_CHAPTERS.md` altıncı tur): 100 / 100'de Mammon 54 el / %17 lanet, Belial 34 / %25,
+  Lilith 35 / %47, Lucifer %93 düşüş. **Mammon 175 / 125 uygulandı: 17.5 el, %11.1.** Belial / Lilith için boss başına deneme ve bara
+  oranlı Lucifer denemesi bellek azlığı yüzünden Claude Code tarafından durduruldu; kullanıcı isteyince yeniden çalıştırılacak.
+- Açık (kullanıcıya): Lucifer'in sabit bahisleriyle bar bitmiyor (kapı payı +%100'de bile %82 düşüş) — bahis bara oranlı mı olsun?
+  Masadaki diğer yıl sayıları (ante, pot, sonuç) da gizlensin mi? Belial / Lilith yüzdeleri. Phase 2 build'i bu turdan sonra alınmadı.

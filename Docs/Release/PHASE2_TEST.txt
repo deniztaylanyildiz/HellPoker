@@ -7,20 +7,28 @@ NE VAR
 1. Sınıf seçimi (Köylü, Büyücü, Kral, Soytarı) → 1. Bölüm: Mammon'un Kasası.
 2. Harita: 8 kat, 6 şerit. 1. kattaki herhangi bir masadan başla, sonra yalnızca yanan (çerçeveli) düğümlere inebilirsin.
    Düğümün üstüne gelince ne olduğu yazar. Fare ya da oklar + Enter.
-   - İblis masası (kartlar): 3 el, COIN için. 2 el kazanırsan +5 coin.
-   - Bekçi (altın göz): Tahsildar'a karşı 5 el, hileleriyle. 3 el kazanırsan +15 coin ve bir emanet.
+   - İblis masası (kartlar): 30 coinli bir iblis. Bir kese boşalana kadar oynanır, masadan kalkılmaz.
+     İblisin kesesi boşalırsa düğüm geçilir. Senin kesen boşalırsa KOŞU BİTER.
+   - Bekçi (altın göz): Tahsildar, 60 coin ve hileleri. Kesesini boşaltırsan bir emanet.
      Kazandığın her elde coin'inin %5'ini alır (en çok 5).
    - Bir yabancı (kukuletalı): Araf Tefecisi, Mammon'un Defteri ya da Kumarbaz Hayalet. Kabul et ya da geç.
+     Kumarbaz'da kaybedersen sadece ortaya koyduğun yarı gider.
    - Kara Pazar (terazi): lanetli emanetler (45 / 50 / 60), emanet atmak (25), İblisin Gözü (20),
-     Soytarı için joker ekle / çıkar (20). Borçla bir şey alınmaz.
+     Soytarı için joker ekle / çıkar (20). Hiçbir şey son coinini almaz.
    - Hazine (5. kat): +20 coin.
    - Araf Ateşi (8. kat): Mammon'un masası için bir lütuf: ilk hilesini boz / bir laneti sustur /
      karıştır ve ilk el ante'siz (1 yıl).
-3. Katlarda ceza DEĞİŞMEZ, her şey coin'le oynanır. Ante 4 coin, artırma 4 (değişten sonra 8), masada en çok 24.
-   Kazanç en çok ×3 öder. Coin eksiye düşebilir (borç, kırmızı görünür).
-4. Kapı: Mammon 70 coin haraç alır. Eksik her coin (borç dahil) +5 yıl olarak cezana yazılır.
-5. Mammon'un masası: 8 el, YIL için (demodaki kurallar). Ruhun masadaysa 8 elden sonra da bırakmaz.
-6. 8 elden sonra bölüm biter; bu test burada sona erer (2. bölüm henüz açık değil).
+3. Katlarda ceza DEĞİŞMEZ, her şey coin'le oynanır. Başlangıç kesesi sınıfa göre: Köylü 30, Soytarı 40, Büyücü 50, Kral 100.
+   Ante 4 coin ve her 3 elde +1 (4, 4, 4, 5...); artırma 1 ante (değişten sonra 2), masada en çok 6 ante.
+   Kazanç en çok ×3 öder. Coin 0'ın altına inmez: ante'ye yetmezse kalanla all-in oynarsın.
+   İblisin adının altında kesesi ve ante yazar.
+4. Kapı: Mammon haraç alır: başlangıç kesen + 60 (Köylü 90, Soytarı 100, Büyücü 110, Kral 160).
+   Eksik her coin +5 yıl olarak cezana yazılır.
+5. Mammon'un masası: cezanın Mammon'a düşen payı (Köylü / Büyücü 1300, Kral 1600, Soytarı 1000 yıl; kapıdaki eksik de eklenir)
+   Mammon'un CAN BARIDIR. Sağ üstte sadece bar görünür, rakam yok. Kazandığın el barı kısaltır, kaybettiğin uzatır.
+   Bar biterse Mammon yenilir. Bar ruh çizgisine (başlangıcın 2 katı) ulaşırsa ruhun masaya gelir; ruhunu kaybedersen lanetlenirsin.
+   Sabit el sayısı yok.
+6. Mammon yenilince bölüm biter; bu test burada sona erer (2. bölüm henüz açık değil).
 
 BİLİNEN EKSİKLER (bilerek)
 - Phase 2 koşusu KAYDEDİLMEZ: oyunu kapatırsan bölüm baştan başlar. (Menüye dönüp "PHASE 2: DEVAM" ile sürer.)
@@ -30,9 +38,10 @@ BİLİNEN EKSİKLER (bilerek)
 BAKMANI İSTEDİĞİM ŞEYLER
 - Haritada yol seçmek anlaşılır mı? Düğüm açıklamaları yeterli mi?
 - Kapıya kaç coin ile vardın? Haracı tam ödeyebildin mi? Kara Pazar'dan bir şey aldın mı?
+- Kesen boşaldı mı? Hangi katta, hangi sınıfla? Bir masa kaç el sürdü, uzun geldi mi?
 - Bekçi'ye (Tahsildar) gittin mi? Tahsildar'ın payı hissediliyor mu?
 - Araf Ateşi'nde hangisini seçtin, neden?
-- Mammon'un masasına kaç yılla oturdun, kaç yılla kalktın?
+- Mammon'un masası kaç el sürdü? Rakamsız bar anlaşılır mı, yoksa sayıyı görmek ister miydin?
 - Panellerdeki yazılar, butonlar okunuyor mu? Türkçe / İngilizce hata gördün mü?
 
 Klasör: {FOLDER}

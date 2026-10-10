@@ -117,15 +117,27 @@ namespace HellPoker.Core.Game
             ? Math.Max(0, Math.Min(SoulWorth - Effects.SoulSold, SoulWorth - Effects.SoulSold - (_ledger.Years - Rules.SoulThreshold)))
             : SoulWorth;
 
-        /// <summary>What may still be wagered this hand: the sentence normally, what is left of the soul when it is on the table.</summary>
-        private int Purse => IsSoulHand ? _handPurse : _ledger.Years;
+        /// <summary>What may still be wagered this hand: the sentence normally, what is left of the soul when it is on the table
+        /// (or the coins a floor's hand is limited to).</summary>
+        private int Purse => IsSoulHand || _limitedHand ? _handPurse : _ledger.Years;
 
         public int WagerLeft => Math.Max(0, Purse - CurrentStake);
 
         /// <summary>Bets are measured against the soul's worth once it is on the table, against the sentence otherwise.</summary>
         private int StakeBase => IsSoulAtStake ? SoulWorth : _ledger.Years;
 
-        private int AvailableForNextHand => IsSoulAtStake ? SoulRemaining : _ledger.Years;
+        private int AvailableForNextHand => Math.Min(IsSoulAtStake ? SoulRemaining : _ledger.Years, StakeLimit ?? int.MaxValue);
+
+        /// <summary>Phase 2's floors: the stakes of the coming hands in place of the rules' (the floor's ante grows); null at every table.</summary>
+        public StakeScale StakesOverride { get; set; }
+
+        /// <summary>Phase 2's floors: the most the coming hands may put on the table (the coins both purses hold: less is all in);
+        /// null at every table.</summary>
+        public int? StakeLimit { get; set; }
+
+        private bool _limitedHand;
+
+        private StakeScale Stakes => StakesOverride ?? Rules.Stakes;
 
         /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
         public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, Effects.CombinedRelics),
@@ -134,8 +146,8 @@ namespace HellPoker.Core.Game
         /// <summary>The ante for a sentence (or soul) of <paramref name="stakeBase"/>: units an event sets, or the rule's ante
         /// scaled by the event's and the relics' percents (rounded up, at least 1).</summary>
         private int AnteUnder(int stakeBase, HandModifier hand, RelicEffects relic) =>
-            hand.AnteUnits > 0 ? hand.AnteUnits * Rules.Stakes.UnitFor(stakeBase)
-                : Math.Max(1, (Rules.Stakes.AnteFor(stakeBase) * hand.AntePercent * relic.AntePercent / 100 + 99) / 100);
+            hand.AnteUnits > 0 ? hand.AnteUnits * Stakes.UnitFor(stakeBase)
+                : Math.Max(1, (Stakes.AnteFor(stakeBase) * hand.AntePercent * relic.AntePercent / 100 + 99) / 100);
 
         public int RaiseAmount
         {
@@ -217,14 +229,15 @@ namespace HellPoker.Core.Game
             IsSoulHand = IsSoulAtStake;
             int stakeBase = StakeBase;
             _handPurse = AvailableForNextHand;
-            Unit = Rules.Stakes.UnitFor(stakeBase);
+            _limitedHand = StakeLimit.HasValue;
+            Unit = Stakes.UnitFor(stakeBase);
             // An event's mark on this hand (Charon's half ante, the burning bridge's three units and no cap...).
             ThisHand = Effects.NextHand ?? HandModifier.None;
             Effects.NextHand = HandModifier.None;
             // The relics the run carries: their gifts and curses on every hand.
             Relic = Effects.CombinedRelics;
             Ante = Math.Min(AnteUnder(stakeBase, ThisHand, Relic), _handPurse);
-            TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
+            TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
             PrepareDeck();
             PlayerHand = _deck.DealHand();
@@ -1158,6 +1171,7 @@ namespace HellPoker.Core.Game
             _sealed = false;
             DecisionsSkipped = 0;
             _handPurse = 0;
+            _limitedHand = false;
             PlayerCardsRevealed = 0;
             HouseCardsRevealed = 0;
             _playerExchange = null;

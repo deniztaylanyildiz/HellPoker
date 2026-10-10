@@ -71,7 +71,8 @@ namespace HellPoker.Core.Chapters
         public RunEffects Effects { get; }
         public CoinPurse Purse { get; }
 
-        /// <summary>The sentence: carried through the floors untouched (but by an offer), on to the demon's table.</summary>
+        /// <summary>The run's share of the sentence at this chapter's demon (<see cref="BossShares"/>): carried through the floors untouched
+        /// (but by an offer), the tribute's years put on it at the gate; at the demon's table it is the demon's bar.</summary>
         public int Years { get; private set; }
 
         /// <summary>Years the floors' offers left owing: written on at the gate.</summary>
@@ -111,15 +112,34 @@ namespace HellPoker.Core.Chapters
 
         public bool AtGate => Current != null && Current.Floor == Map.FloorCount - 1;
 
-        /// <param name="coins">What is left from the last chapter; the chapter adds <see cref="ChapterRules.StartingCoins"/>.</param>
+        /// <summary>The coins the gate takes from this sinner: their class's starting purse and the chapter's
+        /// <see cref="ChapterRules.TributeOverStart"/>.</summary>
+        public int Tribute => Rules.TributeFor(Sinner.Id);
+
+        /// <summary>The years a tribute short by <paramref name="coins"/> costs at the gate.</summary>
+        public int TributeYears(int coins) => Math.Max(0, Tribute - coins) * Rules.YearsPerMissingCoin;
+
+        /// <summary>The player's purse went empty at a floor's table: the run is over (it counts as damnation).</summary>
+        public bool PurseEmptied { get; private set; }
+
+        /// <summary>A new run's first chapter: the purse the sinner's class starts with (<see cref="ChapterRules.StartingCoinsOf"/>) and
+        /// the class's share of the sentence at the chapter's demon (<see cref="BossShares"/>).</summary>
+        public static ChapterRun Begin(ChapterRules rules, Sinner sinner, RunEffects effects, int seed)
+        {
+            if (rules == null) throw new ArgumentNullException(nameof(rules));
+            return new ChapterRun(rules, sinner, effects, BossShares.For(sinner?.Id, rules.BossId), rules.StartingCoinsOf(sinner?.Id), seed);
+        }
+
+        /// <param name="coins">The purse the chapter starts with: a new run's class purse, or what is left from the last chapter.</param>
         public ChapterRun(ChapterRules rules, Sinner sinner, RunEffects effects, int years, int coins, int seed, IReadOnlyList<Card> deck = null)
         {
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             Sinner = sinner ?? throw new ArgumentNullException(nameof(sinner));
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
             if (years <= 0) throw new ArgumentOutOfRangeException(nameof(years));
+            if (coins < 0) throw new ArgumentOutOfRangeException(nameof(coins));
             Years = years;
-            Purse = new CoinPurse(coins + rules.StartingCoins);
+            Purse = new CoinPurse(coins);
             _seed = seed;
             _nodeRandom = new SystemRandomSource(RandomSeeds.Derive(seed, NodeStream));
             Map = ChapterMap.Generate(rules, new SystemRandomSource(RandomSeeds.Derive(seed, MapStream)));
@@ -132,6 +152,7 @@ namespace HellPoker.Core.Chapters
         public void MoveTo(MapNode node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
+            if (PurseEmptied) throw new InvalidOperationException("The run is over: the purse is empty.");
             if (!Choices.Contains(node)) throw new InvalidOperationException($"{node} cannot be reached from here.");
             if (WardenRelicWaiting != null) throw new InvalidOperationException("The warden's relic waits for a choice.");
             Current = node;
@@ -151,22 +172,21 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>
-        /// The match is over: the deck goes on, and a match won pays its bonus (from outside the table's zero sum). A warden beaten
-        /// gives a relic too — or, when the run carries all it may, the relic waits (<see cref="WardenRelicWaiting"/>) for a swap or the coins.
+        /// The match is over: the deck goes on. The player's purse empty: the run is over (<see cref="PurseEmptied"/>). A warden beaten
+        /// gives a relic — or, when the run carries all it may, the relic waits (<see cref="WardenRelicWaiting"/>) for a swap or the coins.
         /// </summary>
         public void FinishTable(FloorTable table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (!table.IsOver) throw new InvalidOperationException("The match is not over.");
             DeckCards = table.DeckCards;
+            if (Purse.IsEmpty) PurseEmptied = true;
             if (table == PendingGamble)
             {
                 PendingGamble = null;
                 return;
             }
-            if (!table.MatchWon) return;
-            Purse.Add(table.IsWarden ? Rules.WardenBonus : Rules.TableBonus);
-            if (!table.IsWarden) return;
+            if (!table.MatchWon || !table.IsWarden) return;
 
             string relic = RandomRelicNotCarried();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
@@ -265,19 +285,20 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>
-        /// The gate: the tribute is paid from the purse; every coin missing — a debt included — is <see cref="ChapterRules.YearsPerMissingCoin"/>
+        /// The gate: the tribute (<see cref="Tribute"/>) is paid from the purse; every coin missing is <see cref="ChapterRules.YearsPerMissingCoin"/>
         /// years, and what the floors' offers left owing is written on too. What is left of the purse goes on to the next chapter.
         /// </summary>
         public GateToll PayTribute()
         {
             int before = Purse.Coins;
-            int missing = Math.Max(0, Rules.Tribute - before);
-            int paid = Math.Max(0, Math.Min(Rules.Tribute, before));
+            int tribute = Tribute;
+            int missing = Math.Max(0, tribute - before);
+            int paid = Math.Min(tribute, before);
             int yearsForMissing = missing * Rules.YearsPerMissingCoin;
             Years += yearsForMissing + YearsOwed;
             int owed = YearsOwed;
             YearsOwed = 0;
-            Purse.Add(-before + Math.Max(0, before - Rules.Tribute));
+            Purse.Add(-paid);
             return new GateToll(before, paid, missing, yearsForMissing, owed, Years, Purse.Coins);
         }
 
@@ -292,37 +313,42 @@ namespace HellPoker.Core.Chapters
         /// <summary>A free ante at the demon's table is the smallest there is: one year (a hand needs an ante on the table).</summary>
         public const int FreeAntePercent = 1;
 
+        /// <summary>The demon's bar as the table began (the soul line is measured from it); 0 before the table.</summary>
+        public int BossBarStart { get; private set; }
+
         /// <summary>
-        /// The chapter's demon, for years, after the tribute: the run's sentence, sinner, relics and deck, the demon's own rules and
-        /// cheats behind the fire's breaker (when chosen), and the fire's free ante on the first hand. Played for
-        /// <see cref="ChapterRules.BossHands"/> hands (<see cref="BossTableOver"/>).
+        /// The chapter's demon after the tribute: the run's share of the sentence at this demon (<see cref="Years"/>, the tribute's years
+        /// on it) is the demon's bar (<see cref="BossTable"/>). The run's sinner, relics and deck, the demon's own temper and cheats behind
+        /// the fire's breaker (when chosen), the fire's free ante on the first hand. Played until the bar is empty or the soul burns.
         /// </summary>
-        /// <param name="table">The table's numbers (the sentence's stakes, the soul, the final stretch).</param>
+        /// <param name="table">The template of the table's numbers (the soul's worth, the cheats' pace, the deck).</param>
         public HellPokerGame OpenBossTable(GameRules table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
             Dealers.Dealer boss = Rules.Boss;
             Effects.SitAt(boss.Id, fresh: true);
-            HellPokerGame game = HellPokerGameFactory.Create(table, boss, RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner);
+            BossBarStart = Years;
+            HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Rules.BossWinPercent, Rules.BossLossPercent,
+                RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner);
             game.UseEffects(Effects);
-            game.TakeOver(Years, 0);
             if (DeckCards.Count > 0 && game.Phase == GamePhase.Betting) game.RestoreDeck(DeckCards);
             if (FreeBossAnte) Effects.NextHand = new HandModifier(antePercent: FreeAntePercent);
             FreeBossAnte = false;
             return game;
         }
 
-        /// <summary>
-        /// The demon lets the player go after the chapter's hands — unless the soul is on the table: then the hands go on until it is
-        /// won back (or burns away).
-        /// </summary>
-        public bool BossTableOver(int handsPlayed, bool soulAtStake) => handsPlayed >= Rules.BossHands && !soulAtStake;
+        /// <summary>The demon's table is over: the bar is empty (the demon beaten) or the soul burned.</summary>
+        public static bool BossTableOver(GamePhase phase) => BossTable.IsOver(phase);
 
-        /// <summary>The sentence the player leaves the demon's table with (it goes on to the next chapter; 0 when the Dead Man's Hand freed them).</summary>
+        /// <summary>The demon is beaten: the bar is empty.</summary>
+        public bool BossBeaten { get; private set; }
+
+        /// <summary>The bar the player leaves the demon's table with: 0 when the demon is beaten.</summary>
         public void LeaveBossTable(int years)
         {
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
             Years = years;
+            BossBeaten = years == 0;
         }
     }
 }

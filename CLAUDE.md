@@ -16,8 +16,16 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
 **Phase 2 (sürüyor):** tasarım `Docs/PHASE2_CHAPTERS.md`. 1. Bölüm (Mammon'un Kasası) oynanabilir: ana menüde **PHASE 2 TESTİ**
-(sınıf → harita → kat masaları coin'le → kapıda haraç → Mammon 8 el). Demo (YENİ OYUN / DEVAM) dokunulmadan duruyor. Phase 2 koşusu
+(sınıf → harita → kat masaları coin'le → kapıda haraç → Mammon'un can barı). Demo (YENİ OYUN / DEVAM) dokunulmadan duruyor. Phase 2 koşusu
 henüz kaydedilmiyor; 2./3. bölüm ve Lucifer finali yok. Test build'i `HellPokerBuild.WindowsPhase2` (Komutlar'da).
+Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), sınıfa göre başlangıç kesesi (`ChapterRules.StartingCoinsFor`:
+Köylü 30, Soytarı 40, Büyücü 50, Kral 100), haraç = başlangıç + 60 / 75 / 90 (`ChapterRun.Tribute`); iblisin kesesi (`ImpCoins` /
+`WardenCoins`), masa bir kese boşalana kadar, ante her 3 elde +1 (`AnteAt`); oyuncunun kesesi boşalırsa koşu biter (`PurseEmptied`).
+Demo'ya kancalar: `HellPokerGame.StakesOverride` / `StakeLimit` (varsayılan null).
+Bosslarda **can barı** (`Core/Chapters/BossBar.cs`): ceza sınıf × boss tablosuyla bölünür (`BossShares`, 20 / 30 / 34 / 16), boss masasında
+o pay şeytanın barıdır (`BossTable.Rules`: ruh çizgisi bar × `ChapterRules.SoulLinePercent` 200 / 175 / 150, son 250 ve el sınırı yok;
+bar 0 = yenildi). Ödeme yüzdesi `ScaledPayoutTable` (Mammon kazanç %175 / kayıp %125). Sayaç rakamsız (`Currency.Bar`).
+Simülasyon: `Tests/EditMode/BossSimulation` (Explicit).
 
 ## Oyun
 
@@ -499,9 +507,9 @@ Assets/Scripts/
     ChapterMapView (1. kat üstte, kapı altta; yollar tek dokuya piksel piksel; düğümler 20×20 çerçeveli, seçilebilir olan yanıp söner,
     klavye seçimi kor; üzerine gelince açıklama), ChapterPanelView (portre, başlık, metin; yükseklik içeriğe göre; seçenekler alttan,
     4'ten fazlaysa iki sütun; işaret edilenin açıklaması üstünde), Abstractions/IChapterViews (ChapterMapState, PanelCard, PanelOption),
-    Currency (ITableView.SetCurrency: yıl / coin; SentenceView coin'de eksi ve kırmızı). TablePresenter'da bölüm modu: SitAtFloor /
+    Currency (ITableView.SetCurrency: yıl / coin; ante metni). TablePresenter'da bölüm modu: SitAtFloor /
     SitAtBoss, ChapterTableFinished, CoinMode (sayaç = kese, metinler coin, KARIŞTIR / LEAVE yok, kayıt / rekor / Lucifer kapısı yok,
-    isim altında el sayacı). Menü: PHASE 2 TESTİ (IMainMenuView.SetChapters, ChaptersPressed). Metinler: UiText.Chapters.cs
+    isim altında iblisin kesesi ve ante). Menü: PHASE 2 TESTİ (IMainMenuView.SetChapters, ChaptersPressed). Metinler: UiText.Chapters.cs
     (+ DealerText imp / collector). Çizim: Tools/ArtGen/pixel_floors.py (generate_art.py floors): iki portre (7 durum), iki salon,
     Ui/chapter_map, Ui/map_nodes (NodeKind sırası + kapı), Events/ altında 5 yabancı. Testler: ChapterPresenterTests, ChapterMenuTests,
     PlayMode ChapterJourneyTests (+ [Explicit] ChapterScreenshots, 70–83).

@@ -38,10 +38,6 @@ namespace HellPoker.Presentation.Views
 
         private AnimationSequencer _sequencer;
         private bool _pulsing;
-
-        /// <summary>Counting coins (a floor's table): the number may go below zero — a debt, in red behind a minus.</summary>
-        private bool _coins;
-        private Image _minus;
         private float _lossFlash;
         private const float LossFlashSeconds = 1.2f;
 
@@ -78,9 +74,6 @@ namespace HellPoker.Presentation.Views
                 digit.enabled = false;
                 _digits.Add(digit);
             }
-            _minus = UiFactory.CreateImage("Minus", _digitRow, Palette.Hell);
-            _minus.raycastTarget = false;
-            _minus.enabled = false;
             _fallbackNumber = UiFactory.CreateText("Years", _digitRow, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _fallbackNumber.rectTransform.Stretch();
             _fallbackNumber.enabled = _digitSprites == null;
@@ -124,13 +117,10 @@ namespace HellPoker.Presentation.Views
             gameObject.SetActive(visible);
         }
 
-        /// <summary>Coins (a debt may show) or years (never below zero). Called on the table's queue.</summary>
-        public void SetCoins(bool coins)
+        /// <summary>The number goes (a Phase 2 demon's health bar: the bar alone); called on the table's queue.</summary>
+        public void SetNumberHidden(bool hidden)
         {
-            if (_coins == coins) return;
-            _coins = coins;
-            _displayed = int.MinValue;   // drawn again in the new way
-            Apply(_hasShown ? _shown : _target);
+            _digitRow.gameObject.SetActive(!hidden);
         }
 
         public void SetYears(int years, bool animate)
@@ -159,7 +149,7 @@ namespace HellPoker.Presentation.Views
             if (_lossFlash > 0f)
             {
                 _lossFlash -= Time.unscaledDeltaTime * AnimationClock.Speed;
-                TintDigits(_lossFlash > 0f && Mathf.Repeat(_lossFlash, 0.2f) < 0.1f ? Palette.Hell : RestingTint);
+                TintDigits(_lossFlash > 0f && Mathf.Repeat(_lossFlash, 0.2f) < 0.1f ? Palette.Hell : Color.white);
             }
 
             if (_elapsed >= CountDuration) return;
@@ -179,7 +169,7 @@ namespace HellPoker.Presentation.Views
         public void Snap()
         {
             _lossFlash = 0f;
-            TintDigits(RestingTint);
+            TintDigits(Color.white);
             if (_elapsed >= CountDuration) return;
             _elapsed = CountDuration;
             Apply(_target);
@@ -192,30 +182,22 @@ namespace HellPoker.Presentation.Views
             _fallbackNumber.color = color == Color.white ? Palette.GoldLight : color;
         }
 
-        /// <summary>The digits' colour at rest: red for a debt, as drawn otherwise.</summary>
-        private Color RestingTint => _coins && _displayed < 0 && _displayed != int.MinValue ? Palette.Hell : Color.white;
-
         private void Apply(float years)
         {
             _shown = years;
             _hasShown = true;
-            int value = _coins ? Mathf.RoundToInt(years) : Mathf.Max(0, Mathf.RoundToInt(years));
+            int value = Mathf.Max(0, Mathf.RoundToInt(years));
             _barFill.sizeDelta = new Vector2(Mathf.Round(_barWidth * Mathf.Clamp01(years / _damnationYears)), 0f);
             if (value == _displayed) return;
             _displayed = value;
-            bool debt = value < 0;
 
-            string text = Mathf.Abs(value).ToString();
-            _fallbackNumber.text = debt ? "-" + text : text;
-            if (_lossFlash <= 0f) TintDigits(RestingTint);
+            string text = value.ToString();
+            _fallbackNumber.text = text;
             if (_digitSprites == null) return;
 
-            // Centre the digits (and a debt's minus) on whole pixels.
+            // Centre the digits on whole pixels.
             int count = Mathf.Min(text.Length, MaxDigits);
-            const int minusWidth = 8;
-            int left = (Width - count * UiArt.DigitWidth + (debt ? minusWidth : 0)) / 2;
-            _minus.enabled = debt;
-            if (debt) _minus.rectTransform.PlaceTL(left - minusWidth, 7, 6, 2);
+            int left = (Width - count * UiArt.DigitWidth) / 2;
             for (int i = 0; i < _digits.Count; i++)
             {
                 Image digit = _digits[i];

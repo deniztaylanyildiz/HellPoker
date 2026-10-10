@@ -31,9 +31,9 @@ namespace HellPoker.Core.Tests
 
         private static Sinner NewPeasant() => new Sinner(SinnerRoster.Find(Sinners.Peasant.ClassId));
 
-        private static ChapterRules Chapter1(int impFoldPercent = 40) =>
-            new ChapterRules(1, DealerRoster.MammonId, bossHands: 8, ante: 5, tribute: 70, pricePercent: 100, impReRaisePercent: 10,
-                impFoldPercent: impFoldPercent);
+        private static ChapterRules Chapter1(int impFoldPercent = 40, int impCoins = 500, int wardenCoins = 500) =>
+            new ChapterRules(1, DealerRoster.MammonId, soulLinePercent: 200, ante: 5, tributeOverStart: 60, pricePercent: 100, impReRaisePercent: 10,
+                impCoins: impCoins, wardenCoins: wardenCoins, impFoldPercent: impFoldPercent);
 
         /// <summary>Plays one hand: through the cards turning, no cards thrown, then <paramref name="afterDraw"/> at the first decision past the draw.</summary>
         private static FloorHand PlayOne(FloorTable table, BetAction afterDraw = BetAction.Pass)
@@ -140,35 +140,97 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ a floor's match
 
         [Test]
-        public void AWonFloorHandPaysCoinsAndNeverTouchesTheSentence()
+        public void AWonFloorHandPaysCoinsFromTheImpsPurseAndNeverTouchesTheSentence()
         {
-            var purse = new CoinPurse(0);
-            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
+            var purse = new CoinPurse(100);
+            FloorTable table = FloorTable.Imp(Chapter1(impCoins: 30), NewPeasant(), new RunEffects(), purse, 1,
                 DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
             FloorHand hand = PlayOne(table);
             Assert.IsTrue(hand.Won);
             Assert.AreEqual(5 + 5 * 2, hand.Coins, "a royal flush pays the capped ×3 on the ante");
-            Assert.AreEqual(15, purse.Coins);
+            Assert.AreEqual(115, purse.Coins);
+            Assert.AreEqual(15, table.HousePurse.Coins);
             Assert.AreEqual(1, table.Wins);
         }
 
         [Test]
-        public void ALostHandCanPutThePurseInDebt()
+        public void APurseNeverGoesBelowZero_AndTheEmptyOneEndsTheMatch()
         {
-            var purse = new CoinPurse(0);
+            var purse = new CoinPurse(8);
             FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
                 DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
             FloorHand hand = PlayOne(table);
             Assert.IsTrue(hand.Lost);
-            Assert.AreEqual(-(5 + 5 * 2), hand.Coins);
-            Assert.IsTrue(purse.InDebt);
-            Assert.AreEqual(-15, purse.Coins);
+            Assert.AreEqual(-8, hand.Coins, "quads would take 15; the purse held 8");
+            Assert.AreEqual(0, purse.Coins);
+            Assert.IsTrue(table.PlayerBroke);
+            Assert.IsTrue(table.IsOver);
+            Assert.IsFalse(table.MatchWon);
+            Assert.Throws<InvalidOperationException>(table.Deal);
+        }
+
+        [Test]
+        public void AnImpPaysNoMoreThanItsPurse_AndLosesTheMatchWhenItIsEmpty()
+        {
+            var purse = new CoinPurse(100);
+            FloorTable table = FloorTable.Imp(Chapter1(impCoins: 12), NewPeasant(), new RunEffects(), purse, 1,
+                DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
+            FloorHand hand = PlayOne(table);
+            Assert.AreEqual(12, hand.Coins, "a royal flush would pay 15; the imp held 12");
+            Assert.AreEqual(112, purse.Coins);
+            Assert.IsTrue(table.HouseBroke);
+            Assert.IsTrue(table.MatchWon);
+        }
+
+        [Test]
+        public void APurseShortOfTheAntePlaysAllIn()
+        {
+            var purse = new CoinPurse(3);
+            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
+                DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
+            Assert.AreEqual(3, table.Game.UpcomingAnte, "the ante is what the purse holds");
+            table.Deal();
+            Assert.AreEqual(3, table.Game.Ante);
+            Assert.AreEqual(0, table.Game.WagerLeft, "all in");
+            Assert.IsTrue(table.Game.IsCommitted);
+        }
+
+        [Test]
+        public void TheStakeIsNeverMoreThanTheImpHolds()
+        {
+            FloorTable table = FloorTable.Imp(Chapter1(impCoins: 7), NewPeasant(), new RunEffects(), new CoinPurse(100), 1);
+            table.Deal();
+            Assert.AreEqual(5, table.Game.Ante);
+            Assert.AreEqual(7, table.Game.TableCap, "the cap shrinks to the imp's purse");
+        }
+
+        [Test]
+        public void TheAnteGrowsByOneEveryThreeHands()
+        {
+            ChapterRules rules = ChapterRules.For(1);
+            CollectionAssert.AreEqual(new[] { 4, 4, 4, 5, 5, 5, 6 }, Enumerable.Range(1, 7).Select(rules.AnteAt));
+            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(500), 1);
+            var antes = new List<int>();
+            for (int i = 0; i < 4; i++)
+            {
+                table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseNothing + " 2H 3H 4D"));
+                table.Deal();
+                antes.Add(table.Game.Ante);
+                Assert.AreEqual(table.Game.Ante * 6, table.Game.TableCap, "the cap follows the ante");
+                HellPokerGame game = table.Game;
+                game.CheckToDraw();
+                game.Draw(Array.Empty<int>());
+                while (game.Phase != GamePhase.RoundOver) game.Bet(game.Phase == GamePhase.HouseReRaise ? BetAction.Call : BetAction.Pass);
+                table.Settle();
+            }
+            CollectionAssert.AreEqual(new[] { 5, 5, 5, 6 }, antes);
+            Assert.AreEqual(6, table.AnteNow);
         }
 
         [Test]
         public void AnImpMayGiveUpAWeakHandFacingARaiseAfterTheDraw()
         {
-            var purse = new CoinPurse(0);
+            var purse = new CoinPurse(100);
             var sinner = NewPeasant();
             FloorTable table = FloorTable.Imp(Chapter1(impFoldPercent: 100), sinner, new RunEffects(), purse, 1,
                 DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
@@ -184,7 +246,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void AnImpNeverGivesUpAPair()
         {
-            var purse = new CoinPurse(0);
+            var purse = new CoinPurse(100);
             FloorTable table = FloorTable.Imp(Chapter1(impFoldPercent: 100), NewPeasant(), new RunEffects(), purse, 1,
                 DeckStarting(Royal + " 2D 2H 6S 8C 10D AH KC QD"));
             FloorHand hand = PlayOne(table, afterDraw: BetAction.Raise);
@@ -195,7 +257,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void AFreeAnteIsNotLost()
         {
-            var purse = new CoinPurse(0);
+            var purse = new CoinPurse(100);
             FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), purse, 1,
                 DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"), freeFirstAnte: true);
             FloorHand hand = PlayOne(table);
@@ -212,7 +274,6 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(15, hand.Coins);
             Assert.AreEqual(5, hand.Toll, "a twentieth of the purse after the win (5.75), rounded down");
             Assert.AreEqual(110, purse.Coins);
-            Assert.AreEqual(5, table.HandsToPlay);
         }
 
         [Test]
@@ -227,10 +288,10 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheImpsEyeShowsAnImpsCardFromTheDeal()
         {
-            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(), 1, impsEye: true);
+            FloorTable table = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(100), 1, impsEye: true);
             table.Deal();
             Assert.AreEqual(1, table.Game.HouseCardsRevealed);
-            FloorTable plain = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(), 1);
+            FloorTable plain = FloorTable.Imp(Chapter1(), NewPeasant(), new RunEffects(), new CoinPurse(100), 1);
             plain.Deal();
             Assert.AreEqual(0, plain.Game.HouseCardsRevealed);
         }
@@ -241,7 +302,7 @@ namespace HellPoker.Core.Tests
             ChapterRules rules = Chapter1();
             for (int seed = 0; seed < 40; seed++)
             {
-                FloorTable table = FloorTable.Warden(rules, NewPeasant(), new RunEffects(), new CoinPurse(), seed);
+                FloorTable table = FloorTable.Warden(rules, NewPeasant(), new RunEffects(), new CoinPurse(100), seed);
                 while (!table.IsOver)
                 {
                     table.Deal();
@@ -261,7 +322,7 @@ namespace HellPoker.Core.Tests
         public void ABetFloorHandChargesTheRunsPower()
         {
             var sinner = NewPeasant();
-            FloorTable table = FloorTable.Imp(Chapter1(), sinner, new RunEffects(), new CoinPurse(), 1,
+            FloorTable table = FloorTable.Imp(Chapter1(), sinner, new RunEffects(), new CoinPurse(100), 1,
                 DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
             PlayOne(table);
             Assert.AreEqual(2, sinner.Charge, "a loss +2, as at a demon's table");
@@ -278,6 +339,19 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(20 * 3, hand.Coins, "nothing to raise; the stake is the ante, ×3");
         }
 
+        [Test]
+        public void TheGamblersHandCostsHisStakeAndNoMore()
+        {
+            var purse = new CoinPurse(40);
+            FloorTable table = FloorTable.Gamble(Chapter1(), 20, NewPeasant(), new RunEffects(), purse, 1,
+                DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
+            FloorHand hand = PlayOne(table);
+            Assert.IsTrue(hand.Lost);
+            Assert.AreEqual(-20, hand.Coins, "quads would take 60: half the purse is all the ghost asked for");
+            Assert.AreEqual(20, purse.Coins);
+            Assert.IsTrue(table.IsOver);
+        }
+
         // ------------------------------------------------------------------ the chapter
 
         private static ChapterRun Run(int coins = 0, ChapterRules rules = null, int years = 1000) =>
@@ -292,10 +366,36 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void AChapterStartsWithItsCoinsOnTopOfWhatIsLeft()
+        public void ARunStartsWithItsClassPurse_AndPaysItsClassTribute()
         {
-            Assert.AreEqual(20, Run().Purse.Coins);
-            Assert.AreEqual(33, Run(13).Purse.Coins);
+            ChapterRules rules = ChapterRules.For(1);
+            var expected = new Dictionary<string, (int start, int tribute)>
+            {
+                { Sinners.Peasant.ClassId, (30, 90) }, { Jester.ClassId, (40, 100) }, { Warlock.ClassId, (50, 110) }, { King.ClassId, (100, 160) }
+            };
+            foreach (var pair in expected)
+            {
+                var run = ChapterRun.Begin(rules, new Sinner(SinnerRoster.Find(pair.Key)), new RunEffects(), 7);
+                Assert.AreEqual(pair.Value.start, run.Purse.Coins, pair.Key);
+                Assert.AreEqual(pair.Value.tribute, run.Tribute, pair.Key);
+            }
+            Assert.AreEqual(30 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
+            Assert.AreEqual(100 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
+            Assert.AreEqual(13, Run(13).Purse.Coins, "a later chapter starts with what is left, nothing added");
+        }
+
+        [Test]
+        public void AnEmptyPurseEndsTheRun()
+        {
+            ChapterRun run = Run(8, ChapterRules.For(1).With(impCoins: 500));
+            Stand(run, run.Map[0, 0]);
+            FloorTable table = run.OpenTable();
+            table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
+            PlayOne(table);
+            Assert.IsTrue(table.IsOver);
+            run.FinishTable(table);
+            Assert.IsTrue(run.PurseEmptied);
+            Assert.Throws<InvalidOperationException>(() => run.MoveTo(run.Choices.First()));
         }
 
         [Test]
@@ -310,38 +410,37 @@ namespace HellPoker.Core.Tests
             Assert.Throws<InvalidOperationException>(() => run.MoveTo(far));
         }
 
-        [TestCase(70, 0, 0)]
-        [TestCase(90, 0, 20)]
-        [TestCase(50, 100, 0)]
-        [TestCase(-10, 400, 0)]
+        [TestCase(90, 0, 0)]
+        [TestCase(110, 0, 20)]
+        [TestCase(50, 200, 0)]
+        [TestCase(0, 450, 0)]
         public void AtTheGateEveryMissingCoinIsFiveYears(int coins, int years, int left)
         {
-            ChapterRun run = Run();
-            run.Purse.Add(coins - run.Purse.Coins);
+            ChapterRun run = Run(coins);   // a Peasant: the tribute is 30 + 60
             GateToll toll = run.PayTribute();
             Assert.AreEqual(years, toll.YearsForMissing);
             Assert.AreEqual(1000 + years, run.Years);
-            Assert.AreEqual(left, run.Purse.Coins, "what is left goes on to the next chapter; a debt is paid in years");
+            Assert.AreEqual(left, run.Purse.Coins, "what is left goes on to the next chapter");
             Assert.AreEqual(years == 0, toll.PaidInFull);
         }
 
         [Test]
         public void TheUsurersYearsAreWrittenOnAtTheGate()
         {
-            ChapterRun run = Run(50);
+            ChapterRun run = Run(70);
             new PurgatoryUsurer().Accept(run);
             Assert.AreEqual(100, run.Purse.Coins);
             Assert.AreEqual(1000, run.Years, "the floors never touch the sentence");
             GateToll toll = run.PayTribute();
             Assert.AreEqual(100, toll.YearsOwed);
             Assert.AreEqual(1100, run.Years);
-            Assert.AreEqual(30, run.Purse.Coins);
+            Assert.AreEqual(10, run.Purse.Coins);
         }
 
         [Test]
         public void MammonsLedgerStrikesYearsNowAndWritesMoreBack()
         {
-            ChapterRun run = Run(50);
+            ChapterRun run = Run(90);
             new MammonsLedger().Accept(run);
             Assert.AreEqual(800, run.Years);
             run.PayTribute();
@@ -350,33 +449,34 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheGamblerNeverComesToAPurseInDebt()
+        public void TheGamblerNeverComesToAPurseOfOneCoin()
         {
-            ChapterRun run = Run();
-            run.Purse.Add(-30);
-            Assert.IsFalse(new GamblerGhost().CanAppear(run));
+            Assert.IsFalse(new GamblerGhost().CanAppear(Run(1)));
+            Assert.IsTrue(new GamblerGhost().CanAppear(Run(2)));
         }
 
         [Test]
-        public void AMatchWonPaysItsBonusAndAWardensRelic()
+        public void AMatchWonEmptiesTheImpsPurse_NoBonus_AndAWardenGivesARelic()
         {
-            ChapterRun run = Run();
+            ChapterRun run = Run(100);
             int before = run.Purse.Coins;
             FloorTable won = WonMatch(run, warden: false);
+            Assert.AreEqual(run.Rules.ImpCoins, won.Coins, "the imp's whole purse, and no more");
             run.FinishTable(won);
-            Assert.AreEqual(before + won.Coins + 5, run.Purse.Coins);
+            Assert.AreEqual(before + won.Coins, run.Purse.Coins, "no match bonus");
+            Assert.IsFalse(run.PurseEmptied);
 
             before = run.Purse.Coins;
             FloorTable warden = WonMatch(run, warden: true);
             run.FinishTable(warden);
-            Assert.AreEqual(before + warden.Coins - warden.TollTaken + 15, run.Purse.Coins);
+            Assert.AreEqual(before + warden.Coins - warden.TollTaken, run.Purse.Coins);
             Assert.AreEqual(1, run.Effects.Relics.Count);
         }
 
         [Test]
         public void AWardensRelicWaitsWhenTheRunCarriesAllItMay()
         {
-            ChapterRun run = Run();
+            ChapterRun run = Run(100);
             run.Effects.AddRelic(RelicIds.BoneDie);
             run.Effects.AddRelic(RelicIds.RustyCrown);
             run.FinishTable(WonMatch(run, warden: true));
@@ -433,17 +533,17 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void NothingIsBoughtOnDebtOrPastTheRelicLimit()
+        public void NothingTakesTheLastCoinOrGoesPastTheRelicLimit()
         {
-            ChapterRun run = Run();
+            ChapterRun run = Run(45);
             Stand(run, new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
             BlackMarket market = run.OpenMarket();
             string cheapest = market.Relics[0].RelicId;
-            Assert.IsFalse(market.BuyRelic(cheapest), "20 coins do not buy a 45-coin relic");
+            Assert.IsFalse(market.BuyRelic(cheapest), "45 coins do not buy a 45-coin relic: the purse would be empty");
 
-            run.Purse.Add(200);
+            run.Purse.Add(155);
             Assert.IsTrue(market.BuyRelic(cheapest));
-            Assert.AreEqual(220 - 45, run.Purse.Coins);
+            Assert.AreEqual(200 - 45, run.Purse.Coins);
             Assert.IsTrue(market.BuyRelic(market.Relics[0].RelicId));
             Assert.IsFalse(market.CanBuyRelic(market.Relics[0].RelicId), "two relics at most");
             Assert.IsTrue(market.DropRelic(cheapest));
@@ -468,7 +568,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(3, jester.Jokers);
             Assert.IsTrue(market.ChangeJokers(-1));
             Assert.AreEqual(2, jester.Jokers);
-            Assert.AreEqual(120 - 40, run.Purse.Coins);
+            Assert.AreEqual(100 - 40, run.Purse.Coins);
         }
 
         // ------------------------------------------------------------------ the fire
@@ -513,6 +613,92 @@ namespace HellPoker.Core.Tests
             Assert.IsFalse(breaker.Allows(new FakeCheat(), null));
             Assert.IsTrue(breaker.Used);
             Assert.IsTrue(breaker.Allows(new FakeCheat(), null), "only the first");
+        }
+
+        // ------------------------------------------------------------------ the demons' bars
+
+        [Test]
+        public void TheSentenceIsSharedAmongTheBosses_TwentyThirtyThirtyFourSixteen()
+        {
+            var totals = new Dictionary<string, int> { { Jester.ClassId, 5000 }, { Sinners.Peasant.ClassId, 6500 }, { Warlock.ClassId, 6500 }, { King.ClassId, 8000 } };
+            int[] percents = { 20, 30, 34, 16 };
+            foreach (var pair in totals)
+            {
+                Assert.AreEqual(pair.Value, BossShares.Total(pair.Key), pair.Key);
+                for (int i = 0; i < 4; i++)
+                    Assert.AreEqual(pair.Value * percents[i] / 100.0, BossShares.For(pair.Key, BossShares.Bosses[i]), pair.Value * 0.006,
+                        $"{pair.Key} at {BossShares.Bosses[i]}");
+            }
+            Assert.AreEqual(1300, BossShares.For(Sinners.Peasant.ClassId, DealerRoster.MammonId));
+            Assert.AreEqual(1300, BossShares.For(King.ClassId, DealerRoster.LuciferId));
+            Assert.AreEqual(1700, BossShares.For(Jester.ClassId, DealerRoster.LilithId));
+        }
+
+        [Test]
+        public void ARunCarriesItsShareAtTheChaptersDemon_AndTheTributesYearsGoOnIt()
+        {
+            ChapterRun run = ChapterRun.Begin(ChapterRules.For(1), NewPeasant(), new RunEffects(), 7);
+            Assert.AreEqual(1300, run.Years, "the Peasant's share at Mammon");
+            run.Purse.Add(50 - run.Purse.Coins);
+            run.PayTribute();
+            Assert.AreEqual(1300 + 40 * 5, run.Years, "40 coins short of 90: +200 on his bar");
+        }
+
+        [Test]
+        public void TheDemonsTableIsHisBar_SoulLineFromItsStart_NoFinalStretch()
+        {
+            CollectionAssert.AreEqual(new[] { 200, 175, 150 }, new[] { 1, 2, 3 }.Select(c => ChapterRules.For(c).SoulLinePercent));
+            ChapterRun run = Run(100, years: 1300);
+            HellPokerGame game = run.OpenBossTable(GameRules.Default);
+            Assert.AreEqual(1300, game.Years);
+            Assert.AreEqual(1300, run.BossBarStart);
+            Assert.AreEqual(2600, game.Rules.SoulThreshold, "Mammon: twice the bar");
+            Assert.AreEqual(3600, game.DamnationYears);
+            Assert.AreEqual(0, game.Rules.ForcedRaiseYears);
+            Assert.AreEqual(0, game.Rules.LuciferGateYears);
+            Assert.IsFalse(game.Rules.KeepsTheLastYear, "a win may empty the bar");
+            Assert.AreEqual(100, game.UpcomingAnte, "the stakes are measured against the bar: a tenth, down to a readable step");
+
+            GameRules lilith = BossTable.Rules(GameRules.Default, DealerRoster.Lilith, 2200, ChapterRules.For(3).SoulLinePercent);
+            Assert.AreEqual(3300, lilith.SoulThreshold);
+            Assert.IsFalse(ChapterRun.BossTableOver(GamePhase.RoundOver));
+            Assert.IsTrue(ChapterRun.BossTableOver(GamePhase.Absolved));
+            Assert.IsTrue(ChapterRun.BossTableOver(GamePhase.Damned));
+        }
+
+        [Test]
+        public void AWinThatEmptiesTheBarBeatsTheDemon()
+        {
+            HellPokerGame game = BossTable.Create(GameRules.Default, DealerRoster.Mammon.WithoutCheats(), 10, 200, 100, 100, 1, null, NewPeasant());
+            game.RestoreDeck(DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
+            game.PlaceBet();
+            if (game.Phase == GamePhase.PlayerReveal) game.CheckToDraw();
+            if (game.Phase == GamePhase.Drawing) game.Draw(Array.Empty<int>());
+            while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
+                game.Bet(game.Phase == GamePhase.HouseReRaise ? BetAction.Call : BetAction.Pass);
+            Assert.AreEqual(GamePhase.Absolved, game.Phase, "the bar is empty: the demon is beaten");
+            Assert.AreEqual(0, game.Years);
+            ChapterRun run = Run(100);
+            run.LeaveBossTable(game.Years);
+            Assert.IsTrue(run.BossBeaten);
+        }
+
+        [Test]
+        public void TheBossPayoutsScaleWinsAndLosses()
+        {
+            var plain = DealerRoster.Mammon.Payouts;
+            var scaled = new ScaledPayoutTable(plain, winScalePercent: 50, lossScalePercent: 150);
+            Assert.AreEqual(plain.GetYearsForgiven(HandCategory.TwoPair, 300, 100, int.MaxValue) / 2,
+                scaled.GetYearsForgiven(HandCategory.TwoPair, 300, 100, int.MaxValue));
+            Assert.AreEqual(150, scaled.GetYearsForgiven(HandCategory.TwoPair, 300, 100, 150), "never past the bar");
+            Assert.AreEqual((plain.GetYearsAdded(HandCategory.Flush, 300, 100) * 3 + 1) / 2, scaled.GetYearsAdded(HandCategory.Flush, 300, 100));
+            Assert.AreEqual(777, scaled.GetYearsForgiven(HandCategory.DeadMansHand, 300, 100, 777), "the Dead Man's Hand still empties the bar");
+            Assert.AreEqual(plain.GetMultiplier(HandCategory.Flush), scaled.GetMultiplier(HandCategory.Flush), "the table shows the demon's own multipliers");
+            Assert.AreEqual(175, ChapterRules.For(1).BossWinPercent, "Mammon's table, tuned");
+            Assert.AreEqual(125, ChapterRules.For(1).BossLossPercent);
+            ChapterRules tuned = ChapterRules.For(1).WithBossPayouts(80, 120);
+            Assert.AreEqual(80, tuned.BossWinPercent);
+            Assert.AreEqual(120, tuned.With(ante: 5).BossLossPercent, "the knobs go along");
         }
 
         [Test]

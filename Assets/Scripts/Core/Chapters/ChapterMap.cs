@@ -8,7 +8,7 @@ namespace HellPoker.Core.Chapters
     /// <summary>What waits at a node of a chapter's map.</summary>
     public enum NodeKind
     {
-        /// <summary>An imp's table: a short match for coins (<see cref="ChapterRules.TableHands"/> hands).</summary>
+        /// <summary>An imp's table: a match for coins until a purse is empty (the imp's: <see cref="ChapterRules.ImpCoins"/>).</summary>
         Table,
 
         /// <summary>A stranger's offer (the chapter's events).</summary>
@@ -17,7 +17,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The black market: cursed relics and services for coins.</summary>
         BlackMarket,
 
-        /// <summary>A warden: a longer match against a demon's temper and minor cheats; a relic for winning it.</summary>
+        /// <summary>A warden: a richer purse, a demon's temper and minor cheats; a relic for emptying it.</summary>
         Warden,
 
         /// <summary>Coins on the floor (the fifth floor, always).</summary>

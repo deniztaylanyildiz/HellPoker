@@ -105,6 +105,10 @@ namespace HellPoker.PlayMode.Tests
             int shot = 72;
             bool tableShot = false, bossShot = false;
             ChapterPresenter chapters = ChapterJourneyTests.Chapters;
+            // A tour that only passes (and never draws) feeds an imp's purse for a long while: unless HELLPOKER_SHOT_BROKE=1, every imp
+            // deals each hand with a single coin, so the tour reaches the gate and Mammon.
+            bool rigged = Environment.GetEnvironmentVariable("HELLPOKER_SHOT_BROKE") != "1";
+            if (rigged) chapters.Run.Purse.Add(200);
             for (int guard = 0; guard < 4000; guard++)
             {
                 if (panel.IsOpen)
@@ -116,7 +120,7 @@ namespace HellPoker.PlayMode.Tests
                         yield return HellPokerScreenshots.Shot($"{shot++}_panel_{Slug(card.Title)}");
                     }
                     if (card.Title == Presentation.Ui.UiText.ChapterDoneTitle || card.Title == Presentation.Ui.UiText.ChapterDamnedTitle
-                        || card.Title == Presentation.Ui.UiText.ChapterFreeTitle)
+                        || card.Title == Presentation.Ui.UiText.PurseEmptyTitle)
                         break;
                     HellPokerScreenshots.Press("PanelOption" + (card.Options.Count - 1));
                     yield return null;
@@ -125,6 +129,8 @@ namespace HellPoker.PlayMode.Tests
                 if (chapters.IsAtTable)
                 {
                     var table = (TablePresenter)chapters.Table;
+                    CoinPurse imp = table.Floor?.HousePurse;
+                    if (rigged && imp != null && table.Game.Phase == Core.Game.GamePhase.Betting && imp.Coins > 1) imp.Add(1 - imp.Coins);
                     chapters.Table.PerformAction();
                     yield return ChapterJourneyTests.WaitForChapterTable();
                     if (!tableShot && table.Floor != null && table.Game.Phase == Core.Game.GamePhase.DrawReveal)

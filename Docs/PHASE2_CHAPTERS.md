@@ -1,6 +1,8 @@
 # Phase 2 — Bölümler, katlar ve coin ekonomisi (tasarım notu)
 
 Durum: **1. Bölüm oynanabilir** (2026-10-10: Core + sunum + çizim; ana menüde PHASE 2 TESTİ). 2./3. bölüm, Lucifer finali, kayıt yok.
+Katlarda **sikkesi biten kaybeder** (beşinci tur, aşağıda): borç, el sınırı ve maç bonusu kalktı. Aşağıdaki eski bölümlerde geçen
+"borç", "3 / 5 el", "maç bonusu", "+20 coin" artık geçerli değil.
 Kaynak: kullanıcının taslağı ve cevapları (2026-10-10, dört tur).
 Kararlar koda girince ilgili kısımlar CLAUDE.md'ye taşınır.
 
@@ -223,6 +225,99 @@ Maç bonusu karşılaştırması (hepsi): +3 → %44.7 / 68.1 coin / eksik 29.7;
 - Ateş (simülasyon politikası; boss oynanmadığı için seçimin değeri ölçülmüyor): susturma %67.6, hile bozma %32.4, karıştırma %0.
 - Kara Pazar: koşu başına 0.6 ziyaret, ziyaretlerin %68.9'unda alışveriş; emanet alan koşu %38.9, İblisin Gözü 739 kez alındı.
 - İblise el kazanma %50.1 (hedef %50 ✓).
+
+## Beşinci tur: sikkesi biten kaybeder (2026-10-10)
+
+**Kural (kullanıcı; sadece katlar, bosslar aynı):**
+- Kese **0'ın altına inmez**; borç, kırmızı borç gösterimi, borç testleri ve Kumarbaz'ın borç kuralı kalktı.
+- Oyuncunun kesesi bir kat masasında 0'a inerse **koşu biter** ("Kesen boşaldı" / "Your purse is empty"; lanet sayılır).
+  Ante'yi karşılayamayan kalan sikkesiyle **all-in** oynar (`HellPokerGame.StakeLimit`).
+- **Başlangıç kesesi sınıfa göre:** Köylü 30, Soytarı 40, Büyücü 50, Kral 100 (`ChapterRules.StartingCoinsFor`). Bölüm başı +20 kalktı;
+  önceki bölümden artan sikke taşınır.
+- **İblisin kesesi:** Masa iblisi 30 / 40 / 50, Bekçi 60 / 80 / 100 (B1 / B2 / B3). İsmin altında: "Kesesi 30 · ante 4 (3 elde +1)".
+- El sınırı (3 / 5 el, "kazanılan 1, gereken 2") ve **maç bonusu kalktı**; masa bir kese boşalana kadar sürer, masadan kalkmak yok.
+  İblisin kesesi boşalınca düğüm geçilir; Bekçi emanet ödülü aynı.
+- **Ante her 3 elde +1** (B1: 4, 4, 4, 5, 5, 5, 6...; `ChapterRules.AnteAt`, `HellPokerGame.StakesOverride`); tavan 6 × o elin ante'si.
+- **Haraç = sınıfın başlangıç kesesi + 60** (B2 +75, B3 +90): Köylü 90, Soytarı 100, Büyücü 110, Kral 160. Eksik her sikke +5 yıl.
+
+**Uygulamada verilen kararlar (itiraz edilebilir):**
+- Bir el, kaybeden kesenin içindekinden fazlasını alamaz; masadaki bahis iki keseden küçüğüyle sınırlı (iblis de all-in olabilir).
+- **Kara Pazar son sikkeyi almaz** (fiyat < kese): yoksa oyuncu boş keseyle bir sonraki masada kart görmeden kaybederdi.
+- **Kumarbaz Hayalet:** kaybedilen el sadece ortaya konan yarıyı alır (×3 çarpanı sadece kazançta); 1 sikkelik keseye çıkmaz.
+- Tahsildar'ın payı kasaya gider (iblisin kesesine değil).
+- Kayıt / rekor: Phase 2 koşusu henüz hiç kaydedilmiyor ve rekora yazılmıyor; Core'da `ChapterRun.PurseEmptied` lanet olarak
+  işaretli, kayıt gelince lanet diye yazılacak.
+
+**Simülasyon (sınıf başına 2000 koşu; oyuncu Kara Pazar'da en az 30 sikke yedek bırakır):**
+
+| Ayar | Kesesi boşalan (Köylü / Büyücü / Kral / Soytarı) | Hepsi | Tam haraç | Masa eli (ort.) | Bekçi eli |
+|---|---|---|---|---|---|
+| **Varsayılan** (iblis 30 / 60, +1 her 3 elde) | %59.9 / 44.9 / 20.7 / 68.5 | **%48.5** | %46.4 | 6.4 | 10.7 |
+| iblis 20 / 40 | 59.8 / 42.5 / 17.9 / 63.8 | %46.0 | %33.5 | 4.9 | 7.9 |
+| iblis 15 / 30 | 56.1 / 42.2 / 17.1 / 61.7 | %44.2 | %27.8 | 4.3 | 6.2 |
+| iblis 10 / 20 | 52.2 / 37.5 / 14.0 / 58.0 | %40.4 | %27.3 | 3.6 | 4.9 |
+| iblis 5 / 10 | 43.4 / 32.4 / 11.4 / 49.7 | %34.2 | %16.5 | 3.0 | 3.6 |
+| ante +1 her 6 elde | 57.9 / 41.5 / 15.5 / 67.3 | %45.5 | %48.2 | 7.3 | 12.7 |
+| ante 2 | 54.9 / 41.0 / 16.2 / 66.6 | %44.6 | %47.5 | 9.6 | 14.8 |
+| tavan 3 ante | 70.0 / 57.3 / 28.4 / 75.2 | %57.7 | %35.3 | 8.6 | 15.6 |
+| başlangıç kesesi ×2 (haraç da +aynı) | 40.2 / 24.7 / 6.8 / 51.7 | %30.8 | %60.9 | 7.1 | 11.3 |
+| başlangıç ×3 | 28.7 / 14.7 / 2.8 / 41.1 | %21.8 | %67.9 | 7.5 | 11.9 |
+| başlangıç ×4 | 21.6 / 9.0 / 1.5 / 34.5 | %16.6 | %71.9 | 7.7 | 12.2 |
+| başlangıç ×3, iblis 20 / 40 | 25.6 / 12.2 / 2.4 / 33.8 | **%18.5** | **%48.0** | 5.8 | 8.9 |
+
+**Bulgular:**
+1. İstenen iki düğme (iblisin kesesi, ante artış hızı) kesesi boşalan oranı hedefe (%10-20) indirmiyor: en iyi %34 (iblis 5, ama tam
+   haraç %16.5'e düşüyor). Ölümler erken (ort. 2.-3. kat): 1. kat hep Masa, 30 sikkeyle 30 sikkelik iblise oturmak neredeyse
+   yazı-tura; el kazanma %50, yani eşit bir oyunda "bir kese boşalana kadar" oynamak küçük keseyle başlayana ağır.
+2. Asıl düğme **oyuncunun başlangıç kesesinin iblisin kesesine ve bir elin kaybına oranı.** Bir el (tavan 6 ante + ×3 çarpan) 4'lük
+   ante'de ~32 sikke götürebiliyor: Köylü'nün kesesinin tamamı.
+3. **Köylü'nün ölüm oranı diğerlerinden çok yüksek** (varsayılanda %60, Kral %21; Soytarı %69). Fark başlangıç keselerinden
+   (30 / 40 / 50 / 100); her ayarda sıra aynı.
+4. Hedeflere en yakın: başlangıç keseleri ×3 (Köylü 90, Soytarı 120, Büyücü 150, Kral 300; haraç 150 / 180 / 210 / 360) + iblis
+   20 / 40 → %18.5 ölüm, %48 tam haraç; ama masa eli 5.8 (hedef 6-10) ve sınıf farkı sürüyor (Köylü %25.6, Kral %2.4).
+   Uygulanmadı: başlangıç keseleri ve sınıf farkı kullanıcının kararı.
+
+## Altıncı tur: şeytanların can barı (2026-10-10)
+
+**Kural (kullanıcı; katlar aynı):**
+- Ceza bosslara bölünür, oranlar 20 / 30 / 34 / 16 (`BossShares`, tek tablo):
+
+| Sınıf | Toplam | Mammon | Belial | Lilith | Lucifer |
+|---|---|---|---|---|---|
+| Soytarı | 5000 | 1000 | 1500 | 1700 | 800 |
+| Köylü | 6500 | 1300 | 1950 | 2200 | 1050 |
+| Büyücü | 6500 | 1300 | 1950 | 2200 | 1050 |
+| Kral | 8000 | 1600 | 2400 | 2700 | 1300 |
+
+- Boss masasında oyuncunun o bosstaki payı şeytanın **can barıdır**: sayaçta sadece bar (`Currency.Bar`: rakam yok, "MAMMON'UN BARI",
+  sonunda ruh). Kazanılan el barı ödeme kadar kısaltır, kaybedilen uzatır (bugünkü ödeme ve yüzde mantığı, birim = barın 1/10'u).
+  Bar 0 → şeytan yenilir (oyunun `Absolved`'u), bölüm geçilir. Kapıdaki haraç eksiği masa başlamadan bara eklenir.
+- Sabit el sayısı (8 / 10 / 12) ve Lilith sonrası son hüküm kalktı. Lilith'in barı bitince Lucifer'e; Lucifer'in barı bitince kurtuluş.
+- **Ruh çizgisi barın başlangıcına oranla:** Mammon ×2.0, Belial ×1.75, Lilith ×1.5 (`ChapterRules.SoulLinePercent`); ruh kuralları
+  bugünkü gibi (değer 1000, lanet = çizgi + 1000). Lucifer bugünkü kurallarıyla; düşüş koşuyu bitirir.
+- Boss masası kuralları (`BossTable.Rules`): "son 250" yok, Lucifer kapısı yok (`KeepsTheLastYear` false: kazanç barı 0'a indirebilir).
+  Ödeme yüzdesi düğmesi: `ScaledPayoutTable` (kazanç % / kayıp %, `ChapterRules.BossWinPercent / BossLossPercent`).
+
+**Simülasyon** (`BossSimulation`, Explicit; sınıf × boss başına 2000 koşu, haraç eksiği yok; hepsi):
+
+| Ödeme (kazanç / kayıp) | Mammon el · lanet | Belial el · lanet | Lilith el · lanet |
+|---|---|---|---|
+| 100 / 100 | 54.0 · %17.4 | 33.9 · %24.6 | 35.2 · %46.6 |
+| 200 / 200 | 12.0 · %23.0 | 6.1 · %30.7 | 7.6 · %44.9 |
+| 300 / 300 | 4.7 · %27.3 | 3.1 · %35.3 | 3.0 · %45.2 |
+| 300 / 200 | 5.2 · %17.4 | 3.5 · %25.7 | 3.5 · %35.8 |
+| 250 / 150 | 7.5 · %11.7 | 4.4 · %20.6 | 5.3 · %30.5 |
+| 150 / 110 (Mammon) | 23.4 · %9.8 | | |
+| **175 / 125 (Mammon)** | **17.5 · %11.1** | | |
+
+- **Mammon 175 / 125 uygulandı** (Köylü 20.8 el / %10.2, Büyücü 19.5 / %9.9, Kral 18.7 / %11.3, Soytarı 11.0 / %13.2).
+- Belial ve Lilith **100 / 100'de kaldı**: boss başına deneme turu bellek azlığı yüzünden durduruldu. Belgedeki sayılara göre Belial'in
+  laneti 250 / 150'de %20.6, Lilith'inki hiçbir ayarda %30'un altına inmiyor (ruh çizgisi ×1.5 dar); Lilith için kayıp yüzdesi 100'ün
+  altına inmeli (deneme sırada: 200 / 75, 175 / 65).
+- **Lucifer** (bugünkü sabit bahis: ante 50, tavan 150; düşüş = bar başlangıcın üstüne çıkınca): kapı payı +100 yıl → %93 düşüş, +%25 →
+  %90, +%50 → %86, +%100 → %82. 800-1300'lük bar sabit 50'lik bahisle bitmiyor; **karar kullanıcıda** (ör. Lucifer'in bahsi de bara
+  oranlı, kapı başlangıç +%25; deneme sırada). Kodda kapı şimdilik `BossTable.LuciferGateMargin` = +100.
+- Bilinen: masada ante, pot, "Kazanç: en az" ve sonuç mesajları hâlâ yılla yazılıyor; sadece sayaç rakamsız (kullanıcıya soruldu).
 
 ## Sonraki adım (eski plan)
 
