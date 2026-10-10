@@ -192,6 +192,16 @@ namespace HellPoker.Core.Sinners
             else if (outcome == Game.ShowdownOutcome.HouseWins && Jokers > Class.JokerLossLine) Jokers = Math.Max(Class.StartingJokers, Jokers - 1);
         }
 
+        /// <summary>A joker put into or taken out of the Jester's deck (a floor's black market); never below the start. False when nothing changed.</summary>
+        public bool ChangeJokers(int delta)
+        {
+            if (Class.StartingJokers <= 0) return false;
+            int jokers = Math.Max(Class.StartingJokers, Jokers + delta);
+            if (jokers == Jokers) return false;
+            Jokers = jokers;
+            return true;
+        }
+
         /// <summary>Spends the full gauge on <paramref name="ability"/>; false when it is not full (or the class has another power).</summary>
         public bool TryUse(SinnerAbility ability)
         {

@@ -38,13 +38,17 @@ namespace HellPoker.Core.Game
         /// <summary>The jokers decided the hand before its betting was done: it ended at once, at the stake on the table.</summary>
         public bool SettledByJokers { get; }
 
+        /// <summary>The House gave up its hand facing the player's raise (a floor's imp): the player won the stake, no showdown.</summary>
+        public bool HouseFolded { get; }
+
         /// <summary>Negative when years were forgiven, positive when added.</summary>
         public int YearsChange => YearsAfter - YearsBefore;
 
         public RoundResult(int stake, bool folded, ExchangeResult playerExchange, ExchangeResult houseExchange, ShowdownResult showdown,
             int yearsBefore, int yearsAfter, GamePhase phaseAfter, bool thornDamned = false, bool freeFold = false, bool jokerJackpot = false,
-            bool rattleGiven = false, bool settledByJokers = false)
+            bool rattleGiven = false, bool settledByJokers = false, bool houseFolded = false)
         {
+            HouseFolded = houseFolded;
             SettledByJokers = settledByJokers;
             JokerJackpot = jokerJackpot;
             RattleGiven = rattleGiven;

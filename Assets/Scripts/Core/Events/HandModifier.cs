@@ -125,6 +125,30 @@ namespace HellPoker.Core.Events
             return true;
         }
 
+        /// <summary>A relic leaves the run (sold off at a floor's black market, swapped for a warden's); false when it is not carried.</summary>
+        public bool RemoveRelic(string id)
+        {
+            if (!_relics.Remove(id)) return false;
+            if (SilencedCurse == id) SilencedCurse = null;
+            return true;
+        }
+
+        /// <summary>The relic whose curse is silenced for now (a floor's purgatory fire, until the chapter ends); null for none.</summary>
+        public string SilencedCurse { get; private set; }
+
+        /// <summary>Silences a carried relic's curse; false when it is not carried.</summary>
+        public bool SilenceCurse(string id)
+        {
+            if (!_relics.Contains(id)) return false;
+            SilencedCurse = id;
+            return true;
+        }
+
+        public void LiftSilence() => SilencedCurse = null;
+
+        /// <summary>What the relics carried do to a hand, a silenced curse left out.</summary>
+        public HellPoker.Core.Relics.RelicEffects CombinedRelics => HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse);
+
         private readonly Game.TableCharges _redraws;
 
         public RunEffects()

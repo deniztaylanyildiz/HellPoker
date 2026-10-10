@@ -461,7 +461,12 @@ Assets/Scripts/
                    (Game/ altında ayrıca StakeScale: bahis birimi, ante, masa tavanı)
     Sinners/       SinnerClass + Sinner (guard, şarj, jokerler), Peasant, Warlock, King, Jester, SinnerRoster
     Events/        IHellEvent + IEventTable + EventOptions, Events.cs (5 olay + 2 emanet teklifi + EventDeck), EventSession, HandModifier + RunEffects
-    Relics/        Relics.cs: IRelic, RelicEffects, RelicIds, BoneDie / RustyCrown / FerrymansCoin / ThornedRosary, RelicRoster
+    Relics/        Relics.cs: IRelic (+ Boon: lanetsiz hali), RelicEffects, RelicIds, BoneDie / RustyCrown / FerrymansCoin / ThornedRosary, RelicRoster
+    Chapters/      Phase 2 (tasarım: Docs/PHASE2_CHAPTERS.md; sunum yok): ChapterRules, ChapterMap, FloorTable (coin'le kat maçı: HellPokerGame
+                   1 000 000'luk keseyle), FloorPayoutTable (×3), CoinPurse, BlackMarket, FloorEvents, ChapterRun (yol, ateş, kapıdaki haraç).
+                   FirstCheatBreaker (Ateş). Demo'ya kancalar (varsayılan kapalı): IHouseFoldStrategy, HellPokerGame.HouseCardsOpenAtDeal,
+                   RunEffects.SilenceCurse / CombinedRelics, Sinner.ChangeJokers.
+                   Simülasyon: Tests/EditMode/ChapterSimulation (Explicit, -testFilter HellPoker.Core.Tests.ChapterSimulation)
     Cheats/        ICheat (Id, Tier, Timing, CanApply, Apply → CheatResult), CheatIds, CheatTable (+ CheatMarks, CheatRules.IsImmune),
                    ICheatPolicy / DemonCheatPolicy (küçük / büyük / yalan), ICheatGuard (engelleme kancası), CheatSession (gösterge,
                    seçim, vuruş, işaretler; HellPokerGame beş anda Strike çağırır), Mammon/Belial/Lilith/LuciferCheats (hile başına bir sınıf)

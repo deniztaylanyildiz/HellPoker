@@ -79,6 +79,9 @@ namespace HellPoker.Core.Relics
 
         RelicEffects Effects { get; }
 
+        /// <summary>The gift alone, the curse silenced (a floor's purgatory fire, until the chapter ends).</summary>
+        RelicEffects Boon { get; }
+
         /// <summary>A rough estimate of what carrying it is worth over a run, in years (for the balance simulation's player).</summary>
         int ExpectedYears { get; }
 
@@ -104,6 +107,7 @@ namespace HellPoker.Core.Relics
     {
         public string Id => RelicIds.BoneDie;
         public RelicEffects Effects { get; } = new RelicEffects(reRaiseExtraUnits: 1, redrawsPerTable: 1);
+        public RelicEffects Boon { get; } = new RelicEffects(redrawsPerTable: 1);
         public int ExpectedYears => 25;
         public bool IsReward => false;
     }
@@ -114,6 +118,7 @@ namespace HellPoker.Core.Relics
     {
         public string Id => RelicIds.RustyCrown;
         public RelicEffects Effects { get; } = new RelicEffects(winPercent: 105, maliceExtraPerHand: 1);
+        public RelicEffects Boon { get; } = new RelicEffects(winPercent: 105);
         public int ExpectedYears => 0;
         public bool IsReward => false;
     }
@@ -123,6 +128,7 @@ namespace HellPoker.Core.Relics
     {
         public string Id => RelicIds.FerrymansCoin;
         public RelicEffects Effects { get; } = new RelicEffects(antePercent: 80, houseCardsDelta: -1);
+        public RelicEffects Boon { get; } = new RelicEffects(antePercent: 80);
         public int ExpectedYears => 20;
         public bool IsReward => false;
     }
@@ -132,6 +138,7 @@ namespace HellPoker.Core.Relics
     {
         public string Id => RelicIds.ThornedRosary;
         public RelicEffects Effects { get; } = new RelicEffects(winPercent: 90, soulLossPercent: 125);
+        public RelicEffects Boon { get; } = new RelicEffects(soulLossPercent: 125);
         public int ExpectedYears => -40;
         public bool IsReward => false;
     }
@@ -144,6 +151,7 @@ namespace HellPoker.Core.Relics
     {
         public string Id => RelicIds.JestersRattle;
         public RelicEffects Effects { get; } = new RelicEffects(winAntePercent: 50, lossAntePercent: 50);
+        public RelicEffects Boon { get; } = new RelicEffects(winAntePercent: 50);
         public int ExpectedYears => 0;
         public bool IsReward => true;
     }
@@ -163,14 +171,14 @@ namespace HellPoker.Core.Relics
 
         public static IRelic Find(string id) => All.FirstOrDefault(r => r.Id == id);
 
-        /// <summary>The combined effects of the relics carried.</summary>
-        public static RelicEffects Combined(IEnumerable<string> ids)
+        /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone.</summary>
+        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null)
         {
             RelicEffects all = RelicEffects.None;
             foreach (string id in ids ?? Enumerable.Empty<string>())
             {
                 IRelic relic = Find(id);
-                if (relic != null) all = all.With(relic.Effects);
+                if (relic != null) all = all.With(id == silenced ? relic.Boon : relic.Effects);
             }
             return all;
         }

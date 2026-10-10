@@ -359,10 +359,10 @@ namespace HellPoker.Core.Tests
         /// bluffs half the time), so it is answered like any other: called with a pair or better.
         /// </summary>
         /// <returns>True if the house re-raised during the hand.</returns>
-        private static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts)
+        internal static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts, bool deal = true)
         {
             bool reRaised = false;
-            game.PlaceBet();
+            if (deal) game.PlaceBet();
             while (!game.IsGameOver && game.Phase != GamePhase.RoundOver)
             {
                 ProtectIfThreatened(game);

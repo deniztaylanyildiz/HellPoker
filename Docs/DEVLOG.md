@@ -2807,3 +2807,65 @@ bitsin; ödeme ve joker kuralları aynı. B) Ardından demo kapanışı (önceki
 - `Builds/HellPoker-Demo-1.0-win64.zip` (37 202 424 bayt, ~35.5 MB); zip'ten 3 duman turu: çıkış 0, Player.log'da uyarı / hata yok,
   günlük başlığı "Demo 1.0", exe ikonu şeytan.
 - Git: önceki turdaki `v1.0-demo` etiketi (push edilmemişti) silinip A'yı da içeren yeni "Demo 1.0" commit'ine yeniden kuruldu.
+
+## 2026-10-10 — Phase 2 tasarımı: bölümler, katlar, coin ekonomisi (sadece belge)
+
+### İstek (kullanıcı)
+Bölüm 1 "Mammon'un Kasası" taslağı (8 kat + Mammon: Masa / Olay / Kara Pazar / Bekçi / Hazine / Araf Ateşi, kapıda 70 coin haraç).
+Yıl mantığı bosslarda kalacak; katlar ayrı bir dengeyle, coin ile oynanacak. Sorularıma cevaplar: kat masaları tamamen coin
+(ante B1/B2/B3 = 5/8/10, Masa 3 el, Bekçi 5 el, bölüm başı +20 coin), borç sınırsız, kapıda eksik coin başına +5 yıl, haraç 70/85/100,
+artan coin sonraki bölüme (Lilith'ten sonra skora), şarj / güçler / emanetler / jokerler katlarda da, küçük iblislerin hafif göstergesi,
+Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
+
+### Yapılanlar
+- `Docs/PHASE2_CHAPTERS.md`: bütün kararlar + 12 açık soru (bölüm ↔ boss eşlemesi ve Lucifer'in yeri, boss masasının 8 elinin
+  sonunda ne olduğu, kat bahis yapısı / tavan, katta Dead Man's Hand, Bölüm 2/3 lanet sınırı, deste, olay zarının akıbeti,
+  Kara Pazar içeriği, kayıt v=5...). Kod yok.
+
+### Sıradaki adımlar
+- Açık soruları netleştir → simülasyona bölüm modu (tipik yol ≈ 70 coin mi, haraç eksiğinin yıl dağılımı) → Core → sunum.
+
+### İkinci tur kararlar (aynı gün)
+- Bölüm 1 Mammon (8 el), 2 Belial (10), 3 Lilith (12); sıra sabit, serbest masa değiştirme ve "250'de her yerden çağrılma" kalkar.
+  Lilith sonrası ≤ 250 → Lucifer, 251–999 → "Araf" sonu (skor = kalan yıl), ≥ 1000 → kayıp. Lucifer'den düşüş = "Araf" sonu.
+- Boss: erken kalkma yok, ruh masadayken son el masayı bitirmez.
+- Kat bahsi: artırma 1 / 2 ante, sabit tavan 6 ante, çarpan en fazla ×3, çekilmede ek bedel yok; iblis re-raise %10/20/30, blöf yok,
+  zayıf elle %40 çekilir; maç bonusu Masa +5, Bekçi +15 + emanet.
+- Kara Pazar (45/50/60 emanet, at 25, şarj 30, joker 20; B2 ×1.2, B3 ×1.4). Ateş artık coin vermez: şarj 5 / emanet eksisini sustur /
+  karıştır + sonraki masada ilk el ante'siz.
+- Simülasyon hedefleri: haracı tam ödeyen %40–60, kapıda ort. 55–75 coin, emanet alan 20–40 eksik, iblise el kazanma ~%55.
+- `PHASE2_CHAPTERS.md` yeniden yazıldı; 15 açık soru kaldı (çoğu simülasyonu bloklamıyor). Önerilen sıradaki iş: Bölüm 1 kat
+  ekonomisi simülasyonu (`FloorTable`, `ChapterMap`, `ChapterSimulation`).
+
+### Üçüncü tur: Bölüm 1 kat ekonomisi kodu + simülasyon (aynı gün)
+- İstek: varsayılanlar onaylı; küçük iblis = bölüm şeytanının masa kuralları; Bekçi ödülü slotlar doluyken +10 coin ya da değiş tokuş
+  (simülasyonda hep coin); raporda bonus 3 / 5 / 8 tablosu, Ateş dağılımı, Kara Pazar alışveriş oranı. Demo koduna ve sunuma dokunma.
+- Yapılanlar: `Core/Chapters` (ChapterRules, ChapterMap, FloorTable, FloorPayoutTable, CoinPurse, BlackMarket, FloorEvents, ChapterRun).
+  Demo koduna sadece varsayılanı kapalı kancalar: `IHouseFoldStrategy` (+ `WeakHandFoldStrategy`, `RoundResult.HouseFolded`),
+  `IRelic.Boon` + `RunEffects.SilenceCurse / LiftSilence / CombinedRelics / RemoveRelic`, `Sinner.FillCharge / ChangeJokers`;
+  `BalanceSimulation.PlayHand` internal (+ `deal` parametresi). Sunum yok.
+- Testler: `ChapterTests` (30); EditMode tamamı: 849 → 848 geçti, 1 test hatası (testin kendi beklentisi, düzeltildi; tekrar 30/30).
+  Eski 818 test değişmeden geçiyor.
+- `ChapterSimulation` (Explicit; `HELLPOKER_TABLE_BONUSES`, `HELLPOKER_IMP`, `HELLPOKER_ANTE`, `HELLPOKER_TRIBUTE`, `HELLPOKER_CLASSES`).
+  Sonuç (+5): haracı tam ödeyen %46.8 ✓, kapıda ort. 70.6 coin ✓, emanet alanların eksiği 29.0 ✓, iblise el kazanma %50.2 ✗ (hedef ~55).
+  Ayrıntılar ve bulgular `PHASE2_CHAPTERS.md`'de. En önemlisi: iblisin çekilme / re-raise düğmeleri el kazanma oranını değiştirmiyor,
+  coin'i ters yönde oynatıyor (çekilme %100 → 64.3 coin; re-raise %30 → 75.7).
+- Açık: el kazanma oranı için başka bir düğme (kullanıcı seçecek); Ateş'in "şarj" seçeneği işlevsiz kalıyor; Bekçi yolda nadir ve
+  haracı ağır; Ateş'in ante'siz eli Bölüm 1'de Mammon'un ilk eline düşüyor.
+
+### Dördüncü tur: boss'a dönük Ateş, İblisin Gözü, 3 Bekçi, hafif Tahsildar, ante 4 (aynı gün)
+- İstek: el kazanma hedefi %50 kabul (iblis yapay zekasına dokunma). Ateş: "şarj" yerine "şeytanın ilk hilesini boz", susturma boss
+  masası dahil, "karıştır + şeytanın masasındaki ilk el ante'siz". Kara Pazar: "şarj" yerine İblisin Gözü (20). B1'de en çok 3 Bekçi,
+  her başlangıçtan bir Bekçiye yol garanti (hedef 0.8–1.0 / koşu). Tahsildar %5, el başına en çok 5. Soytarı borcu kabul, raporda.
+  Küçük kararlar onaylı. Hedefler kayarsa ilk düğme Masa ante'si (4 ya da 6). Commit yok.
+- Yapılanlar: `FireChoice` (BreakFirstCheat / SilenceCurse / ShuffleAndFreeAnte), `FirstCheatBreaker` + `ChapterRun.BossGuard()`,
+  `ChapterRun.FreeBossAnte`; `BlackMarket.BuyImpsEye` + `ChapterRun.ImpsEyeNext` + Demo kancası `HellPokerGame.HouseCardsOpenAtDeal`
+  (varsayılan 0); `Sinner.FillCharge` geri alındı; `ChapterMap` Bekçileri şerit gruplarına yerleştirip yolu garanti ediyor
+  (`ChapterRules.MaxWardens`: B1 3, B2/B3 2); Tahsildar `WardenTollPercent` 5 / `WardenTollMax` 5; `ChapterRules.With(...)`.
+  Simülasyon: ante karşılaştırması (`HELLPOKER_ANTES`), Bekçi / koşu, Soytarı borcu; oyuncu ilk Bekçiye kadar ona giden yolu izliyor
+  (ilk denemede izlemiyordu: 0.7 / koşu).
+- Sonuç: ante 5'te kapıda 85.5 coin (hedef 55–75 ✗). Ante 4: tam ödeme %50.5, kapıda 74.6, emanet alanların eksiği 27.4, Bekçi 1.0,
+  Tahsildar maç başına 8.3 — hepsi hedefte. **`ChapterRules.For(1)` ante 4.** Ayrıntı `PHASE2_CHAPTERS.md`.
+- Testler: EditMode 851 geçti (+2 explicit atlandı), 0 hata; ante değişikliğinden sonra `ChapterTests` 33/33.
+- Açık: kapıdaki coin üst sınıra yakın (74.6); sınıf kırılımı ante 4'te ölçülmedi; Ateş seçimlerinin değeri ancak boss simülasyonuyla
+  ölçülebilir; B2/B3 haritaları ve olayları.

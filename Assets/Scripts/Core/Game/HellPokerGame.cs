@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Betting;
@@ -23,6 +23,7 @@ namespace HellPoker.Core.Game
         private readonly IDrawStrategy _houseStrategy;
         private readonly IPayoutTable _payouts;
         private readonly IHouseBettingStrategy _houseBetting;
+        private readonly IHouseFoldStrategy _houseFolding;
         private readonly PunishmentLedger _ledger;
 
         private ExchangeResult _playerExchange;
@@ -88,6 +89,9 @@ namespace HellPoker.Core.Game
         public bool IsAfterDraw { get; private set; }
         public int PlayerCardsRevealed { get; private set; }
         public int HouseCardsRevealed { get; private set; }
+
+        /// <summary>House cards that play face up from the deal (a floor's imp's eye, bought at the black market); 0 at every table.</summary>
+        public int HouseCardsOpenAtDeal { get; set; }
         public RoundResult LastRound { get; private set; }
         public int RoundNumber { get; private set; }
 
@@ -124,7 +128,7 @@ namespace HellPoker.Core.Game
         private int AvailableForNextHand => IsSoulAtStake ? SoulRemaining : _ledger.Years;
 
         /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
-        public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, RelicRoster.Combined(Effects.Relics)),
+        public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, Effects.CombinedRelics),
             AvailableForNextHand);
 
         /// <summary>The ante for a sentence (or soul) of <paramref name="stakeBase"/>: units an event sets, or the rule's ante
@@ -150,8 +154,8 @@ namespace HellPoker.Core.Game
                 // In a hand: its own marks; between hands: the ones the next hand will be dealt under.
                 bool inHand = CurrentStake > 0;
                 int eventPercent = inHand ? ThisHand.WinPercent : (Effects.NextHand ?? HandModifier.None).WinPercent;
-                int relicPercent = (inHand ? Relic : RelicRoster.Combined(Effects.Relics)).WinPercent;
-                RelicEffects relic = inHand ? Relic : RelicRoster.Combined(Effects.Relics);
+                int relicPercent = (inHand ? Relic : Effects.CombinedRelics).WinPercent;
+                RelicEffects relic = inHand ? Relic : Effects.CombinedRelics;
                 return Math.Min(_ledger.Years, Scaled(_payouts.GetLeastYearsForgiven(StakeForOutlook, AnteForOutlook, int.MaxValue) + CrownBonus(AnteForOutlook)
                     + AnteShare(AnteForOutlook, relic.WinAntePercent), eventPercent, relicPercent));
             }
@@ -159,7 +163,7 @@ namespace HellPoker.Core.Game
 
         private static int Scaled(int years, int eventPercent, int relicPercent) => (int)((long)years * eventPercent / 100 * relicPercent / 100);
         public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake))
-            + AnteShare(AnteForOutlook, (CurrentStake > 0 ? Relic : RelicRoster.Combined(Effects.Relics)).LossAntePercent);
+            + AnteShare(AnteForOutlook, (CurrentStake > 0 ? Relic : Effects.CombinedRelics).LossAntePercent);
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
         private int AnteForOutlook => CurrentStake > 0 ? Ante : UpcomingAnte;
@@ -170,10 +174,12 @@ namespace HellPoker.Core.Game
 
         /// <param name="houseBetting">How the house answers raises after the draw; null for a house that never re-raises.</param>
         /// <param name="cheats">The demon's cheating at this table; null for an honest table.</param>
+        /// <param name="houseFolding">Whether the House gives up facing a raise after the draw (a floor's imp); null: it never does.</param>
         public HellPokerGame(GameRules rules, IDeck deck, IHandEvaluator evaluator, ICardExchanger exchanger,
             IDrawStrategy houseStrategy, IPayoutTable payouts, IHouseBettingStrategy houseBetting = null, CheatSession cheats = null,
-            IRandomSource cheatRandom = null, Sinner sinner = null)
+            IRandomSource cheatRandom = null, Sinner sinner = null, IHouseFoldStrategy houseFolding = null)
         {
+            _houseFolding = houseFolding;
             Sinner = sinner;
             _cheats = cheats ?? new CheatSession(null, 0, null);
             _cheatRandom = cheatRandom;
@@ -216,7 +222,7 @@ namespace HellPoker.Core.Game
             ThisHand = Effects.NextHand ?? HandModifier.None;
             Effects.NextHand = HandModifier.None;
             // The relics the run carries: their gifts and curses on every hand.
-            Relic = RelicRoster.Combined(Effects.Relics);
+            Relic = Effects.CombinedRelics;
             Ante = Math.Min(AnteUnder(stakeBase, ThisHand, Relic), _handPurse);
             TableCap = ThisHand.NoCap ? _handPurse : Math.Max(Ante, Math.Min(Rules.Stakes.CapFor(stakeBase), _handPurse));
             CurrentStake = Ante;
@@ -226,7 +232,7 @@ namespace HellPoker.Core.Game
             if (ThisHand.GhostSeed.HasValue)
                 PlayerHand = GhostHand(ThisHand.GhostSeed.Value) ?? PlayerHand;   // the lost soul plays it
             PlayerCardsRevealed = Math.Min(Hand.Size, Rules.OpeningCardsShown + 1);
-            HouseCardsRevealed = 0;
+            HouseCardsRevealed = Math.Max(0, Math.Min(Hand.Size - 1, HouseCardsOpenAtDeal));
             IsAfterDraw = false;
             _sealed = false;
             DecisionsSkipped = 0;
@@ -282,7 +288,7 @@ namespace HellPoker.Core.Game
             get
             {
                 HandModifier hand = CurrentStake > 0 ? ThisHand : Effects.NextHand ?? HandModifier.None;
-                RelicEffects relic = CurrentStake > 0 ? Relic : RelicRoster.Combined(Effects.Relics);
+                RelicEffects relic = CurrentStake > 0 ? Relic : Effects.CombinedRelics;
                 return 2 * Hand.Size + 2 * Rules.MaxDiscards + relic.RedrawsPerTable + CheatTable.MostCardsACheatDeals
                        + (hand.GhostSeed.HasValue ? Hand.Size : 0);
             }
@@ -520,6 +526,12 @@ namespace HellPoker.Core.Game
 
             if (action == BetAction.Raise)
             {
+                // A floor's imp may give up its hand rather than face a raise past the draw: the stake on the table is the player's.
+                if (IsAfterDraw && HouseFolds())
+                {
+                    Finish(showdown: null, houseFolded: true);
+                    return;
+                }
                 CurrentStake += RaiseAmount;
                 if (IsAfterDraw && TryHouseReRaise())
                     return;
@@ -917,7 +929,7 @@ namespace HellPoker.Core.Game
                     break;
 
                 case GamePhase.DrawReveal when HouseCardsShown > 0:
-                    HouseCardsRevealed = HouseCardsShown;
+                    HouseCardsRevealed = Math.Max(HouseCardsRevealed, HouseCardsShown);
                     Phase = GamePhase.HouseReveal;
                     Strike(CheatTiming.HouseReveal);
                     break;
@@ -958,6 +970,10 @@ namespace HellPoker.Core.Game
             if (JokerResolver.CountJokers(HouseHand) >= 2) return false;
             return _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
         }
+
+        /// <summary>Two jokers lose anyway: an imp holding them has nothing to give up (it plays on, as a demon never raises them).</summary>
+        private bool HouseFolds() =>
+            _houseFolding != null && JokerResolver.CountJokers(HouseHand) < ShowdownResult.BustJokers && _houseFolding.WantsToFold(_evaluator.Evaluate(HouseHand));
 
         private int RoomToRaise(int wanted)
         {
@@ -1047,13 +1063,19 @@ namespace HellPoker.Core.Game
             Finish(JudgeShowdown(card));
         }
 
-        /// <summary>Settles the hand. A null showdown means the player folded.</summary>
-        private void Finish(ShowdownResult showdown)
+        /// <summary>Settles the hand. A null showdown means the player folded — or, <paramref name="houseFolded"/>, the House did.</summary>
+        private void Finish(ShowdownResult showdown, bool houseFolded = false)
         {
             int yearsBefore = _ledger.Years;
 
             bool freeFold = false;
-            if (showdown == null)
+            if (houseFolded)
+            {
+                // The stake on the table, one to one (as the weakest winning hand), with the crown's and the relics' shares.
+                _ledger.Forgive(Forgiven(HandCategory.HighCard));
+                _cheats.PlayerWon(Rules);
+            }
+            else if (showdown == null)
             {
                 // The Peasant's honest heart (his power, switched on): the fold costs nothing, and the gauge is spent now.
                 freeFold = Sinner != null && Sinner.PowerArmed && Sinner.Ability == SinnerAbility.FreeFold && Sinner.TryUse(SinnerAbility.FreeFold);
@@ -1086,13 +1108,15 @@ namespace HellPoker.Core.Game
                 : GamePhase.RoundOver;
 
             // The power charges with every settled hand — but not the one the Peasant walked away from with it (his gauge is empty).
-            if (!freeFold) Sinner?.HandSettled(showdown == null, showdown?.Outcome);
+            bool playerFolded = showdown == null && !houseFolded;
+            if (!freeFold) Sinner?.HandSettled(playerFolded, houseFolded ? ShowdownOutcome.PlayerWins : showdown?.Outcome);
             Sinner?.EndHand();   // the crown's guard lasts the hand
             // The Jester's twenty jokers: the deck is cleared of them, and the first time the Rattle joins the run (beyond the relic limit).
             bool jackpot = !freeFold && Sinner != null && Sinner.HitJokerJackpot;
             bool rattle = jackpot && Effects.AddRelic(RelicIds.JestersRattle);
-            LastRound = new RoundResult(CurrentStake, showdown == null, _playerExchange, _houseExchange, showdown,
-                yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle, settledByJokers: _settledByJokers);
+            LastRound = new RoundResult(CurrentStake, playerFolded, _playerExchange, _houseExchange, showdown,
+                yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle, settledByJokers: _settledByJokers,
+                houseFolded: houseFolded);
             _settledByJokers = false;
         }
 
