@@ -16,7 +16,12 @@ namespace HellPoker.Presentation
         private readonly List<AudioSource> _sfx = new List<AudioSource>();
         private readonly Dictionary<string, AudioClip> _clips = new Dictionary<string, AudioClip>();
         private AudioSource _music;
+        private AudioSource _fading;
         private AudioSource _soul;
+        private float _musicVolume = 0.7f;
+
+        /// <summary>Seconds a track takes to give way to the next (both play meanwhile: no cut between screens).</summary>
+        private const float CrossfadeSeconds = 0.6f;
         private string _track;
         private int _next;
         private float _sfxVolume = 0.7f;
@@ -29,6 +34,7 @@ namespace HellPoker.Presentation
             for (int i = 0; i < Voices; i++)
                 audio._sfx.Add(audio.Source(false));
             audio._music = audio.Source(true);
+            audio._fading = audio.Source(true);
             audio._soul = audio.Source(true);
             return audio;
         }
@@ -69,9 +75,26 @@ namespace HellPoker.Presentation
             if (trackId == _track) return;
             _track = trackId;
             AudioClip clip = string.IsNullOrEmpty(trackId) ? null : Clip("Music", trackId);
+            // The old track fades out on its own source while the new one fades in: a short crossfade, never a cut.
+            AudioSource old = _music;
+            _music = _fading;
+            _fading = old;
             _music.Stop();
             _music.clip = clip;
+            _music.volume = 0f;
             if (clip != null) _music.Play();
+        }
+
+        private void Update()
+        {
+            float step = Time.unscaledDeltaTime / CrossfadeSeconds * Mathf.Max(0.0001f, _musicVolume);
+            if (_music.isPlaying && _music.volume < _musicVolume) _music.volume = Mathf.Min(_musicVolume, _music.volume + step);
+            if (_music.volume > _musicVolume) _music.volume = _musicVolume;
+            if (_fading.isPlaying)
+            {
+                _fading.volume = Mathf.Max(0f, _fading.volume - step);
+                if (_fading.volume <= 0f) _fading.Stop();
+            }
         }
 
         public void SetSoulLayer(bool on)
@@ -97,7 +120,8 @@ namespace HellPoker.Presentation
         {
             float all = Mathf.Clamp01(master);
             _sfxVolume = all * Mathf.Clamp01(sfx);
-            _music.volume = all * Mathf.Clamp01(music);
+            _musicVolume = all * Mathf.Clamp01(music);
+            _music.volume = Mathf.Min(_music.volume, _musicVolume);
             _soul.volume = all * Mathf.Clamp01(music);
         }
     }

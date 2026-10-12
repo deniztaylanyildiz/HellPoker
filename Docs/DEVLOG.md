@@ -3046,3 +3046,17 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Sonuç (2000 koşu): kurtuluş Köylü %43.9, Kral %32.9, Büyücü %22.5, Soytarı %4.1; tam haraç B2 %32-56, B3 %36-63. Soytarı hedefi a-c ile
   tutmadı (en iyi %11.8: kese 260 + toplam 4500) — uygulanmadı; c zaten geçerli. Tablolar `PHASE2_CHAPTERS.md` dokuzuncu tur.
 - Açık (kullanıcıya): Soytarı seçenekleri, Köylü > %40, Büyücü < %25.
+
+### B) Phase 2 sesleri (2026-10-12)
+- İstek: mevcut üreteç ve `IAudio` ile Phase 2'ye müzik (bölüm başına harita müziği, katlar için şeytanınkinin sade hali, Lucifer geçişi,
+  KURTULUŞ / "Kesen boşaldı" bitişleri, ekranlar arası kısa geçiş) ve efektler (coin kazanç / kayıp, kese boşaldı, bar kısalma / uzama,
+  ruh çizgisi uyarısı, düğüm, bölüm başlığı, ganimet, Kara Pazar, Araf Ateşi, olay, heybe, kehanet, vergi, Müsadere, dört şeytan kuralı).
+- Yapılanlar: `sounds.py`'ye 25 efekt + 9 müzik (`map_<boss>`, `floor_<boss>`, `lucifer_call`, `end_free`, `end_doom`), seviyeler eski
+  efektlerle aynı aralıkta (tepe 0.43-0.62). `SfxIds` yeni kimlikler + `MapMusic / FloorMusic`; `UnityAudio` iki müzik kaynağıyla 0.6 sn
+  çapraz geçiş. `ChapterPresenter.MusicId` ekrana göre parça seçer (harita / kat / boss / Lucifer çağrısı / bitiş), panellerde efektler.
+  `TablePresenter.Kit`: coin sesi (4 ante ve üstü dolgun), bar sesi (faiz ayrı: `RuleInterest`), ruh uyarısı (%85, %70'in altına inince
+  yeniden kurulur), Rol Takası / Ayna draw başında, Baştan Çıkarma sonuçta, heybe koyma / çekme, kehanet görme / dibe yollama, vergi kazanma
+  / harcama, Müsadere. Ses düzeyi ayarları aynen geçerli (`SetVolumes`).
+- Testler: `ChapterPresenterTests` +9 (müzik, düğüm, coin, kese boşaldı, kurtuluş müziği, bar, faiz, ruh uyarısı tek sefer, heybe, vergi,
+  kehanet). EditMode 948 (944 geçti, 4 explicit, 0 hata).
+- Kararım: dibe yollama sesi testsiz (şarjı doldurmanın test yolu yok; kod yolu tek satır).

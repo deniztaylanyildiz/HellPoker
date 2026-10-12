@@ -257,3 +257,325 @@ MUSIC = {
     "mammon": music_mammon, "belial": music_belial, "lilith": music_lilith, "lucifer": music_lucifer, "menu": music_menu,
     "soul_layer": music_soul_layer,
 }
+
+# ---------------------------------------------------------------------------------------------------------------- Phase 2's effects
+
+
+def _coins(count, seed, rising=True):
+    """Coins: bright metallic ticks, a few or a shower."""
+    parts = []
+    for k in range(count):
+        f = (2400 + 180 * k) if rising else (2600 - 160 * k)
+        tick = decay_env(pulse(f, 0.08, 0.125) * 0.7 + noise(0.08, seed=seed + k, rate_hz=14000) * 0.3, 0.02)
+        parts.append((k * 0.045, tick, 0.5))
+    return mix(0.08 + count * 0.045, parts)
+
+
+def sfx_coin_win():
+    return normalize(_coins(3, 31), 0.55)
+
+
+def sfx_coin_win_big():
+    """A shower of coins and a little rising chime."""
+    chime = _arp(["E5", "G#5", "B5"], 0.06)
+    return normalize(mix(0.7, [(0, _coins(8, 33), 0.8), (0.2, chime, 0.35)]), 0.62)
+
+
+def sfx_coin_loss():
+    """Coins slide away: a few ticks falling, a dull thump."""
+    thump = decay_env(triangle(110, 0.15, slide_to=70), 0.04)
+    return normalize(mix(0.3, [(0, _coins(3, 35, rising=False), 0.6), (0.12, thump, 0.5)]), 0.55)
+
+
+def sfx_coin_loss_big():
+    thump = decay_env(triangle(90, 0.3, slide_to=45), 0.08)
+    drop = env(pulse(note_hz("D4"), 0.4, 0.5, slide_to=note_hz("A3")), 0.005, 0.2, 0.4, 0.15)
+    return normalize(lowpass(mix(0.7, [(0, _coins(6, 37, rising=False), 0.6), (0.2, thump, 0.6), (0.25, drop, 0.35)]), 0.5), 0.6)
+
+
+def sfx_purse_empty():
+    """The purse is empty: a last coin rattles, a hollow fall."""
+    rattle = decay_env(pulse(2200, 0.4, 0.125, slide_to=1600) * np.sign(np.sin(np.linspace(0, 60, seconds(0.4)))), 0.12)
+    fall = env(triangle(note_hz("A3"), 1.0, slide_to=note_hz("A2")), 0.02, 0.3, 0.6, 0.4)
+    return normalize(mix(1.4, [(0, rattle.astype(np.float32), 0.4), (0.35, fall, 0.7)]), 0.62)
+
+
+def sfx_bar_hit():
+    """The demon's bar shortens: a sharp hit."""
+    hit = decay_env(noise(0.12, seed=41, rate_hz=8000), 0.025)
+    snap = decay_env(pulse(880, 0.1, 0.25, slide_to=440), 0.03)
+    return normalize(mix(0.15, [(0, hit, 0.6), (0, snap, 0.5)]), 0.6)
+
+
+def sfx_bar_grow():
+    """The demon's bar grows: a thick, slow rising swell."""
+    grow = env(pulse(note_hz("A2"), 0.45, 0.5, slide_to=note_hz("D3")), 0.05, 0.2, 0.7, 0.15)
+    sub = env(triangle(55, 0.45, slide_to=73), 0.05, 0.2, 0.7, 0.15)
+    return normalize(lowpass(mix(0.5, [(0, grow, 0.5), (0, sub, 0.7)]), 0.3), 0.6)
+
+
+def sfx_soul_warning():
+    """The bar nears the soul's line: two low warning tones."""
+    tone = lambda: env(pulse(note_hz("D#3"), 0.18, 0.5), 0.005, 0.05, 0.6, 0.05)
+    return normalize(lowpass(mix(0.5, [(0, tone(), 0.6), (0.25, tone(), 0.6)]), 0.4), 0.58)
+
+
+def sfx_node_select():
+    return normalize(mix(0.12, [(0, decay_env(pulse(note_hz("G5"), 0.05, 0.25), 0.015), 0.5),
+                                (0.05, decay_env(pulse(note_hz("D6"), 0.05, 0.25), 0.015), 0.4)]), 0.45)
+
+
+def sfx_chapter_title():
+    """A chapter opens: a low drum roll and a held minor chord."""
+    roll = sum(decay_env(noise(0.06, seed=50 + k), 0.015) for k in range(1)) if False else None
+    parts = [(k * 0.05, decay_env(noise(0.06, seed=50 + k, rate_hz=3000), 0.02), 0.25 + 0.03 * k) for k in range(10)]
+    chord = sum(env(pulse(note_hz(n), 1.2, 0.25), 0.02, 0.3, 0.5, 0.6) for n in ("A3", "C4", "E4"))
+    parts.append((0.5, chord, 0.3))
+    return normalize(mix(1.8, parts), 0.62)
+
+
+def sfx_loot():
+    """The spoils: a chest creaks open, a sparkle."""
+    creak = env(pulse(180, 0.3, 0.125, slide_to=240), 0.01, 0.1, 0.5, 0.1)
+    sparkle = _arp(["C6", "E6", "G6", "C7"], 0.05, half_life=0.06)
+    return normalize(mix(0.7, [(0, creak, 0.4), (0.25, sparkle, 0.4)]), 0.6)
+
+
+def sfx_market_buy():
+    """A purchase: coins counted out, a stamp."""
+    stamp = decay_env(noise(0.08, seed=55, rate_hz=4000), 0.02)
+    return normalize(mix(0.3, [(0, _coins(2, 57), 0.5), (0.15, stamp, 0.5)]), 0.55)
+
+
+def sfx_fire():
+    """The purgatory fire: a crackling swell."""
+    t = np.arange(seconds(1.2), dtype=np.float32) / RATE
+    crackle = noise(1.2, seed=59, rate_hz=5000) * (np.random.default_rng(61).uniform(0, 1, len(t)) > 0.97)
+    roar = lowpass(noise(1.2, seed=63), 0.05) * np.sin(np.pi * t / 1.2) * 4
+    return normalize((crackle * 0.6 + roar).astype(np.float32), 0.58)
+
+
+def sfx_event_open():
+    """A stranger's offer: a curious two-note question."""
+    a = env(triangle(note_hz("E5"), 0.15), 0.01, 0.05, 0.6, 0.05)
+    b = env(triangle(note_hz("A#5"), 0.25), 0.01, 0.05, 0.6, 0.12)
+    return normalize(mix(0.45, [(0, a, 0.5), (0.14, b, 0.5)]), 0.5)
+
+
+def sfx_satchel_put():
+    """A card into the satchel: a cloth rustle, a soft drop."""
+    rustle = lowpass(noise(0.15, seed=65), 0.2) * np.linspace(1, 0, seconds(0.15), dtype=np.float32)
+    drop = decay_env(triangle(160, 0.1, slide_to=110), 0.03)
+    return normalize(mix(0.2, [(0, rustle, 0.6), (0.08, drop, 0.5)]), 0.5)
+
+
+def sfx_satchel_take():
+    rustle = lowpass(noise(0.12, seed=67), 0.25) * np.linspace(0.3, 1, seconds(0.12), dtype=np.float32)
+    blip = decay_env(pulse(note_hz("C6"), 0.05, 0.25), 0.015)
+    return normalize(mix(0.18, [(0, rustle, 0.6), (0.11, blip, 0.35)]), 0.5)
+
+
+def sfx_prophecy_see():
+    """The prophecy: a glassy shimmer."""
+    parts = [(k * 0.04, decay_env(triangle(note_hz(n), 0.3), 0.08), 0.35) for k, n in enumerate(["B5", "F#6", "B6"])]
+    return normalize(mix(0.45, parts), 0.45)
+
+
+def sfx_prophecy_bottom():
+    """A card sent to the bottom: a falling glassy sweep."""
+    sweep = decay_env(triangle(1800, 0.3, slide_to=400), 0.1)
+    return normalize(mix(0.35, [(0, sweep, 0.6)]), 0.5)
+
+
+def sfx_tax_gain():
+    return normalize(mix(0.25, [(0, _coins(1, 69), 0.5), (0.06, decay_env(pulse(note_hz("A5"), 0.12, 0.25), 0.04), 0.4)]), 0.5)
+
+
+def sfx_tax_spend():
+    seal = decay_env(noise(0.1, seed=71, rate_hz=3500), 0.025)
+    return normalize(mix(0.25, [(0, _coins(2, 73, rising=False), 0.5), (0.1, seal, 0.5)]), 0.52)
+
+
+def sfx_seize():
+    """A seizure: a quick grab, a hard royal stamp."""
+    swipe = decay_env(noise(0.1, seed=75, rate_hz=9000), 0.03)
+    stamp = env(pulse(note_hz("G3"), 0.25, 0.5), 0.003, 0.08, 0.4, 0.1)
+    return normalize(mix(0.35, [(0, swipe, 0.5), (0.08, stamp, 0.6)]), 0.6)
+
+
+def sfx_rule_interest():
+    """Mammon's interest: a ledger's tick and a heavy coin."""
+    tick = decay_env(pulse(1200, 0.04, 0.125), 0.01)
+    coin = decay_env(pulse(note_hz("D4"), 0.25, 0.25) * 0.6 + triangle(note_hz("D3"), 0.25) * 0.4, 0.08)
+    return normalize(mix(0.4, [(0, tick, 0.4), (0.06, coin, 0.6)]), 0.55)
+
+
+def sfx_rule_swap():
+    """Belial's role swap: two cards crossing, a theatrical flourish."""
+    a = decay_env(pulse(600, 0.2, 0.25, slide_to=1200), 0.06)
+    b = decay_env(pulse(1200, 0.2, 0.25, slide_to=600), 0.06)
+    return normalize(mix(0.3, [(0, a, 0.5), (0.03, b, 0.5)]), 0.55)
+
+
+def sfx_rule_temptation():
+    """Lilith's temptation: a soft descending sigh."""
+    sigh = env(triangle(note_hz("E5"), 0.5, slide_to=note_hz("A4")), 0.05, 0.2, 0.6, 0.2)
+    return normalize(lowpass(mix(0.55, [(0, sigh, 0.6), (0.02, noise(0.4, seed=77) * 0.05, 1.0)]), 0.45), 0.5)
+
+
+def sfx_rule_mirror():
+    """Lucifer's mirror: the same note, struck and echoed back lower."""
+    a = decay_env(pulse(note_hz("C5"), 0.3, 0.5), 0.08)
+    b = decay_env(pulse(note_hz("C4"), 0.3, 0.5), 0.08)
+    return normalize(mix(0.6, [(0, a, 0.5), (0.22, b, 0.45)]), 0.55)
+
+
+SFX.update({
+    "coin_win": sfx_coin_win, "coin_win_big": sfx_coin_win_big, "coin_loss": sfx_coin_loss, "coin_loss_big": sfx_coin_loss_big,
+    "purse_empty": sfx_purse_empty, "bar_hit": sfx_bar_hit, "bar_grow": sfx_bar_grow, "soul_warning": sfx_soul_warning,
+    "node_select": sfx_node_select, "chapter_title": sfx_chapter_title, "loot": sfx_loot, "market_buy": sfx_market_buy, "fire": sfx_fire,
+    "event_open": sfx_event_open, "satchel_put": sfx_satchel_put, "satchel_take": sfx_satchel_take, "prophecy_see": sfx_prophecy_see,
+    "prophecy_bottom": sfx_prophecy_bottom, "tax_gain": sfx_tax_gain, "tax_spend": sfx_tax_spend, "seize": sfx_seize,
+    "rule_interest": sfx_rule_interest, "rule_swap": sfx_rule_swap, "rule_temptation": sfx_rule_temptation, "rule_mirror": sfx_rule_mirror,
+})
+
+# ---------------------------------------------------------------------------------------------------------------- Phase 2's music
+
+
+def music_map_mammon():
+    """Mammon's vault, on the map: the march slowed to a creep — the bass and the anvil far off, a counting-house bell."""
+    beat, length = _track(56, 8)
+    chords = ["Am", "F", "Dm", "E"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        root = _chord_notes(ch, 2)[0]
+        parts.append((bar * 4 * beat, env(pulse(note_hz(root), beat * 3.8, 0.125), 0.02, 0.4, 0.5, 0.4), 0.3))
+        anvil = decay_env(pulse(2100, 0.25, 0.5) * 0.5 + noise(0.25, seed=80 + bar, rate_hz=11000) * 0.5, 0.06)
+        parts.append((bar * 4 * beat + 2 * beat, anvil, 0.1))
+        for k, n in enumerate(_chord_notes(ch, 4)):
+            parts.append((bar * 4 * beat + k * beat, decay_env(triangle(note_hz(n), beat), 0.3), 0.12))
+    return normalize(loop_lowpass(mix(length, parts), 0.4), 0.5)
+
+
+def music_map_belial():
+    """Belial's stage, on the map: a music box waltz behind the curtain."""
+    beat, length = _track(132, 16, beats=3)
+    chords = ["Dm", "A7", "Dm", "G", "Bb", "A7", "Dm", "A7"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        tones = _chord_notes(ch, 3)
+        start = bar * 3 * beat
+        parts.append((start, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 0.9), 0.005, 0.1, 0.6, 0.05), 0.4))
+        for b in (1, 2):
+            chord = sum(triangle(note_hz(n) * 2, beat * 0.4) for n in tones[:3])
+            parts.append((start + b * beat, decay_env(chord, 0.06), 0.08))
+    tune = ["A5", "F5", "D5", "E5", None, "C#5", "D5", "F5", "A5", "G5", None, "E5"]
+    for i, n in enumerate(tune * 4):
+        if n:
+            parts.append((i * beat, decay_env(triangle(note_hz(n) * 2, beat * 0.9), 0.12), 0.2))
+    return normalize(mix(length, parts), 0.5)
+
+
+def music_map_lilith():
+    """Lilith's night, on the map: slow and violet, a pad and a far-off bell."""
+    beat, length = _track(50, 8)
+    chords = ["Dm", "Bb", "Gm", "A"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        pad = sum(env(triangle(note_hz(n), beat * 4.3), 0.8, 0.5, 0.7, 1.0) for n in _chord_notes(ch, 3))
+        parts.append((bar * 4 * beat, pad, 0.18))
+        if bar % 2 == 0:
+            t = np.arange(seconds(3), dtype=np.float32) / RATE
+            bell = (np.sin(2 * np.pi * note_hz("D6") * t) + 0.4 * np.sin(2 * np.pi * note_hz("D6") * 2.76 * t)) * 0.5 ** (t / 0.7)
+            parts.append((bar * 4 * beat + beat, bell.astype(np.float32), 0.12))
+    return normalize(loop_lowpass(mix(length, parts), 0.35), 0.5)
+
+
+def music_floor_mammon():
+    """A floor of Mammon's: his march, plainer — the bass and the anvil, no lead."""
+    beat, length = _track(68, 8)
+    chords = ["Am", "Am", "F", "F", "Dm", "Dm", "E", "E"]
+    parts = []
+    for bar, ch in enumerate(chords):
+        root = _chord_notes(ch, 2)[0]
+        for b in range(4):
+            start = (bar * 4 + b) * beat
+            parts.append((start, env(pulse(note_hz(root), beat * 0.9, 0.125), 0.005, 0.15, 0.5, 0.05), 0.35))
+            if b == 0:
+                anvil = decay_env(pulse(2100, 0.25, 0.5) * 0.5 + noise(0.25, seed=90 + bar, rate_hz=11000) * 0.5, 0.05)
+                parts.append((start, anvil, 0.15))
+    return normalize(mix(length, parts), 0.5)
+
+
+def music_floor_belial():
+    """A floor of Belial's: the walking bass and the brushes, no lead."""
+    beat, length = _track(116, 8)
+    swing = beat * 0.62
+    chords = ["Dm7", "G7", "Cmaj7", "A7"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        tones = _chord_notes(ch, 2)
+        walk = [tones[0], tones[1 % len(tones)], tones[2 % len(tones)], tones[1 % len(tones)]]
+        for b in range(4):
+            start = (bar * 4 + b) * beat
+            parts.append((start, env(triangle(note_hz(walk[b]), beat * 0.9), 0.005, 0.1, 0.7, 0.05), 0.5))
+            parts.append((start + swing, decay_env(noise(0.08, seed=100 + bar * 4 + b), 0.02), 0.06))
+    return normalize(mix(length, parts), 0.5)
+
+
+def music_floor_lilith():
+    """A floor of Lilith's: her arpeggio alone."""
+    beat, length = _track(60, 8)
+    chords = ["Dm", "Bb", "Gm", "A"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        notes = _chord_notes(ch, 3)
+        for k in range(8):
+            n = notes[[0, 1, 2, 1][k % 4]]
+            parts.append(((bar * 8 + k) * beat * 0.5, decay_env(triangle(note_hz(n), beat * 1.5), 0.3), 0.25))
+    return normalize(loop_lowpass(mix(length, parts), 0.5), 0.5)
+
+
+def music_lucifer_call():
+    """Before Lucifer: a long-held low organ and a heartbeat, waiting."""
+    beat, length = _track(40, 4)
+    parts = []
+    for bar, ch in enumerate(["Cm", "Cm", "Ab", "G"]):
+        organ = sum(pulse(note_hz(n), beat * 4.2, 0.5) * 0.5 for n in _chord_notes(ch, 2))
+        parts.append((bar * 4 * beat, env(organ, 0.8, 0.5, 0.8, 0.8), 0.08))
+        for b in range(4):
+            parts.append(((bar * 4 + b) * beat, decay_env(triangle(55, 0.25, slide_to=40), 0.05), 0.6))
+    return normalize(loop_lowpass(mix(length, parts), 0.3), 0.55)
+
+
+def music_end_free():
+    """Freedom: a bright major arpeggio climbing out of the dark."""
+    beat, length = _track(92, 8)
+    chords = ["C", "G", "Am", "F", "C", "G", "F", "C"]
+    parts = []
+    for bar, ch in enumerate(chords):
+        notes = _chord_notes(ch, 4)
+        for k in range(8):
+            parts.append(((bar * 8 + k) * beat * 0.5, decay_env(pulse(note_hz(notes[k % 3]), beat * 0.6, 0.25), 0.12), 0.18))
+        parts.append((bar * 4 * beat, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 3.9), 0.02, 0.3, 0.7, 0.3), 0.4))
+    return normalize(mix(length, parts), 0.55)
+
+
+def music_end_doom():
+    """Damned (an empty purse, a burned soul, the fall): a slow falling minor line over a drone."""
+    beat, length = _track(46, 8)
+    t = np.arange(seconds(length), dtype=np.float32) / RATE
+    drone = (np.sin(2 * np.pi * 55 * t) + 0.4 * np.sin(2 * np.pi * 82.4 * t)).astype(np.float32)
+    parts = [(0, drone * 0.4, 1.0)]
+    line = ["E4", "D4", "C4", "B3", "A3", "G#3", "A3", None]
+    for i, n in enumerate(line):
+        if n:
+            parts.append((i * 4 * beat, env(pulse(note_hz(n), beat * 3.6, 0.25), 0.1, 0.5, 0.5, 0.8), 0.18))
+    return normalize(loop_lowpass(mix(length, parts), 0.35), 0.5)
+
+
+MUSIC.update({
+    "map_mammon": music_map_mammon, "map_belial": music_map_belial, "map_lilith": music_map_lilith,
+    "floor_mammon": music_floor_mammon, "floor_belial": music_floor_belial, "floor_lilith": music_floor_lilith,
+    "lucifer_call": music_lucifer_call, "end_free": music_end_free, "end_doom": music_end_doom,
+})

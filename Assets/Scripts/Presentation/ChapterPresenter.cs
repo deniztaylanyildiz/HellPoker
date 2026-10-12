@@ -140,7 +140,25 @@ namespace HellPoker.Presentation
         public bool IsAtTable => _visible && _atTable;
 
         /// <summary>The music of the screen: the chapter's demon (Lucifer's at the end).</summary>
-        public string MusicId => _journey?.Stage == JourneyStage.Lucifer ? DealerRoster.LuciferId : (_run?.Rules ?? ChapterRules.For(1)).BossId;
+        /// <summary>
+        /// The music of the chapter's screen: the map's (each chapter's own variation), a floor's table (the demon's music, plainer), the
+        /// demon's table, Lucifer's call before his table, his table, and the two endings.
+        /// </summary>
+        public string MusicId
+        {
+            get
+            {
+                if (_endTrack != null) return _endTrack;
+                string boss = (_run?.Rules ?? ChapterRules.For(1)).BossId;
+                if (_journey?.Stage == JourneyStage.Lucifer) return _atTable ? DealerRoster.LuciferId : SfxIds.LuciferCallMusic;
+                if (_pending == "lucifer") return SfxIds.LuciferCallMusic;
+                if (_atTable) return _bossGame != null ? boss : SfxIds.FloorMusic(boss);
+                return SfxIds.MapMusic(boss);
+            }
+        }
+
+        /// <summary>The ending's music once a run is over (freedom, or a doom); null while it goes on.</summary>
+        private string _endTrack;
 
         // ------------------------------------------------------------------ the run
 
@@ -154,6 +172,7 @@ namespace HellPoker.Presentation
             _bossGame = null;
             _atTable = false;
             _ended = false;
+            _endTrack = null;
             _nodeDone = true;
             _selected = PickDefault(_run.Choices);
             _visible = true;
@@ -312,6 +331,7 @@ namespace HellPoker.Presentation
 
         private void Go(MapNode node)
         {
+            _audio.PlaySfx(SfxIds.NodeSelect);
             _run.MoveTo(node);
             _nodeDone = false;
             _selected = PickDefault(_run.Choices);
@@ -366,6 +386,7 @@ namespace HellPoker.Presentation
             _card = card;
             _pending = pending;
             _panel.Show(card);
+            if (pending == "lucifer") _audio.PlayMusic(MusicId);   // the call: the music holds its breath
             if (!_atTable) _map.Show(MapState());   // the choices go dark under a panel
         }
 
@@ -387,6 +408,7 @@ namespace HellPoker.Presentation
         /// <summary>A chapter opens: its name, its demon, what waits below.</summary>
         private void ShowChapterOpening()
         {
+            _audio.PlaySfx(SfxIds.ChapterTitle);
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             string text = string.Format(UiText.IntroFormat, rules.Floors, boss, _run.Tribute, rules.YearsPerMissingCoin, _run.Purse.Coins);
@@ -408,6 +430,7 @@ namespace HellPoker.Presentation
 
         private void ShowMarket(BlackMarket market, string bought)
         {
+            if (bought != null) _audio.PlaySfx(SfxIds.MarketBuy);
             var options = new List<PanelOption>();
             var answers = new List<Action>();
             bool full = _run.Effects.CarriedOffered >= RelicRoster.MaxCarried;
@@ -491,6 +514,7 @@ namespace HellPoker.Presentation
 
         private void ShowOffer(IFloorEvent offer)
         {
+            _audio.PlaySfx(SfxIds.EventOpen);
             string portrait = offer.Id == FloorEventIds.MammonsLedger ? _run.Rules.BossId : "Events/" + offer.Id;
             ShowPanel(new PanelCard(portrait, UiText.FloorEventOwner(offer.Id), UiText.FloorEventTitle(offer.Id), OfferText(offer),
                     new[] { new PanelOption(UiText.EventAccept), new PanelOption(UiText.EventPass, isLeave: true) }),
@@ -540,6 +564,7 @@ namespace HellPoker.Presentation
 
         private void ShowFire()
         {
+            _audio.PlaySfx(SfxIds.Fire);
             string boss = UiText.NameInSentence(UiText.Dealer(_run.Rules.BossId));
             bool silence = _run.CanTend(FireChoice.SilenceCurse);
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, string.Format(UiText.FireTextFormat, boss),
@@ -753,6 +778,7 @@ namespace HellPoker.Presentation
 
         private void ShowLoot()
         {
+            _audio.PlaySfx(SfxIds.Loot);
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             var options = new List<PanelOption>();
@@ -869,6 +895,9 @@ namespace HellPoker.Presentation
             _atTable = false;
             _match = null;
             _bossGame = null;
+            _endTrack = end == JourneyEnd.Freed ? SfxIds.FreedMusic : SfxIds.DoomMusic;
+            if (end == JourneyEnd.PurseEmptied) _audio.PlaySfx(SfxIds.PurseEmpty);
+            _audio.PlayMusic(_endTrack);
             if (!show) return;
 
             string portrait = house ?? _run.Rules.BossId;
@@ -965,6 +994,7 @@ namespace HellPoker.Presentation
             }
             _journey = journey;
             _ended = false;
+            _endTrack = null;
             _visible = true;
             _atTable = false;
             _match = null;

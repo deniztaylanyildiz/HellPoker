@@ -470,6 +470,11 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - Efektler (`SfxIds`): deal, flip, chip, win_small, win_big, loss, sealed (gong), cheat, backfire, soul, summoned, fall, click,
     transition. Müzik döngüleri (30-60 sn, dikişsiz): mammon (ağır, metalik), belial (kabare / swing), lilith (yavaş, minör), lucifer
     (org), menu; `soul_layer` (uğultu + kalp atışı) ruh masadayken müziğin üstünde.
+  - **Phase 2:** müzik `map_<boss>` (harita), `floor_<boss>` (kat masası), `lucifer_call`, `end_free`, `end_doom`
+    (`ChapterPresenter.MusicId`; `UnityAudio` iki kaynakla 0.6 sn çapraz geçiş). Efektler: coin_win[_big] / coin_loss[_big] (4 ante+),
+    purse_empty, bar_hit / bar_grow, soul_warning (%85, %70'te yeniden kurulur), node_select, chapter_title, loot, market_buy, fire,
+    event_open, satchel_put / take, prophecy_see / bottom, tax_gain / spend, seize, rule_interest / swap / temptation / mirror
+    (`TablePresenter.Kit` "sounds of a chapter's table").
   - `IAudio` (PlaySfx, PlayMusic, SetSoulLayer, CutLong, SetVolumes); `UnityAudio` (8 sesli efekt havuzu + müzik + ruh katmanı),
     `NullAudio` (batchmode / testler: ses yok). Efektler presenter'dan **masanın kuyruğuyla** (`ITableView.PlaySfx`): animasyonuyla birlikte
     çalar. Müziği `MainMenuPresenter` ekrana göre seçer (menü teması / masadaki şeytanınki); çağrılma ve düşüşte `TablePresenter`.

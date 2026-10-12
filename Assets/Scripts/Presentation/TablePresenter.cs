@@ -2117,6 +2117,7 @@ namespace HellPoker.Presentation
                 _view.Player.SetHints(null);
             }
             ShowStakeOnTable();
+            KitDrawSounds();
             if (_game.IsCommitted)
                 _view.SetMessage(string.Format(UiText.SealedDrawPrompt, _game.Rules.MaxDiscards), Tone.Warning);
             else
@@ -2185,12 +2186,15 @@ namespace HellPoker.Presentation
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
             if (round != null && !_relabelling)
             {
-                if (round.HouseFolded)
+                if (CoinMode)
+                    PlayCoinSound(round);   // a floor counts coins: they ring (more of them, a fuller sound)
+                else if (round.HouseFolded)
                     _view.PlaySfx(SfxIds.WinSmall);
                 else if (playerWon)
                     _view.PlaySfx(showdown.Player.Category >= HandCategory.TwoPair ? SfxIds.WinBig : SfxIds.WinSmall);
                 else if (houseWon || (round.Folded && !round.FreeFold))
                     _view.PlaySfx(SfxIds.Loss);
+                KitResultSounds(round);
                 PlayMoments(round, playerWon);
                 if (showdown?.HouseBust == true && playerWon)   // the demon's own jokers sank him
                     _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerLaughFlash);

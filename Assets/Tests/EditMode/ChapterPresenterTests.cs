@@ -58,15 +58,17 @@ namespace HellPoker.Core.Tests
         private FakeTableView _tableView;
         private TablePresenter _table;
         private ChapterPresenter _chapters;
+        private AudioTests.FakeAudio _audio;
 
         [SetUp]
         public void SetUp()
         {
+            _audio = new AudioTests.FakeAudio();
             _map = new FakeChapterMapView();
             _panel = new FakeChapterPanelView();
             _tableView = new FakeTableView();
             _table = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), _tableView);
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242);
         }
 
         [TearDown]
@@ -244,7 +246,7 @@ namespace HellPoker.Core.Tests
         {
             _chapters.Dispose();
             var archive = new ChapterArchive(new MemoryStore());
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             Begin();
             _map.Press(_map.State.Choices.First());
             _table.PerformAction();   // the deal: a hand in the middle
@@ -258,7 +260,7 @@ namespace HellPoker.Core.Tests
             _chapters.Dispose();
             _tableView = new FakeTableView();
             _table = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), _tableView);
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             Assert.IsTrue(_chapters.CanContinue);
             Assert.IsFalse(_chapters.HasRun, "nothing in memory yet");
             _chapters.Continue();
@@ -280,7 +282,7 @@ namespace HellPoker.Core.Tests
                 ClassId = Core.Sinners.Peasant.ClassId, Seed = 7, Chapter = 3, Lucifer = true, LuciferBarStart = 1050, Coins = 40, Years = 1,
                 Match = "lucifer", BossBar = 1050, NodeDone = true, BossBeaten = true, LootTaken = true
             });
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             _chapters.Continue();
             Assert.IsTrue(_chapters.IsAtTable, "straight back to his table");
             Assert.AreEqual(JourneyStage.Lucifer, _chapters.Journey.Stage);
@@ -324,7 +326,7 @@ namespace HellPoker.Core.Tests
         {
             _chapters.Dispose();
             var archive = new ChapterArchive(new MemoryStore());
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             Begin();
             Assert.IsTrue(archive.HasRun);
             _chapters.Abandon();
@@ -411,7 +413,7 @@ namespace HellPoker.Core.Tests
                 ClassId = Core.Sinners.Warlock.ClassId, Seed = 7, Chapter = 2, Coins = 40, Years = 1950, Match = "boss", BossBarStart = 1950,
                 BossBar = 1950, NodeDone = false
             });
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             _chapters.Continue();
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.IsInstanceOf<BelialRoleSwap>(_table.Kit.Rule);
@@ -440,7 +442,7 @@ namespace HellPoker.Core.Tests
                 ClassId = Core.Sinners.Peasant.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1300, Match = "boss", BossBarStart = 1300,
                 BossBar = 1300, NodeDone = false
             });
-            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
             _chapters.Continue();
             Assert.IsTrue(_chapters.IsAtTable);
         }
@@ -493,5 +495,123 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(_chapters.Run.Years, _map.State.Bar.Value);
             StringAssert.Contains(UiText.Upper(UiText.GenitiveOf(UiText.Dealer(DealerRoster.MammonId))), _map.State.BarLabel);
             Assert.IsFalse(_map.State.Lines.Any(l => l.Contains(_chapters.Run.Years.ToString())), "no years on the map");
-        }    }
+        }
+
+        // ------------------------------------------------------------------ the chapter's sounds
+
+        [Test]
+        public void TheMapPlaysItsChaptersMusic_AFloorItsOwn_AndPickingANodeClicks()
+        {
+            _chapters.Start(SinnerRoster.Peasant);
+            Assert.Contains(SfxIds.ChapterTitle, _audio.Sfx, "the chapter's title rings");
+            _panel.Press(0);
+            Assert.AreEqual(SfxIds.MapMusic(DealerRoster.MammonId), _chapters.MusicId, "the menu plays it as the map shows");
+            _map.Press(_map.State.Choices.First());
+            Assert.Contains(SfxIds.NodeSelect, _audio.Sfx);
+            Assert.AreEqual(SfxIds.FloorMusic(DealerRoster.MammonId), _audio.Music.Last());
+        }
+
+        [Test]
+        public void AFloorHand_RingsItsCoins_WonOrLost()
+        {
+            Begin();
+            _map.Press(_map.State.Choices.First());
+            _table.PerformAction();   // the deal
+            _tableView.Sfx.Clear();
+            _table.Bet(BetAction.Fold);
+            Assert.AreEqual(GamePhase.RoundOver, _table.Game.Phase);
+            Assert.IsTrue(_tableView.Sfx.Contains(SfxIds.CoinLoss) || _tableView.Sfx.Contains(SfxIds.CoinLossBig), "a fold loses coins");
+            Assert.IsFalse(_tableView.Sfx.Contains(SfxIds.Loss), "not the demo's years");
+        }
+
+        [Test]
+        public void AnEmptyPurse_SoundsItAndTheDoomsMusic()
+        {
+            Begin();
+            int guard = 0;
+            while (guard++ < 5000 && !(_panel.IsOpen && _panel.Card.Title == UiText.PurseEmptyTitle))
+            {
+                if (_panel.IsOpen) _panel.Press(_panel.Card.Options.Count - 1);
+                else if (_chapters.IsAtTable) _table.PerformAction();
+                else
+                {
+                    _chapters.Run.Purse.Add(1 - _chapters.Run.Purse.Coins);
+                    _map.Press(_map.State.Choices.First());
+                }
+            }
+            Assert.Contains(SfxIds.PurseEmpty, _audio.Sfx);
+            Assert.AreEqual(SfxIds.DoomMusic, _audio.Music.Last());
+        }
+
+        [Test]
+        public void Salvation_PlaysTheFreedMusic()
+        {
+            SitAtLucifer(50, "AS AC 8S 8C 2D 9H 9D 4C 5C 6H");
+            Assert.AreEqual(DealerRoster.LuciferId, _audio.Music.Last(), "at his table, his music");
+            PlayUntilAPanel();
+            Assert.AreEqual(SfxIds.FreedMusic, _audio.Music.Last());
+        }
+
+        [Test]
+        public void ADemonsTable_PlaysHisMusic_TheBarsHit_AndMammonsInterest()
+        {
+            SitAtMammon();
+            Assert.AreEqual(DealerRoster.MammonId, _audio.Music.Last());
+            _table.PerformAction();   // the deal
+            _tableView.Sfx.Clear();
+            _table.Bet(BetAction.Fold);
+            Assert.Contains(SfxIds.BarGrow, _tableView.Sfx, "a fold grows the bar");
+            Assert.Contains(SfxIds.RuleInterest, _tableView.Sfx, "and Mammon's interest on it");
+            Assert.IsFalse(_tableView.Sfx.Contains(SfxIds.BarHit));
+        }
+
+        [Test]
+        public void TheBarNearItsLine_SoundsTheWarningOnce()
+        {
+            SitAtMammon();
+            var game = (HellPokerGame)_table.Game;
+            game.TakeOver(game.Rules.SoulThreshold * 9 / 10, 0);
+            _tableView.Sfx.Clear();
+            _table.PerformAction();   // the deal: the bar is drawn again
+            Assert.AreEqual(1, _tableView.Sfx.Count(s => s == SfxIds.SoulWarning));
+            _table.ToggleDiscard(0);
+            Assert.AreEqual(1, _tableView.Sfx.Count(s => s == SfxIds.SoulWarning), "once, not every refresh");
+        }
+
+        [Test]
+        public void ThePeasantKeepingACard_SoundsTheSatchel()
+        {
+            Begin();
+            _map.Press(_map.State.Choices.First());
+            Act();
+            for (int guard = 0; _table.Game.Phase != GamePhase.Drawing && guard < 10; guard++) Act();
+            _table.ToggleDiscard(0);
+            Act();   // DRAW
+            _tableView.Sfx.Clear();
+            _tableView.PressKitCard(0);
+            Assert.Contains(SfxIds.SatchelPut, _tableView.Sfx);
+        }
+
+        [Test]
+        public void TheKingSpendingATax_SoundsTheTreasury()
+        {
+            Begin(SinnerRoster.King);
+            _map.Press(_map.State.Choices.First());
+            _chapters.Run.Kit.AddTax(5);
+            Act();
+            _tableView.Sfx.Clear();
+            _tableView.PressKitButton(0);
+            Assert.Contains(SfxIds.TaxSpend, _tableView.Sfx);
+        }
+
+        [Test]
+        public void TheWarlockSeesTheDeck_AtTheDeal()
+        {
+            Begin(SinnerRoster.Warlock);
+            _map.Press(_map.State.Choices.First());
+            _tableView.Sfx.Clear();
+            Act();   // the deal
+            Assert.Contains(SfxIds.ProphecySee, _tableView.Sfx);
+        }
+    }
 }

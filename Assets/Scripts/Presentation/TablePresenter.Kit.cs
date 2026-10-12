@@ -48,6 +48,8 @@ namespace HellPoker.Presentation
             ClearKit();
             _kit = (game as HellPokerGame)?.Hooks as ChapterHooks;
             _corneredSaid = false;
+            _soulWarned = false;
+            _drawSoundRound = _resultSoundRound = _barRoundShown = -1;
             _taxesLostAtDeal = _kit?.Kit.TaxesLost ?? 0;
         }
 
@@ -57,6 +59,7 @@ namespace HellPoker.Presentation
             _seizing = false;
             if (_kit == null) return;
             _taxesLostAtDeal = _kit.Kit.TaxesLost;
+            if (_kit.Prophecy != null) _view.PlaySfx(SfxIds.ProphecySee);   // a new hand: the Warlock looks at the deck's top again
             if (_kit.Rule != null && !_corneredSaid && _kit.Rule.IsCornered(KitGame))
             {
                 _corneredSaid = true;
@@ -89,6 +92,7 @@ namespace HellPoker.Presentation
                 return false;
             }
             LogNote($"satchel: {string.Join(" ", _bagTakes)} into the draw (hand {_game.RoundNumber}; the demon sees it)");
+            _view.PlaySfx(SfxIds.SatchelTake);
             KitGame.Draw(discards, fill);
             _bagTakes.Clear();
             return true;
@@ -115,6 +119,7 @@ namespace HellPoker.Presentation
                     Hand playerBefore = _game.PlayerHand, houseBefore = _game.HouseHand;
                     satchel.Harvest(game, _discards.OrderBy(i => i).ToArray());
                     LogNote($"power: HARVEST (hand {_game.RoundNumber})");
+                    _view.PlaySfx(SfxIds.SatchelTake);
                     _discards.Clear();
                     _bagTakes.Clear();
                     LogJokers("drawn", NewCards(playerBefore, _game.PlayerHand), NewCards(houseBefore, _game.HouseHand));
@@ -182,6 +187,7 @@ namespace HellPoker.Presentation
                     if (satchel.Keep(game, card))
                     {
                         LogNote($"satchel: keeps {card} (hand {_game.RoundNumber})");
+                        _view.PlaySfx(SfxIds.SatchelPut);
                         Refresh();
                         _view.SetMessage(string.Format(UiText.SatchelKeptFormat, card), Tone.Good);
                     }
@@ -212,6 +218,7 @@ namespace HellPoker.Presentation
                 Card card = top[index];
                 if (!prophecy.SendToBottom(game, index)) return;
                 LogNote($"prophecy: {card} to the bottom (hand {_game.RoundNumber})");
+                _view.PlaySfx(SfxIds.ProphecyBottom);
                 Refresh();
                 _view.SetMessage(string.Format(UiText.RearrangedFormat, card), Tone.Good);
             }
@@ -240,6 +247,7 @@ namespace HellPoker.Presentation
                 case TaxAct.Reveal:
                     treasury.Reveal(game);
                     LogNote($"treasury: a card of the demon's turns (hand {_game.RoundNumber}, taxes {_kit.Kit.Taxes})");
+                    _view.PlaySfx(SfxIds.TaxSpend);
                     _view.PlaySfx(SfxIds.Flip);
                     Refresh();
                     _view.SetMessage(UiText.RevealedMessage, Tone.Good);
@@ -247,6 +255,7 @@ namespace HellPoker.Presentation
                 case TaxAct.FreeRaise:
                     treasury.FreeRaise(game);
                     LogNote($"treasury: a free raise (hand {_game.RoundNumber}, taxes {_kit.Kit.Taxes})");
+                    _view.PlaySfx(SfxIds.TaxSpend);
                     Refresh();
                     _view.SetMessage(UiText.FreeRaiseMessage, Tone.Good);
                     return;
@@ -278,7 +287,7 @@ namespace HellPoker.Presentation
             _seizing = false;
             _discards.Remove(index);
             LogNote($"treasury: SEIZURE {taken} for {given}{(_seizeCharged ? " (the charged power)" : "")} (hand {_game.RoundNumber})");
-            _view.PlaySfx(SfxIds.Flip);
+            _view.PlaySfx(SfxIds.Seize);
             Refresh();
             _view.SetMessage(string.Format(UiText.SeizedFormat, taken.Value, given), Tone.Good);
         }
@@ -390,6 +399,64 @@ namespace HellPoker.Presentation
             return lines.Count == 0 ? message : message + "\n" + string.Join("\n", lines);
         }
 
+        // ------------------------------------------------------------------ the sounds of a chapter's table
+
+        /// <summary>A coin win or loss at least this many antes rings fuller.</summary>
+        private const int BigCoinAntes = 4;
+
+        /// <summary>The bar this close to its line (percent) sounds the soul's warning (again once it has fallen back under the rearm line).</summary>
+        private const int SoulWarningPercent = 85, SoulWarningRearmPercent = 70;
+
+        private bool _soulWarned;
+        private int _drawSoundRound = -1, _resultSoundRound = -1;
+
+        /// <summary>A floor hand's coins: won or lost, a few or many.</summary>
+        private void PlayCoinSound(RoundResult round)
+        {
+            int coins = _seat?.LastHand?.Coins ?? -round.YearsChange;
+            if (coins == 0) return;
+            bool big = Math.Abs(coins) >= BigCoinAntes * Math.Max(1, _game.Ante);
+            _view.PlaySfx(coins > 0 ? (big ? SfxIds.CoinWinBig : SfxIds.CoinWin) : (big ? SfxIds.CoinLossBig : SfxIds.CoinLoss));
+        }
+
+        /// <summary>As the draw begins (once a hand): a demon's rule that struck before it (Belial's swap, Lucifer's seizure).</summary>
+        private void KitDrawSounds()
+        {
+            if (_kit == null || _relabelling || _drawSoundRound == _game.RoundNumber) return;
+            _drawSoundRound = _game.RoundNumber;
+            if (_kit.Rule is BelialRoleSwap swap && swap.Given.HasValue) _view.PlaySfx(SfxIds.RuleSwap);
+            if (_kit.Rule is LuciferMirror mirror && mirror.Seized.HasValue) _view.PlaySfx(SfxIds.RuleMirror);
+        }
+
+        /// <summary>A settled hand's sounds of the chapter: the demon's rule (interest, temptation, the mirror), the King's tax, the bar.</summary>
+        private void KitResultSounds(RoundResult round)
+        {
+            if (_kit == null || _resultSoundRound == _game.RoundNumber) return;
+            _resultSoundRound = _game.RoundNumber;
+            switch (_kit.Rule)
+            {
+                case LilithTemptation t when t.Tempted.HasValue: _view.PlaySfx(SfxIds.RuleTemptation); break;
+                case LuciferMirror m when m.StruckThisHand && !m.Seized.HasValue: _view.PlaySfx(SfxIds.RuleMirror); break;
+            }
+            if (_kit.Treasury != null && round.Showdown?.Outcome == ShowdownOutcome.PlayerWins && !round.Folded) _view.PlaySfx(SfxIds.TaxGain);
+            if (!BarMode || round.YearsChange == 0) return;
+            int interest = KitGame?.HookYearsThisHand ?? 0;
+            if (round.YearsChange - interest < 0) _view.PlaySfx(SfxIds.BarHit);
+            else if (round.YearsChange - interest > 0) _view.PlaySfx(SfxIds.BarGrow);
+            if (interest > 0) _view.PlaySfx(SfxIds.RuleInterest);
+        }
+
+        /// <summary>The bar nears its line: the soul's warning, once until it falls back.</summary>
+        private void SoulWarningSound()
+        {
+            if (!BarMode || _seat.Limit <= 0 || _relabelling) return;
+            long percent = (long)_game.Years * 100 / _seat.Limit;
+            if (percent < SoulWarningRearmPercent) _soulWarned = false;
+            if (_soulWarned || percent < SoulWarningPercent || _game.IsGameOver) return;
+            _soulWarned = true;
+            _view.PlaySfx(SfxIds.SoulWarning);
+        }
+
         // ------------------------------------------------------------------ the demon's health bar
 
         /// <summary>The hand whose result the bar has shown (Mammon's interest is drawn as its own step, once).</summary>
@@ -415,6 +482,7 @@ namespace HellPoker.Presentation
             }
             if (settled) _barRoundShown = _game.RoundNumber;
             _view.SetBossBar(BarOf(_game.Years));
+            SoulWarningSound();
         }
 
         /// <summary>The beat between a hand's own change of the bar and Mammon's interest on it.</summary>
