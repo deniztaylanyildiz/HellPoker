@@ -49,8 +49,13 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<FireChoice, int> Fire = new Dictionary<FireChoice, int>();
             public readonly Dictionary<NodeKind, int> Path = new Dictionary<NodeKind, int>();
 
+            /// <summary>Relics taken (the market, a warden, the spoils) and class upgrades taken (the spoils, the fire), by id.</summary>
+            public readonly Dictionary<string, int> RelicPicks = new Dictionary<string, int>(), UpgradePicks = new Dictionary<string, int>();
+
             public void Add(Tally o)
             {
+                foreach (var p in o.RelicPicks) Bump(RelicPicks, p.Key, p.Value);
+                foreach (var p in o.UpgradePicks) Bump(UpgradePicks, p.Key, p.Value);
                 Runs += o.Runs; Broke += o.Broke; BrokeAtImp += o.BrokeAtImp; BrokeAtWarden += o.BrokeAtWarden; BrokeFloors += o.BrokeFloors;
                 PaidFull += o.PaidFull; CoinsAtGate += o.CoinsAtGate; YearsAtGate += o.YearsAtGate; Reached += o.Reached;
                 Buyers += o.Buyers; BuyersShort += o.BuyersShort; BuyersPaidFull += o.BuyersPaidFull;
@@ -219,7 +224,9 @@ namespace HellPoker.Core.Tests
                         wardenSeen |= next.Kind == NodeKind.Warden;
                         FloorTable table = run.OpenTable();
                         PlayMatch(table, payouts, tally);
+                        int carried = effects.Relics.Count;
                         run.FinishTable(table);
+                        if (effects.Relics.Count > carried) Bump(tally.RelicPicks, effects.Relics.Last());
                         if (run.WardenRelicWaiting != null) run.TakeWardenCoins();   // the designer's rule for the simulation: always the coins
                         if (table.IsWarden)
                         {
@@ -255,6 +262,7 @@ namespace HellPoker.Core.Tests
                             .OrderByDescending(o => o.Price).Select(o => (RelicOffer?)o).FirstOrDefault();
                         if (best.HasValue && market.BuyRelic(best.Value.RelicId))
                         {
+                            Bump(tally.RelicPicks, best.Value.RelicId);
                             boughtRelic = true;
                             tally.RelicsBought++;
                         }
@@ -285,8 +293,12 @@ namespace HellPoker.Core.Tests
                         break;
 
                     case NodeKind.PurgatoryFire:
-                        FireChoice choice = run.CanTend(FireChoice.SilenceCurse) ? FireChoice.SilenceCurse : FireChoice.RestByTheFire;
+                        // A curse to silence first; else, before Lilith, a class upgrade for a longer bar (HELLPOKER_WHET=0: never); else a rest.
+                        FireChoice choice = run.CanTend(FireChoice.SilenceCurse) ? FireChoice.SilenceCurse
+                            : run.Rules.Number < 3 && EnvInt("HELLPOKER_WHET", 1) != 0 && run.CanTend(FireChoice.WhetSoul) ? FireChoice.WhetSoul
+                            : FireChoice.RestByTheFire;
                         run.TendFire(choice, choice == FireChoice.SilenceCurse ? effects.Relics[0] : null);
+                        if (choice == FireChoice.WhetSoul && run.FireUpgrade != null) Bump(tally.UpgradePicks, run.FireUpgrade);
                         Bump(tally.Fire, choice);
                         break;
                 }
@@ -325,6 +337,10 @@ namespace HellPoker.Core.Tests
 
             /// <summary>The jokers in the deck as each chapter (and Lucifer's table) ended, for the runs that got there.</summary>
             public readonly List<int>[] Jokers = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+
+            /// <summary>The runs that began the second chapter, and those of them freed; by a relic or an upgrade held as it began.</summary>
+            public int ReachedCh2, FreedFromCh2;
+            public readonly Dictionary<string, int> HeldAtCh2 = new Dictionary<string, int>(), FreedHeldAtCh2 = new Dictionary<string, int>();
 
             /// <summary>The class mechanics used, over all runs.</summary>
             public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost;
@@ -432,6 +448,29 @@ namespace HellPoker.Core.Tests
                                   $"{Avg((int)t.Rearranges, t.Runs)};  {Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
                                   $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)}");
 
+            report.AppendLine();
+            report.AppendLine("relics and upgrades: taken (market + wardens + spoils; the fire's upgrades), and freedom of the runs that began chapter 2 " +
+                              "holding it against those that did not (a gap past 10 points is marked !)");
+            foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
+            {
+                var picks = new Dictionary<string, int>();
+                foreach (Tally c in t.Chapters)
+                {
+                    foreach (var p in c.RelicPicks) Bump(picks, p.Key, p.Value);
+                    foreach (var p in c.UpgradePicks) Bump(picks, p.Key, p.Value);
+                }
+                report.AppendLine($"{cls?.Id ?? "all"}: chapter 2 begun by {t.ReachedCh2} runs, {Pct(t.FreedFromCh2, t.ReachedCh2)} freed");
+                foreach (string id in picks.Keys.Union(t.HeldAtCh2.Keys).OrderByDescending(k => picks.TryGetValue(k, out int n) ? n : 0))
+                {
+                    int held = t.HeldAtCh2.TryGetValue(id, out int h) ? h : 0, heldFreed = t.FreedHeldAtCh2.TryGetValue(id, out int hf) ? hf : 0;
+                    int without = t.ReachedCh2 - held, withoutFreed = t.FreedFromCh2 - heldFreed;
+                    double gap = held == 0 || without == 0 ? 0 : 100.0 * heldFreed / held - 100.0 * withoutFreed / without;
+                    string mark = held >= 30 && Math.Abs(gap) > 10 ? " !" : "";
+                    report.AppendLine($"  {id,-22} taken {(picks.TryGetValue(id, out int n) ? n : 0),5}   held at ch2 {held,5}: freed {Pct(heldFreed, held),6}" +
+                                      $" vs {Pct(withoutFreed, without),6} ({(gap >= 0 ? "+" : "")}{gap:0.0}){mark}");
+                }
+            }
+
             TestContext.WriteLine(report.ToString());
             Assert.Pass(report.ToString());
         }
@@ -442,12 +481,14 @@ namespace HellPoker.Core.Tests
         {
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
             ChapterJourney journey = ChapterJourney.Begin(cls, seed);
+            if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
             PlayWholeRun(journey, seed, tally, all);
             foreach (RunTally t in new[] { tally, all }) t.AddKit(journey.Kit);
         }
 
         private static void PlayWholeRun(ChapterJourney journey, int seed, RunTally tally, RunTally all)
         {
+            var heldAtCh2 = new List<string>();
             for (int ch = 1; ; ch++)
             {
                 var chapterTally = new Tally();
@@ -472,10 +513,23 @@ namespace HellPoker.Core.Tests
                 if (boss.Phase != GamePhase.Absolved) return;
                 journey.Run.LeaveBossTable(0);
                 if (ch == ChapterRules.Chapters) break;
-                string relic = journey.Run.LootOffers.FirstOrDefault();
-                if (relic == null || !journey.Run.TakeLoot(relic)) journey.Run.TakeLootCoins();
+                // The spoils: the class upgrade (a lasting gift, no curse); else a relic while a slot is free; else the coins.
+                string relic = journey.Run.LootOffers.OrderByDescending(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).FirstOrDefault();
+                string upgrade = journey.Run.LootUpgrade;
+                if (upgrade != null && EnvInt("HELLPOKER_LOOT_UPGRADE", 1) != 0 && journey.Run.TakeLootUpgrade())
+                    foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].UpgradePicks, upgrade);
+                else if (relic != null && !journey.Run.Effects.RelicSlotsFull && journey.Run.TakeLoot(relic))
+                    foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].RelicPicks, relic);
+                else journey.Run.TakeLootCoins();
                 // The rule tops every chapter's purse up to the class's start; HELLPOKER_REFILL=0 carries only what is left (the old rule).
                 journey.NextChapter(EnvInt("HELLPOKER_REFILL", 1) == 0 ? 0 : -1);
+                if (ch == 1) heldAtCh2.AddRange(journey.Effects.Relics.Concat(journey.Kit.Upgrades));
+                if (ch == 1)
+                    foreach (RunTally t in new[] { tally, all })
+                    {
+                        t.ReachedCh2++;
+                        foreach (string id in journey.Effects.Relics.Concat(journey.Kit.Upgrades)) Bump(t.HeldAtCh2, id);
+                    }
             }
 
             foreach (RunTally t in new[] { tally, all }) t.ReachedLucifer++;
@@ -493,7 +547,12 @@ namespace HellPoker.Core.Tests
                 t.Cornered[3] += journey.LuciferHooks.Rule?.CorneredHands ?? 0;
                 if (castDown) t.CastDown++;
                 else if (lucifer.Phase == GamePhase.Damned) t.BossDamned[3]++;
-                else if (lucifer.Phase == GamePhase.Absolved) t.Freed++;
+                else if (lucifer.Phase == GamePhase.Absolved)
+                {
+                    t.Freed++;
+                    t.FreedFromCh2++;
+                    foreach (string id in heldAtCh2) Bump(t.FreedHeldAtCh2, id);
+                }
             }
         }
 
@@ -522,8 +581,8 @@ namespace HellPoker.Core.Tests
         /// <summary>A warden first (once), then a table, a market it can buy at, an event, any market; ties at random.</summary>
         private static MapNode ChooseNext(ChapterRun run, IRandomSource random, bool wardenSeen)
         {
-            int cheapest = run.Rules.Price(BlackMarket.RelicPrices[0]);
-            bool canShop = run.Purse.Coins - cheapest >= Reserve && run.Effects.CarriedOffered < RelicRoster.MaxCarried;
+            int cheapest = run.PriceOf(BlackMarket.RelicPrices[0]);
+            bool canShop = run.Purse.Coins - cheapest >= Reserve && run.Effects.CarriedOffered < Math.Min(run.Effects.MaxCarried, BlackMarket.SellsUpTo);
             int Score(MapNode node)
             {
                 switch (node.Kind)

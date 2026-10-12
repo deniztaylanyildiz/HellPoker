@@ -73,7 +73,8 @@ namespace HellPoker.Core.Chapters
     public sealed class SatchelPowers : ClassPowers
     {
         private readonly List<Card> _offered = new List<Card>();
-        private bool _seen, _harvesting, _kept;
+        private bool _seen, _harvesting;
+        private int _kept;
 
         public SatchelPowers(ClassKit kit, IRandomSource random) : base(kit, random)
         {
@@ -82,19 +83,20 @@ namespace HellPoker.Core.Chapters
         public override IEnumerable<Card> CardsOutOfDeck => Kit.Satchel;
 
         /// <summary>The cards thrown in this hand's draw that may still go into the satchel (one of them, until the next deal).</summary>
-        public IReadOnlyList<Card> Offered => _kept ? (IReadOnlyList<Card>)Array.Empty<Card>() : _offered;
+        public IReadOnlyList<Card> Offered => _kept >= Kit.KeepsPerHand ? (IReadOnlyList<Card>)Array.Empty<Card>() : _offered;
 
         /// <summary>The demon saw the satchel opened this hand.</summary>
         public bool SeenThisHand => _seen;
 
-        public bool CanKeep(Card card) => !_kept && _offered.Contains(card);
+        public bool CanKeep(Card card) => _kept < Kit.KeepsPerHand && _offered.Contains(card);
 
         /// <summary>One of the thrown cards into the satchel (once a hand).</summary>
         public bool Keep(HellPokerGame game, Card card)
         {
             if (!CanKeep(card) || game.HouseHand?.Contains(card) == true) return false;
             if (!Kit.Keep(card)) return false;
-            _kept = true;
+            _kept++;
+            _offered.Remove(card);   // Abundance: the other thrown cards may still go in
             return true;
         }
 
@@ -102,7 +104,7 @@ namespace HellPoker.Core.Chapters
         {
             _offered.Clear();
             _seen = false;
-            _kept = false;
+            _kept = 0;
         }
 
         public override bool CanTakeFromOutside(HellPokerGame game, Card card) => Kit.Satchel.Contains(card);
@@ -122,7 +124,7 @@ namespace HellPoker.Core.Chapters
         }
 
         public override bool HouseReRaises(HellPokerGame game, bool wants) =>
-            wants || (_seen && Random.Next(100) < ClassKit.SatchelReRaisePercent);
+            wants || (_seen && Random.Next(100) < Kit.SatchelRisk);
 
         /// <summary>Why the harvest cannot be made now (in the draw, a full gauge, cards in the satchel and cards thrown).</summary>
         public KitRefusal WhyNoHarvest(HellPokerGame game, IReadOnlyCollection<int> discards)
@@ -231,7 +233,8 @@ namespace HellPoker.Core.Chapters
 
         public override void HandDealt(HellPokerGame game)
         {
-            KnownCard = game.PlayerHand[Random.Next(Hand.Size)];
+            // The Blind Mirror: half the hands the demon learns nothing (the dice are only asked with the upgrade).
+            KnownCard = Kit.DemonKnowsPercent >= 100 || Random.Next(100) < Kit.DemonKnowsPercent ? game.PlayerHand[Random.Next(Hand.Size)] : (Card?)null;
         }
 
         public override void HandSettled(HellPokerGame game, RoundResult round)
@@ -253,7 +256,7 @@ namespace HellPoker.Core.Chapters
         public bool StartRearranging(HellPokerGame game)
         {
             if (WhyNoRearrange(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
-            RearrangesLeft = ClassKit.RearrangesPerUse;
+            RearrangesLeft = Kit.RearrangesPerCharge;
             return true;
         }
 
@@ -321,8 +324,8 @@ namespace HellPoker.Core.Chapters
             _bossTable = bossTable;
         }
 
-        public static int PriceOf(TaxAct act) =>
-            act == TaxAct.Reveal ? ClassKit.RevealPrice : act == TaxAct.FreeRaise ? ClassKit.FreeRaisePrice : ClassKit.SeizePrice;
+        /// <summary>The taxes an act costs (the class's upgrades may make it cheaper).</summary>
+        public int PriceOf(TaxAct act) => Kit.PriceOf(act);
 
         public bool DoneThisHand(TaxAct act) => _done.Contains(act);
 
@@ -335,7 +338,7 @@ namespace HellPoker.Core.Chapters
         public override void HandSettled(HellPokerGame game, RoundResult round)
         {
             bool won = round.HouseFolded || (!round.Folded && round.Showdown?.Outcome == ShowdownOutcome.PlayerWins);
-            if (won && Kit.Taxes < ClassKit.TaxMax)
+            if (won && Kit.Taxes < Kit.TaxCapacity)
             {
                 Kit.AddTax();
                 Kit.TaxesEarned++;
@@ -363,7 +366,7 @@ namespace HellPoker.Core.Chapters
         public bool Reveal(HellPokerGame game)
         {
             if (WhyNot(game, TaxAct.Reveal) != KitRefusal.None || !game.RevealNextHouseCard()) return false;
-            Kit.SpendTaxes(ClassKit.RevealPrice);
+            Kit.SpendTaxes(PriceOf(TaxAct.Reveal));
             _done.Add(TaxAct.Reveal);
             Kit.Reveals++;
             return true;
@@ -372,7 +375,7 @@ namespace HellPoker.Core.Chapters
         public bool FreeRaise(HellPokerGame game)
         {
             if (WhyNot(game, TaxAct.FreeRaise) != KitRefusal.None || !game.GrantFreeRaise()) return false;
-            Kit.SpendTaxes(ClassKit.FreeRaisePrice);
+            Kit.SpendTaxes(PriceOf(TaxAct.FreeRaise));
             _done.Add(TaxAct.FreeRaise);
             Kit.FreeRaises++;
             return true;
@@ -404,7 +407,7 @@ namespace HellPoker.Core.Chapters
             Card taken = game.HouseHand[take], given = game.PlayerHand[give];
             game.SetHands(game.PlayerHand.With(give, taken), game.HouseHand.With(take, given));
             if (charged) Kit.Sinner.SpendCharge();
-            else Kit.SpendTaxes(ClassKit.SeizePrice);
+            else Kit.SpendTaxes(PriceOf(TaxAct.Seize));
             _done.Add(TaxAct.Seize);
             Kit.Seizures++;
             return taken;

@@ -287,8 +287,8 @@ namespace HellPoker.Presentation.Ui
         public static string LootTitle => L("SPOILS", "GANİMET");
 
         /// <summary>{0} the demon, {1} hands, {2} the coins instead.</summary>
-        public static string LootTextFormat => L("{0} is beaten: his bar emptied in {1} hands. He leaves his spoils: take one relic — or {2} coins.",
-            "{0} yenildi: barı {1} elde boşaldı. Ganimetini bırakıyor: bir emanet seç — ya da {2} coin.");
+        public static string LootTextFormat => L("{0} is beaten: his bar emptied in {1} hands. He leaves his spoils: take one relic or an upgrade — or {2} coins.",
+            "{0} yenildi: barı {1} elde boşaldı. Ganimetini bırakıyor: bir emanet ya da bir yükseltme seç — ya da {2} coin.");
         public static string LootSwapNote => L("You carry all you may: one of yours goes in its place.", "Taşıyabileceğin kadar taşıyorsun: yerine birini bırakırsın.");
         public static string LootSwapTitle => L("WHICH RELIC GOES?", "HANGİ EMANET GİDER?");
 

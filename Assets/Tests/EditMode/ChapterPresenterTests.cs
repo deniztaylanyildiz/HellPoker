@@ -4,6 +4,7 @@ using System.Linq;
 using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Game;
+using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Abstractions;
@@ -225,7 +226,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(705, run.TributeYears(coins), "40 coins pay 39 (the last coin stays): 141 missing");
             _panel.Press(0);   // PAY AND SIT
             int bar = years + 705 + owed;
-            Assert.AreEqual(bar - bar / 10, run.Years, "the tribute's years on the bar — and the fire's rest (the last answer) a tenth off");
+            Assert.AreEqual(bar + bar / 10, run.Years, "the tribute's years on the bar — and the fire's whetted soul (the last answer) a tenth on");
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number on the counter");
             Assert.AreEqual("MAMMON'S BAR", _tableView.SentenceView.Label);
@@ -612,6 +613,54 @@ namespace HellPoker.Core.Tests
             _tableView.Sfx.Clear();
             Act();   // the deal
             Assert.Contains(SfxIds.ProphecySee, _tableView.Sfx);
+        }
+
+        // ------------------------------------------------------------------ the spoils and the fire (Phase 2's build variety)
+
+        [Test]
+        public void TheSpoils_TwoOfTheDemonsRelics_AnUpgrade_OrTheCoins()
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            archive.SaveRun(ChapterPresenter.PlacedSave(SinnerRoster.Peasant, 21, 1, "loot"));
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
+            _chapters.Continue();
+            Assert.AreEqual(UiText.LootTitle, _panel.Card.Title);
+            var labels = _panel.Card.Options.Select(o => o.Label).ToList();
+            Assert.AreEqual(4, labels.Count, "two relics, an upgrade, the coins");
+            Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsSeal), labels[0]);
+            Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsScales), labels[1]);
+            string upgrade = _chapters.Run.LootUpgrade;
+            Assert.AreEqual(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), labels[2]);
+            StringAssert.StartsWith(UiText.RarityName(RelicRarity.Boss), _panel.Card.Options[0].Detail, "the rarity on the relic's line");
+            _panel.Press(2);
+            CollectionAssert.AreEqual(new[] { upgrade }, _chapters.Journey.Kit.Upgrades, "the upgrade joins the run");
+            Assert.AreEqual(2, _chapters.Journey.Chapter, "on to Belial");
+        }
+
+        [Test]
+        public void TheFire_OffersAFourthBoon_WhetTheSoul()
+        {
+            Begin();
+            ChapterRun run = _chapters.Run;
+            run.Purse.Add(5000);
+            int guard = 0;
+            while (!(_panel.IsOpen && _panel.Card.Title == UiText.FireTitle) && guard++ < 3000)
+            {
+                if (_panel.IsOpen) _panel.Press(_panel.Card.Options.Count - 1);
+                else if (_chapters.IsAtTable) Act();
+                else
+                {
+                    MapNode fire = run.Choices.FirstOrDefault(n => n.Kind == NodeKind.PurgatoryFire);
+                    _map.Press(fire ?? run.Choices.First());
+                }
+            }
+            Assert.AreEqual(UiText.FireTitle, _panel.Card.Title);
+            Assert.AreEqual(4, _panel.Card.Options.Count);
+            Assert.AreEqual(UiText.FireWhet, _panel.Card.Options[3].Label);
+            _panel.Press(3);
+            Assert.AreEqual(1, run.Kit.Upgrades.Count);
+            StringAssert.Contains(UiText.UpgradeName(run.Kit.Upgrades[0]), _panel.Card.Text, "the fire says what it gave");
         }
     }
 }

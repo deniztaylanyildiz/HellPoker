@@ -1179,8 +1179,12 @@ namespace HellPoker.Presentation
             }
             string id = sinner.Id;
             bool usable = sinner.IsCharged && _game.WhyNoPower() == PowerRefusal.None;
-            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charge, sinner.Rules.Full, usable,
-                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1));
+            // At a chapter's table: the class's upgrades, a pip each, named in the hover.
+            IReadOnlyList<string> upgrades = _kit?.Kit.Upgrades ?? (IReadOnlyList<string>)Array.Empty<string>();
+            string ability = UiText.SinnerAbility(id);
+            if (upgrades.Count > 0) ability += "\n" + string.Format(UiText.UpgradesLineFormat, string.Join(", ", upgrades.Select(UiText.UpgradeName)));
+            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), ability, sinner.Charge, sinner.Rules.Full, usable,
+                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1, upgrades.Count));
             if (sinner.IsCharged && !_relabelling)
                 Tip(UiText.TipPowerReady);
         }
@@ -1195,8 +1199,12 @@ namespace HellPoker.Presentation
                 if (relic == null) continue;
                 int perTable = relic.Effects.RedrawsPerTable;
                 int uses = perTable <= 0 ? -1 : _effects.RedrawsLeft;
-                badges.Add(new RelicBadge(id, UiText.RelicName(id), string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)), uses,
-                    selecting: perTable > 0 && _redrawing, isReward: relic.IsReward));
+                // At a chapter's table the frame tells the rarity (the demo's relics keep their plain frame).
+                RelicRarity rarity = AtChapterTable ? ChapterRelics.RarityOf(id) : RelicRarity.Common;
+                string description = string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id));
+                if (AtChapterTable) description = UiText.RarityName(rarity) + "\n" + description;
+                badges.Add(new RelicBadge(id, UiText.RelicName(id), description, uses, selecting: perTable > 0 && _redrawing && id == _redrawRelic,
+                    isReward: relic.IsReward, rarity: rarity));
             }
             _view.SetRelics(badges);
         }
@@ -1206,13 +1214,15 @@ namespace HellPoker.Presentation
         /// </summary>
         public void PressRelic(string id)
         {
-            if (id != RelicIds.BoneDie || !Playing || _pendingEvent != null || Hurry()) return;
+            // A relic that redraws (the Bone Die; Phase 2's Silver Bell, Belial's Tongue); the others only show what they do.
+            if ((RelicRoster.Find(id)?.Effects.RedrawsPerTable ?? 0) <= 0 || !Playing || _pendingEvent != null || Hurry()) return;
             if (_redrawing)
             {
                 _redrawing = false;   // the die again: put away
                 Refresh();
                 return;
             }
+            _redrawRelic = id;
             if (!Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
             {
                 _view.SetMessage(UiText.RedrawNotNow, Tone.Warning);
@@ -1220,8 +1230,11 @@ namespace HellPoker.Presentation
             }
             _redrawing = true;
             Refresh();
-            _view.SetMessage(UiText.RedrawPrompt, Tone.Warning);
+            _view.SetMessage(id == RelicIds.BoneDie ? UiText.RedrawPrompt : string.Format(UiText.RedrawPromptFormat, UiText.RelicName(id)), Tone.Warning);
         }
+
+        /// <summary>The relic picking the card it redraws (the Bone Die's tile pulses, or Phase 2's bell or tongue).</summary>
+        private string _redrawRelic = RelicIds.BoneDie;
 
         private void RedrawCard(int index)
         {

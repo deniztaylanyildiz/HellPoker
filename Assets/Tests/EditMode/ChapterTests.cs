@@ -514,15 +514,17 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the black market
 
         [Test]
-        public void TheMarketPricesTheStrongerGiftHigher()
+        public void TheMarketPricesARelicByItsRarity_TheCheapestFirst()
         {
             ChapterRun run = Run(100);
             Stand(run, FirstOf(run, NodeKind.BlackMarket) ?? new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
             BlackMarket market = run.OpenMarket();
             Assert.AreEqual(3, market.Relics.Count);
-            CollectionAssert.AreEqual(new[] { 45, 50, 60 }, market.Relics.Select(o => o.Price));
-            var order = market.Relics.Select(o => Array.IndexOf(BlackMarket.StrengthOrder, o.RelicId)).ToList();
-            CollectionAssert.IsOrdered(order);
+            foreach (RelicOffer offer in market.Relics)
+                Assert.AreEqual(ChapterRelics.PriceOf(offer.RelicId), offer.Price, offer.RelicId);
+            CollectionAssert.IsOrdered(market.Relics.Select(o => o.Price));
+            CollectionAssert.AreEqual(new[] { 45, 55, 65 }, BlackMarket.RelicPrices, "common, rare, legendary");
+            Assert.IsFalse(market.Relics.Any(o => ChapterRelics.RarityOf(o.RelicId) == RelicRarity.Boss), "a demon's own is only his loot");
         }
 
         [Test]
@@ -541,11 +543,13 @@ namespace HellPoker.Core.Tests
             Stand(run, new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
             BlackMarket market = run.OpenMarket();
             string cheapest = market.Relics[0].RelicId;
-            Assert.IsFalse(market.BuyRelic(cheapest), "45 coins do not buy a 45-coin relic: the purse would be empty");
+            int price = market.Relics[0].Price;
+            run.Purse.Add(price - run.Purse.Coins);
+            Assert.IsFalse(market.BuyRelic(cheapest), "a purse of the price does not buy it: the purse would be empty");
 
-            run.Purse.Add(155);
+            run.Purse.Add(200 - price);
             Assert.IsTrue(market.BuyRelic(cheapest));
-            Assert.AreEqual(200 - 45, run.Purse.Coins);
+            Assert.AreEqual(200 - price, run.Purse.Coins);
             Assert.IsTrue(market.BuyRelic(market.Relics[0].RelicId));
             Assert.IsFalse(market.CanBuyRelic(market.Relics[0].RelicId), "two relics at most");
             Assert.IsTrue(market.DropRelic(cheapest));

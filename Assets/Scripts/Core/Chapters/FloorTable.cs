@@ -248,7 +248,7 @@ namespace HellPoker.Core.Chapters
             IReadOnlyList<Card> deck = null, TableMarks marks = null, int floor = 1, int houseCoins = -1)
         {
             if (rules == null) throw new ArgumentNullException(nameof(rules));
-            int start = rules.ImpCoinsAt(floor);
+            int start = Math.Max(1, rules.ImpCoinsAt(floor) * (effects?.CombinedRelics.ImpPursePercent ?? 100) / 100);
             return Match(rules, rules.AnteAt, rules.CapAntes, start, houseCoins, null, null, warden: false, sinner, effects, purse, seed, deck, marks);
         }
 

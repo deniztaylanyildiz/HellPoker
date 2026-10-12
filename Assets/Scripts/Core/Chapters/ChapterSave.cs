@@ -55,6 +55,11 @@ namespace HellPoker.Core.Chapters
         public Card? LuciferBag;
         public int LuciferTaxes;
 
+        /// <summary>Optional keys of the class upgrades: the ones the run has, a beaten demon's offered one, a soul whetted by the fire.</summary>
+        public List<string> Upgrades = new List<string>();
+        public string LootUpgrade;
+        public bool Whetted;
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -121,6 +126,9 @@ namespace HellPoker.Core.Chapters
                 "kit.taxes=" + Taxes,
                 "kit.lucifer.bag=" + (LuciferBag.HasValue ? CardCodes.Format(LuciferBag.Value) : ""),
                 "kit.lucifer.taxes=" + LuciferTaxes,
+                "kit.upgrades=" + string.Join(",", Upgrades),
+                "loot.upgrade=" + (LootUpgrade ?? ""),
+                "whet=" + B(Whetted),
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -200,6 +208,9 @@ namespace HellPoker.Core.Chapters
                     Taxes = I("kit.taxes"),
                     LuciferBag = CardCodes.TryParse(S("kit.lucifer.bag") ?? "", out Card bag) ? bag : (Card?)null,
                     LuciferTaxes = I("kit.lucifer.taxes"),
+                    Upgrades = Ids("kit.upgrades").Where(ClassUpgrades.IsKnown).Distinct().ToList(),
+                    LootUpgrade = ClassUpgrades.IsKnown(S("loot.upgrade")) ? S("loot.upgrade") : null,
+                    Whetted = Bool("whet"),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

@@ -237,11 +237,12 @@ namespace HellPoker.Presentation.Ui
             });
         }
 
-        public static void AddBorder(GameObject target, Color color, float width)
+        public static Outline AddBorder(GameObject target, Color color, float width)
         {
             var outline = target.AddComponent<Outline>();
             outline.effectColor = color;
             outline.effectDistance = new Vector2(width, -width);
+            return outline;
         }
     }
 }

@@ -34,6 +34,10 @@ namespace HellPoker.Presentation.Views
         private Text _tooltipText;
         private float _pulse;
         private Text _jokerCount;
+        private readonly List<Image> _upgradePips = new List<Image>();
+
+        /// <summary>The upgrade pips lit (for tests and screenshots).</summary>
+        public int UpgradePipsShown { get; private set; }
         private float _jokerFlash;
         private const float JokerFlashSeconds = 1.2f;
 
@@ -81,6 +85,18 @@ namespace HellPoker.Presentation.Views
             _jokerCount.horizontalOverflow = HorizontalWrapMode.Overflow;
             _jokerCount.raycastTarget = false;
 
+            // Phase 2's upgrades: a gold pip each on a black square, over the badge's left end.
+            for (int i = 0; i < 4; i++)
+            {
+                Image back = UiFactory.CreateImage("Upgrade" + i, root, Palette.Black);
+                back.raycastTarget = false;
+                back.rectTransform.PlaceTL(i * 6, -6, 5, 5);
+                Image pip = UiFactory.CreateImage("Pip", back.transform, Palette.GoldLight);
+                pip.raycastTarget = false;
+                pip.rectTransform.PlaceTL(1, 1, 3, 3);
+                _upgradePips.Add(back);
+            }
+
             // "READY: K" over the badge when the power can be used now.
             _hint = UiFactory.CreateText("SinnerReady", root, "", 8, Palette.GoldLight, TextAnchor.LowerRight, FontStyle.Bold).WithOutline();
             _hint.rectTransform.PlaceTL(-60, -10, Width + 60, 8);
@@ -122,8 +138,12 @@ namespace HellPoker.Presentation.Views
             if (!badge.Visible)
             {
                 _tooltip.SetActive(false);
+                UpgradePipsShown = 0;
+                foreach (Image pip in _upgradePips) pip.gameObject.SetActive(false);
                 return;
             }
+            UpgradePipsShown = Math.Min(_upgradePips.Count, badge.Upgrades);
+            for (int i = 0; i < _upgradePips.Count; i++) _upgradePips[i].gameObject.SetActive(i < badge.Upgrades);
             _icon.sprite = UiArt.SinnerIcon(badge.ClassId);
             _icon.enabled = _icon.sprite != null;
             _jokerCount.gameObject.SetActive(badge.ShowsJokers);

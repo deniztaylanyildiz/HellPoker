@@ -20,23 +20,27 @@ namespace HellPoker.Core.Chapters
     }
 
     /// <summary>
-    /// The black market (a floor node): three cursed relics the run does not carry, the stronger gift the dearer (45 / 50 / 60
+    /// The black market (a floor node): three cursed relics the run does not carry, drawn and priced by rarity (45 / 55 / 65
     /// coins in the first chapter), and services — throw a relic away (25), the imp's eye (20: one of the next imp's cards plays face
     /// up), a joker in or out of the Jester's deck (20). Prices grow with the chapter (<see cref="ChapterRules.PricePercent"/>). Nothing takes the purse's last coin,
     /// and nothing turns coins into years.
     /// </summary>
     public sealed class BlackMarket
     {
-        /// <summary>The first chapter's prices of the three relics on the table, cheapest first.</summary>
-        public static readonly int[] RelicPrices = { 45, 50, 60 };
+        /// <summary>The first chapter's prices of a relic by rarity: common, rare, legendary.</summary>
+        public static readonly int[] RelicPrices = { ChapterRelics.CommonPrice, ChapterRelics.RarePrice, ChapterRelics.LegendaryPrice };
 
         public const int DropRelicPrice = 25;
         public const int ImpsEyePrice = 20;
         public const int JokerPrice = 20;
         public const int RelicsOnTable = 3;
 
-        /// <summary>The offered relics from the weakest gift to the strongest (the price follows it).</summary>
-        public static readonly string[] StrengthOrder = { RelicIds.ThornedRosary, RelicIds.RustyCrown, RelicIds.FerrymansCoin, RelicIds.BoneDie };
+        /// <summary>The market sells to a run carrying fewer relics than this: the third slot is a warden's or a demon's to fill (bought, it
+        /// emptied the purses before Belial's gate: tribute paid in full 37% instead of 49% for the Peasant).</summary>
+        public const int SellsUpTo = 2;
+
+        /// <summary>The run carries as many relics as the market sells to.</summary>
+        public bool SellsNoMore => _run.Effects.CarriedOffered >= Math.Min(_run.Effects.MaxCarried, SellsUpTo);
 
         private readonly ChapterRun _run;
         private readonly List<RelicOffer> _relics;
@@ -52,31 +56,24 @@ namespace HellPoker.Core.Chapters
         {
             _run = run ?? throw new ArgumentNullException(nameof(run));
             if (random == null) throw new ArgumentNullException(nameof(random));
-            var pool = RelicRoster.Offered.Select(r => r.Id).Where(id => !run.Effects.Relics.Contains(id)).ToList();
-            var picked = new List<string>();
-            while (picked.Count < RelicsOnTable && pool.Count > 0)
-            {
-                int i = random.Next(pool.Count);
-                picked.Add(pool[i]);
-                pool.RemoveAt(i);
-            }
-            // The stronger the gift, the higher the price.
-            var byStrength = picked.OrderBy(id => Array.IndexOf(StrengthOrder, id)).ToList();
-            int skip = RelicPrices.Length - byStrength.Count;
-            _relics = byStrength.Select((id, i) => new RelicOffer(id, run.Rules.Price(RelicPrices[skip + i]))).ToList();
+            // Drawn by rarity (rare 25%, legendary 8%), priced by it, the cheapest first.
+            IReadOnlyList<string> picked = ChapterRelics.Draw(random, RelicWeights.Market, RelicsOnTable, run.Effects.Relics.ToList(), run.RelicAvailable);
+            _relics = picked.Select(id => new RelicOffer(id, run.PriceOf(ChapterRelics.PriceOf(id)))).OrderBy(o => o.Price).ToList();
         }
 
         /// <summary>A price the purse can pay and still hold a coin: an empty purse would lose at the next table before a card is dealt.</summary>
         public bool CanPay(int price) => _run.Purse.Coins > price;
 
-        public int DropPrice => _run.Rules.Price(DropRelicPrice);
-        public int EyePrice => _run.Rules.Price(ImpsEyePrice);
-        public int JokerServicePrice => _run.Rules.Price(JokerPrice);
+        public int DropPrice => _run.PriceOf(DropRelicPrice);
+        public int EyePrice => _run.PriceOf(ImpsEyePrice);
+
+        /// <summary>A joker in or out (the Joker Purse: half).</summary>
+        public int JokerServicePrice => Math.Max(1, _run.PriceOf(JokerPrice) / (_run.Kit.Has(UpgradeIds.JokerPurse) ? 2 : 1));
 
         public bool CanBuyRelic(string id)
         {
             int i = _relics.FindIndex(o => o.RelicId == id);
-            return i >= 0 && _run.Effects.CarriedOffered < RelicRoster.MaxCarried && CanPay(_relics[i].Price);
+            return i >= 0 && !SellsNoMore && CanPay(_relics[i].Price);
         }
 
         public bool BuyRelic(string id)

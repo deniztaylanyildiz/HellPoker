@@ -498,6 +498,43 @@ Bütün koşu (`WholeRun`, sınıf başına 1000 koşu, son ayarlar):
 | Soytarı | %29.2 / %38.0 / %48.6 | %7.6 | %4.1 | %46.1 |
 
 - Açık (kullanıcıya): Soytarı (seçenekler yukarıda), Köylü %44 (> %40), Büyücü %22.5 (< %25; haraç artışından sonra −3).
+## Onuncu tur: emanet havuzu ve sınıf yükseltmeleri (2026-10-13)
+
+**Emanetler (24 + Çıngırak):** 8 yaygın (Kayıkçı Sikkesi, Paslı Taç, Dikenli Tespih, Kanlı Zar, Kurşun Kese, Kül Defteri, Mum Dibi,
+Fare Dişi), 8 nadir (Kemik Zar, Demir Yemin, Hacı Feneri, Kuzgun Tüyü, Kanlı Yüzük, Eski Harita, Gümüş Çan, Tuz Çemberi), 4 efsanevi
+lanetli (Kara Kitap, Cellat İpi, Lilith'in Gözyaşı, Uçurum Sikkesi), boss ganimeti 2 Mammon (Mühür, Terazi) + 2 Belial (Maske, Dil).
+"Boss başına 2" Lilith için yok: Lilith'ten sonra ganimet yok, doğrudan Lucifer (8+8+4+4 = 24). Yeni lütuf / lanetler demo kancalarının
+yanında Phase 2'ye özgü yüzdeler: hazine, Kara Pazar fiyatı, haraç, iblis kesesi, boss barının başlangıcı (`RelicEffects`).
+- Kara Pazar: üç emanet, nadir %25 / efsanevi %8, fiyat nadirliğe göre 45 / 55 / 65 (bölümle büyür, emanetlerin pazar yüzdesiyle).
+  **Pazar en çok 2 emanete kadar satar** (`BlackMarket.SellsUpTo`): üçüncü yuva bekçi ya da ganimetle dolar. (3 yuvayı pazar da
+  doldurunca 2. bölümün haracı Köylü'de %49 → %37 düşüyordu; kararım, kullanıcı onayı bekliyor.)
+- Bekçi: nadir %40 / efsanevi %15. Ganimet: şeytanın kendi iki emaneti (biri taşınıyorsa yerine nadir) + bir sınıf yükseltmesi, ya da 30 coin.
+- Üç yuva (`ChapterRelics.Slots`, `RunEffects.MaxCarried`; demo 2'de kalır).
+
+**Sınıf yükseltmeleri (4 × 4, koşuda birer kez):** Köylü Geniş Heybe (4 kart), Sessiz Heybe (risk yarı), Tohum (her yeni bölümde heybeye
+10+), Bereket (değişten sonra iki kart); Büyücü Derin Kehanet (+1 kart), Kör Ayna (ellerin yarısında şeytan kart öğrenmez), Üç Kez Diz
+(3 kart dibe), Gerçeğin Gözü (boss masasında bir kart dağıtımdan açık); Kral Taşan Hazine (15 vergi), Ucuz Müsadere (3), Taç Muhafızı
+(kayıpta dörtte bir), Kraliyet Fermanı (bedava artırma 1); Soytarı Kontrollü Kaos (her kayıp bir joker siler), Çift Kahkaha (değişte ikinci
+joker geri gider), Joker Kesesi (pazarın joker hizmeti yarı fiyat), Şaklaban (tek jokerle şeytan yarı yarıya az artırır).
+Araf Ateşi 4. seçenek **Ruhunu bile**: hemen rastgele bir yükseltme, boss barı %10 uzun başlar.
+
+**Simülasyon (2000 koşu; oyuncu: pazarda en pahalısını, ganimette yükseltmeyi, ateşte laneti susturmayı seçer):**
+
+| Sınıf | Kurtuluş (A'da) | Tam haraç B2 / B3 (A'da) |
+|---|---|---|
+| Köylü | %39.9 (%43.9) | %48.7 / %67.0 (%55.7 / %62.8) |
+| Büyücü | %21.4 (%22.5) | %35.8 / %50.5 (%42.1 / %48.3) |
+| Kral | %30.9 (%32.9) | %35.5 / %53.8 (%39.6 / %52.4) |
+| Soytarı | %8.1 (%4.1) | %33.8 / %51.9 (%32.1 / %35.7) |
+
+2. bölümün haracındaki düşüş coin yerine eşya seçiminden: ganimette yükseltme yerine 30 coin alınınca Köylü'de B2 %87 (Mammon'un
+Mührü haracı %25 düşürüyor).
+- Emanet / yükseltme etkisi (2. bölüme onu taşıyarak başlayan koşuların kurtuluşu − taşımayanlarınki): ilk ölçümde 10 puanı geçenler
+  ayarlandı — Kanlı Yüzük (kayıp ante %40 → kötülük +1, kazanç %112 → %110; −12.9 → −4.6), Cellat İpi (ante %60 → %75; +19.7), Kanlı Zar
+  (kayıp ante %25 → %20), Lilith'in Gözyaşı (kazanç %85 → %90). Son ölçümde 10 puanı geçen tek şey **Çift Kahkaha** (Soytarı, +17.2:
+  iki jokerle kaybı neredeyse siliyor); Soytarı hedefin çok altında olduğu için bırakıldı.
+- En çok alınanlar: yükseltmeler (her sınıfta dördü de ~%20-22), sonra Mum Dibi, Eski Harita, Kanlı Yüzük, Demir Yemin (yaygınlık + fiyat).
+
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

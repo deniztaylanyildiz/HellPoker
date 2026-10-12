@@ -4,6 +4,7 @@ using System.Linq;
 using HellPoker.Core.Events;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
+using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 
 namespace HellPoker.Core.Chapters
@@ -84,13 +85,19 @@ namespace HellPoker.Core.Chapters
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
         }
 
+        /// <summary>A Phase 2 run's effects: three relic slots.</summary>
+        private static RunEffects PhaseTwoEffects() => new RunEffects { MaxCarried = ChapterRelics.Slots };
+
+        /// <summary>The dice of the Seed (a Peasant's upgrade) at a chapter's start.</summary>
+        public const int SeedStream = 22;
+
         public static int ChapterSeed(int seed, int chapter) => RandomSeeds.Derive(RandomSeeds.Derive(seed, ChapterStream), chapter);
 
         /// <summary>A new run as <paramref name="sinnerClass"/>: the first chapter, the class's purse.</summary>
         public static ChapterJourney Begin(SinnerClass sinnerClass, int seed)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
-            var journey = new ChapterJourney(seed, new Sinner(sinnerClass), new RunEffects()) { Chapter = 1 };
+            var journey = new ChapterJourney(seed, new Sinner(sinnerClass), PhaseTwoEffects()) { Chapter = 1 };
             journey.Run = ChapterRun.Begin(ChapterRules.For(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1));
             return journey;
         }
@@ -114,8 +121,12 @@ namespace HellPoker.Core.Chapters
             PurseToppedUp = coins - Run.Purse.Coins;
             Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), coins, ChapterSeed(Seed, Chapter), kit: Kit);
             Kit.EnterChapter(Chapter);
+            Sown = Kit.Sow(new SystemRandomSource(RandomSeeds.Derive(RandomSeeds.Derive(Seed, SeedStream), Chapter)));
             return Run;
         }
+
+        /// <summary>The card the Seed put in the satchel as the last chapter began; null for none.</summary>
+        public Cards.Card? Sown { get; private set; }
 
         /// <summary>The coins the last <see cref="NextChapter"/> added to bring the purse up to the class's start (0: none).</summary>
         public int PurseToppedUp { get; private set; }
@@ -169,7 +180,7 @@ namespace HellPoker.Core.Chapters
         {
             if (save == null) throw new ArgumentNullException(nameof(save));
             SinnerClass sinnerClass = SinnerRoster.Find(save.ClassId) ?? throw new ArgumentException("Unknown class.", nameof(save));
-            var effects = new RunEffects();
+            var effects = PhaseTwoEffects();
             effects.Restore(HandModifier.None, 0, 0, 0, save.Relics, save.RedrawsLeft, save.RedrawTables);
             if (save.Silenced != null) effects.SilenceCurse(save.Silenced);
             if (save.Amplified != null) effects.Amplify(save.Amplified);
@@ -181,8 +192,8 @@ namespace HellPoker.Core.Chapters
             ChapterRules rules = ChapterRules.For(chapter);
             journey.Run = new ChapterRun(rules, sinner, effects, Math.Max(1, save.Years), Math.Max(0, save.Coins), ChapterSeed(save.Seed, chapter));
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
-                save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken);
-            journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes);
+                save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
+            journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
             if (save.Lucifer)
             {
                 journey.Stage = JourneyStage.Lucifer;
@@ -225,6 +236,9 @@ namespace HellPoker.Core.Chapters
                 BossBeaten = run.BossBeaten,
                 Loot = run.LootOffers.ToList(),
                 LootTaken = run.LootTaken,
+                LootUpgrade = run.LootUpgrade,
+                Whetted = run.WhettedSoul,
+                Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,
                 Satchel = Kit.Satchel.ToList(),

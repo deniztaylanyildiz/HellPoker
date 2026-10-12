@@ -73,6 +73,62 @@ namespace HellPoker.Core.Chapters
 
         public void EnterLucifer() => AtLucifer = true;
 
+        // ------------------------------------------------------------------ the class's upgrades (once each a run)
+
+        private readonly List<string> _upgrades = new List<string>();
+
+        /// <summary>The class's upgrades the run has, in the order won.</summary>
+        public IReadOnlyList<string> Upgrades => _upgrades;
+
+        public bool Has(string upgradeId) => _upgrades.Contains(upgradeId);
+
+        /// <summary>The class's upgrades the run does not have yet.</summary>
+        public IReadOnlyList<string> UpgradesLeft => ClassUpgrades.For(Sinner.Id).Where(u => !_upgrades.Contains(u)).ToArray();
+
+        /// <summary>An upgrade of the class's joins the run; false for another class's, an unknown one, or one it has.</summary>
+        public bool AddUpgrade(string upgradeId)
+        {
+            if (!ClassUpgrades.For(Sinner.Id).Contains(upgradeId) || _upgrades.Contains(upgradeId)) return false;
+            _upgrades.Add(upgradeId);
+            return true;
+        }
+
+        /// <summary>The satchel holds this many (the Wide Satchel: one more).</summary>
+        public int SatchelCapacity => SatchelSize + (Has(UpgradeIds.WideSatchel) ? 1 : 0);
+
+        /// <summary>Thrown cards that may go into the satchel after a draw (Abundance: two).</summary>
+        public int KeepsPerHand => Has(UpgradeIds.Abundance) ? 2 : 1;
+
+        /// <summary>How much more often the demon re-raises a hand drawn from the satchel (the Quiet Satchel: half).</summary>
+        public int SatchelRisk => Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent;
+
+        /// <summary>Seen cards the charged prophecy sends down (Thrice: three).</summary>
+        public int RearrangesPerCharge => RearrangesPerUse + (Has(UpgradeIds.Thrice) ? 1 : 0);
+
+        /// <summary>How often (percent) the demon learns one of the Warlock's cards in a hand (the Blind Mirror: half the hands).</summary>
+        public int DemonKnowsPercent => Has(UpgradeIds.BlindMirror) ? 50 : 100;
+
+        /// <summary>The treasury holds this many taxes (the Overflowing Treasury: fifteen).</summary>
+        public int TaxCapacity => Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax;
+
+        /// <summary>The taxes an act of the treasury costs (the Cheap Seizure: 3; the Royal Decree: a free raise for 1).</summary>
+        public int PriceOf(TaxAct act) =>
+            act == TaxAct.Reveal ? RevealPrice
+            : act == TaxAct.FreeRaise ? (Has(UpgradeIds.RoyalDecree) ? FreeRaisePrice - 1 : FreeRaisePrice)
+            : Has(UpgradeIds.CheapSeizure) ? SeizePrice - 1 : SeizePrice;
+
+        /// <summary>The Seed: a chapter begins with a ten or better in the satchel (a card it does not hold yet).</summary>
+        public Card? Sow(Randomness.IRandomSource random)
+        {
+            if (Kind != KitKind.Satchel || !Has(UpgradeIds.Seed) || random == null) return null;
+            var cards = Deck.CreateStandardCards().Where(c => c.Rank >= Rank.Ten && !_satchel.Contains(c)).ToList();
+            if (cards.Count == 0) return null;
+            Card card = cards[random.Next(cards.Count)];
+            if (_satchel.Count >= SatchelCapacity) _satchel.RemoveAt(0);
+            _satchel.Add(card);
+            return card;
+        }
+
         // ------------------------------------------------------------------ the Peasant's satchel
 
         /// <summary>The cards in the satchel, the oldest first. They are out of the deck while they lie here.</summary>
@@ -83,7 +139,7 @@ namespace HellPoker.Core.Chapters
         public bool Keep(Card card)
         {
             if (Kind != KitKind.Satchel || card.IsJoker || _satchel.Contains(card)) return false;
-            if (_satchel.Count >= SatchelSize) _satchel.RemoveAt(0);
+            if (_satchel.Count >= SatchelCapacity) _satchel.RemoveAt(0);
             _satchel.Add(card);
             Kept++;
             return true;
@@ -94,12 +150,12 @@ namespace HellPoker.Core.Chapters
 
         // ------------------------------------------------------------------ the King's treasury
 
-        /// <summary>The King's taxes, 0 to <see cref="TaxMax"/>.</summary>
+        /// <summary>The King's taxes, 0 to <see cref="TaxCapacity"/>.</summary>
         public int Taxes { get; private set; }
 
         public void AddTax(int count = 1)
         {
-            if (Kind == KitKind.Treasury) Taxes = Math.Min(TaxMax, Taxes + Math.Max(0, count));
+            if (Kind == KitKind.Treasury) Taxes = Math.Min(TaxCapacity, Taxes + Math.Max(0, count));
         }
 
         public bool SpendTaxes(int count)
@@ -109,11 +165,11 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
-        /// <summary>A demon's hand lost: half the taxes go (rounded down).</summary>
+        /// <summary>A demon's hand lost: half the taxes go (rounded down; the Crown Guard: a quarter).</summary>
         public void HalveTaxes()
         {
             int before = Taxes;
-            Taxes /= 2;
+            Taxes -= Has(UpgradeIds.CrownGuard) ? Taxes / 4 : Taxes - Taxes / 2;
             TaxesLost += before - Taxes;
         }
 
@@ -121,7 +177,7 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>How many cards of the deck's top the Warlock sees: one in the first chapter, one more for every demon beaten (Mammon,
         /// Belial), three at Lilith's and Lucifer's tables.</summary>
-        public int ProphecyCards => Kind != KitKind.Prophecy ? 0 : AtLucifer ? ProphecyMost : Math.Min(ProphecyMost, Chapter);
+        public int ProphecyCards => Kind != KitKind.Prophecy ? 0 : (AtLucifer ? ProphecyMost : Math.Min(ProphecyMost, Chapter)) + (Has(UpgradeIds.DeepProphecy) ? 1 : 0);
 
         // ------------------------------------------------------------------ Lucifer's mirror (his own copy of the class's mechanic)
 
@@ -147,12 +203,14 @@ namespace HellPoker.Core.Chapters
         // ------------------------------------------------------------------ the save
 
         /// <summary>The kit as the save keeps it.</summary>
-        public void Restore(IEnumerable<Card> satchel, int taxes, Card? luciferBag, int luciferTaxes)
+        public void Restore(IEnumerable<Card> satchel, int taxes, Card? luciferBag, int luciferTaxes, IEnumerable<string> upgrades = null)
         {
+            _upgrades.Clear();
+            foreach (string id in upgrades ?? Enumerable.Empty<string>()) AddUpgrade(id);
             _satchel.Clear();
             if (Kind == KitKind.Satchel && satchel != null)
-                foreach (Card card in satchel.Where(c => !c.IsJoker).Distinct().Take(SatchelSize)) _satchel.Add(card);
-            Taxes = Kind == KitKind.Treasury ? Math.Max(0, Math.Min(TaxMax, taxes)) : 0;
+                foreach (Card card in satchel.Where(c => !c.IsJoker).Distinct().Take(SatchelCapacity)) _satchel.Add(card);
+            Taxes = Kind == KitKind.Treasury ? Math.Max(0, Math.Min(TaxCapacity, taxes)) : 0;
             LuciferBag = luciferBag.HasValue && !luciferBag.Value.IsJoker && !_satchel.Contains(luciferBag.Value) ? luciferBag : null;
             LuciferTaxes = Math.Max(0, luciferTaxes);
         }

@@ -239,7 +239,7 @@ namespace HellPoker.Presentation
             KitRefusal why = treasury.WhyNot(game, act);
             if (why != KitRefusal.None)
             {
-                _view.SetMessage(KitRefusalText(why, TreasuryPowers.PriceOf(act)), Tone.Warning);
+                _view.SetMessage(KitRefusalText(why, treasury.PriceOf(act)), Tone.Warning);
                 return;
             }
             switch (act)
@@ -327,7 +327,7 @@ namespace HellPoker.Presentation
                         return;
                     }
                     bool drawing = _game.Phase == GamePhase.Drawing;
-                    _view.SetKit(new KitDisplay(string.Format(UiText.KitSatchelTitleFormat, kit.Satchel.Count, ClassKit.SatchelSize),
+                    _view.SetKit(new KitDisplay(string.Format(UiText.KitSatchelTitleFormat, kit.Satchel.Count, kit.SatchelCapacity),
                         kit.Satchel.Select(c => new KitCard(c, _bagTakes.Contains(c), drawing)).ToArray(), null, UiText.KitSatchelHint));
                     return;
                 }
@@ -348,9 +348,9 @@ namespace HellPoker.Presentation
                 case TreasuryPowers treasury:
                 {
                     KitButton Button(TaxAct act, string format) =>
-                        new KitButton(string.Format(format, TreasuryPowers.PriceOf(act)), treasury.WhyNot(game, act) != KitRefusal.None
+                        new KitButton(string.Format(format, treasury.PriceOf(act)), treasury.WhyNot(game, act) != KitRefusal.None
                             && !(act == TaxAct.Seize && treasury.WhyNot(game, act, charged: true) == KitRefusal.None));
-                    _view.SetKit(new KitDisplay(string.Format(UiText.KitTreasuryTitleFormat, kit.Taxes, ClassKit.TaxMax), null, new[]
+                    _view.SetKit(new KitDisplay(string.Format(UiText.KitTreasuryTitleFormat, kit.Taxes, kit.TaxCapacity), null, new[]
                     {
                         Button(TaxAct.Reveal, UiText.KitRevealButtonFormat), Button(TaxAct.FreeRaise, UiText.KitFreeRaiseButtonFormat),
                         Button(TaxAct.Seize, UiText.KitSeizeButtonFormat)
@@ -395,7 +395,8 @@ namespace HellPoker.Presentation
                     break;
             }
             if (_kit.Treasury != null && _kit.Kit.TaxesLost > _taxesLostAtDeal)
-                lines.Add(UiText.TaxesHalved);
+                lines.Add(_kit.Kit.Has(UpgradeIds.CrownGuard) ? UiText.TaxesQuartered : UiText.TaxesHalved);
+            if (_kit.Upgrades?.LaughedThisHand == true) lines.Add(UiText.DoubleLaughLine);
             return lines.Count == 0 ? message : message + "\n" + string.Join("\n", lines);
         }
 

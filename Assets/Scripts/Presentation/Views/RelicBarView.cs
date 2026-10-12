@@ -18,9 +18,9 @@ namespace HellPoker.Presentation.Views
     public sealed class RelicBarView : MonoBehaviour
     {
         private const int Tile = 20;
-        /// <summary>Two offered relics down the edge, the earned one apart (slot 2).</summary>
-        private const int Slots = 3;
-        private const int RewardSlot = 2;
+        /// <summary>The offered relics down the edge (two in the demo, three in Phase 2), the earned one apart (the last slot).</summary>
+        private const int Slots = 4;
+        private const int RewardSlot = 3;
         private const float NewFlashSeconds = 1.6f;
         private readonly RelicBadge[] _bySlot = new RelicBadge[Slots];
         private readonly float[] _flash = new float[Slots];
@@ -28,6 +28,7 @@ namespace HellPoker.Presentation.Views
         private AnimationSequencer _sequencer;
         private Action<string> _pressed;
         private readonly List<(GameObject tile, Image icon, Text uses)> _tiles = new List<(GameObject, Image, Text)>();
+        private readonly List<Outline> _frames = new List<Outline>();
         private GameObject _tooltip;
         private Text _tooltipText;
         private IReadOnlyList<RelicBadge> _relics = new RelicBadge[0];
@@ -66,9 +67,11 @@ namespace HellPoker.Presentation.Views
                 Image tile = UiFactory.CreateImage("Relic" + i, root, Palette.Black);
                 if (i == RewardSlot)
                     tile.rectTransform.PlaceTL(-(Tile + 4), 0, Tile, Tile);   // apart: left of the first tile
+                else if (i == 2)
+                    tile.rectTransform.PlaceTL(-(Tile + 4), Tile + 2, Tile, Tile);   // Phase 2's third: left of the second (the class badge is below)
                 else
                     tile.rectTransform.PlaceTL(0, i * (Tile + 2), Tile, Tile);
-                UiFactory.AddBorder(tile.gameObject, i == RewardSlot ? Palette.GoldLight : Palette.Lilac, 1f);
+                _frames.Add(UiFactory.AddBorder(tile.gameObject, i == RewardSlot ? Palette.GoldLight : Palette.Lilac, 1f));
                 tile.raycastTarget = true;
                 var button = tile.gameObject.AddComponent<Button>();
                 button.targetGraphic = tile;
@@ -100,7 +103,7 @@ namespace HellPoker.Presentation.Views
             // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot == RewardSlot ? 0 : slot * (Tile + 2), 196, textHeight + 4);
+            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot == RewardSlot ? 0 : slot == 2 ? Tile + 2 : slot * (Tile + 2), 196, textHeight + 4);
             _tooltip.SetActive(true);
         }
 
@@ -136,9 +139,23 @@ namespace HellPoker.Presentation.Views
                 _tiles[i].icon.sprite = UiArt.RelicIcon(relic.Id);
                 _tiles[i].icon.enabled = _tiles[i].icon.sprite != null;
                 _tiles[i].uses.text = relic.Uses >= 0 ? relic.Uses.ToString() : "";
+                if (_frames[i] != null) _frames[i].effectColor = i == RewardSlot ? Palette.GoldLight : FrameOf(relic.Rarity);
             }
             if (relics.Count == 0) _tooltip.SetActive(false);
             for (int i = 0; i < _tiles.Count; i++) _tiles[i].tile.GetComponent<Image>().color = Palette.Black;
+        }
+
+        /// <summary>The frame of a rarity: common lilac (the demo's), rare silver, legendary ember, a demon's own gold.</summary>
+        public static Color FrameOf(HellPoker.Core.Relics.RelicRarity rarity)
+        {
+            switch (rarity)
+            {
+                case HellPoker.Core.Relics.RelicRarity.Rare: return Palette.Silver;
+                case HellPoker.Core.Relics.RelicRarity.Legendary: return Palette.Ember;
+                case HellPoker.Core.Relics.RelicRarity.Boss: return Palette.Gold;
+                case HellPoker.Core.Relics.RelicRarity.Reward: return Palette.GoldLight;
+                default: return Palette.Lilac;
+            }
         }
 
         /// <summary>A relic being used (the Bone Die picking its card) pulses on a one-second beat until it is used or put away.</summary>

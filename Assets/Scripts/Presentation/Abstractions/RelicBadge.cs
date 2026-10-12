@@ -18,8 +18,13 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>An earned relic (the Jester's Rattle): it sits apart from the offered ones, in a gold frame.</summary>
         public bool IsReward { get; }
 
-        public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false, bool isReward = false)
+        /// <summary>A Phase 2 relic's rarity: its frame's colour (the demo's relics keep the plain frame: <see cref="RelicRarity.Common"/>).</summary>
+        public HellPoker.Core.Relics.RelicRarity Rarity { get; }
+
+        public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false, bool isReward = false,
+            HellPoker.Core.Relics.RelicRarity rarity = HellPoker.Core.Relics.RelicRarity.Common)
         {
+            Rarity = rarity;
             IsReward = isReward;
             Selecting = selecting;
             Id = id;

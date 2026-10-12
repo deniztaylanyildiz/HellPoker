@@ -3060,3 +3060,20 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Testler: `ChapterPresenterTests` +9 (müzik, düğüm, coin, kese boşaldı, kurtuluş müziği, bar, faiz, ruh uyarısı tek sefer, heybe, vergi,
   kehanet). EditMode 948 (944 geçti, 4 explicit, 0 hata).
 - Kararım: dibe yollama sesi testsiz (şarjı doldurmanın test yolu yok; kod yolu tek satır).
+### C) Emanet havuzu ve sınıf yükseltmeleri (2026-10-13)
+- İstek: 24 emanet (8 yaygın, 8 nadir, 4 efsanevi lanetli, boss başına 2 ganimet), nadirlik ağırlıkları (pazar nadir %25 / efsanevi %8,
+  bekçi %40 / %15), üç yuva; sınıf başına 4 yükseltme; ganimet 2 emanet + 1 yükseltme ya da 30 coin; ateşte 4. seçenek "Ruhunu bile";
+  ikonlar, nadirlik çerçeveleri, rozetler, hover; kayıt ve günlük; simülasyonda sınıf başına %25-40, en çok seçilen / en iyi tablo,
+  10 puandan fazla oynatan emanet raporu.
+- Yapılanlar: `ChapterRelics` (+ `RelicRarity`, `RelicWeights`, `ChapterRelic`), `RelicEffects`'e Phase 2 yüzdeleri, `RunEffects.MaxCarried`,
+  `ClassUpgrades` + `UpgradeHooks` + `ClassKit` kapasiteleri, `ChapterRun` (fiyat, haraç, hazine, iblis kesesi, bar, ganimet, ateş,
+  `BarAfterGate`), `ChapterSave` (`kit.upgrades`, `loot.upgrade`, `whet`), `pixel_relics.py` 20 ikon, `RelicBarView` 3. yuva (ikincinin
+  solunda) + nadirlik çerçevesi, `SinnerBadgeView` yükseltme pipleri, panellerde nadirlik etiketi, haritada YÜKSELTMELER, Gümüş Çan /
+  Belial'in Dili de yeniden çeker, `UiText.Upgrades`.
+- Kararlarım (kullanıcıya): 24 = 8 + 8 + 4 + Mammon 2 + Belial 2 (Lilith'ten sonra ganimet yok); eski 4 emanet havuzda (Kemik Zar nadir);
+  **Kara Pazar en çok 2 emanete kadar satar** (3. yuva bekçi / ganimet); yükseltme ikonu çizilmedi, rozette altın pip + hover;
+  dört emanetin sayısı simülasyonla ayarlandı (PHASE2_CHAPTERS onuncu tur); Çift Kahkaha +17.2 bırakıldı.
+- Sonuç (2000 koşu): kurtuluş Köylü %39.9, Büyücü %21.4, Kral %30.9, Soytarı %8.1 (A: 43.9 / 22.5 / 32.9 / 4.1); B2 tam haraç
+  %34-49 (A: %32-56). Tablolar PHASE2_CHAPTERS onuncu tur.
+- Testler: `ChapterBuildTests` (18), `ChapterPresenterTests` +2 (ganimet, ateş), Journey / Chapter testleri yeni kurallara göre.
+  EditMode 969 (965 geçti, 4 explicit, 0 hata); PlayMode ChapterJourneyTests 4/4.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
@@ -13,8 +14,9 @@ namespace HellPoker.Core.Chapters
         /// <summary>The dice stream of a table's hooks under its seed.</summary>
         public const int HookStream = 6;
 
-        private ChapterHooks(ClassKit kit, DemonRule rule, ClassPowers powers) : base(new TableHooks[] { rule, powers })
+        private ChapterHooks(ClassKit kit, DemonRule rule, ClassPowers powers, UpgradeHooks upgrades) : base(new TableHooks[] { rule, powers, upgrades })
         {
+            Upgrades = upgrades;
             Kit = kit;
             Rule = rule;
             Powers = powers;
@@ -27,6 +29,9 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The class's powers; null for the Jester (his jokers are his).</summary>
         public ClassPowers Powers { get; }
+
+        /// <summary>The class's upgrades that act in a hand (the Jester's).</summary>
+        public UpgradeHooks Upgrades { get; }
 
         public SatchelPowers Satchel => Powers as SatchelPowers;
         public ProphecyPowers Prophecy => Powers as ProphecyPowers;
@@ -45,7 +50,7 @@ namespace HellPoker.Core.Chapters
                 case KitKind.Treasury: powers = new TreasuryPowers(kit, Dice(2), bossId != null); break;
                 default: powers = null; break;
             }
-            return new ChapterHooks(kit, rule, powers);
+            return new ChapterHooks(kit, rule, powers, new UpgradeHooks(kit, Dice(3)));
         }
 
         /// <summary>The hooks on a game: it plays by them from now on.</summary>
@@ -53,6 +58,8 @@ namespace HellPoker.Core.Chapters
         {
             ChapterHooks hooks = For(kit, bossId, barStart, seed);
             game.UseHooks(hooks);
+            // The Eye of Truth: at a demon's table one of his cards plays face up from the deal.
+            if (bossId != null && kit.Has(UpgradeIds.EyeOfTruth)) game.HouseCardsOpenAtDeal = Math.Max(game.HouseCardsOpenAtDeal, 1);
             return hooks;
         }
     }

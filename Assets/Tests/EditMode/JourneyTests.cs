@@ -76,7 +76,8 @@ namespace HellPoker.Core.Tests
             journey.Sinner.ChangeJokers(1);
             BeatTheDemon(journey);
             Assert.IsFalse(journey.CanGoOn, "the spoils first");
-            Assert.AreEqual(3, journey.Run.LootOffers.Count, "three relics to choose from");
+            CollectionAssert.AreEqual(ChapterRelics.BossLoot(DealerRoster.MammonId), journey.Run.LootOffers, "Mammon's own two relics");
+            CollectionAssert.Contains(ClassUpgrades.For(Jester.ClassId), journey.Run.LootUpgrade, "and an upgrade of the class's");
             Assert.IsTrue(journey.Run.TakeLootCoins());
             Assert.IsTrue(journey.CanGoOn);
             int coins = journey.Run.Purse.Coins;
@@ -100,15 +101,35 @@ namespace HellPoker.Core.Tests
         {
             ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Peasant, 5);
             Assert.IsFalse(journey.Run.TakeLootCoins(), "nothing before the demon is beaten");
+            Assert.AreEqual(3, journey.Effects.MaxCarried, "a Phase 2 run carries three");
             journey.Effects.AddRelic(RelicIds.BoneDie);
             journey.Effects.AddRelic(RelicIds.RustyCrown);
+            journey.Effects.AddRelic(ChapterRelicIds.MammonsSeal);
             BeatTheDemon(journey);
             IReadOnlyList<string> offers = journey.Run.LootOffers;
-            Assert.AreEqual(2, offers.Count, "only relics not carried (four offered relics, two carried)");
-            Assert.IsFalse(journey.Run.TakeLoot(offers[0]), "two carried: one must go");
+            Assert.AreEqual(2, offers.Count);
+            Assert.AreEqual(ChapterRelicIds.MammonsScales, offers[0], "his own, the one not carried");
+            Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(offers[1]), "a rare in place of the one carried");
+            Assert.IsFalse(journey.Run.TakeLoot(offers[0]), "three carried: one must go");
             Assert.IsTrue(journey.Run.TakeLoot(offers[0], RelicIds.RustyCrown));
-            CollectionAssert.AreEquivalent(new[] { RelicIds.BoneDie, offers[0] }, journey.Effects.Relics);
+            CollectionAssert.AreEquivalent(new[] { RelicIds.BoneDie, ChapterRelicIds.MammonsSeal, offers[0] }, journey.Effects.Relics);
             Assert.IsFalse(journey.Run.TakeLootCoins(), "once");
+            Assert.IsFalse(journey.Run.TakeLootUpgrade(), "once");
+        }
+
+        [Test]
+        public void TheSpoils_TheUpgradeJoinsTheKit_OnceARun()
+        {
+            ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Peasant, 5);
+            BeatTheDemon(journey);
+            string upgrade = journey.Run.LootUpgrade;
+            CollectionAssert.Contains(ClassUpgrades.For(Peasant.ClassId), upgrade);
+            Assert.IsTrue(journey.Run.TakeLootUpgrade());
+            CollectionAssert.AreEqual(new[] { upgrade }, journey.Kit.Upgrades);
+            Assert.IsFalse(journey.Kit.AddUpgrade(upgrade), "each upgrade once a run");
+            journey.NextChapter();
+            BeatTheDemon(journey);
+            Assert.AreNotEqual(upgrade, journey.Run.LootUpgrade, "an upgrade the run does not have");
         }
 
         [Test]

@@ -40,9 +40,34 @@ namespace HellPoker.Core.Relics
         /// <summary>A lost hand adds this share of the ante more, in percent (the Jester's Rattle: 50).</summary>
         public int LossAntePercent { get; }
 
+        // ---- Phase 2 only (the chapters read them; a demo table never does): percents of the chapter's own numbers.
+
+        /// <summary>A floor's treasure, in percent.</summary>
+        public int TreasurePercent { get; }
+
+        /// <summary>The black market's prices, in percent.</summary>
+        public int MarketPercent { get; }
+
+        /// <summary>The gate's tribute, in percent.</summary>
+        public int TributePercent { get; }
+
+        /// <summary>A table imp's purse, in percent.</summary>
+        public int ImpPursePercent { get; }
+
+        /// <summary>A demon's bar as his table begins, in percent.</summary>
+        public int BossBarPercent { get; }
+
         public RelicEffects(int antePercent = 100, int winPercent = 100, int houseCardsDelta = 0, int reRaiseExtraUnits = 0,
-            int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1, int winAntePercent = 0, int lossAntePercent = 0)
+            int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1, int winAntePercent = 0, int lossAntePercent = 0,
+            int treasurePercent = 100, int marketPercent = 100, int tributePercent = 100, int impPursePercent = 100, int bossBarPercent = 100)
         {
+            if (treasurePercent < 0 || marketPercent <= 0 || tributePercent < 0 || impPursePercent <= 0 || bossBarPercent <= 0)
+                throw new ArgumentOutOfRangeException(nameof(treasurePercent));
+            TreasurePercent = treasurePercent;
+            MarketPercent = marketPercent;
+            TributePercent = tributePercent;
+            ImpPursePercent = impPursePercent;
+            BossBarPercent = bossBarPercent;
             if (winAntePercent < 0 || lossAntePercent < 0) throw new ArgumentOutOfRangeException(nameof(winAntePercent));
             WinAntePercent = winAntePercent;
             LossAntePercent = lossAntePercent;
@@ -64,7 +89,9 @@ namespace HellPoker.Core.Relics
             int soul = SoulLossPercent < 0 ? other.SoulLossPercent : other.SoulLossPercent < 0 ? SoulLossPercent : Math.Min(SoulLossPercent, other.SoulLossPercent);
             return new RelicEffects(AntePercent * other.AntePercent / 100, WinPercent * other.WinPercent / 100, HouseCardsDelta + other.HouseCardsDelta,
                 ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerTable + other.RedrawsPerTable, soul,
-                WinAntePercent + other.WinAntePercent, LossAntePercent + other.LossAntePercent);
+                WinAntePercent + other.WinAntePercent, LossAntePercent + other.LossAntePercent, TreasurePercent * other.TreasurePercent / 100,
+                MarketPercent * other.MarketPercent / 100, TributePercent * other.TributePercent / 100, ImpPursePercent * other.ImpPursePercent / 100,
+                BossBarPercent * other.BossBarPercent / 100);
         }
     }
 
@@ -156,7 +183,7 @@ namespace HellPoker.Core.Relics
         public bool IsReward => true;
     }
 
-    /// <summary>Every relic there is, and how many a run may carry.</summary>
+    /// <summary>The demo's relics, and how many a demo run may carry (a Phase 2 run carries <see cref="ChapterRelics.Slots"/>).</summary>
     public static class RelicRoster
     {
         public const int MaxCarried = 2;
@@ -169,7 +196,11 @@ namespace HellPoker.Core.Relics
 
         public static bool IsReward(string id) => Find(id)?.IsReward ?? false;
 
-        public static IRelic Find(string id) => All.FirstOrDefault(r => r.Id == id);
+        /// <summary>A relic by id: the demo's five, then Phase 2's own (<see cref="ChapterRelics"/>); null when unknown.</summary>
+        public static IRelic Find(string id) => All.FirstOrDefault(r => r.Id == id) ?? (IRelic)ChapterRelics.Find(id);
+
+        /// <summary>The icon strip's order: the demo's relics, then Phase 2's.</summary>
+        public static IReadOnlyList<string> IconOrder { get; } = All.Select(r => r.Id).Concat(ChapterRelics.New.Select(r => r.Id)).ToArray();
 
         /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone, the one
         /// named <paramref name="amplified"/> counts twice (Phase 2's Desire: its gift and its curse doubled).</summary>

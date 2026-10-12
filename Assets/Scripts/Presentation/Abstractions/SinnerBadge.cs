@@ -37,9 +37,13 @@ namespace HellPoker.Presentation.Abstractions
 
         public bool ShowsJokers => Jokers >= 0;
 
+        /// <summary>Phase 2's class upgrades the run has: a gold pip each over the badge (their names are in the description).</summary>
+        public int Upgrades { get; }
+
         public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false,
-            bool armed = false, int jokers = -1)
+            bool armed = false, int jokers = -1, int upgrades = 0)
         {
+            Upgrades = upgrades;
             Jokers = jokers;
             Armed = armed;
             ClassId = classId;

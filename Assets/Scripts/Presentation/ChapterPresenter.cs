@@ -270,6 +270,11 @@ namespace HellPoker.Presentation
                 string mark = id == _run.Effects.SilencedCurse ? " (" + UiText.MapSilenced + ")" : id == _run.Effects.AmplifiedRelic ? " (" + UiText.MapDesired + ")" : "";
                 lines.Add("  " + UiText.RelicName(id) + mark);
             }
+            if (_run.Kit.Upgrades.Count > 0)
+            {
+                lines.Add(UiText.MapUpgradesLabel);
+                foreach (string id in _run.Kit.Upgrades) lines.Add("  " + UiText.UpgradeName(id));
+            }
             if (_run.ImpsEyeNext) lines.Add(UiText.MapEyeReady);
             if (_run.NextTableMarks.HidesAll) lines.Add(UiText.MapSpectacleReady);
             if (_run.NextTableMarks.FreeHands > 0) lines.Add(UiText.MapInsomniaReady);
@@ -301,7 +306,7 @@ namespace HellPoker.Presentation
             string what;
             switch (node.Kind)
             {
-                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, rules.ImpCoinsAt(node.Floor), rules.Ante, rules.AnteStepHands); break;
+                case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, _run.ImpCoinsAt(node.Floor), rules.Ante, rules.AnteStepHands); break;
                 case NodeKind.Warden:
                     string warden = UiText.NameInSentence(UiText.Dealer(ChapterCast.WardenOf(rules)));
                     what = string.Format(UiText.NodeWardenFormat, rules.WardenCoins, rules.Ante, rules.AnteStepHands, rules.WardenTollPercent,
@@ -309,7 +314,7 @@ namespace HellPoker.Presentation
                     break;
                 case NodeKind.Event: what = UiText.NodeEvent; break;
                 case NodeKind.BlackMarket: what = UiText.NodeMarket; break;
-                case NodeKind.Treasure: what = string.Format(UiText.NodeTreasureFormat, rules.TreasureCoins); break;
+                case NodeKind.Treasure: what = string.Format(UiText.NodeTreasureFormat, _run.TreasureCoins); break;
                 default: what = UiText.NodeFire; break;
             }
             return UiText.NodeName(node.Kind) + "\n" + what;
@@ -414,6 +419,7 @@ namespace HellPoker.Presentation
             string text = string.Format(UiText.IntroFormat, rules.Floors, boss, _run.Tribute, rules.YearsPerMissingCoin, _run.Purse.Coins);
             // A later chapter's purse was topped up to the class's start: said under the opening words.
             if (_journey.Chapter > 1 && _journey.PurseToppedUp > 0) text += "\n" + string.Format(UiText.PurseToppedUpFormat, _run.Purse.Coins);
+            if (_journey.Chapter > 1 && _journey.Sown.HasValue) text += "\n" + string.Format(UiText.SownFormat, _journey.Sown.Value);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, string.Format(UiText.ChapterTitleFormat, rules.Number,
                     UiText.ChapterName(rules.Number)), text, new[] { new PanelOption(UiText.PanelDescend) }),
                 new Action[] { () => { ClosePanel(); ShowMap(); } }, "chapter");
@@ -422,7 +428,7 @@ namespace HellPoker.Presentation
 
         private void ShowTreasure()
         {
-            ShowPanel(new PanelCard("Events/treasure", null, UiText.TreasureTitle, string.Format(UiText.TreasureTextFormat, _run.Rules.TreasureCoins),
+            ShowPanel(new PanelCard("Events/treasure", null, UiText.TreasureTitle, string.Format(UiText.TreasureTextFormat, _run.TreasureCoins),
                 new[] { new PanelOption(UiText.TreasureTake) }), new Action[] { Onward }, "treasure");
         }
 
@@ -433,14 +439,14 @@ namespace HellPoker.Presentation
             if (bought != null) _audio.PlaySfx(SfxIds.MarketBuy);
             var options = new List<PanelOption>();
             var answers = new List<Action>();
-            bool full = _run.Effects.CarriedOffered >= RelicRoster.MaxCarried;
+            bool full = market.SellsNoMore;
             foreach (RelicOffer offer in market.Relics)
             {
                 string id = offer.RelicId;
                 bool can = market.CanBuyRelic(id);
-                string why = can ? "" : "\n" + (full ? UiText.MarketFull : UiText.MarketNoCoins);
+                string why = can ? "" : "\n" + (!full ? UiText.MarketNoCoins : _run.Effects.RelicSlotsFull ? UiText.MarketFull : UiText.MarketSellsTwo);
                 options.Add(new PanelOption(string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price),
-                    string.Format(UiText.MarketRelicDetailFormat, UiText.RelicGift(id), UiText.RelicCurse(id)) + why, can));
+                    UiText.RelicPanelDetail(id) + why, can));
                 answers.Add(() =>
                 {
                     if (market.BuyRelic(id))
@@ -567,13 +573,16 @@ namespace HellPoker.Presentation
             _audio.PlaySfx(SfxIds.Fire);
             string boss = UiText.NameInSentence(UiText.Dealer(_run.Rules.BossId));
             bool silence = _run.CanTend(FireChoice.SilenceCurse);
+            bool whet = _run.CanTend(FireChoice.WhetSoul);
+            string genitive = UiText.GenitiveInSentence(UiText.Dealer(_run.Rules.BossId));
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, string.Format(UiText.FireTextFormat, boss),
                     new[]
                     {
                         new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)),
                         new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence),
-                        new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, UiText.GenitiveInSentence(UiText.Dealer(_run.Rules.BossId)),
-                            ChapterRun.RestBarPercent))
+                        new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, genitive, ChapterRun.RestBarPercent)),
+                        new PanelOption(UiText.FireWhet, string.Format(UiText.FireWhetDetailFormat, genitive, ChapterRun.WhetBarPercent) +
+                            (whet ? "" : "\n" + UiText.FireWhetNone), whet)
                     }),
                 new Action[]
                 {
@@ -585,7 +594,12 @@ namespace HellPoker.Presentation
                         if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
                         else ShowSilenceChoice(relics);
                     },
-                    () => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest)
+                    () => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest),
+                    () =>
+                    {
+                        if (!whet) return;
+                        Tend(FireChoice.WhetSoul, null, null);
+                    }
                 }, "fire");
         }
 
@@ -602,7 +616,9 @@ namespace HellPoker.Presentation
         private void Tend(FireChoice choice, string relicId, string done)
         {
             _run.TendFire(choice, relicId);
-            Note($"purgatory fire: {choice}{(relicId != null ? " " + relicId : "")}");
+            if (choice == FireChoice.WhetSoul && _run.FireUpgrade != null)
+                done = string.Format(UiText.FireDoneWhetFormat, UiText.UpgradeName(_run.FireUpgrade), UiText.UpgradeText(_run.FireUpgrade));
+            Note($"purgatory fire: {choice}{(relicId != null ? " " + relicId : "")}{(choice == FireChoice.WhetSoul ? " " + _run.FireUpgrade : "")}");
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, done, new[] { new PanelOption(UiText.PanelOn) }),
                 new Action[] { Onward }, "fire.done");
         }
@@ -677,7 +693,8 @@ namespace HellPoker.Presentation
             };
             if (match.TollTaken > 0) lines.Add(string.Format(UiText.MatchTollFormat, match.TollTaken));
             if (relicGiven != null)
-                lines.Add(string.Format(UiText.MatchRelicFormat, UiText.RelicName(relicGiven), UiText.RelicGift(relicGiven), UiText.RelicCurse(relicGiven)));
+                lines.Add(UiText.RarityName(ChapterRelics.RarityOf(relicGiven)) + " · " +
+                    string.Format(UiText.MatchRelicFormat, UiText.RelicName(relicGiven), UiText.RelicGift(relicGiven), UiText.RelicCurse(relicGiven)));
             lines.Add(string.Format(UiText.MatchPurseFormat, _run.Purse.Coins));
             ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, title, string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) }),
                 new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } }, "matchend");
@@ -699,6 +716,7 @@ namespace HellPoker.Presentation
                 answers.Add(() => { _run.SwapForWardenRelic(swap); Onward(); });
             }
             ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.WardenRelicTitle,
+                UiText.RarityName(ChapterRelics.RarityOf(id)) + " · " +
                 string.Format(UiText.WardenRelicTextFormat, UiText.RelicName(id), UiText.RelicGift(id), UiText.RelicCurse(id), _run.Rules.WardenRelicCoins),
                 options), answers, "warden");
         }
@@ -712,8 +730,7 @@ namespace HellPoker.Presentation
             int coins = _run.Purse.Coins;
             int tribute = _run.Tribute;
             int missing = tribute - _run.TributePaid(coins);
-            int after = _run.Years + _run.TributeYears(coins) + _run.YearsOwed;
-            if (_run.RestedByTheFire) after -= after * ChapterRun.RestBarPercent / 100;
+            int after = _run.BarAfterGate(coins);
             var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, tribute, coins) };
             lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing)
                 : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
@@ -783,16 +800,24 @@ namespace HellPoker.Presentation
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             var options = new List<PanelOption>();
             var answers = new List<Action>();
-            bool full = _run.Effects.CarriedOffered >= RelicRoster.MaxCarried;
+            bool full = _run.Effects.RelicSlotsFull;
             foreach (string id in _run.LootOffers)
             {
                 string relic = id;
-                options.Add(new PanelOption(UiText.RelicName(relic), string.Format(UiText.MarketRelicDetailFormat, UiText.RelicGift(relic),
-                    UiText.RelicCurse(relic)) + (full ? "\n" + UiText.LootSwapNote : "")));
+                options.Add(new PanelOption(UiText.RelicName(relic), UiText.RelicPanelDetail(relic) + (full ? "\n" + UiText.LootSwapNote : "")));
                 answers.Add(() =>
                 {
                     if (full) ShowLootSwap(relic);
                     else if (_run.TakeLoot(relic)) LootTaken(relic);
+                });
+            }
+            if (_run.LootUpgrade != null)
+            {
+                string upgrade = _run.LootUpgrade;
+                options.Add(new PanelOption(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), UiText.UpgradeText(upgrade)));
+                answers.Add(() =>
+                {
+                    if (_run.TakeLootUpgrade()) LootTaken(null, upgrade);
                 });
             }
             options.Add(new PanelOption(string.Format(UiText.WardenCoinsFormat, ChapterRun.LootCoins)));
@@ -819,12 +844,14 @@ namespace HellPoker.Presentation
                 string.Format(UiText.LootSwapTextFormat, UiText.RelicName(relic)), options), answers, "loot");
         }
 
-        private void LootTaken(string relic)
+        private void LootTaken(string relic, string upgrade = null)
         {
-            Note(relic != null ? $"spoils: {relic}" : $"spoils: +{ChapterRun.LootCoins} coins (purse {_run.Purse.Coins})");
+            Note(relic != null ? $"spoils: {relic} ({ChapterRelics.RarityOf(relic)})" : upgrade != null ? $"spoils: upgrade {upgrade}"
+                : $"spoils: +{ChapterRun.LootCoins} coins (purse {_run.Purse.Coins})");
             ClosePanel();
             _journey.NextChapter();
-            Note($"chapter {_journey.Chapter}: {_run.Rules.BossId}, purse {_run.Purse.Coins}, bar {_run.Years}");
+            Note($"chapter {_journey.Chapter}: {_run.Rules.BossId}, purse {_run.Purse.Coins}, bar {_run.Years}" +
+                 (_journey.Sown.HasValue ? $", the seed sows {_journey.Sown.Value}" : ""));
             _nodeDone = true;
             _selected = PickDefault(_run.Choices);
             ShowMap();
