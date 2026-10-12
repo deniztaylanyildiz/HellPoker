@@ -37,8 +37,8 @@ Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), ba�
 Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 180 / 270 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
 iblisin kesesi Masa 30 / 30 / 40, Bekçi 50 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
 boşalana kadar, ante 4 / 5 / 6 ve her 3 elde +1 (`AnteAt`). Bekçiler: Tahsildar (pay), Sahte Peygamber (bir açık kart yalan, Büyücü görür),
-Gece Hemşiresi (bir çekilen kart kapalı). Ateş: ilk hileyi boz / laneti sustur / dinlen (bar %10 kısa). Mammon / Belial yenilince Ganimet
-(3 emanet ya da 30 coin). Kese, emanetler, şarj, jokerler bölümden bölüme taşınır; susturma ve Arzu biter; her bölüm taze deste.
+Gece Hemşiresi (bir çekilen kart kapalı). Ateş: ilk hileyi boz / laneti sustur / dinlen (bar %10 kısa) / ruhunu bile. Mammon / Belial yenilince
+Ganimet (şeytanın 2 emaneti, bir yükseltme ya da 30 coin). Kese, emanetler, şarj, jokerler bölümden bölüme taşınır; susturma ve Arzu biter; her bölüm taze deste.
 Bosslarda **can barı** (`Core/Chapters/BossBar.cs`): ceza sınıf × boss tablosuyla bölünür (`BossShares`, 20 / 30 / 34 / 16), boss masasında
 o pay şeytanın barıdır (`BossTable.Rules`: ruh çizgisi bar × `ChapterRules.SoulLinePercent` 200 / 175 / 150, son 250 ve el sınırı yok;
 bar 0 = yenildi). Ödeme yüzdesi `ScaledPayoutTable`: Mammon 175 / 125, Belial 130 / 110, Lilith 130 / 55, Lucifer 110 / 45 (bahsi bara
@@ -53,8 +53,18 @@ Saray J Q K, boss kaybı yarıya indirir, K: bedava müsadere), `DemonRules` (`M
 `LilithTemptation` %50, `LuciferMirror` sınıfa göre, köşeye sıkışma %25), `ChapterHooks` (ChapterRun her masaya, ChapterJourney Lucifer'e
 bağlar). Sunum: `KitView` (diyaloğun altında panel), `TablePresenter.Kit.cs`, `UiText.Kit.cs`, `CardMark.Tempted`, How to Play'da PHASE 2 sayfası.
 Simülasyon: `Tests/EditMode/BossSimulation` (Explicit; `HELLPOKER_KIT=0` kancasız), `ChapterSimulation` (`WholeRun` + teşhis satırları; düğmeler `ChapterTuning`: `HELLPOKER_JESTER_PURSE`, `_JESTER_TOTAL`, `HELLPOKER_TRIBUTE2/3`, `HELLPOKER_SATCHEL_RISK`; `HELLPOKER_REFILL=0`
-eski kural, `HELLPOKER_FIRST_IMP`); oyuncu `KitPlayer`. Sonuçlar ve kararlar: `PHASE2_CHAPTERS.md` sekizinci tur.
-Açık (kullanıcıda): sınıf farkı (kurtuluş Köylü %44, Kral %33, Büyücü %26, Soytarı %4; Soytarı değişmedi, kullanıcı kararı).
+eski kural, `HELLPOKER_FIRST_IMP`, `HELLPOKER_SLOTS`, `HELLPOKER_WHET=0`, `HELLPOKER_LOOT_UPGRADE=0`); oyuncu `KitPlayer`. WholeRun emanet /
+yükseltme tablosu basar (alınma sayısı; 2. bölüme onu taşıyarak başlayan koşuların kurtuluş farkı, 10 puanı geçen "!"). Sonuçlar ve
+kararlar: `PHASE2_CHAPTERS.md` sekizinci–onuncu tur.
+**Emanetler ve yükseltmeler (Phase 2):** 24 emanet (`Core/Relics/ChapterRelics.cs`: 8 yaygın, 8 nadir, 4 efsanevi, Mammon 2 + Belial 2
+ganimet; demonun 4 emaneti de havuzda), `RelicRarity` / `RelicWeights` (pazar nadir %25 / efsanevi %8, bekçi %40 / %15), fiyat 45 / 55 / 65.
+Koşu 3 emanet taşır (`RunEffects.MaxCarried`; demo 2), **Kara Pazar en çok 2'ye kadar satar** (`BlackMarket.SellsUpTo`). Phase 2 yüzdeleri
+`RelicEffects`'te (hazine, pazar, haraç, iblis kesesi, boss barı; demo okumaz). Sınıf başına 4 yükseltme (`ClassUpgrades`, `ClassKit.Upgrades`;
+etkiler `ClassKit` kapasitelerinde, `ClassPowers`'ta, Soytarı'nınkiler `UpgradeHooks`'ta), ganimet = şeytanın 2 emaneti + 1 yükseltme ya da
+30 coin, Araf Ateşi 4. seçenek "Ruhunu bile" (`FireChoice.WhetSoul`: yükseltme, bar %10 uzun; `ChapterRun.BarAfterGate`). Kayıt:
+`kit.upgrades`, `loot.upgrade`, `whet`. İkonlar `relic_icons.png` (`RelicRoster.IconOrder`), masada nadirlik çerçevesi (3. yuva ikincinin
+solunda), sınıf rozetinin üstünde yükseltme pipleri, metinler `UiText.Upgrades.cs`.
+Açık (kullanıcıda): sınıf farkı (C sonrası 2000 koşu: kurtuluş Köylü %39.9, Kral %30.9, Büyücü %21.4, Soytarı %8.1).
 
 ## Oyun
 
