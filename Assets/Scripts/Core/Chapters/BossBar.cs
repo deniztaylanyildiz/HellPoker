@@ -41,7 +41,16 @@ namespace HellPoker.Core.Chapters
             return total;
         }
 
-        private static int[] Of(string classId) => classId != null && Shares.TryGetValue(classId, out int[] shares) ? shares : Shares[Peasant.ClassId];
+        private static int[] Of(string classId)
+        {
+            int[] shares = classId != null && Shares.TryGetValue(classId, out int[] own) ? own : Shares[Peasant.ClassId];
+            if (classId == null || !ChapterTuning.SentenceTotals.TryGetValue(classId, out int total)) return shares;
+            int designed = 0;
+            foreach (int share in shares) designed += share;
+            var scaled = new int[shares.Length];
+            for (int i = 0; i < shares.Length; i++) scaled[i] = (int)((long)shares[i] * total / designed);
+            return scaled;
+        }
     }
 
     /// <summary>

@@ -448,6 +448,56 @@ Bütün koşu (`WholeRun`, sınıf başına 1000 koşu, son ayarlar):
   63 kart açtı, 39 müsadere (simülasyon oyuncusu bedava artırmayı kullanmıyor).
 - Şeytan kuralları, masa başına (Köylü / Büyücü / Kral / Soytarı): faiz 11.1 / 19.3 / 20.0 / 8.9; takas 2.4 / 3.7 / 3.0 / 1.8; baştan çıkarma
   9.0 / 13.5 / 11.8 / 5.9; ayna 16.4 / 5.9 / 3.4 / 0.0 (Soytarı'ya karşı ayna jokerlerin kendisi). Köşede oynanan el masa başına 5-20.
+## Dokuzuncu tur: denge — Soytarı teşhisi ve 2-3. bölüm haracı (2026-10-12)
+
+**Teşhis** (`ChapterSimulation.WholeRun`, Soytarı, 2000 koşu, eski ayarlar; her 100 koşuda biten):
+
+| Nerede | Bölüm 1 | Bölüm 2 | Bölüm 3 | Lucifer |
+|---|---|---|---|---|
+| Kesesi boşaldı (ortalama kat) | 29.2 (4.1) | 20.4 (4.1) | 11.1 (4.4) | — |
+| Ruhunu kaybetti (boss) | 17.3 Mammon | 10.3 Belial | 4.2 Lilith | — |
+| Düştü | | | | 3.5 |
+| Kurtuldu | | | | 4.1 |
+
+- Joker sayısı (deste): bölüm sonlarında ortalama 12.8 / 11.9 / 12.0, Lucifer'de 12.3 (kazanç +1, 10'un üstünde kayıp −1: 10-13 arasında oturuyor).
+- İki jokerle kaybedilen el: katlarda %21.7 (kasanın iki jokeriyle kazanılan %21.8); boss masalarında Mammon %18.5 (%20.5), Belial %17.8
+  (%18.2), Lilith %26.9 (%26.5), Lucifer %31.6 (%29.9). İki joker kuralı iki tarafa da işliyor; Soytarı'yı asıl öldüren katlardaki kese
+  (koşuların %60'ı katlarda bitiyor) ve sonra Mammon.
+
+**Deneme sırası (kullanıcının), sınıf başına 500 koşu:**
+
+| Deneme | Soytarı kurtuluş | Not |
+|---|---|---|
+| Varsayılan (130 coin, 5000 yıl) | %4.4 | |
+| a) kese 220 | %8.6 | B1 kesesi boşalan %11 |
+| a) kese 260 | %9.6 | artık bosslar öldürüyor (ruh %21 / %18 / %9) |
+| b) kese 260 + toplam ceza 4500 | %11.8 | b'nin en ucu |
+| c) Lucifer'in iki jokerle kaybetmesi | — | zaten geçerli (`ShowdownResult.Judge` iki tarafa da uygular); değişiklik yok |
+
+- **Hedef (%25-40) a-c ile tutmadı; uygulanmadı** (kullanıcı kuralı: en yakın sonuç ve seçenekler). Seçenekler: jokerlerin büyümesini
+  yavaşlatmak (10'un üstünde kayıp −1 yerine her kayıp −1, ya da en çok 8 joker), Soytarı'ya kat masalarında iki joker kaybının yarı
+  bedeli, ya da kese 260 + toplam 4500 + Lucifer'de bar %10 kısa (denenmedi).
+- Köylü %40'ın üstünde: heybe riski **%30** yapıldı (kullanıcı kuralı); 500 koşuda %44.0, 2000'de %43.9 — risk Köylü'yü düşürmüyor.
+
+**Haraç** (Bölüm 2-3'te tam ödeyen %80-99 idi; düğme: başlangıç üstü fark):
+
+| Fark (B2 / B3) | Köylü B2 / B3 | Büyücü | Kral | Soytarı |
+|---|---|---|---|---|
+| +75 / +90 (eski) | %96 / %99 | %88 / %94 | %83 / %96 | %78 / %91 |
+| +145 / +210 | %75 / %83 | %62 / %70 | | |
+| +200 / +280 | %42 / %55 | %34 / %44 | | |
+| **+180 / +270** (uygulandı) | %55.7 / %62.8 | %42.1 / %48.3 | %39.6 / %52.4 | %32.1 / %35.7 |
+
+**Son durum** (2000 koşu, +180 / +270, heybe riski %30):
+
+| Sınıf | B1 / B2 / B3 kesesi boşalan | Lucifer'e ulaşan | Kurtulan | Lucifer'de düşüş |
+|---|---|---|---|---|
+| Köylü | %3.9 / %5.3 / %5.6 | %63.1 | %43.9 | %30.5 |
+| Büyücü | %8.7 / %11.4 / %13.0 | %39.8 | %22.5 | %43.5 |
+| Kral | %3.0 / %4.9 / %5.4 | %49.3 | %32.9 | %33.3 |
+| Soytarı | %29.2 / %38.0 / %48.6 | %7.6 | %4.1 | %46.1 |
+
+- Açık (kullanıcıya): Soytarı (seçenekler yukarıda), Köylü %44 (> %40), Büyücü %22.5 (< %25; haraç artışından sonra −3).
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

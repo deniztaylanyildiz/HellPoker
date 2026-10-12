@@ -92,7 +92,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(3, journey.Sinner.Jokers, "the Jester's jokers go on");
             Assert.IsEmpty(belial.DeckCards, "a fresh deck");
             Assert.AreEqual(10, belial.Map.FloorCount);
-            Assert.AreEqual(130 + 75, belial.Tribute, "the Jester's start + 75");
+            Assert.AreEqual(130 + 180, belial.Tribute, "the Jester's start + 180");
         }
 
         [Test]
@@ -372,5 +372,37 @@ namespace HellPoker.Core.Tests
             Assert.Greater(lies, 5, "a lie one time in four");
             Assert.Less(lies, deals / 2);
         }
-    }
+
+        [Test]
+        public void TheLaterChaptersTributes_AreTheStartPlus180And270()
+        {
+            Assert.AreEqual(180, ChapterRules.For(2).TributeOverStart);
+            Assert.AreEqual(270, ChapterRules.For(3).TributeOverStart);
+            Assert.AreEqual(30, ClassKit.SatchelReRaisePercent);
+        }
+
+        [Test]
+        public void TheSimulationsKnobs_ChangeOnlyWhatTheyName_AndResetToTheDesign()
+        {
+            try
+            {
+                ChapterTuning.StartingCoins[Jester.ClassId] = 260;
+                ChapterTuning.SentenceTotals[Jester.ClassId] = 4500;
+                ChapterTuning.TributeOverStart[2] = 200;
+                Assert.AreEqual(260, ChapterRules.StartingCoinsFor(Jester.ClassId));
+                Assert.AreEqual(120, ChapterRules.StartingCoinsFor(Sinners.Peasant.ClassId));
+                Assert.AreEqual(4500, BossShares.Total(Jester.ClassId), 4);
+                Assert.AreEqual(6500, BossShares.Total(Sinners.Peasant.ClassId));
+                Assert.AreEqual(200, ChapterRules.For(2).TributeOverStart);
+                Assert.AreEqual(270, ChapterRules.For(3).TributeOverStart);
+                Assert.AreEqual(ChapterRules.BelialWinPercent, ChapterRules.For(2).BossWinPercent, "the rest of the chapter stays");
+            }
+            finally
+            {
+                ChapterTuning.Reset();
+            }
+            Assert.AreEqual(130, ChapterRules.StartingCoinsFor(Jester.ClassId));
+            Assert.AreEqual(5000, BossShares.Total(Jester.ClassId));
+            Assert.AreEqual(180, ChapterRules.For(2).TributeOverStart);
+        }    }
 }

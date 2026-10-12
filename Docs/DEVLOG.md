@@ -3035,3 +3035,14 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Testler: EditMode 937 (933 geçti, 4 explicit, 0 hata; yeni: can barı görünür / faiz iki adım / Lucifer düşüş çizgisi / harita barı,
   menü akışı, F9, HELLPOKER_DEV, rekorlar); PlayMode 17 + 3 + 8 + 4 (yeni: F9 ile simülatör ve demo kaydının yeni oyundan sağ çıkması).
   `ChapterScreenshots.CaptureTheLaterChapters` (80–100: menü, OYUN / GÜÇLER sayfaları, üç kapı, dört boss masası) iki dilde bakıldı.
+
+### A) Denge (2026-10-12)
+- İstek (beş işlik serinin ilki): Soytarı teşhisi (koşular nerede bitiyor, joker seyri, iki jokerle kaybedilen el), dört sınıf %25-40
+  kurtuluş (sırayla: Soytarı kesesi 180-260, Soytarı toplam ceza 4500'e kadar, Lucifer'in iki jokerle kaybetmesi; Köylü > %40 ise heybe
+  riski %30; tutmazsa seçenekleri yaz, uygulama), 2-3. bölümde tam haraç %40-60 (bölüm başına haraç farkı).
+- Yapılanlar: `ChapterTuning` (simülasyonun düğmeleri: sınıf kesesi, toplam ceza, bölüm haracı; oyunda boş), `ChapterSimulation.WholeRun`
+  teşhis satırları ve düğmeler (`HELLPOKER_JESTER_PURSE`, `HELLPOKER_JESTER_TOTAL`, `HELLPOKER_TRIBUTE2/3`, `HELLPOKER_SATCHEL_RISK`).
+  Uygulanan: Bölüm 2 haracı başlangıç **+180**, Bölüm 3 **+270** (eski +75 / +90), heybe riski **%30** (`ClassKit.SatchelReRaisePercent`).
+- Sonuç (2000 koşu): kurtuluş Köylü %43.9, Kral %32.9, Büyücü %22.5, Soytarı %4.1; tam haraç B2 %32-56, B3 %36-63. Soytarı hedefi a-c ile
+  tutmadı (en iyi %11.8: kese 260 + toplam 4500) — uygulanmadı; c zaten geçerli. Tablolar `PHASE2_CHAPTERS.md` dokuzuncu tur.
+- Açık (kullanıcıya): Soytarı seçenekleri, Köylü > %40, Büyücü < %25.

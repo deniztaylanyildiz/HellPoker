@@ -140,16 +140,22 @@ namespace HellPoker.Core.Chapters
         /// </summary>
         public static ChapterRules For(int chapter)
         {
+            ChapterRules rules = Designed(chapter);
+            return ChapterTuning.TributeOverStart.TryGetValue(chapter, out int over) ? rules.With(tributeOverStart: over) : rules;
+        }
+
+        private static ChapterRules Designed(int chapter)
+        {
             switch (chapter)
             {
                 // Mammon's table: wins 175%, losses 125% of his payouts (BossSimulation 2026-10-10: 17.5 hands, 11% damned; at
                 // 100 / 100 it was 54 hands).
                 case 1: return new ChapterRules(1, DealerRoster.MammonId, soulLinePercent: 200, ante: 4, tributeOverStart: 60, pricePercent: 100,
                     impReRaisePercent: 10, impCoins: 30, wardenCoins: 50, maxWardens: 3).WithBossPayouts(175, 125);
-                case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 5, tributeOverStart: 75, pricePercent: 120,
+                case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 5, tributeOverStart: 180, pricePercent: 120,
                     impReRaisePercent: 20, impCoins: 30, wardenCoins: 60, treasureCoins: 25, floors: 10, treasureFloor: 5)
                     .WithBossPayouts(BelialWinPercent, BelialLossPercent);
-                case 3: return new ChapterRules(3, DealerRoster.LilithId, soulLinePercent: 150, ante: 6, tributeOverStart: 90, pricePercent: 140,
+                case 3: return new ChapterRules(3, DealerRoster.LilithId, soulLinePercent: 150, ante: 6, tributeOverStart: 270, pricePercent: 140,
                     impReRaisePercent: 30, impCoins: 40, wardenCoins: 80, treasureCoins: 30, floors: 12, treasureFloor: 6)
                     .WithBossPayouts(LilithWinPercent, LilithLossPercent);
                 default: throw new ArgumentOutOfRangeException(nameof(chapter), "There are three chapters.");
@@ -203,6 +209,7 @@ namespace HellPoker.Core.Chapters
         /// King 200 (any other: the Peasant's). Also the floor of every later chapter's purse (<see cref="ChapterJourney.NextChapter"/>).</summary>
         public static int StartingCoinsFor(string classId)
         {
+            if (classId != null && ChapterTuning.StartingCoins.TryGetValue(classId, out int tuned)) return tuned;
             switch (classId)
             {
                 case Sinners.King.ClassId: return 200;

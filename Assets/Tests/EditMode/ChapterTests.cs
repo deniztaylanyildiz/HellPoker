@@ -380,8 +380,8 @@ namespace HellPoker.Core.Tests
                 Assert.AreEqual(pair.Value.start, run.Purse.Coins, pair.Key);
                 Assert.AreEqual(pair.Value.tribute, run.Tribute, pair.Key);
             }
-            Assert.AreEqual(120 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
-            Assert.AreEqual(200 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
+            Assert.AreEqual(120 + 180, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
+            Assert.AreEqual(200 + 270, ChapterRules.For(3).TributeFor(King.ClassId));
             Assert.AreEqual(13, Run(13).Purse.Coins, "a later chapter starts with what is left, nothing added");
         }
 

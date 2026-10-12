@@ -34,7 +34,7 @@ Belial'in Sahnesi (10) → Bölüm 3 Lilith'in Gecesi (12) → Lucifer (KURTULU�
 DEVAM) dokunulmadan duruyor. Test build'i `HellPokerBuild.WindowsPhase2` (Komutlar'da); `-fpstour` Bölüm 1 → 2 geçişini de gezer
 (`ChapterPresenter.PrepareTour`; oyuncunun Phase 2 kaydının üstüne yazar).
 Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), başlangıç kesesi (`ChapterRules.StartingCoinsFor`: Köylü 120,
-Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 75 / 90 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
+Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 180 / 270 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
 iblisin kesesi Masa 30 / 30 / 40, Bekçi 50 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
 boşalana kadar, ante 4 / 5 / 6 ve her 3 elde +1 (`AnteAt`). Bekçiler: Tahsildar (pay), Sahte Peygamber (bir açık kart yalan, Büyücü görür),
 Gece Hemşiresi (bir çekilen kart kapalı). Ateş: ilk hileyi boz / laneti sustur / dinlen (bar %10 kısa). Mammon / Belial yenilince Ganimet
@@ -47,12 +47,12 @@ Kayıt `ChapterArchive` (`phase2.save` `p2=1`: `ChapterSave`; `phase2.records` `
 **Sınıf güçleri (sadece Phase 2)** ve **şeytan kuralları** (sadece boss masaları): `Core/Game/TableHooks` (+ `HookChain`) demo'nun
 oyununa varsayılan kapalı kanca (`HellPokerGame.UseHooks`, `Draw(discards, fromOutside)`, `FreeStake`, `HookYearsThisHand`,
 `CheatTable.Guarded`); `Core/Chapters`: `ClassKit` (koşunun heybesi, vergileri, kehanet sayısı, Lucifer'in kopyaları; kayıtta `kit.*`),
-`ClassPowers` (`SatchelPowers` Köylü HEYBE: 3 kart, heybeden çekilen elde re-raise +%25, K: Hasat; `ProphecyPowers` Büyücü KEHANET:
+`ClassPowers` (`SatchelPowers` Köylü HEYBE: 3 kart, heybeden çekilen elde re-raise +%30, K: Hasat; `ProphecyPowers` Büyücü KEHANET:
 üstteki 1/2/3 kart, şeytan bir kartını bilir, K: 2 kart dibe; `TreasuryPowers` Kral HAZİNE: vergi en çok 10, AÇ 1 / BEDAVA 2 / MÜSADERE 4,
 Saray J Q K, boss kaybı yarıya indirir, K: bedava müsadere), `DemonRules` (`MammonInterest` %2, `BelialRoleSwap` 4 elde bir,
 `LilithTemptation` %50, `LuciferMirror` sınıfa göre, köşeye sıkışma %25), `ChapterHooks` (ChapterRun her masaya, ChapterJourney Lucifer'e
 bağlar). Sunum: `KitView` (diyaloğun altında panel), `TablePresenter.Kit.cs`, `UiText.Kit.cs`, `CardMark.Tempted`, How to Play'da PHASE 2 sayfası.
-Simülasyon: `Tests/EditMode/BossSimulation` (Explicit; `HELLPOKER_KIT=0` kancasız), `ChapterSimulation` (`WholeRun`, `HELLPOKER_REFILL=0`
+Simülasyon: `Tests/EditMode/BossSimulation` (Explicit; `HELLPOKER_KIT=0` kancasız), `ChapterSimulation` (`WholeRun` + teşhis satırları; düğmeler `ChapterTuning`: `HELLPOKER_JESTER_PURSE`, `_JESTER_TOTAL`, `HELLPOKER_TRIBUTE2/3`, `HELLPOKER_SATCHEL_RISK`; `HELLPOKER_REFILL=0`
 eski kural, `HELLPOKER_FIRST_IMP`); oyuncu `KitPlayer`. Sonuçlar ve kararlar: `PHASE2_CHAPTERS.md` sekizinci tur.
 Açık (kullanıcıda): sınıf farkı (kurtuluş Köylü %44, Kral %33, Büyücü %26, Soytarı %4; Soytarı değişmedi, kullanıcı kararı).
 

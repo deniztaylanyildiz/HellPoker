@@ -41,6 +41,9 @@ namespace HellPoker.Core.Tests
             public int TablesPlayed, TablesWon, WardensPlayed, WardensWon;
             public int MarketVisits, MarketShopped, RelicsBought, EyesBought;
             public int EventsSeen, Treasures;
+
+            /// <summary>Floor hands lost to the player's two jokers, won by the house's.</summary>
+            public int PlayerBustHands, HouseBustHands;
             public readonly List<int> Gate = new List<int>(), TableLengths = new List<int>(), WardenLengths = new List<int>();
             public readonly Dictionary<string, int> Offered = new Dictionary<string, int>(), Accepted = new Dictionary<string, int>();
             public readonly Dictionary<FireChoice, int> Fire = new Dictionary<FireChoice, int>();
@@ -57,6 +60,7 @@ namespace HellPoker.Core.Tests
                 TablesPlayed += o.TablesPlayed; TablesWon += o.TablesWon; WardensPlayed += o.WardensPlayed; WardensWon += o.WardensWon;
                 MarketVisits += o.MarketVisits; MarketShopped += o.MarketShopped; RelicsBought += o.RelicsBought; EyesBought += o.EyesBought;
                 EventsSeen += o.EventsSeen; Treasures += o.Treasures;
+                PlayerBustHands += o.PlayerBustHands; HouseBustHands += o.HouseBustHands;
                 Gate.AddRange(o.Gate);
                 TableLengths.AddRange(o.TableLengths);
                 WardenLengths.AddRange(o.WardenLengths);
@@ -316,6 +320,12 @@ namespace HellPoker.Core.Tests
             /// <summary>How often each demon's rule struck, and the hands each played cornered (Mammon, Belial, Lilith, Lucifer).</summary>
             public readonly int[] RuleTriggers = new int[4], Cornered = new int[4];
 
+            /// <summary>Boss hands lost to the player's two jokers, won by the demon's, and all boss hands (Mammon ... Lucifer).</summary>
+            public readonly int[] BossPlayerBusts = new int[4], BossHouseBusts = new int[4];
+
+            /// <summary>The jokers in the deck as each chapter (and Lucifer's table) ended, for the runs that got there.</summary>
+            public readonly List<int>[] Jokers = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+
             /// <summary>The class mechanics used, over all runs.</summary>
             public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost;
 
@@ -334,6 +344,28 @@ namespace HellPoker.Core.Tests
         /// </summary>
         [Test, Timeout(3600000)]
         public void WholeRun()
+        {
+            // Knobs (none: the designer's numbers): HELLPOKER_JESTER_PURSE, HELLPOKER_JESTER_TOTAL (the Jester's whole sentence),
+            // HELLPOKER_TRIBUTE2 / HELLPOKER_TRIBUTE3 (the tribute over the start), HELLPOKER_SATCHEL_RISK.
+            ChapterTuning.Reset();
+            int satchelRisk = ClassKit.SatchelReRaisePercent;
+            try
+            {
+                if (EnvInt("HELLPOKER_JESTER_PURSE", 0) > 0) ChapterTuning.StartingCoins[Jester.ClassId] = EnvInt("HELLPOKER_JESTER_PURSE", 0);
+                if (EnvInt("HELLPOKER_JESTER_TOTAL", 0) > 0) ChapterTuning.SentenceTotals[Jester.ClassId] = EnvInt("HELLPOKER_JESTER_TOTAL", 0);
+                if (EnvInt("HELLPOKER_TRIBUTE2", 0) > 0) ChapterTuning.TributeOverStart[2] = EnvInt("HELLPOKER_TRIBUTE2", 0);
+                if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
+                if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
+                WholeRunReport();
+            }
+            finally
+            {
+                ChapterTuning.Reset();
+                ClassKit.SatchelReRaisePercent = satchelRisk;
+            }
+        }
+
+        private void WholeRunReport()
         {
             int runs = EnvInt("HELLPOKER_RUNS", 1000);
             int seedShift = EnvInt("HELLPOKER_SEED", 0);
@@ -373,6 +405,27 @@ namespace HellPoker.Core.Tests
                 report.AppendLine($"{cls?.Id ?? "all",-9} " + string.Join("   ", Enumerable.Range(0, 4).Select(b =>
                     $"{Avg(t.RuleTriggers[b], t.BossSat[b])} / {Avg(t.Cornered[b], t.BossSat[b])}")));
             report.AppendLine();
+            report.AppendLine("where runs end (per 100 runs): purse emptied in ch1/ch2/ch3 (avg floor), soul lost at Mammon/Belial/Lilith, cast down, soul at Lucifer");
+            foreach (var (cls, t) in perClass)
+            {
+                string Broke(int ch) => $"{Per100(t.Chapters[ch].Broke, t.Runs)} ({Avg(t.Chapters[ch].BrokeFloors, t.Chapters[ch].Broke)})";
+                report.AppendLine($"{cls.Id,-9} purse {Broke(0)} / {Broke(1)} / {Broke(2)};  soul {Per100(t.BossDamned[0], t.Runs)} / " +
+                                  $"{Per100(t.BossDamned[1], t.Runs)} / {Per100(t.BossDamned[2], t.Runs)};  cast down {Per100(t.CastDown, t.Runs)}, " +
+                                  $"soul at Lucifer {Per100(t.BossDamned[3], t.Runs)};  freed {Per100(t.Freed, t.Runs)}");
+            }
+            report.AppendLine();
+            report.AppendLine("jokers (the Jester's deck) at the end of ch1/ch2/ch3/Lucifer (avg), and hands lost to the player's two jokers / won by the house's " +
+                              "two jokers, floors (all chapters) and each boss");
+            foreach (var (cls, t) in perClass.Where(p => p.Item1.StartingJokers > 0))
+            {
+                int floorHands = t.Chapters.Sum(c => c.ImpHands + c.WardenHands), floorPlayer = t.Chapters.Sum(c => c.PlayerBustHands),
+                    floorHouse = t.Chapters.Sum(c => c.HouseBustHands);
+                int BossHandsAt(int b) => t.BossHands[b].Sum();
+                report.AppendLine($"{cls.Id,-9} jokers {AvgOf(t.Jokers[0])} / {AvgOf(t.Jokers[1])} / {AvgOf(t.Jokers[2])} / {AvgOf(t.Jokers[3])};  " +
+                                  $"floors {Pct(floorPlayer, floorHands)} / {Pct(floorHouse, floorHands)};  bosses " +
+                                  string.Join("  ", Enumerable.Range(0, 4).Select(b => $"{Pct(t.BossPlayerBusts[b], BossHandsAt(b))} / {Pct(t.BossHouseBusts[b], BossHandsAt(b))}")));
+            }
+            report.AppendLine();
             report.AppendLine("class powers, a run on average: satchel kept / taken / harvests; rearranges; taxes earned / lost, reveals, free raises, seizures");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
                 report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)} / {Avg((int)t.Harvests, t.Runs)};  " +
@@ -404,13 +457,16 @@ namespace HellPoker.Core.Tests
                 if (!alive) return;
 
                 HellPokerGame boss = journey.Run.OpenBossTable(GameRules.Default);
-                int hands = PlayDemon(boss, null, journey.Run.Rules.Boss.Payouts);
+                int hands = PlayDemon(boss, null, journey.Run.Rules.Boss.Payouts, out int playerBusts, out int houseBusts);
                 foreach (RunTally t in new[] { tally, all })
                 {
                     t.BossSat[ch - 1]++;
                     t.BossHands[ch - 1].Add(hands);
                     if (boss.Phase == GamePhase.Damned) t.BossDamned[ch - 1]++;
                     t.RuleTriggers[ch - 1] += journey.Run.Hooks.Rule?.Triggers ?? 0;
+                    t.BossPlayerBusts[ch - 1] += playerBusts;
+                    t.BossHouseBusts[ch - 1] += houseBusts;
+                    t.Jokers[ch - 1].Add(journey.Sinner.Jokers);
                     t.Cornered[ch - 1] += journey.Run.Hooks.Rule?.CorneredHands ?? 0;
                 }
                 if (boss.Phase != GamePhase.Absolved) return;
@@ -424,13 +480,16 @@ namespace HellPoker.Core.Tests
 
             foreach (RunTally t in new[] { tally, all }) t.ReachedLucifer++;
             HellPokerGame lucifer = journey.OpenLuciferTable(GameRules.Default);
-            int luciferHands = PlayDemon(lucifer, journey, BossTable.Lucifer.Payouts);
+            int luciferHands = PlayDemon(lucifer, journey, BossTable.Lucifer.Payouts, out int lPlayerBusts, out int lHouseBusts);
             bool castDown = lucifer.Phase == GamePhase.RoundOver && journey.IsCastDown(lucifer.Years);
             foreach (RunTally t in new[] { tally, all })
             {
                 t.BossSat[3]++;
                 t.BossHands[3].Add(luciferHands);
                 t.RuleTriggers[3] += journey.LuciferHooks.Rule?.Triggers ?? 0;
+                t.BossPlayerBusts[3] += lPlayerBusts;
+                t.BossHouseBusts[3] += lHouseBusts;
+                t.Jokers[3].Add(journey.Sinner.Jokers);
                 t.Cornered[3] += journey.LuciferHooks.Rule?.CorneredHands ?? 0;
                 if (castDown) t.CastDown++;
                 else if (lucifer.Phase == GamePhase.Damned) t.BossDamned[3]++;
@@ -440,13 +499,17 @@ namespace HellPoker.Core.Tests
 
         /// <summary>A demon's table played out by the balance simulation's player: until the bar is empty, the soul burns, or (Lucifer)
         /// the player is cast down. Returns the hands.</summary>
-        private static int PlayDemon(HellPokerGame game, ChapterJourney lucifer, IPayoutInfo payouts)
+        private static int PlayDemon(HellPokerGame game, ChapterJourney lucifer, IPayoutInfo payouts, out int playerBusts, out int houseBusts)
         {
             int hands = 0;
+            playerBusts = houseBusts = 0;
             while (!BossTable.IsOver(game.Phase) && hands < 2000)
             {
                 BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), payouts, kit: game.Hooks as ChapterHooks);
                 hands++;
+                ShowdownResult showdown = game.LastRound?.Showdown;
+                if (showdown != null && showdown.PlayerBust) playerBusts++;
+                if (showdown != null && showdown.HouseBust) houseBusts++;
                 if (lucifer != null && game.Phase == GamePhase.RoundOver && lucifer.IsCastDown(game.Years)) break;
                 if (game.Phase == GamePhase.RoundOver) game.NextRound();
             }
@@ -508,6 +571,9 @@ namespace HellPoker.Core.Tests
                     kit: table.Game.Hooks as ChapterHooks);
                 FloorHand hand = table.Settle();
                 if (tally == null) continue;
+                ShowdownResult showdown = table.Game.LastRound?.Showdown;
+                if (showdown != null && showdown.PlayerBust) tally.PlayerBustHands++;
+                if (showdown != null && showdown.HouseBust) tally.HouseBustHands++;
                 if (table.IsWarden)
                 {
                     tally.WardenHands++;
@@ -525,6 +591,8 @@ namespace HellPoker.Core.Tests
         }
 
         private static string Pct(int count, int of) => of == 0 ? "-" : (100.0 * count / of).ToString("0.0") + "%";
+
+        private static string Per100(int count, int of) => of == 0 ? "-" : (100.0 * count / of).ToString("0.0");
 
         private static string Avg(int sum, int of) => of == 0 ? "-" : (sum / (double)of).ToString("0.0");
 
