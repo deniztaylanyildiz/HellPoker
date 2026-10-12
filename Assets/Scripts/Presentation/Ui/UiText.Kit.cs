@@ -13,8 +13,8 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("Satchel: keep a thrown card (4 at most) and draw it back. Power: harvest unseen.",
-                    "Heybe: attığın bir kartı sakla (en çok 4), sonra ondan çek. Güç: gizli hasat.");
+                case Peasant.ClassId: return L("Satchel: keep a thrown card (3 at most) and draw it back. Power: harvest unseen.",
+                    "Heybe: attığın bir kartı sakla (en çok 3), sonra ondan çek. Güç: gizli hasat.");
                 case Warlock.ClassId: return L("Sees lies and the deck's top 1-3 cards. Power: send seen cards to the bottom.",
                     "Yalanları ve destenin üstündeki 1-3 kartı görür. Güç: gördüğünü dibe yolla.");
                 case King.ClassId: return L("A tax per win: open a card 1, free raise 2, seize 4. No cheat touches his J Q K.",
@@ -35,16 +35,37 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        /// <summary>The Sinners page's Phase 2 part: the chapters' powers in place of the demo's.</summary>
-        public static string SinnersPagePhaseTwo()
-        {
-            string Line(string id) => $"{SinnerName(id)}: {ChapterSinnerAbility(id)} {ChapterSinnerDetail(id)}\n";
-            return L("PHASE 2 (the chapters): the gauge charges as ever, but the powers change.\n",
-                       "PHASE 2 (bölümler): gösterge aynı dolar, ama güçler değişir.\n")
-                   + Line(Peasant.ClassId) + Line(Warlock.ClassId) + Line(King.ClassId)
-                   + L("JESTER: his jokers, as ever.", "SOYTARI: jokerleri, her zamanki gibi.");
-        }
+        public static string ChapterRulesButton => L("PHASE 2", "PHASE 2");
 
+        /// <summary>{0} the satchel's size, {1} its re-raise risk, {2} the taxes' most, {3}-{5} the treasury's prices, {6} the interest,
+        /// {7} the temptation's chance, {8} the cornered line.</summary>
+        public static string ChapterRulesPageFormat => L(
+            "PHASE 2: THE CHAPTERS. The gauge charges as ever; the powers change.\n" +
+            "PEASANT, SATCHEL: after the draw keep one thrown card ({0} at most). In the draw click it to take it, but the demon sees: " +
+            "his re-raise comes {1}% more often. K (charged): HARVEST, every thrown place from the satchel, unseen.\n" +
+            "WARLOCK, PROPHECY: sees the deck's top card (2 after Mammon, 3 from Lilith on) and the lies. The demon knows one of his " +
+            "cards every hand. K (charged): send up to 2 seen cards to the bottom.\n" +
+            "KING, TREASURY: a tax for every hand won (at most {2}). Before the draw: OPEN {3}, FREE raise {4}, SEIZE {5}. No cheat " +
+            "touches his J, Q or K. A demon's hand lost halves the taxes. K (charged): a free seizure.\n" +
+            "JESTER: his jokers, as ever.\n\n" +
+            "THE DEMONS' RULES (their own tables): MAMMON, INTEREST: every hand you do not win, the bar grows {6}%. BELIAL, ROLE SWAP: " +
+            "every 4th hand one of his face-down cards trades places with one of yours. LILITH, TEMPTATION: a card you throw that betters " +
+            "her hand, she may keep ({7}%). LUCIFER, MIRROR: he copies your class. Under {8}% of the bar a demon cheats faster.",
+            "PHASE 2: BÖLÜMLER. Gösterge aynı dolar; güçler değişir.\n" +
+            "KÖYLÜ, HEYBE: draw'dan sonra attığın bir kartı sakla (en çok {0}). Draw'da ona tıklayıp al, ama şeytan görür: artırması " +
+            "%{1} daha sık gelir. K (dolu): HASAT, atılan her yer heybeden, gizlice.\n" +
+            "BÜYÜCÜ, KEHANET: destenin üstündeki kartı (Mammon'dan sonra 2, Lilith'ten itibaren 3) ve yalanları görür. Şeytan her elde " +
+            "kartlarından birini bilir. K (dolu): gördüğü en çok 2 kartı dibe yollar.\n" +
+            "KRAL, HAZİNE: kazandığı her elde vergi (en çok {2}). Draw'dan önce: AÇ {3}, BEDAVA artırma {4}, MÜSADERE {5}. J, Q ve " +
+            "K'sına hile işlemez. Kaybedilen boss eli vergiyi yarıya indirir. K (dolu): bedava müsadere.\n" +
+            "SOYTARI: jokerleri, her zamanki gibi.\n\n" +
+            "ŞEYTANLARIN KURALLARI (kendi masalarında): MAMMON, FAİZ: kazanamadığın her elde bar %{6} uzar. BELIAL, ROL TAKASI: her " +
+            "4. elde kapalı kartlarından biri seninkiyle yer değiştirir. LILITH, BAŞTAN ÇIKARMA: attığın kart elini iyileştiriyorsa " +
+            "alabilir (%{7}). LUCIFER, AYNA: sınıfını kopyalar. Bar %{8} altına inince şeytan daha hızlı hile yapar.");
+
+        public static string ChapterRulesPage() =>
+            string.Format(ChapterRulesPageFormat, ClassKit.SatchelSize, ClassKit.SatchelReRaisePercent, ClassKit.TaxMax, ClassKit.RevealPrice,
+                ClassKit.FreeRaisePrice, ClassKit.SeizePrice, MammonInterest.InterestPercent, LilithTemptation.TakePercent, DemonRule.CorneredPercent);
         // ------------------------------------------------------------------ the panel under the dialog box
 
         /// <summary>{0} cards in the satchel, {1} its size.</summary>

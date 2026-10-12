@@ -72,8 +72,8 @@ namespace HellPoker.Core.Tests
         public void TheSatchel_FullPushesTheOldestOut()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            foreach (string c in new[] { "2C", "3C", "4C", "5C", "6C" }) Assert.IsTrue(kit.Keep(C(c)));
-            CollectionAssert.AreEqual(new[] { C("3C"), C("4C"), C("5C"), C("6C") }, kit.Satchel);
+            foreach (string c in new[] { "2C", "3C", "4C", "5C" }) Assert.IsTrue(kit.Keep(C(c)));
+            CollectionAssert.AreEqual(new[] { C("3C"), C("4C"), C("5C") }, kit.Satchel, "three at most");
             Assert.IsFalse(new ClassKit(new Sinner(SinnerRoster.King)).Keep(C("2C")), "only the Peasant has a satchel");
         }
 
@@ -112,7 +112,7 @@ namespace HellPoker.Core.Tests
         public void TheSatchelsCards_AreNeverDealt_EvenAfterAShuffle()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            Card[] kept = { C("AS"), C("KS"), C("QS"), C("JS") };
+            Card[] kept = { C("AS"), C("KS"), C("QS") };
             kit.Restore(kept, 0, null, 0);
             HellPokerGame game = Shuffled(3, kit.Sinner);
             ChapterHooks.Attach(game, kit, null, 0, 1);

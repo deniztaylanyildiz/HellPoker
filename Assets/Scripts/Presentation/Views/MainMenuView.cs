@@ -29,10 +29,11 @@ namespace HellPoker.Presentation.Views
         private GameObject _rulesBody;
         private GameObject _cheatsBody;
         private GameObject _sinnersBody;
+        private GameObject _chapterBody;
         private HandRanksPanel _handRanks;
 
         /// <summary>The pages of How to Play, in the order the page button cycles them.</summary>
-        private enum Page { Rules, Hands, Cheats, Sinners }
+        private enum Page { Rules, Hands, Cheats, Sinners, Chapters }
 
         private Page _page;
         private Text _pageLabel;
@@ -222,6 +223,14 @@ namespace HellPoker.Presentation.Views
             _sinnersBody = sinnersText.gameObject;
             _sinnersBody.SetActive(false);
 
+            // Phase 2: the classes' chapter powers and the demons' own rules.
+            Text chapterText = UiFactory.CreateText("ChapterRules", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft)
+                .Localized(UiText.ChapterRulesPage);
+            chapterText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            chapterText.lineSpacing = 1f;
+            _chapterBody = chapterText.gameObject;
+            _chapterBody.SetActive(false);
+
             _handRanks = HandRanksPanel.Create(panel.transform, (PixelScreen.Width - 16 - HandRanksPanel.Width) / 2, 30);
 
             // RULES → HANDS → CHEATS → SINNERS page switch (the label names the next page), then BACK.
@@ -282,9 +291,10 @@ namespace HellPoker.Presentation.Views
         private Page Next(Page page)
         {
             Page next = page;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
-                next = next == Page.Rules ? Page.Hands : next == Page.Hands ? Page.Cheats : next == Page.Cheats ? Page.Sinners : Page.Rules;
+                next = next == Page.Rules ? Page.Hands : next == Page.Hands ? Page.Cheats : next == Page.Cheats ? Page.Sinners
+                    : next == Page.Sinners ? Page.Chapters : Page.Rules;
                 if (next == Page.Cheats && !HasText(_cheatsBody)) continue;
                 if (next == Page.Sinners && !HasText(_sinnersBody)) continue;
                 return next;
@@ -304,9 +314,10 @@ namespace HellPoker.Presentation.Views
             _rulesBody.SetActive(page == Page.Rules);
             _cheatsBody.SetActive(page == Page.Cheats);
             _sinnersBody.SetActive(page == Page.Sinners);
+            _chapterBody.SetActive(page == Page.Chapters);
             Page next = Next(page);
             _pageLabel.text = next == Page.Hands ? UiText.HandsButton : next == Page.Cheats ? UiText.CheatsButton
-                : next == Page.Sinners ? UiText.SinnersButton : UiText.RulesButton;
+                : next == Page.Sinners ? UiText.SinnersButton : next == Page.Chapters ? UiText.ChapterRulesButton : UiText.RulesButton;
         }
 
         private void ShowRules(bool show)

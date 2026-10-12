@@ -65,7 +65,7 @@ namespace HellPoker.Core.Chapters
     }
 
     /// <summary>
-    /// The Peasant's satchel. After the draw one of the thrown cards may go into it (<see cref="Keep"/>); it holds four, the oldest falls
+    /// The Peasant's satchel. After the draw one of the thrown cards may go into it (<see cref="Keep"/>); it holds <see cref="ClassKit.SatchelSize"/>, the oldest falls
     /// out. In a draw a thrown place may take a satchel card instead of the deck's (<see cref="HellPokerGame.Draw(IReadOnlyCollection{int}, IReadOnlyDictionary{int, Card})"/>)
     /// — but the demon sees it: that hand his re-raise comes <see cref="ClassKit.SatchelReRaisePercent"/> more often. The charged power,
     /// the harvest (<see cref="Harvest"/>), fills every thrown place from the satchel unseen.

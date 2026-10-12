@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
@@ -71,7 +71,7 @@ namespace HellPoker.Editor
 
         /// <summary>Phase 2's builds, kept apart from the demo's (its folder, its zip and its version stay untouched).</summary>
         public const string Phase2Folder = "Builds/Phase2";
-        public const string Phase2Version = "1.2.0-phase2";
+        public const string Phase2Version = "1.3.0-phase2";
 
         /// <summary>
         /// A Phase 2 build in Builds/Phase2, packed as Builds/HellPoker-1.2.0-phase2-win64.zip. The build carries its own version

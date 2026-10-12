@@ -215,13 +215,13 @@ namespace HellPoker.Core.Tests
             var purse = new CoinPurse(500);
             ChapterRules rules = ChapterRules.For(1);
             FloorTable table = FloorTable.Imp(rules, NewPeasant(), new RunEffects(), purse, 1, floor: 0);
-            Assert.AreEqual(10, table.HouseStart, "the first floor's imp: half a purse");
+            Assert.AreEqual(15, table.HouseStart, "the first floor's imp: half a purse");
             for (int i = 0; i < 3 && !table.IsOver; i++)
             {
                 table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
                 PlayOne(table);
             }
-            Assert.AreEqual(20, table.HousePurse.Coins, "capped at twice its start");
+            Assert.AreEqual(30, table.HousePurse.Coins, "capped at twice its start");
             Assert.Greater(table.CoinsToVault, 0);
         }
 

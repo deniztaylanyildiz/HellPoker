@@ -121,8 +121,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(120, _tableView.SentenceView.Years, "the counter is the purse");
             Assert.AreEqual(LeaveState.Hidden, _tableView.Leave, "no leaving a chapter's table");
             ChapterRules rules = _chapters.Run.Rules;
-            Assert.AreEqual(10, rules.ImpCoinsAt(0), "the first floor's imp: half a purse, a warm-up");
-            Assert.AreEqual(string.Format(UiText.FloorSeatTitleFormat, 10, rules.Ante, rules.AnteStepHands),
+            Assert.AreEqual(15, rules.ImpCoinsAt(0), "the first floor's imp: half a purse, a warm-up");
+            Assert.AreEqual(string.Format(UiText.FloorSeatTitleFormat, 15, rules.Ante, rules.AnteStepHands),
                 _tableView.DealerView.Dealer.Title, "the imp's purse and the ante under its name");
         }
 

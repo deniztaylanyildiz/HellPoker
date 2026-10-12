@@ -15,24 +15,33 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
-**Phase 2 (oynanabilir, 1.2.0-phase2):** tasarım ve simülasyon tabloları `Docs/PHASE2_CHAPTERS.md`. Ana menüde **PHASE 2 TESTİ** /
+**Phase 2 (oynanabilir, 1.3.0-phase2):** tasarım ve simülasyon tabloları `Docs/PHASE2_CHAPTERS.md`. Ana menüde **PHASE 2 TESTİ** /
 **PHASE 2: DEVAM** (yeni koşu eskisinin üstüne onayla, eskisi lanet sayılır): sınıf → Bölüm 1 Mammon'un Kasası (8 kat) → Bölüm 2
 Belial'in Sahnesi (10) → Bölüm 3 Lilith'in Gecesi (12) → Lucifer (KURTULUŞ / DÜŞTÜN: bar başlangıcın %125'ini geçerse). Demo (YENİ OYUN /
 DEVAM) dokunulmadan duruyor. Test build'i `HellPokerBuild.WindowsPhase2` (Komutlar'da); `-fpstour` Bölüm 1 → 2 geçişini de gezer
 (`ChapterPresenter.PrepareTour`; oyuncunun Phase 2 kaydının üstüne yazar).
-Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), başlangıç kesesi (`ChapterRules.StartingCoinsFor`: Köylü 90,
-Soytarı 120, Büyücü 150, Kral 300), haraç = başlangıç + 60 / 75 / 90 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
-iblisin kesesi Masa 20 / 30 / 40, Bekçi 40 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
+Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), başlangıç kesesi (`ChapterRules.StartingCoinsFor`: Köylü 120,
+Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 75 / 90 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
+iblisin kesesi Masa 30 / 30 / 40, Bekçi 50 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
 boşalana kadar, ante 4 / 5 / 6 ve her 3 elde +1 (`AnteAt`). Bekçiler: Tahsildar (pay), Sahte Peygamber (bir açık kart yalan, Büyücü görür),
 Gece Hemşiresi (bir çekilen kart kapalı). Ateş: ilk hileyi boz / laneti sustur / dinlen (bar %10 kısa). Mammon / Belial yenilince Ganimet
 (3 emanet ya da 30 coin). Kese, emanetler, şarj, jokerler bölümden bölüme taşınır; susturma ve Arzu biter; her bölüm taze deste.
 Bosslarda **can barı** (`Core/Chapters/BossBar.cs`): ceza sınıf × boss tablosuyla bölünür (`BossShares`, 20 / 30 / 34 / 16), boss masasında
 o pay şeytanın barıdır (`BossTable.Rules`: ruh çizgisi bar × `ChapterRules.SoulLinePercent` 200 / 175 / 150, son 250 ve el sınırı yok;
-bar 0 = yenildi). Ödeme yüzdesi `ScaledPayoutTable`: Mammon 175 / 125, Belial 140 / 115, Lilith 130 / 80, Lucifer 110 / 45 (bahsi bara
+bar 0 = yenildi). Ödeme yüzdesi `ScaledPayoutTable`: Mammon 175 / 125, Belial 130 / 110, Lilith 130 / 55, Lucifer 110 / 45 (bahsi bara
 oranlı, `BossTable.Lucifer`). Masada yıl yok: sayaç rakamsız, ante / pot / sonuç barın yüzdesi (`Currency.Bar`, `TablePresenter.BarMode`).
 Kayıt `ChapterArchive` (`phase2.save` `p2=1`: `ChapterSave`; `phase2.records` `p2r=1`: `ChapterRecords`); el ortasında kapatılan el kaybedilir.
-Simülasyon: `Tests/EditMode/BossSimulation` (Explicit), `ChapterSimulation` (`WholeRun`, `HELLPOKER_REFILL`, `HELLPOKER_FIRST_IMP`).
-Açık kararlar (kullanıcıda): Köylü–Kral farkı (1. bölümde kesesi boşalan %22 / %1), 2. bölüme ~1 coin'le inilmesi.
+**Sınıf güçleri (sadece Phase 2)** ve **şeytan kuralları** (sadece boss masaları): `Core/Game/TableHooks` (+ `HookChain`) demo'nun
+oyununa varsayılan kapalı kanca (`HellPokerGame.UseHooks`, `Draw(discards, fromOutside)`, `FreeStake`, `HookYearsThisHand`,
+`CheatTable.Guarded`); `Core/Chapters`: `ClassKit` (koşunun heybesi, vergileri, kehanet sayısı, Lucifer'in kopyaları; kayıtta `kit.*`),
+`ClassPowers` (`SatchelPowers` Köylü HEYBE: 3 kart, heybeden çekilen elde re-raise +%25, K: Hasat; `ProphecyPowers` Büyücü KEHANET:
+üstteki 1/2/3 kart, şeytan bir kartını bilir, K: 2 kart dibe; `TreasuryPowers` Kral HAZİNE: vergi en çok 10, AÇ 1 / BEDAVA 2 / MÜSADERE 4,
+Saray J Q K, boss kaybı yarıya indirir, K: bedava müsadere), `DemonRules` (`MammonInterest` %2, `BelialRoleSwap` 4 elde bir,
+`LilithTemptation` %50, `LuciferMirror` sınıfa göre, köşeye sıkışma %25), `ChapterHooks` (ChapterRun her masaya, ChapterJourney Lucifer'e
+bağlar). Sunum: `KitView` (diyaloğun altında panel), `TablePresenter.Kit.cs`, `UiText.Kit.cs`, `CardMark.Tempted`, How to Play'da PHASE 2 sayfası.
+Simülasyon: `Tests/EditMode/BossSimulation` (Explicit; `HELLPOKER_KIT=0` kancasız), `ChapterSimulation` (`WholeRun`, `HELLPOKER_REFILL=0`
+eski kural, `HELLPOKER_FIRST_IMP`); oyuncu `KitPlayer`. Sonuçlar ve kararlar: `PHASE2_CHAPTERS.md` sekizinci tur.
+Açık (kullanıcıda): sınıf farkı (kurtuluş Köylü %44, Kral %33, Büyücü %26, Soytarı %4; Soytarı değişmedi, kullanıcı kararı).
 
 ## Oyun
 
@@ -686,7 +695,7 @@ py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: şeytan kar
 # DİKKAT: son player build'den sonra yeni bir script KLASÖRÜ eklendiyse build.log'da "error CS0234/CS0246" satırları çıkar: Bee eski
 # player DAG'ının dosya listesiyle ilk csc'yi dener, sonra listeyi yenileyip derler. Hüküm "Build Finished, Result: ..." satırı ve çıkış kodu.
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.Windows -logFile build.log
-# Phase 2 build (demodan ayrı): Builds/Phase2 + Builds/HellPoker-1.2.0-phase2-win64.zip, sürüm sadece build için 1.2.0-phase2 (`HellPokerBuild.Phase2Version`)
+# Phase 2 build (demodan ayrı): Builds/Phase2 + Builds/HellPoker-1.3.0-phase2-win64.zip, sürüm sadece build için 1.3.0-phase2 (`HellPokerBuild.Phase2Version`)
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.WindowsPhase2 -logFile build.log
 # Player log (Company "Deniz", Product "Hell Poker"): %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log
 # Duman testi (her build): HellPoker.exe -fpstour → menü, seçim, salonlar, Lucifer; log'da hata olmamalı.

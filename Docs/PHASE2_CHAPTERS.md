@@ -388,6 +388,66 @@ Bütün koşu (`ChapterSimulation.WholeRun`, sınıf başına 1000 koşu, tasar�
   Kral %3, Soytarı %38.8; Lucifer'e ulaşan / kurtulan hepsi %31.6 / %20 (Köylü 23.2 / 11.8, Büyücü 38.3 / 26.1, Kral 55.8 / 37.2,
   Soytarı 9.1 / 4.9). **Uygulanmadı**: bölüm başı kese kuralı kullanıcının kararı.
 
+## Sekizinci tur: sınıf güçleri ve şeytan kuralları (2026-10-12)
+
+**Kural (kullanıcı):**
+- Taban kese: 2. ve 3. bölüm başında kese sınıfın başlangıç kesesinin altındaysa ona tamamlanır (`ChapterJourney.NextChapter`,
+  `PurseToppedUp`; açılış panelinde satır). Başlangıç keseleri Köylü 120, Soytarı 130, Büyücü 150, Kral 200 (haraç formülü aynı).
+- Sınıf güçleri (sadece Phase 2, demo aynı; `ClassKit` + `ClassPowers`, `ChapterHooks` ile her masaya bağlanır, kayda girer):
+  Köylü HEYBE, Büyücü KEHANET, Kral HAZİNE (vergi, Saray, Müsadere); Soytarı değişmedi. Şarj göstergesi aynı, dolu güç K ile.
+- Şeytan kuralları (sadece boss masaları, `DemonRules`): Mammon FAİZ (%2), Belial ROL TAKASI (her 4 elde), Lilith BAŞTAN ÇIKARMA (%50),
+  Lucifer AYNA (sınıfa göre), bar başlangıcın %25'inin altında gösterge +1 / el. Masa açılırken şeytan kuralını söyler.
+
+**Kararlarım (belgede):**
+- Demo'ya hiçbir davranış değişikliği yok: Phase 2 her şeyi `HellPokerGame.UseHooks(TableHooks)` üzerinden yapar (demo masasında null).
+  Kancalar: dağıtım, draw başlangıcı, kasanın draw'u, draw sonrası, kasanın re-raise'i, el sonu, Saray (`CheatTable.Guarded`).
+- Heybe: atılan kart draw'dan sonra, bir sonraki dağıtıma kadar panelde seçilir; heybe kartları deste karılınca da dağıtılmaz.
+  Heybeden çekilen kart atılan yerlere soldan sağa yerleşir (el için fark etmez). Hasat: heybenin en iyi doldurduğu kartlar.
+- Kehanet'in bedeli: şeytan bildiği kart J veya üstüyse İki Çift'in altında re-raise yapmaz, 9 veya altıysa %20 fazladan re-raise yapar;
+  Q veya üstünü biliyorsa elinde bir şey yokken draw'da azamî kart atar. Yeniden diz: dolu güç bir kez harcanır, o elde 2 kart.
+- Müsadere: şeytanın açık kartları arasından kralın eline en iyi geleni alınır; açık kart yoksa sıradaki kapalı kart açılıp alınır
+  (fiyata dahil). Bedava artırma: o elde sıradaki artırma, kayıp / çekilmede sayılmaz (`HellPokerGame.FreeStake`).
+- Rol takası, Ayna'nın müsaderesi Saray'a, Ölü Adamın Eli kartlarına, zincirli ve gizli kartlara dokunmaz.
+- Ayna (Büyücü'ye karşı): Lucifer üstteki kartı görür; pas geçecekken işine yarıyorsa çeker, çekecekken yaramıyorsa dibe yollar
+  (ilk sürüm sadece birincisini yapıyordu, neredeyse hiç tetiklenmiyordu).
+- Lilith'in aldığı kart showdown'da dudak işaretiyle (`CardMark.Tempted`, `card_marks` 7. kare).
+- How to Play: SINNERS sayfası demo'nunki gibi kaldı (alan dolu); yeni **PHASE 2** sayfası sınıf güçlerini ve şeytan kurallarını anlatır.
+
+**Ayar (kullanıcının sırasıyla):**
+- Boss ödeme yüzdeleri (`BossSimulation`, sınıf × boss 2000 masa, güçler ve kurallarla):
+
+| Boss | Kazanç / kayıp % | El | Lanet / düşüş | Kural (masa başına) |
+|---|---|---|---|---|
+| Mammon | 175 / 125 (aynı) | 20.3 | %12.2 | faiz 12.9 |
+| Belial | 140 / 115 (eski) | 14.1 | %19.2 | |
+| Belial | **130 / 110** | 16.7 | %19.0 | takas 2.5 |
+| Lilith | 130 / 80 (eski) | 19.1 | %43.8 | |
+| Lilith | 130 / 60 | 20.8 | %28.9 | |
+| Lilith | 130 / 50 | 22.0 | %20.8 | |
+| Lilith | **130 / 55** | 21.6 | %24.9 | baştan çıkarma 9.0 |
+| Lucifer | 110 / 45 (aynı) | 20.6 | %40.8 düşüş | ayna 5.3 |
+
+- Bölüm 1 katları (`ChapterSimulation.ChapterOne`): yeni keselerle iblis 20 / bekçi 40'ta kesesi boşalan %9.1, tam haraç %36.7, masa 3.9 el.
+  **İblis 30 / bekçi 50** (1. kat 15): %11.6 (Köylü 4.4, Büyücü 8.9, Kral 3.0, Soytarı 30.3), tam haraç %52.9, masa 5.2 el. İblis 40 / 60:
+  %12.5, %65.5, 6.4 el. Bölüm 2-3 iblis keseleri (30 / 60, 40 / 80) değişmedi.
+- Sınıf farkı (≤ 12 puan hedefi) iblis keseleriyle kapanmıyor: Soytarı. Soytarı kesesi 195 → %16.5, 260 → %9.7 (deneme).
+  **Kullanıcı kararı: Soytarı değişmedi; Köylü heybesi 3 kart, risk %25** (ilk tasarım 4 kart / %15'te Köylü %56 kurtuluyordu).
+
+Bütün koşu (`WholeRun`, sınıf başına 1000 koşu, son ayarlar):
+
+| Sınıf | B1 / B2 / B3 kesesi boşalan | Tam haraç B1 / B2 / B3 | Lucifer'e ulaşan | Kurtulan | Lucifer'de düşüş |
+|---|---|---|---|---|---|
+| Köylü | %3.6 / %4.5 / %5.5 | %68.5 / %95.7 / %99.1 | %65.3 | **%43.9** | %32.8 |
+| Büyücü | %8.6 / %12.2 / %10.9 | %58.9 / %87.5 / %93.7 | %42.7 | %25.6 | %40.0 |
+| Kral | %3.3 / %5.5 / %4.9 | %57.9 / %82.5 / %95.8 | %48.0 | %33.2 | %30.8 |
+| Soytarı | %27.4 / %40.0 / %49.2 | %54.3 / %78.3 / %90.8 | %8.5 | **%3.8** | %55.3 |
+
+- Kurtuluşta sınıf farkı 40 puan (hedef ≤ 10; Soytarı hariç 18 puan). Kullanıcı Soytarı'yı değiştirmemeyi seçti.
+- Bölüm 2-3'te taban kese ve büyüyen kese yüzünden tam haraç %80-99 (Bölüm 1 hedefi 40-60).
+- Koşu başına sınıf gücü kullanımı: Köylü 116 kart sakladı / 75 çekti / 25 hasat; Büyücü 71 kart dibe; Kral 69 vergi kazandı / 6 kaybetti,
+  63 kart açtı, 39 müsadere (simülasyon oyuncusu bedava artırmayı kullanmıyor).
+- Şeytan kuralları, masa başına (Köylü / Büyücü / Kral / Soytarı): faiz 11.1 / 19.3 / 20.0 / 8.9; takas 2.4 / 3.7 / 3.0 / 1.8; baştan çıkarma
+  9.0 / 13.5 / 11.8 / 5.9; ayna 16.4 / 5.9 / 3.4 / 0.0 (Soytarı'ya karşı ayna jokerlerin kendisi). Köşede oynanan el masa başına 5-20.
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

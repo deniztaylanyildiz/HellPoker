@@ -210,7 +210,7 @@ namespace HellPoker.Presentation.Ui
                 "(showdown'da tek joker seçtiğin karta dönüşür; iki ya da fazlası eli kaybettirir).\n\n"), charge.Full, charge.PerWin, charge.PerLoss, charge.PerFold);
             foreach (SinnerClass c in SinnerRoster.All)
                 page += Block(c) + "\n";
-            return (page + SinnersPagePhaseTwo()).TrimEnd();
+            return page.TrimEnd();
         }
     }
 }

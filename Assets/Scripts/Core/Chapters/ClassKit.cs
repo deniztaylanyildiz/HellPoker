@@ -25,10 +25,10 @@ namespace HellPoker.Core.Chapters
     public sealed class ClassKit
     {
         /// <summary>The satchel holds this many cards; a new one pushes the oldest out.</summary>
-        public const int SatchelSize = 4;
+        public const int SatchelSize = 3;
 
         /// <summary>A hand the Peasant draws from his satchel the demon sees it: its re-raise comes this much (percent) more often.</summary>
-        public const int SatchelReRaisePercent = 15;
+        public const int SatchelReRaisePercent = 25;
 
         /// <summary>The King's treasury holds at most this many taxes; the prices of its three acts.</summary>
         public const int TaxMax = 10, RevealPrice = 1, FreeRaisePrice = 2, SeizePrice = 4;

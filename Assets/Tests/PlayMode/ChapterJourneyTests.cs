@@ -107,7 +107,8 @@ namespace HellPoker.PlayMode.Tests
             yield return null;
             Assert.AreEqual(2, Chapters.Journey.Chapter, "the second chapter");
             Assert.AreEqual(Core.Dealers.DealerRoster.BelialId, Chapters.Run.Rules.BossId);
-            Assert.AreEqual(coins + ChapterRun.LootCoins, Chapters.Run.Purse.Coins, "the coins of the spoils go along");
+            Assert.AreEqual(Math.Max(coins + ChapterRun.LootCoins, ChapterRules.StartingCoinsFor(Core.Sinners.Peasant.ClassId)), Chapters.Run.Purse.Coins,
+                "the coins of the spoils go along, topped up to the Peasant's start");
             Assert.AreEqual(10, Chapters.Run.Map.FloorCount);
             Assert.IsTrue(panel.IsOpen, "the chapter's opening words");
             HellPokerScreenshots.Press("PanelOption0");   // DESCEND
@@ -220,6 +221,25 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest, Timeout(600000)]
         public IEnumerator CaptureTheLaterChapters()
         {
+            // The class choice of a chapter run: the classes' Phase 2 powers on their cards.
+            HellPokerBootstrap.BatchStore.Clear();
+            if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            // How to Play: the Sinners page as it was, then the PHASE 2 page (the chapters' powers and the demons' rules).
+            HellPokerScreenshots.Press("HowToPlayButton");
+            for (int guard = 0; guard < 5 && !HellPokerScreenshots.Find<Text>("Sinners").gameObject.activeInHierarchy; guard++)
+                HellPokerScreenshots.Press("HandRanksPageButton");
+            yield return HellPokerScreenshots.Shot("81_rules_sinners");
+            HellPokerScreenshots.Press("HandRanksPageButton");
+            yield return HellPokerScreenshots.Shot("82_rules_phase2");
+            HellPokerScreenshots.Press("BackButton");
+            yield return new WaitForSeconds(0.4f);
+            HellPokerScreenshots.Press("ChaptersButton");
+            yield return new WaitForSeconds(0.8f);
+            yield return HellPokerScreenshots.Shot("83_chapter_classes");
+
             int shot = 84;
             for (int chapter = 2; chapter <= 3; chapter++)
             {
