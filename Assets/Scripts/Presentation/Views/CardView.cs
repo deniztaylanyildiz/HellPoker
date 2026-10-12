@@ -279,7 +279,7 @@ namespace HellPoker.Presentation.Views
         private void ShowMark(CardMark mark)
         {
             int frame = mark == CardMark.Chained ? 0 : mark == CardMark.Thorned ? 1 : mark == CardMark.Veiled ? 2 : mark == CardMark.FalseFace ? 3
-                : mark == CardMark.Protected ? 4 : mark == CardMark.Joker ? 5 : -1;
+                : mark == CardMark.Protected ? 4 : mark == CardMark.Joker ? 5 : mark == CardMark.Tempted ? 6 : -1;
             Sprite[] marks = UiArt.Strip(UiArt.CardMarks, Size.x);
             _mark.sprite = frame >= 0 && marks != null && frame < marks.Length ? marks[frame] : null;
             _mark.enabled = _mark.sprite != null;

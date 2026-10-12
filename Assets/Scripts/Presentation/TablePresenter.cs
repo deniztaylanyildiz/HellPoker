@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
@@ -23,7 +23,7 @@ namespace HellPoker.Presentation
     /// no game and input is ignored. While the soul is on the table no number of years ever reaches the view: the soul
     /// bar shows shares of a soul instead. Depends on abstractions only, so it can be tested without Unity scenes.
     /// </summary>
-    public sealed class TablePresenter : ITableCommands, IRunSession, IDisposable
+    public sealed partial class TablePresenter : ITableCommands, IRunSession, IDisposable
     {
         private const float ShowdownPause = 0.6f;
 
@@ -135,6 +135,8 @@ namespace HellPoker.Presentation
             _view.JokerStepPressed += StepJoker;
             _view.ShufflePressed += ShuffleDeck;
             _view.JokerConfirmPressed += ConfirmJoker;
+            _view.KitCardPressed += PressKitCard;
+            _view.KitButtonPressed += PressKitButton;
             Lang.Changed += OnLanguageChanged;
         }
 
@@ -596,6 +598,7 @@ namespace HellPoker.Presentation
             // there (changing seats refills nothing). Lucifer's table is full at every summons; a fall lands on the demon's own count.
             bool fresh = change == SeatChange.Summoned;
             _seat = null;   // the demo's tables: no chapter around them
+            ClearKit();
             _effects.SitAt(dealer.Id, fresh);
             // A new table closes the Bone Die's pick; the Peasant's free fold waits for his fold.
             _redrawing = false;
@@ -791,6 +794,7 @@ namespace HellPoker.Presentation
             _originMalice = null;
             _seatTitleShown = SeatTitle();
             _audio.SetSoulLayer(false);
+            SeatKit(game);
 
             _view.SetCurrency(CoinMode ? Currency.Coins : Currency.Bar);
             _view.Dealer.SetDealer(SeatCard());
@@ -802,7 +806,10 @@ namespace HellPoker.Presentation
                 _view.Sentence.SetYears(CoinMode ? seat.Run.Purse.Coins : _game.Years, animate: false);
             }
             string classId = _sinner.Id;
-            Say(d => d.GreetingFor(classId) ?? UiText.Pick(d.Greeting, 0), DealerMood.Neutral);
+            // A demon's table opens with the demon's own rule, said in one line; a floor's with the greeting.
+            string rule = _kit?.Rule == null ? null : UiText.DemonRuleLine(_kit.Rule);
+            if (rule != null) Say(_ => UiText.DemonRuleLine(_kit.Rule), DealerMood.Menacing);
+            else Say(d => d.GreetingFor(classId) ?? UiText.Pick(d.Greeting, 0), DealerMood.Neutral);
             Refresh();
         }
 
@@ -911,6 +918,8 @@ namespace HellPoker.Presentation
             _view.JokerStepPressed -= StepJoker;
             _view.ShufflePressed -= ShuffleDeck;
             _view.JokerConfirmPressed -= ConfirmJoker;
+            _view.KitCardPressed -= PressKitCard;
+            _view.KitButtonPressed -= PressKitButton;
             Lang.Changed -= OnLanguageChanged;
         }
 
@@ -929,6 +938,7 @@ namespace HellPoker.Presentation
                     if (_game.DeckShuffledThisHand)
                         LogNote($"deck ran out: the demon shuffles ({deckBefore} cards left, {_game.Years} years, hand {_game.RoundNumber})");
                     _discards.Clear();
+                    KitHandDealt();
                     if (_game.PendingCheat != null) _log?.Cheat(_game.RoundNumber, "announced", _game.PendingCheat.Id);
                     LogJokers("dealt", _game.PlayerHand, _game.HouseHand);
                     PlayOutSealedHand(before);
@@ -949,7 +959,7 @@ namespace HellPoker.Presentation
                 case GamePhase.Drawing:
                     if (_discards.Count > 0) _view.PlaySfx(SfxIds.Deal);
                     Hand playerBefore = _game.PlayerHand, houseBefore = _game.HouseHand;
-                    _game.Draw(_discards.ToArray());
+                    if (!KitDraw()) return;
                     _discards.Clear();
                     LogJokers("drawn", NewCards(playerBefore, _game.PlayerHand), NewCards(houseBefore, _game.HouseHand));
                     PlayOutSealedHand(before);
@@ -1346,6 +1356,11 @@ namespace HellPoker.Presentation
             if (!Playing || _pendingEvent != null || Hurry()) return;
             Sinner sinner = _game.Sinner;
             if (sinner == null) return;
+            if (_kit?.Powers != null)
+            {
+                UseKitPower();   // Phase 2: the class's chapter power in place of the demo's
+                return;
+            }
             if (sinner.Ability == SinnerAbility.None)
             {
                 // The Jester has nothing to switch on: his jokers are his power — he hears so.
@@ -1569,6 +1584,11 @@ namespace HellPoker.Presentation
             if (Playing && _redrawing && !_view.IsBusy)
             {
                 RedrawCard(index);
+                return;
+            }
+            if (Playing && _seizing && !_view.IsBusy)
+            {
+                SeizeWith(index);
                 return;
             }
             if (!Playing || _pendingEvent != null || Hurry() || _game.Phase != GamePhase.Drawing) return;
@@ -1822,6 +1842,7 @@ namespace HellPoker.Presentation
 
             ShowPower();
             ShowDeck();
+            ShowKit();
         }
 
         /// <summary>
@@ -1831,7 +1852,7 @@ namespace HellPoker.Presentation
         private void ShowPower()
         {
             Sinner sinner = _game.Sinner;
-            string hint = FreeFoldOn ? UiText.FreeFoldHint : _redrawing ? UiText.RedrawPrompt : null;
+            string hint = FreeFoldOn ? UiText.FreeFoldHint : _redrawing ? UiText.RedrawPrompt : KitHint();
             // The joker picker's live result; two jokers in the hand while it is played: the warning stays until one goes.
             bool warning = false;
             if (_game.Phase == GamePhase.NamingJoker)
@@ -1843,7 +1864,7 @@ namespace HellPoker.Presentation
             }
             _view.SetPower(new PowerDisplay(hint, sinner != null && sinner.WardRaised, warning));
             int[] pickable = _redrawing ? Enumerable.Range(0, Hand.Size).Where(_game.CanRedraw).ToArray()
-                : null;
+                : _seizing ? SeizablePlayerCards() : null;
             _view.Player.SetPicking(pickable);
             if (pickable != null && pickable.Length > 0)
                 _view.Player.SetInteractable(true);   // the cards take the click (even before the draw)
@@ -2098,7 +2119,7 @@ namespace HellPoker.Presentation
             if (_game.IsCommitted)
                 _view.SetMessage(string.Format(UiText.SealedDrawPrompt, _game.Rules.MaxDiscards), Tone.Warning);
             else
-                _view.SetMessage(string.Format(UiText.PromptDrawFormat, _game.Rules.MaxDiscards), Tone.Neutral);
+                _view.SetMessage(WithDrawLines(string.Format(UiText.PromptDrawFormat, _game.Rules.MaxDiscards)), Tone.Neutral);
             // A thorned card picked to go: the price is said before the draw, on the button too.
             int thorn = _game.ThornCost(_discards);
             if (thorn > 0)
@@ -2207,7 +2228,7 @@ namespace HellPoker.Presentation
                     // A floor speaks in coins (its numbers are the purse's, the Collector's toll included); the cheat's log has no years then.
                     string result = CoinMode ? CoinResultMessage(round, _seat.LastHand)
                         : BarMode && !soulHand ? BarResultMessage(round) : ResultMessage(round, soulHand);
-                    _view.SetMessage(WithSeatLine(WithJackpot(WithCheatLog(result, soulHand || CoinMode), round)),
+                    _view.SetMessage(WithKitLines(WithSeatLine(WithJackpot(WithCheatLog(result, soulHand || CoinMode), round)), round),
                         playerWon || round.HouseFolded ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     if (IsHoldingTheLastYear)
                     {
@@ -2370,6 +2391,7 @@ namespace HellPoker.Presentation
             if (_game.HouseHand == null) return slots;
             for (int i = 0; i < faceUp && i < Hand.Size; i++)
             {
+                if (IsTempted(i)) slots[i] = slots[i].WithMark(CardMark.Tempted);
                 if (!_game.IsHouseCardFalse(i)) continue;
                 // A chapter's liars (the False Prophet, the lying witness) cannot fool the Warlock: he sees the true card, marked.
                 bool seen = _seat != null && _sinner != null && _sinner.Class.SeesLies;

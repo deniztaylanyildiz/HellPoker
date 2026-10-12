@@ -239,7 +239,11 @@ namespace HellPoker.PlayMode.Tests
                 yield return new WaitForSeconds(0.5f);
                 yield return HellPokerScreenshots.Shot($"{shot++}_chapter{chapter}_imp");
 
-                ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, chapter, "");
+                // The bosses with the other classes' panels: the Warlock's prophecy at Belial's, the Peasant's satchel at Lilith's.
+                ChapterSave boss = ChapterPresenter.PlacedSave(chapter == 2 ? Core.Sinners.SinnerRoster.Warlock : Core.Sinners.SinnerRoster.Peasant, 11,
+                    chapter, "");
+                boss.Satchel = new System.Collections.Generic.List<Core.Cards.Card> { new Core.Cards.Card(Core.Cards.Rank.Ace, Core.Cards.Suit.Hearts),
+                    new Core.Cards.Card(Core.Cards.Rank.Seven, Core.Cards.Suit.Clubs) };
                 boss.NodeDone = false;
                 boss.Match = "boss";
                 boss.BossBarStart = boss.BossBar = 2000;

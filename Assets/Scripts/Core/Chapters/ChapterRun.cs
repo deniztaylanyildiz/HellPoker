@@ -75,6 +75,19 @@ namespace HellPoker.Core.Chapters
         private readonly HashSet<string> _eventsSeen = new HashSet<string>();
 
         public ChapterRules Rules { get; }
+
+        /// <summary>The class's Phase 2 mechanics (the satchel, the prophecy, the treasury): the run's, from chapter to chapter.</summary>
+        public ClassKit Kit { get; }
+
+        /// <summary>The hooks of the table opened last (its class acts, its demon's rule); null before one.</summary>
+        public ChapterHooks Hooks { get; private set; }
+
+        private FloorTable Hooked(FloorTable table)
+        {
+            Hooks = ChapterHooks.Attach(table.Game, Kit, null, 0, RandomSeeds.Derive(_seed, MatchStream + 100 + _matches));
+            return table;
+        }
+
         public ChapterMap Map { get; }
         public Sinner Sinner { get; }
         public RunEffects Effects { get; }
@@ -160,10 +173,14 @@ namespace HellPoker.Core.Chapters
 
         /// <param name="years">The run's share of the sentence at the chapter's demon.</param>
         /// <param name="coins">The purse the chapter starts with: a new run's class purse, or what is left from the last chapter.</param>
-        public ChapterRun(ChapterRules rules, Sinner sinner, RunEffects effects, int years, int coins, int seed, IReadOnlyList<Card> deck = null)
+        /// <param name="kit">The class's Phase 2 mechanics carried from the last chapter (null: a new one).</param>
+        public ChapterRun(ChapterRules rules, Sinner sinner, RunEffects effects, int years, int coins, int seed, IReadOnlyList<Card> deck = null,
+            ClassKit kit = null)
         {
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             Sinner = sinner ?? throw new ArgumentNullException(nameof(sinner));
+            Kit = kit ?? new ClassKit(sinner);
+            if (kit == null) Kit.EnterChapter(rules.Number);
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
             if (years <= 0) throw new ArgumentOutOfRangeException(nameof(years));
             if (coins < 0) throw new ArgumentOutOfRangeException(nameof(coins));
@@ -198,9 +215,9 @@ namespace HellPoker.Core.Chapters
                 throw new InvalidOperationException("There is no table here.");
             TableMarks marks = NextTableMarks;
             NextTableMarks = TableMarks.None;
-            return Current.Kind == NodeKind.Warden
+            return Hooked(Current.Kind == NodeKind.Warden
                 ? FloorTable.Warden(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, houseCoins)
-                : FloorTable.Imp(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, Current.Floor, houseCoins);
+                : FloorTable.Imp(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, Current.Floor, houseCoins));
         }
 
         /// <summary>The marks of a saved match come back (they were taken by <see cref="OpenTable"/> before it was saved).</summary>
@@ -305,7 +322,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The gambler's single hand for <paramref name="stake"/> coins: play <see cref="PendingGamble"/>, then <see cref="FinishTable"/>.</summary>
         public FloorTable OpenGamble(int stake)
         {
-            PendingGamble = FloorTable.Gamble(Rules, stake, Sinner, Effects, Purse, NextMatchSeed(), DeckCards);
+            PendingGamble = Hooked(FloorTable.Gamble(Rules, stake, Sinner, Effects, Purse, NextMatchSeed(), DeckCards));
             return PendingGamble;
         }
 
@@ -381,6 +398,7 @@ namespace HellPoker.Core.Chapters
             HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Rules.BossWinPercent, Rules.BossLossPercent,
                 RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner);
             game.UseEffects(Effects);
+            Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream));
             return game;
         }
 

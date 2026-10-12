@@ -67,7 +67,7 @@ namespace HellPoker.Core.Tests
             ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Find(Jester.ClassId), 99);
             Assert.AreEqual(1, journey.Chapter);
             Assert.AreEqual(DealerRoster.MammonId, journey.Run.Rules.BossId);
-            Assert.AreEqual(120, journey.Run.Purse.Coins, "the Jester's purse");
+            Assert.AreEqual(130, journey.Run.Purse.Coins, "the Jester's purse");
             Assert.AreEqual(1000, journey.Run.Years, "the Jester's share at Mammon");
 
             journey.Run.Purse.Add(200);
@@ -84,14 +84,15 @@ namespace HellPoker.Core.Tests
             ChapterRun belial = journey.NextChapter();
             Assert.AreEqual(2, journey.Chapter);
             Assert.AreEqual(DealerRoster.BelialId, belial.Rules.BossId);
-            Assert.AreEqual(coins, belial.Purse.Coins, "the purse goes on, nothing added");
+            Assert.AreEqual(coins, belial.Purse.Coins, "the purse goes on, nothing added (it is above the start)");
+            Assert.AreEqual(0, journey.PurseToppedUp);
             Assert.AreEqual(1500, belial.Years, "the Jester's share at Belial");
             CollectionAssert.Contains(belial.Effects.Relics, RelicIds.RustyCrown, "the relics go on");
             Assert.IsNull(belial.Effects.SilencedCurse, "a silenced curse speaks again");
             Assert.AreEqual(3, journey.Sinner.Jokers, "the Jester's jokers go on");
             Assert.IsEmpty(belial.DeckCards, "a fresh deck");
             Assert.AreEqual(10, belial.Map.FloorCount);
-            Assert.AreEqual(120 + 75, belial.Tribute, "the Jester's start + 75");
+            Assert.AreEqual(130 + 75, belial.Tribute, "the Jester's start + 75");
         }
 
         [Test]

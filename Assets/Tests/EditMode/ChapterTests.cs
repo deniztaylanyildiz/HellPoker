@@ -372,7 +372,7 @@ namespace HellPoker.Core.Tests
             ChapterRules rules = ChapterRules.For(1);
             var expected = new Dictionary<string, (int start, int tribute)>
             {
-                { Sinners.Peasant.ClassId, (90, 150) }, { Jester.ClassId, (120, 180) }, { Warlock.ClassId, (150, 210) }, { King.ClassId, (300, 360) }
+                { Sinners.Peasant.ClassId, (120, 180) }, { Jester.ClassId, (130, 190) }, { Warlock.ClassId, (150, 210) }, { King.ClassId, (200, 260) }
             };
             foreach (var pair in expected)
             {
@@ -380,8 +380,8 @@ namespace HellPoker.Core.Tests
                 Assert.AreEqual(pair.Value.start, run.Purse.Coins, pair.Key);
                 Assert.AreEqual(pair.Value.tribute, run.Tribute, pair.Key);
             }
-            Assert.AreEqual(90 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
-            Assert.AreEqual(300 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
+            Assert.AreEqual(120 + 75, ChapterRules.For(2).TributeFor(Sinners.Peasant.ClassId));
+            Assert.AreEqual(200 + 90, ChapterRules.For(3).TributeFor(King.ClassId));
             Assert.AreEqual(13, Run(13).Purse.Coins, "a later chapter starts with what is left, nothing added");
         }
 
@@ -411,14 +411,14 @@ namespace HellPoker.Core.Tests
             Assert.Throws<InvalidOperationException>(() => run.MoveTo(far));
         }
 
-        [TestCase(151, 0, 1)]
-        [TestCase(150, 5, 1)]
-        [TestCase(170, 0, 20)]
-        [TestCase(50, 505, 1)]
-        [TestCase(0, 750, 0)]
+        [TestCase(181, 0, 1)]
+        [TestCase(180, 5, 1)]
+        [TestCase(200, 0, 20)]
+        [TestCase(50, 655, 1)]
+        [TestCase(0, 900, 0)]
         public void AtTheGateEveryMissingCoinIsFiveYears(int coins, int years, int left)
         {
-            ChapterRun run = Run(coins);   // a Peasant: the tribute is 90 + 60
+            ChapterRun run = Run(coins);   // a Peasant: the tribute is 120 + 60
             GateToll toll = run.PayTribute();
             Assert.AreEqual(years, toll.YearsForMissing);
             Assert.AreEqual(1000 + years, run.Years);
@@ -429,9 +429,9 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheUsurersYearsAreWrittenOnAtTheGate()
         {
-            ChapterRun run = Run(130);
+            ChapterRun run = Run(160);
             new PurgatoryUsurer().Accept(run);
-            Assert.AreEqual(160, run.Purse.Coins);
+            Assert.AreEqual(190, run.Purse.Coins);
             Assert.AreEqual(1000, run.Years, "the floors never touch the sentence");
             GateToll toll = run.PayTribute();
             Assert.AreEqual(100, toll.YearsOwed);
@@ -442,7 +442,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void MammonsLedgerStrikesYearsNowAndWritesMoreBack()
         {
-            ChapterRun run = Run(151);
+            ChapterRun run = Run(181);
             new MammonsLedger().Accept(run);
             Assert.AreEqual(800, run.Years);
             run.PayTribute();
@@ -646,7 +646,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1300, run.Years, "the Peasant's share at Mammon");
             run.Purse.Add(50 - run.Purse.Coins);
             run.PayTribute();
-            Assert.AreEqual(1300 + 101 * 5, run.Years, "50 coins pay 49 of 150 (the last coin stays): +505 on his bar");
+            Assert.AreEqual(1300 + 131 * 5, run.Years, "50 coins pay 49 of 180 (the last coin stays): +655 on his bar");
             Assert.AreEqual(1, run.Purse.Coins, "the gate never takes the last coin");
         }
 

@@ -395,7 +395,7 @@ def malice_pips():
     return sheet([malice_pip(d, f) for d in MALICE_ORDER for f in (False, True)])
 
 
-MARK_ORDER = ["chained", "thorned", "veiled", "false_face", "protected", "joker"]
+MARK_ORDER = ["chained", "thorned", "veiled", "false_face", "protected", "joker", "tempted"]
 
 
 def card_mark(mark):
@@ -455,6 +455,13 @@ def card_mark(mark):
         for bx, by in ((19, 2), (25, 1), (30, 2)):
             img.put(bx, by, C.GOLD_LIGHT)
         img.outline(C.BLACK, mask=img.m_rect(18, 0, 31, 10) & (img.px != C.CLEAR))
+    elif mark == "tempted":              # Phase 2: a thrown card Lilith kept: a lilac frame, her lips in the top right
+        frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
+        img.paint(frame, C.LILAC)
+        img.paint(img.m_ellipse(25, 6, 4.5, 2.4), C.RED)
+        img.paint(img.m_rect(21, 6, 29, 6), C.BLOOD_DARK)
+        img.put(23, 4, C.HELL)
+        img.outline(C.BLACK, mask=img.m_rect(19, 2, 31, 10) & (img.px != C.CLEAR))
     elif mark == "false_face":           # the faintest silver sheen: a broken silver frame, two glints
         frame = img.m_rect(0, 0, CARD_W - 1, CARD_H - 1) & ~img.m_rect(1, 1, CARD_W - 2, CARD_H - 2)
         dashes = ((img.xs.astype(int) + img.ys.astype(int)) // 3) % 3 == 0

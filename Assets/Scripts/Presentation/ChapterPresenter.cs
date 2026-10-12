@@ -378,6 +378,8 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             string text = string.Format(UiText.IntroFormat, rules.Floors, boss, _run.Tribute, rules.YearsPerMissingCoin, _run.Purse.Coins);
+            // A later chapter's purse was topped up to the class's start: said under the opening words.
+            if (_journey.Chapter > 1 && _journey.PurseToppedUp > 0) text += "\n" + string.Format(UiText.PurseToppedUpFormat, _run.Purse.Coins);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, string.Format(UiText.ChapterTitleFormat, rules.Number,
                     UiText.ChapterName(rules.Number)), text, new[] { new PanelOption(UiText.PanelDescend) }),
                 new Action[] { () => { ClosePanel(); ShowMap(); } }, "chapter");

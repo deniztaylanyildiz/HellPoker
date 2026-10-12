@@ -86,6 +86,14 @@ namespace HellPoker.Core.Tests
         public PowerDisplay Power { get; private set; } = PowerDisplay.None;
         public void SetPower(PowerDisplay power) => Power = power ?? PowerDisplay.None;
 
+        /// <summary>Phase 2's class panel as last shown.</summary>
+        public KitDisplay Kit { get; private set; } = KitDisplay.Hidden;
+        public void SetKit(KitDisplay kit) => Kit = kit ?? KitDisplay.Hidden;
+        public event Action<int> KitCardPressed;
+        public event Action<int> KitButtonPressed;
+        public void PressKitCard(int index) => KitCardPressed?.Invoke(index);
+        public void PressKitButton(int index) => KitButtonPressed?.Invoke(index);
+
         /// <summary>The deck counter (-1: hidden) and the SHUFFLE button (null: hidden).</summary>
         public string DeckLabel { get; private set; }
         public string DeckHint { get; private set; }

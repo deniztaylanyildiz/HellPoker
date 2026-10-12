@@ -111,9 +111,12 @@ namespace HellPoker.Core.Cheats
         /// <summary>The Dead Man's Hand cards are beyond any cheat.</summary>
         public static bool IsImmune(Card card) => CheatRules.IsImmune(card);
 
-        /// <summary>True for a player's card no cheat may touch: a Dead Man's Hand card or a joker. (The King's crown refuses the whole
-        /// cheat instead: <see cref="Sinners.Sinner.Allows"/>.)</summary>
-        public bool IsUntouchable(int index) => IsImmune(PlayerHand[index]);
+        /// <summary>True for a player's card no cheat may touch: a Dead Man's Hand card, a joker, or one the table guards (Phase 2's
+        /// King: his palace). (The demo King's crown refuses the whole cheat instead: <see cref="Sinners.Sinner.Allows"/>.)</summary>
+        public bool IsUntouchable(int index) => IsImmune(PlayerHand[index]) || (Guarded != null && Guarded(PlayerHand[index]));
+
+        /// <summary>Cards of the player's the table guards against every cheat (Phase 2's hooks); null for none.</summary>
+        public Func<Card, bool> Guarded { get; set; }
 
         /// <summary>Positions in the player's hand a cheat may touch (not untouchable, and passing the extra test).</summary>
         public IEnumerable<int> PlayerTargets(Func<int, bool> also = null) =>

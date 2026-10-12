@@ -486,8 +486,10 @@ namespace HellPoker.Presentation
         private void OpenSinnerChoice(bool curtain)
         {
             HideAll();
+            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury): their own words.
             _sinnerSelect.Show(_classes.Select(c => new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id),
-                UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id), _chapterChoice
+                _chapterChoice ? UiText.ChapterSinnerAbility(c.Id) : UiText.SinnerAbility(c.Id),
+                _chapterChoice ? UiText.ChapterSinnerDetail(c.Id) : UiText.SinnerDetail(c.Id), _chapterChoice
                     ? string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id))
                     : string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
                 _pendingDealer?.Id);

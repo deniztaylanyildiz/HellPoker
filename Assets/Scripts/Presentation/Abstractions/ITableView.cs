@@ -57,6 +57,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A power switched on and waiting: the line that stays under the message, the Warlock's shield (<see cref="PowerDisplay.None"/>: off).</summary>
         void SetPower(PowerDisplay power);
 
+        /// <summary>Phase 2: the class panel under the dialog box (the satchel, the prophecy, the treasury); <see cref="KitDisplay.Hidden"/>: none.</summary>
+        void SetKit(KitDisplay kit);
+
+        /// <summary>A small card of the class panel was clicked (its index in <see cref="KitDisplay.Cards"/>).</summary>
+        event Action<int> KitCardPressed;
+
+        /// <summary>A button of the class panel was clicked (its index in <see cref="KitDisplay.Buttons"/>).</summary>
+        event Action<int> KitButtonPressed;
+
         /// <summary>The deck counter over the House's row and its hover text; a null label hides it (the Jester's deck).</summary>
         void SetDeck(string label, string hint);
 

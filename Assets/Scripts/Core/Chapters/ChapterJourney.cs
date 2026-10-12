@@ -98,18 +98,30 @@ namespace HellPoker.Core.Chapters
         /// <summary>The demon of this chapter is beaten and his loot taken: on to the next chapter (or, after Lilith, Lucifer).</summary>
         public bool CanGoOn => Stage == JourneyStage.Chapter && Run.BossBeaten && (Chapter == ChapterRules.Chapters || Run.LootTaken);
 
-        /// <summary>The next chapter: the purse, relics, charge and jokers go along; a fresh deck and the next demon's share.</summary>
-        /// <param name="minimumPurse">A tuning knob (the simulation's): the purse is topped up to at least this; 0 for the designer's rule.</param>
-        public ChapterRun NextChapter(int minimumPurse = 0)
+        /// <summary>
+        /// The next chapter: the purse, relics, charge, jokers and the class's kit go along; a fresh deck and the next demon's share. A
+        /// purse below the class's starting purse is topped up to it (<see cref="PurseToppedUp"/>: the coins added).
+        /// </summary>
+        /// <param name="minimumPurse">A tuning knob (the simulation's): the floor in place of the class's starting purse; -1 for the rule.</param>
+        public ChapterRun NextChapter(int minimumPurse = -1)
         {
             if (!CanGoOn || Chapter >= ChapterRules.Chapters) throw new InvalidOperationException("The chapter is not over.");
             Run.EndChapter();
             Chapter++;
             ChapterRules rules = ChapterRules.For(Chapter);
-            Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), Math.Max(minimumPurse, Run.Purse.Coins),
-                ChapterSeed(Seed, Chapter));
+            int floor = minimumPurse >= 0 ? minimumPurse : ChapterRules.StartingCoinsFor(Sinner.Id);
+            int coins = Math.Max(floor, Run.Purse.Coins);
+            PurseToppedUp = coins - Run.Purse.Coins;
+            Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), coins, ChapterSeed(Seed, Chapter), kit: Kit);
+            Kit.EnterChapter(Chapter);
             return Run;
         }
+
+        /// <summary>The coins the last <see cref="NextChapter"/> added to bring the purse up to the class's start (0: none).</summary>
+        public int PurseToppedUp { get; private set; }
+
+        /// <summary>The class's Phase 2 mechanics (the Peasant's satchel, the Warlock's prophecy, the King's treasury): the run's.</summary>
+        public ClassKit Kit => Run.Kit;
 
         /// <summary>After Lilith: Lucifer's table, at once (no loot, no map). The bar is the run's share at him.</summary>
         public HellPokerGame OpenLuciferTable(GameRules template, int bar = 0, int handsPlayed = 0, int barStart = 0)
@@ -126,9 +138,14 @@ namespace HellPoker.Core.Chapters
             HellPokerGame game = BossTable.Create(template, BossTable.Lucifer, LuciferBarStart, 101, ChapterRules.LuciferWinPercent,
                 ChapterRules.LuciferLossPercent, RandomSeeds.Derive(Seed, LuciferStream), Sinner, Sinner);
             game.UseEffects(Effects);
+            Kit.EnterLucifer();
+            LuciferHooks = ChapterHooks.Attach(game, Kit, Dealers.DealerRoster.LuciferId, LuciferBarStart, RandomSeeds.Derive(Seed, LuciferStream));
             if ((bar > 0 && bar != LuciferBarStart) || handsPlayed > 0) game.TakeOver(Math.Max(1, bar > 0 ? bar : LuciferBarStart), handsPlayed);
             return game;
         }
+
+        /// <summary>The hooks of Lucifer's table (his mirror, the class's acts); null before it.</summary>
+        public ChapterHooks LuciferHooks { get; private set; }
 
         /// <summary>Between hands at Lucifer's table: the bar past his gate casts the player down.</summary>
         public bool IsCastDown(int bar) => Stage == JourneyStage.Lucifer && BossTable.CastDown(bar, LuciferBarStart);
@@ -165,6 +182,7 @@ namespace HellPoker.Core.Chapters
             journey.Run = new ChapterRun(rules, sinner, effects, Math.Max(1, save.Years), Math.Max(0, save.Coins), ChapterSeed(save.Seed, chapter));
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
                 save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken);
+            journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes);
             if (save.Lucifer)
             {
                 journey.Stage = JourneyStage.Lucifer;
@@ -208,7 +226,11 @@ namespace HellPoker.Core.Chapters
                 Loot = run.LootOffers.ToList(),
                 LootTaken = run.LootTaken,
                 BossHands = BossHands.ToList(),
-                FloorHands = FloorHands
+                FloorHands = FloorHands,
+                Satchel = Kit.Satchel.ToList(),
+                Taxes = Kit.Taxes,
+                LuciferBag = Kit.LuciferBag,
+                LuciferTaxes = Kit.LuciferTaxes
             };
         }
     }

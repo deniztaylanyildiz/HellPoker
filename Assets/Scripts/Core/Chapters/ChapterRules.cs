@@ -145,7 +145,7 @@ namespace HellPoker.Core.Chapters
                 // Mammon's table: wins 175%, losses 125% of his payouts (BossSimulation 2026-10-10: 17.5 hands, 11% damned; at
                 // 100 / 100 it was 54 hands).
                 case 1: return new ChapterRules(1, DealerRoster.MammonId, soulLinePercent: 200, ante: 4, tributeOverStart: 60, pricePercent: 100,
-                    impReRaisePercent: 10, impCoins: 20, wardenCoins: 40, maxWardens: 3).WithBossPayouts(175, 125);
+                    impReRaisePercent: 10, impCoins: 30, wardenCoins: 50, maxWardens: 3).WithBossPayouts(175, 125);
                 case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 5, tributeOverStart: 75, pricePercent: 120,
                     impReRaisePercent: 20, impCoins: 30, wardenCoins: 60, treasureCoins: 25, floors: 10, treasureFloor: 5)
                     .WithBossPayouts(BelialWinPercent, BelialLossPercent);
@@ -160,7 +160,7 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The boss tables' payout percents (BossSimulation 2026-10-10, see PHASE2_CHAPTERS.md): Belial 16.5 hands / 20.5% damned,
         /// Lilith 23.1 / 22.1%.</summary>
-        public const int BelialWinPercent = 140, BelialLossPercent = 115, LilithWinPercent = 130, LilithLossPercent = 80;
+        public const int BelialWinPercent = 130, BelialLossPercent = 110, LilithWinPercent = 130, LilithLossPercent = 55;
 
         /// <summary>Lucifer's table: his payouts' percents and the cast-down line (the bar past this share of its start). BossSimulation
         /// 2026-10-10: 22.6 hands, 43% cast down (at 150 / 100: 66% cast down, most of them on the first hands).</summary>
@@ -199,16 +199,16 @@ namespace HellPoker.Core.Chapters
         /// <summary>The ante of a match's hand <paramref name="hand"/> (1 = the first): 4, 4, 4, 5, 5, 5, 6...</summary>
         public int AnteAt(int hand) => Ante + Math.Max(0, hand - 1) / AnteStepHands * AnteStep;
 
-        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 90, the Jester 120, the Warlock 150, the
-        /// King 300 (any other: the Peasant's).</summary>
+        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 120, the Jester 130, the Warlock 150, the
+        /// King 200 (any other: the Peasant's). Also the floor of every later chapter's purse (<see cref="ChapterJourney.NextChapter"/>).</summary>
         public static int StartingCoinsFor(string classId)
         {
             switch (classId)
             {
-                case Sinners.King.ClassId: return 300;
+                case Sinners.King.ClassId: return 200;
                 case Sinners.Warlock.ClassId: return 150;
-                case Sinners.Jester.ClassId: return 120;
-                default: return 90;
+                case Sinners.Jester.ClassId: return 130;
+                default: return 120;
             }
         }
 
@@ -219,7 +219,7 @@ namespace HellPoker.Core.Chapters
         public int StartingCoinsOf(string classId) => StartingCoinsFor(classId) * StartPercent / 100;
 
         /// <summary>The gate's tribute for a sinner of this class: their starting purse and <see cref="TributeOverStart"/>
-        /// (90 / 100 / 110 / 160 in the first chapter).</summary>
+        /// (180 / 190 / 210 / 260 in the first chapter).</summary>
         public int TributeFor(string classId) => StartingCoinsOf(classId) + TributeOverStart;
 
         /// <summary>The same chapter with the starting purses at <paramref name="percent"/> of the designer's (the tribute follows).</summary>

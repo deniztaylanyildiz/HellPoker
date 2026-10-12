@@ -155,6 +155,68 @@ namespace HellPoker.Core.Game
 
         private StakeScale Stakes => StakesOverride ?? Rules.Stakes;
 
+        // ------------------------------------------------------------------ Phase 2's hooks (none at a demo table)
+
+        /// <summary>Phase 2's hooks: a class's mechanics, a demon's rule (<see cref="TableHooks"/>); null at every demo table.</summary>
+        public TableHooks Hooks { get; private set; }
+
+        /// <summary>Phase 2: the hooks this table plays with. Cards they keep out of the deck leave it now.</summary>
+        public void UseHooks(TableHooks hooks)
+        {
+            Hooks = hooks;
+            KeepHookCardsOut();
+        }
+
+        /// <summary>The cards the hooks hold (a satchel) are never in the deck.</summary>
+        private void KeepHookCardsOut()
+        {
+            if (Hooks == null) return;
+            foreach (Card card in Hooks.CardsOutOfDeck) _deck.Take(card);
+        }
+
+        /// <summary>The deck, for the hooks (a prophecy reads its top; a demon's rule may take from it).</summary>
+        internal IDeck Deck => _deck;
+
+        /// <summary>The evaluator every hand is judged by (jokers included), for the hooks.</summary>
+        internal IHandEvaluator Evaluator => _evaluator;
+
+        /// <summary>The hooks change the hands (a swap, a seizure, a temptation).</summary>
+        internal void SetHands(Hand player, Hand house)
+        {
+            if (player != null) PlayerHand = player;
+            if (house != null) HouseHand = house;
+        }
+
+        /// <summary>The House's next face-down card turns (the King's tax); false when none is left to turn.</summary>
+        internal bool RevealNextHouseCard()
+        {
+            if (!InPlay || HouseCardsRevealed >= Hand.Size - 1) return false;
+            HouseCardsRevealed++;
+            return true;
+        }
+
+        /// <summary>The next raise this hand is the demon's money (the King's tax): lost or folded, it costs the player nothing.</summary>
+        internal bool GrantFreeRaise()
+        {
+            if (!InPlay || _freeRaiseWaiting) return false;
+            _freeRaiseWaiting = true;
+            return true;
+        }
+
+        private bool _freeRaiseWaiting;
+
+        /// <summary>The part of the stake the demon put in for the player (a free raise): a loss or a fold does not count it.</summary>
+        public int FreeStake { get; private set; }
+
+        /// <summary>True while a free raise waits for the player's next raise this hand.</summary>
+        public bool FreeRaiseWaiting => InPlay && _freeRaiseWaiting;
+
+        /// <summary>Years the hooks put on after the last hand was judged (a demon's interest); 0 for none.</summary>
+        public int HookYearsThisHand { get; private set; }
+
+        /// <summary>A hand is being played (dealt, not settled) — for the hooks.</summary>
+        internal bool HandInPlay => InPlay;
+
         /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
         public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, Effects.CombinedRelics),
             AvailableForNextHand);
@@ -265,9 +327,13 @@ namespace HellPoker.Core.Game
             IsAfterDraw = false;
             _sealed = false;
             DecisionsSkipped = 0;
+            FreeStake = 0;
+            _freeRaiseWaiting = false;
+            HookYearsThisHand = 0;
             RoundNumber++;
             Phase = GamePhase.PlayerReveal;
-            _cheats.BeginHand(Rules, _ledger.Years, Relic.MaliceExtraPerHand);
+            _cheats.BeginHand(Rules, _ledger.Years, Relic.MaliceExtraPerHand + (Hooks?.ExtraMalicePerHand(this) ?? 0));
+            Hooks?.HandDealt(this);
             Strike(CheatTiming.AfterDeal);
             NoteCommitment();
             SkipEmptyDecisions();
@@ -292,6 +358,7 @@ namespace HellPoker.Core.Game
             if (cardsInDrawOrder == null || !Rules.ContinuousDeck || JokerDeck) return false;
             if (cardsInDrawOrder.Any(c => c.IsJoker) || cardsInDrawOrder.Distinct().Count() != cardsInDrawOrder.Count) return false;
             _deck.Restore(cardsInDrawOrder);
+            KeepHookCardsOut();
             return true;
         }
 
@@ -336,10 +403,12 @@ namespace HellPoker.Core.Game
             if (!Rules.ContinuousDeck || JokerDeck)
             {
                 _deck.Reset();
+                KeepHookCardsOut();
                 return;
             }
             if (_deck.Count >= CardsForAHand) return;
             _deck.Reset();
+            KeepHookCardsOut();
             DeckShuffledThisHand = true;
             AutoShuffles++;
         }
@@ -362,6 +431,7 @@ namespace HellPoker.Core.Game
             if (WhyNoShuffle() != ShuffleRefusal.None) return false;
             _ledger.Add(Rules.ShuffleYears);
             _deck.Reset();
+            KeepHookCardsOut();
             ShuffledThisHand = true;
             PlayerShuffles++;
             return true;
@@ -398,7 +468,7 @@ namespace HellPoker.Core.Game
         /// <summary>Why the class's power cannot be used right now; <see cref="PowerRefusal.None"/> when it can.</summary>
         public PowerRefusal WhyNoPower()
         {
-            if (Sinner == null || Sinner.Ability == SinnerAbility.None) return PowerRefusal.NoPower;
+            if (Sinner == null || Sinner.Ability == SinnerAbility.None || (Hooks?.ReplacesClassPower ?? false)) return PowerRefusal.NoPower;
             if (Sinner.HandProtected) return PowerRefusal.HandAlreadyProtected;   // said before the empty gauge: it is the news
             if (!Sinner.IsCharged) return PowerRefusal.NotCharged;
             // The Peasant's power is switched on at any time and waits for his next fold (this hand or a later one).
@@ -481,7 +551,10 @@ namespace HellPoker.Core.Game
             // At the deal the player has seen only the opening cards; the next one turns at the first decision.
             int seen = timing == CheatTiming.AfterDeal ? Math.Min(Rules.OpeningCardsShown, PlayerCardsRevealed) : PlayerCardsRevealed;
             CheatTable after = _cheats.Strike(timing, () => new CheatTable(PlayerHand, HouseHand, _deck, _evaluator, _cheatRandom,
-                _cheats.Marks, Unit, HouseCardsRevealed, _drawnIndices, showdown, seen, _cheats.BackfirePercent, _houseStrategy));
+                _cheats.Marks, Unit, HouseCardsRevealed, _drawnIndices, showdown, seen, _cheats.BackfirePercent, _houseStrategy)
+            {
+                Guarded = Hooks == null ? (Func<Card, bool>)null : Hooks.IsPlayerCardGuarded
+            });
             if (after == null) return showdown;
             PlayerHand = after.PlayerHand;
             HouseHand = after.HouseHand;
@@ -566,6 +639,12 @@ namespace HellPoker.Core.Game
                 {
                     Finish(showdown: null, houseFolded: true);
                     return;
+                }
+                if (_freeRaiseWaiting)
+                {
+                    // The King's tax: this raise is the demon's money.
+                    FreeStake += RaiseAmount;
+                    _freeRaiseWaiting = false;
                 }
                 CurrentStake += RaiseAmount;
                 if (IsAfterDraw && TryHouseReRaise())
@@ -665,10 +744,33 @@ namespace HellPoker.Core.Game
             return _exchanger.CanExchange(PlayerHand, discardIndices, _deck, out reason);
         }
 
-        public ExchangeResult Draw(IReadOnlyCollection<int> discardIndices)
+        public ExchangeResult Draw(IReadOnlyCollection<int> discardIndices) => Draw(discardIndices, null);
+
+        /// <summary>
+        /// Phase 2's draw: <paramref name="fromOutside"/> gives some of the thrown positions a card from outside the deck (the Peasant's
+        /// satchel; every card one the hooks allow), the rest are drawn as ever. Null or empty: the ordinary draw.
+        /// </summary>
+        public bool CanDraw(IReadOnlyCollection<int> discardIndices, IReadOnlyDictionary<int, Card> fromOutside, out string reason)
+        {
+            if (!CanDraw(discardIndices, out reason)) return false;
+            if (fromOutside == null || fromOutside.Count == 0) return true;
+            if (fromOutside.Keys.Any(i => !discardIndices.Contains(i)))
+            {
+                reason = "A card from outside goes only where a card was thrown.";
+                return false;
+            }
+            if (Hooks == null || fromOutside.Values.Distinct().Count() != fromOutside.Count || fromOutside.Values.Any(c => !Hooks.CanTakeFromOutside(this, c)))
+            {
+                reason = "That card cannot be taken.";
+                return false;
+            }
+            return true;
+        }
+
+        public ExchangeResult Draw(IReadOnlyCollection<int> discardIndices, IReadOnlyDictionary<int, Card> fromOutside)
         {
             RequirePhase(GamePhase.Drawing);
-            if (!CanDraw(discardIndices, out string reason))
+            if (!CanDraw(discardIndices, fromOutside, out string reason))
                 throw new InvalidOperationException(reason);
 
             // A thorned card thrown back costs a unit, at once.
@@ -680,14 +782,21 @@ namespace HellPoker.Core.Game
                 _ledger.Add(ThornYearsThisHand);
             }
 
-            _playerExchange = _exchanger.Exchange(PlayerHand, discardIndices, _deck);
+            if (fromOutside != null && fromOutside.Count > 0) Hooks.TookFromOutside(this, fromOutside.Values.ToArray());
+            _playerExchange = ExchangeWith(PlayerHand, discardIndices, fromOutside);
             // The House draws what the deck still holds (never more: an empty deck — which a counted deck keeps clear of — is no error).
-            int[] houseDiscards = _houseStrategy.ChooseDiscards(HouseHand).Take(_deck.Count).ToArray();
-            _houseExchange = _exchanger.Exchange(HouseHand, houseDiscards, _deck);
+            IReadOnlyList<int> houseWants = _houseStrategy.ChooseDiscards(HouseHand);
+            if (Hooks != null) houseWants = Hooks.AdjustHouseDiscards(this, houseWants);
+            IReadOnlyDictionary<int, Card> houseOutside = Hooks?.HouseTakesFromOutside(this, houseWants);
+            int fromDeck = houseWants.Count(i => houseOutside == null || !houseOutside.ContainsKey(i));
+            int[] houseDiscards = houseWants.Where(i => houseOutside != null && houseOutside.ContainsKey(i))
+                .Concat(houseWants.Where(i => houseOutside == null || !houseOutside.ContainsKey(i)).Take(Math.Min(fromDeck, _deck.Count))).ToArray();
+            _houseExchange = ExchangeWith(HouseHand, houseDiscards, houseOutside);
             PlayerHand = _playerExchange.Hand;
             HouseHand = _houseExchange.Hand;
             _drawnIndices = _playerExchange.ReplacedIndices;
             IsAfterDraw = true;
+            Hooks?.HandDrawn(this, _playerExchange, _houseExchange);
 
             // The thorn took the last of the soul: there is no hand left to play.
             if (_ledger.Years >= DamnationYears)
@@ -709,6 +818,23 @@ namespace HellPoker.Core.Game
             SkipEmptyDecisions();
 
             return _playerExchange;
+        }
+
+        /// <summary>
+        /// A draw where some thrown positions take a card from outside the deck (<paramref name="fromOutside"/>, by position) and the rest
+        /// are dealt from the deck. Without cards from outside it is the exchanger's own draw.
+        /// </summary>
+        private ExchangeResult ExchangeWith(Hand hand, IReadOnlyCollection<int> discards, IReadOnlyDictionary<int, Card> fromOutside)
+        {
+            if (fromOutside == null || fromOutside.Count == 0) return _exchanger.Exchange(hand, discards, _deck);
+            int[] all = discards.OrderBy(i => i).ToArray();
+            Card[] thrown = all.Select(i => hand[i]).ToArray();
+            Hand placed = hand;
+            foreach (var pair in fromOutside) placed = placed.With(pair.Key, pair.Value);
+            int[] rest = all.Where(i => !fromOutside.ContainsKey(i)).ToArray();
+            ExchangeResult dealt = _exchanger.Exchange(placed, rest, _deck);
+            Card[] drawn = all.Select(i => dealt.Hand[i]).ToArray();
+            return new ExchangeResult(dealt.Hand, all, thrown, drawn);
         }
 
         public int ThornCost(IReadOnlyCollection<int> discardIndices) => ThornsIn(discardIndices) * Unit;
@@ -960,6 +1086,7 @@ namespace HellPoker.Core.Game
                     {
                         Phase = GamePhase.Drawing;
                         Strike(CheatTiming.BeforeDraw);
+                        Hooks?.DrawBegins(this);
                     }
                     break;
 
@@ -1003,7 +1130,8 @@ namespace HellPoker.Core.Game
             }
             // Two jokers lose at the showdown: the House does not raise on them.
             if (JokerResolver.CountJokers(HouseHand) >= 2) return false;
-            return _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
+            bool wants = _houseBetting != null && _houseBetting.WantsToReRaise(_evaluator.Evaluate(HouseHand));
+            return Hooks == null ? wants : Hooks.HouseReRaises(this, wants);
         }
 
         /// <summary>Two jokers lose anyway: an imp holding them has nothing to give up (it plays on, as a demon never raises them).</summary>
@@ -1115,7 +1243,7 @@ namespace HellPoker.Core.Game
                 // The Peasant's honest heart (his power, switched on): the fold costs nothing, and the gauge is spent now.
                 freeFold = Sinner != null && Sinner.PowerArmed && Sinner.Ability == SinnerAbility.FreeFold && Sinner.TryUse(SinnerAbility.FreeFold);
                 if (!freeFold)
-                    _ledger.Add(_payouts.GetFoldPenalty(CurrentStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
+                    _ledger.Add(_payouts.GetFoldPenalty(CurrentStake - FreeStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
             }
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
             {
@@ -1130,10 +1258,15 @@ namespace HellPoker.Core.Game
                 _cheats.PlayerWon(Rules);
             }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake, Ante,
+                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,
                                                   LossSurcharge(IsSoulHand)) *
                                               (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
                             + AnteShare(Ante, Relic.LossAntePercent));        // the Rattle: half an ante more
+
+            // Phase 2: a demon's rule may put more on after the hand (Mammon's interest).
+            HookYearsThisHand = Hooks == null || _ledger.IsServed ? 0
+                : Math.Max(0, Hooks.YearsAfterHand(this, showdown?.Outcome, showdown == null && !houseFolded, houseFolded));
+            if (HookYearsThisHand > 0) _ledger.Add(HookYearsThisHand);
 
             HouseReRaiseAmount = 0;
             PlayerCardsRevealed = Hand.Size;
@@ -1153,6 +1286,7 @@ namespace HellPoker.Core.Game
                 yearsBefore, _ledger.Years, Phase, freeFold: freeFold, jokerJackpot: jackpot, rattleGiven: rattle, settledByJokers: _settledByJokers,
                 houseFolded: houseFolded);
             _settledByJokers = false;
+            Hooks?.HandSettled(this, LastRound);
         }
 
         /// <summary>
@@ -1201,6 +1335,9 @@ namespace HellPoker.Core.Game
             _drawnIndices = Array.Empty<int>();
             ThornYearsThisHand = 0;
             TitheYearsThisHand = 0;
+            FreeStake = 0;
+            _freeRaiseWaiting = false;
+            HookYearsThisHand = 0;
             Sinner?.EndHand();
             _cheats.ClearHand();
         }

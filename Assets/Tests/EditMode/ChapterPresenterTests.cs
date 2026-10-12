@@ -102,7 +102,7 @@ namespace HellPoker.Core.Tests
             _panel.Press(0);
             Assert.IsFalse(_panel.IsOpen);
             Assert.AreEqual(6, _map.State.Choices.Count);
-            Assert.AreEqual(90, _map.State.Coins, "the Peasant's purse");
+            Assert.AreEqual(120, _map.State.Coins, "the Peasant's purse");
             Assert.IsTrue(_chapters.HasRun);
             Assert.IsTrue(_chapters.IsMapOpen);
         }
@@ -118,7 +118,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(Currency.Coins, _tableView.Currency);
             Assert.AreEqual(ChapterCast.ImpId, _tableView.DealerView.Dealer.Id);
             Assert.AreEqual(UiText.CoinsLabel, _tableView.SentenceView.Label);
-            Assert.AreEqual(90, _tableView.SentenceView.Years, "the counter is the purse");
+            Assert.AreEqual(120, _tableView.SentenceView.Years, "the counter is the purse");
             Assert.AreEqual(LeaveState.Hidden, _tableView.Leave, "no leaving a chapter's table");
             ChapterRules rules = _chapters.Run.Rules;
             Assert.AreEqual(10, rules.ImpCoinsAt(0), "the first floor's imp: half a purse, a warm-up");
@@ -218,11 +218,11 @@ namespace HellPoker.Core.Tests
                 else if (_chapters.IsAtTable) Act();
                 else _map.Press(_map.State.Choices.First());
             }
-            run.Purse.Add(40 - run.Purse.Coins);   // short of the Peasant's 150 (90 + 60)
+            run.Purse.Add(40 - run.Purse.Coins);   // short of the Peasant's 180 (120 + 60)
             int coins = run.Purse.Coins, years = run.Years, owed = run.YearsOwed;
-            Assert.AreEqual(555, run.TributeYears(coins), "40 coins pay 39 (the last coin stays): 111 missing");
+            Assert.AreEqual(705, run.TributeYears(coins), "40 coins pay 39 (the last coin stays): 141 missing");
             _panel.Press(0);   // PAY AND SIT
-            int bar = years + 555 + owed;
+            int bar = years + 705 + owed;
             Assert.AreEqual(bar - bar / 10, run.Years, "the tribute's years on the bar — and the fire's rest (the last answer) a tenth off");
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number on the counter");
@@ -362,6 +362,71 @@ namespace HellPoker.Core.Tests
             _chapters.Start(SinnerRoster.Peasant);
             Assert.IsFalse(_chapters.Back(), "the opening words have no way out but on: Esc is the menu's");
             Assert.IsTrue(_panel.IsOpen);
+        }
+
+        // ------------------------------------------------------------------ Phase 2's class mechanics and the demons' rules
+
+        [Test]
+        public void TheClassPanel_ThePeasantKeepsAThrownCard()
+        {
+            Begin();
+            _map.Press(_map.State.Choices.First());
+            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 0, ClassKit.SatchelSize), _tableView.Kit.Title);
+            Act();   // the deal
+            for (int guard = 0; _table.Game.Phase != GamePhase.Drawing && guard < 10; guard++) Act();
+            Assert.AreEqual(GamePhase.Drawing, _table.Game.Phase);
+            _table.ToggleDiscard(0);
+            _table.ToggleDiscard(1);
+            Act();   // DRAW
+            Assert.AreEqual(UiText.KitKeepTitle, _tableView.Kit.Title, "the thrown cards, to keep one");
+            Assert.AreEqual(2, _tableView.Kit.Cards.Count);
+            _tableView.PressKitCard(0);
+            Assert.AreEqual(1, _chapters.Run.Kit.Satchel.Count);
+            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 1, ClassKit.SatchelSize), _tableView.Kit.Title);
+        }
+
+        [Test]
+        public void TheKingsPanel_SpendsATaxToTurnACard()
+        {
+            Begin(SinnerRoster.King);
+            _map.Press(_map.State.Choices.First());
+            Assert.AreEqual(3, _tableView.Kit.Buttons.Count);
+            Assert.IsTrue(_tableView.Kit.Buttons.All(b => b.Locked), "no taxes, no hand");
+            _chapters.Run.Kit.AddTax(5);
+            Act();   // the deal
+            Assert.IsFalse(_tableView.Kit.Buttons[0].Locked, "a card may turn now");
+            _tableView.PressKitButton(0);
+            Assert.AreEqual(1, _table.Game.HouseCardsRevealed);
+            Assert.AreEqual(4, _chapters.Run.Kit.Taxes);
+            Assert.AreEqual(UiText.RevealedMessage, _tableView.Message);
+        }
+
+        [Test]
+        public void ADemonsTable_OpensWithItsRule_AndTheWarlockSeesTheDeck()
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            archive.SaveRun(new ChapterSave
+            {
+                ClassId = Core.Sinners.Warlock.ClassId, Seed = 7, Chapter = 2, Coins = 40, Years = 1950, Match = "boss", BossBarStart = 1950,
+                BossBar = 1950, NodeDone = false
+            });
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters.Continue();
+            Assert.IsTrue(_chapters.IsAtTable);
+            Assert.IsInstanceOf<BelialRoleSwap>(_table.Kit.Rule);
+            Assert.AreEqual(UiText.DemonRuleLine(_table.Kit.Rule), _tableView.DealerView.LastLine, "the rule, said as the table opens");
+            Assert.AreEqual(UiText.KitProphecyTitle, _tableView.Kit.Title);
+            Assert.AreEqual(2, _tableView.Kit.Cards.Count, "two cards of the top after Mammon");
+        }
+
+        [Test]
+        public void LucifersTable_OpensWithTheMirrorOfTheClass()
+        {
+            SitAtLucifer(1050, "AH");
+            Assert.IsInstanceOf<LuciferMirror>(_table.Kit.Rule);
+            Assert.AreEqual(KitKind.Satchel, ((LuciferMirror)_table.Kit.Rule).Mirrors);
+            Assert.AreEqual(UiText.DemonRuleLine(_table.Kit.Rule), _tableView.DealerView.LastLine);
         }
     }
 }

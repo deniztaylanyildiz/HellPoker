@@ -312,6 +312,18 @@ namespace HellPoker.Core.Tests
             public readonly Tally[] Chapters = { new Tally(), new Tally(), new Tally() };
             public readonly int[] BossSat = new int[4], BossDamned = new int[4];
             public readonly List<int>[] BossHands = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+
+            /// <summary>How often each demon's rule struck, and the hands each played cornered (Mammon, Belial, Lilith, Lucifer).</summary>
+            public readonly int[] RuleTriggers = new int[4], Cornered = new int[4];
+
+            /// <summary>The class mechanics used, over all runs.</summary>
+            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost;
+
+            public void AddKit(ClassKit kit)
+            {
+                Kept += kit.Kept; Taken += kit.TakenFromSatchel; Harvests += kit.Harvests; Rearranges += kit.Rearranges; Reveals += kit.Reveals;
+                FreeRaises += kit.FreeRaises; Seizures += kit.Seizures; TaxesEarned += kit.TaxesEarned; TaxesLost += kit.TaxesLost;
+            }
         }
 
         /// <summary>
@@ -355,6 +367,17 @@ namespace HellPoker.Core.Tests
             report.AppendLine("class     reached Lucifer   freed");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
                 report.AppendLine($"{cls?.Id ?? "all",-9} {Pct(t.ReachedLucifer, t.Runs),15}  {Pct(t.Freed, t.Runs),6}");
+            report.AppendLine();
+            report.AppendLine("demons' rules, a table on average (struck / hands cornered): interest, role swap, temptation, mirror");
+            foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
+                report.AppendLine($"{cls?.Id ?? "all",-9} " + string.Join("   ", Enumerable.Range(0, 4).Select(b =>
+                    $"{Avg(t.RuleTriggers[b], t.BossSat[b])} / {Avg(t.Cornered[b], t.BossSat[b])}")));
+            report.AppendLine();
+            report.AppendLine("class powers, a run on average: satchel kept / taken / harvests; rearranges; taxes earned / lost, reveals, free raises, seizures");
+            foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
+                report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)} / {Avg((int)t.Harvests, t.Runs)};  " +
+                                  $"{Avg((int)t.Rearranges, t.Runs)};  {Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
+                                  $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)}");
 
             TestContext.WriteLine(report.ToString());
             Assert.Pass(report.ToString());
@@ -366,6 +389,12 @@ namespace HellPoker.Core.Tests
         {
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
             ChapterJourney journey = ChapterJourney.Begin(cls, seed);
+            PlayWholeRun(journey, seed, tally, all);
+            foreach (RunTally t in new[] { tally, all }) t.AddKit(journey.Kit);
+        }
+
+        private static void PlayWholeRun(ChapterJourney journey, int seed, RunTally tally, RunTally all)
+        {
             for (int ch = 1; ; ch++)
             {
                 var chapterTally = new Tally();
@@ -381,14 +410,16 @@ namespace HellPoker.Core.Tests
                     t.BossSat[ch - 1]++;
                     t.BossHands[ch - 1].Add(hands);
                     if (boss.Phase == GamePhase.Damned) t.BossDamned[ch - 1]++;
+                    t.RuleTriggers[ch - 1] += journey.Run.Hooks.Rule?.Triggers ?? 0;
+                    t.Cornered[ch - 1] += journey.Run.Hooks.Rule?.CorneredHands ?? 0;
                 }
                 if (boss.Phase != GamePhase.Absolved) return;
                 journey.Run.LeaveBossTable(0);
                 if (ch == ChapterRules.Chapters) break;
                 string relic = journey.Run.LootOffers.FirstOrDefault();
                 if (relic == null || !journey.Run.TakeLoot(relic)) journey.Run.TakeLootCoins();
-                // HELLPOKER_REFILL=1: every chapter starts with at least the class's purse (a knob to compare; the designer's rule carries the rest).
-                journey.NextChapter(EnvInt("HELLPOKER_REFILL", 0) == 1 ? ChapterRules.StartingCoinsFor(cls.Id) : 0);
+                // The rule tops every chapter's purse up to the class's start; HELLPOKER_REFILL=0 carries only what is left (the old rule).
+                journey.NextChapter(EnvInt("HELLPOKER_REFILL", 1) == 0 ? 0 : -1);
             }
 
             foreach (RunTally t in new[] { tally, all }) t.ReachedLucifer++;
@@ -399,6 +430,8 @@ namespace HellPoker.Core.Tests
             {
                 t.BossSat[3]++;
                 t.BossHands[3].Add(luciferHands);
+                t.RuleTriggers[3] += journey.LuciferHooks.Rule?.Triggers ?? 0;
+                t.Cornered[3] += journey.LuciferHooks.Rule?.CorneredHands ?? 0;
                 if (castDown) t.CastDown++;
                 else if (lucifer.Phase == GamePhase.Damned) t.BossDamned[3]++;
                 else if (lucifer.Phase == GamePhase.Absolved) t.Freed++;
@@ -412,7 +445,7 @@ namespace HellPoker.Core.Tests
             int hands = 0;
             while (!BossTable.IsOver(game.Phase) && hands < 2000)
             {
-                BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), payouts);
+                BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), payouts, kit: game.Hooks as ChapterHooks);
                 hands++;
                 if (lucifer != null && game.Phase == GamePhase.RoundOver && lucifer.IsCastDown(game.Years)) break;
                 if (game.Phase == GamePhase.RoundOver) game.NextRound();
@@ -471,7 +504,8 @@ namespace HellPoker.Core.Tests
             {
                 if (table.HandsPlayed >= HandsSafety) Assert.Fail($"A match ran past {HandsSafety} hands.");
                 table.Deal();
-                BalanceSimulation.PlayHand(table.Game, new HouseDrawStrategy(table.Game.Rules.MaxDiscards), payouts, deal: false);
+                BalanceSimulation.PlayHand(table.Game, new HouseDrawStrategy(table.Game.Rules.MaxDiscards), payouts, deal: false,
+                    kit: table.Game.Hooks as ChapterHooks);
                 FloorHand hand = table.Settle();
                 if (tally == null) continue;
                 if (table.IsWarden)

@@ -2988,3 +2988,16 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   Lucifer'e ulaşan %7 → %32); bosslar hedeflerde.
 - Build: `Builds/HellPoker-1.2.0-phase2-win64.zip`; zip'ten `-fpstour`: çıkış 0, Player.log'da hata / uyarı yok, her ekran ~60 FPS.
 - Açık (kullanıcıya): Köylü–Kral farkı; 2. bölüm ekonomisi (bölüm başı kese?); tam haraç %33 (hedef 40-60); masa 4.3 el (hedef 5-10).
+
+### Phase 2: sınıf güçleri ve şeytan kuralları — ara durum (2026-10-12, sürüyor, commit yok)
+- İstek: A) taban kese (her bölüm sınıfın başlangıç kesesine tamamlanır) + keseler 120 / 130 / 150 / 200; B) sınıf güçleri (Köylü
+  HEYBE, Büyücü KEHANET, Kral HAZİNE; Soytarı aynı); C) boss kuralları (Mammon FAİZ, Belial ROL TAKASI, Lilith BAŞTAN ÇIKARMA, Lucifer
+  AYNA, köşeye sıkışma); D) simülasyon; E) testler, belgeler, 1.3.0 build, commit "Phase 2: sınıf güçleri ve şeytan kuralları".
+- Yapılanlar: Core'da `TableHooks` / `HookChain` (demo masasında null: davranış aynı; `HellPokerGame.UseHooks`, `Draw(discards, fromOutside)`,
+  `FreeStake`, `HookYearsThisHand`, `CheatTable.Guarded`), `ClassKit` (koşunun heybe / vergi / kehanet sayısı; kayıtta `kit.*`, isteğe
+  bağlı anahtarlar, p2=1), `ClassPowers` (Satchel / Prophecy / Treasury), `DemonRules` (MammonInterest, BelialRoleSwap, LilithTemptation,
+  LuciferMirror, köşeye sıkışma), `ChapterHooks` (ChapterRun her masaya, ChapterJourney Lucifer'e bağlar). Sunum: `KitView` (diyaloğun
+  altında 104×38 panel), `TablePresenter.Kit.cs`, `UiText.Kit.cs` (iki dil), `CardMark.Tempted` (card_marks 7. kare), sınıf seçimi ve
+  SINNERS sayfasında Phase 2 metinleri, bölüm açılışında "kesen tamamlandı" satırı. Simülasyon oyuncusu: `KitPlayer`.
+- Testler: EditMode 924 (920 geçti, 4 explicit, 0 hata) + yeni sunum testleri (filtreli koşuda 68/68). PlayMode bu turda henüz koşmadı.
+- Boss simülasyonu bellek azlığı yüzünden Claude Code tarafından durduruldu (arka plan koşusu); kullanıcı isteyince yeniden çalışacak.

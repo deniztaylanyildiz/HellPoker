@@ -214,6 +214,16 @@ namespace HellPoker.Core.Sinners
             return true;
         }
 
+        /// <summary>Phase 2: a full gauge spent on a chapter's power (the harvest, the rearranging, a free seizure); false when not full.</summary>
+        public bool SpendCharge()
+        {
+            if (Charge < Rules.Full) return false;
+            Charge = 0;
+            PowerArmed = false;
+            PowersUsed++;
+            return true;
+        }
+
         /// <summary>The ward refuses the next minor cheat that would really strike (one that would come to nothing keeps it up).</summary>
         public bool Allows(ICheat cheat, CheatTable table)
         {

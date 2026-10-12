@@ -72,6 +72,8 @@ namespace HellPoker.Presentation.Views
         public event Action SinnerPressed;
         public event Action<int> EventOptionPressed;
         public event Action<string> RelicPressed;
+        public event Action<int> KitCardPressed;
+        public event Action<int> KitButtonPressed;
         public event Action ShufflePressed;
         public event Action<int, int> JokerStepPressed;
         public event Action JokerConfirmPressed;
@@ -144,6 +146,12 @@ namespace HellPoker.Presentation.Views
         public void ShowJokerPicker(JokerPick pick) => _jokerPicker.Show(pick);
 
         private RelicBarView _relics;
+        private KitView _kit;
+
+        /// <summary>Phase 2's class panel (for tests and screenshots).</summary>
+        public KitView Kit => _kit;
+
+        public void SetKit(KitDisplay kit) => _kit.Set(kit);
 
         public void SetRelics(System.Collections.Generic.IReadOnlyList<RelicBadge> relics) => _relics.Set(relics);
 
@@ -284,6 +292,8 @@ namespace HellPoker.Presentation.Views
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             // The relics down the portrait box's right edge, under the intent sign.
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
+            // Phase 2's class panel: under the dialog box, where a chapter's table has no LEAVE TABLE.
+            _kit = KitView.Create(screen, 4, 207, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
             // The joker picker sits where the bet controls do (they are hidden while it is open).
             _jokerPicker = JokerPickerView.Create(screen, Middle, ControlsY - 12, _sequencer, (rank, suit) => JokerStepPressed?.Invoke(rank, suit),
                 () => JokerConfirmPressed?.Invoke());

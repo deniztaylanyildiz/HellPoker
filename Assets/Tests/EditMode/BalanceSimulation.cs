@@ -359,7 +359,8 @@ namespace HellPoker.Core.Tests
         /// bluffs half the time), so it is answered like any other: called with a pair or better.
         /// </summary>
         /// <returns>True if the house re-raised during the hand.</returns>
-        internal static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts, bool deal = true)
+        /// <param name="kit">Phase 2's hooks of the table (the class's acts, played by <see cref="KitPlayer"/>); null at a demo table.</param>
+        internal static bool PlayHand(HellPokerGame game, IDrawStrategy drawing, IPayoutInfo payouts, bool deal = true, Chapters.ChapterHooks kit = null)
         {
             bool reRaised = false;
             if (deal) game.PlaceBet();
@@ -371,7 +372,14 @@ namespace HellPoker.Core.Tests
                 {
                     case GamePhase.Drawing:
                         RollTheBoneDie(game);
-                        game.Draw(Discards(game, drawing));
+                        if (kit == null)
+                        {
+                            game.Draw(Discards(game, drawing));
+                            break;
+                        }
+                        KitPlayer.BeforeDraw(game, kit);
+                        KitPlayer.Draw(game, kit, Discards(game, drawing));
+                        KitPlayer.AfterDraw(game, kit);
                         break;
 
                     case GamePhase.NamingJoker:

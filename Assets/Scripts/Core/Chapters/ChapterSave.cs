@@ -48,6 +48,13 @@ namespace HellPoker.Core.Chapters
         public List<int> BossHands = new List<int>();
         public int FloorHands;
 
+        /// <summary>The class's Phase 2 kit (optional keys: an older save reads as an empty satchel and no taxes): the Peasant's satchel,
+        /// the King's taxes, Lucifer's mirror (his one-card satchel, his taxes).</summary>
+        public List<Card> Satchel = new List<Card>();
+        public int Taxes;
+        public Card? LuciferBag;
+        public int LuciferTaxes;
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -110,6 +117,10 @@ namespace HellPoker.Core.Chapters
                 "loot.taken=" + B(LootTaken),
                 "boss.hands=" + string.Join(",", BossHands),
                 "floor.hands=" + FloorHands,
+                "kit.satchel=" + CardCodes.FormatAll(Satchel),
+                "kit.taxes=" + Taxes,
+                "kit.lucifer.bag=" + (LuciferBag.HasValue ? CardCodes.Format(LuciferBag.Value) : ""),
+                "kit.lucifer.taxes=" + LuciferTaxes,
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -185,6 +196,10 @@ namespace HellPoker.Core.Chapters
                     LootTaken = Bool("loot.taken"),
                     BossHands = Ints("boss.hands"),
                     FloorHands = I("floor.hands"),
+                    Satchel = (CardCodes.TryParseDeck(S("kit.satchel") ?? "") ?? Array.Empty<Card>()).ToList(),
+                    Taxes = I("kit.taxes"),
+                    LuciferBag = CardCodes.TryParse(S("kit.lucifer.bag") ?? "", out Card bag) ? bag : (Card?)null,
+                    LuciferTaxes = I("kit.lucifer.taxes"),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

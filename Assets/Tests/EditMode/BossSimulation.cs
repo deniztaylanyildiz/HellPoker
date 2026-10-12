@@ -27,7 +27,7 @@ namespace HellPoker.Core.Tests
 
         private sealed class Tally
         {
-            public int Runs, Beaten, Damned, CastDown, SoulReached, Unfinished, FreedByDeadMan;
+            public int Runs, Beaten, Damned, CastDown, SoulReached, Unfinished, FreedByDeadMan, Triggers, Cornered;
             public readonly List<int> Hands = new List<int>();
         }
 
@@ -86,13 +86,18 @@ namespace HellPoker.Core.Tests
             if (win < 0) win = chapter?.BossWinPercent ?? ChapterRules.LuciferWinPercent;
             if (loss < 0) loss = chapter?.BossLossPercent ?? ChapterRules.LuciferLossPercent;
             HellPokerGame game = BossTable.Create(GameRules.Default, boss, bar, soulLine, win, loss, seed, sinner, sinner);
+            // Phase 2's class mechanics and the demon's rule (HELLPOKER_KIT=0: the table without them).
+            var kit = new ClassKit(sinner);
+            if (lucifer) kit.EnterLucifer();
+            else kit.EnterChapter(chapter.Number);
+            ChapterHooks hooks = EnvInt("HELLPOKER_KIT", 1) == 0 ? null : ChapterHooks.Attach(game, kit, bossId, bar, seed);
             int gate = BossTable.LuciferGate(bar, EnvInt("HELLPOKER_LUCIFER_GATE", ChapterRules.LuciferCastDownPercent));
             int hands = 0;
             bool soul = false, castDown = false;
             while (!BossTable.IsOver(game.Phase))
             {
                 if (hands >= HandsSafety) break;
-                BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), boss.Payouts);
+                BalanceSimulation.PlayHand(game, new HouseDrawStrategy(game.Rules.MaxDiscards), boss.Payouts, kit: hooks);
                 hands++;
                 soul |= game.IsSoulAtStake || game.Phase == GamePhase.Damned;
                 if (lucifer && game.Phase == GamePhase.RoundOver && game.Years > gate)
@@ -106,6 +111,8 @@ namespace HellPoker.Core.Tests
             {
                 t.Runs++;
                 t.Hands.Add(hands);
+                t.Triggers += hooks?.Rule?.Triggers ?? 0;
+                t.Cornered += hooks?.Rule?.CorneredHands ?? 0;
                 if (soul) t.SoulReached++;
                 if (castDown) t.CastDown++;
                 else if (game.Phase == GamePhase.Damned) t.Damned++;
@@ -126,7 +133,7 @@ namespace HellPoker.Core.Tests
             string hands = $"{(sorted.Count == 0 ? 0 : sorted.Average()):0.0} ({P(10)}/{P(50)}/{P(90)})";
             string lost = Pct(t.Damned + t.CastDown, t.Runs) + (t.Unfinished > 0 ? $" (+{t.Unfinished} unfinished)" : "");
             return $"{id,-9} {boss,-8} {(bar > 0 ? bar.ToString() : ""),5}   {hands,-24} {Pct(t.Beaten, t.Runs),7}   {lost,-19}  {Pct(t.SoulReached, t.Runs),12}   " +
-                   $"{Pct(t.FreedByDeadMan, t.Runs)}";
+                   $"{Pct(t.FreedByDeadMan, t.Runs),-8} rule {(t.Runs == 0 ? 0 : t.Triggers / (double)t.Runs):0.0}, cornered {(t.Runs == 0 ? 0 : t.Cornered / (double)t.Runs):0.0}";
         }
 
         private static string Pct(int count, int of) => of == 0 ? "-" : (100.0 * count / of).ToString("0.0") + "%";

@@ -77,6 +77,9 @@ namespace HellPoker.Presentation.Abstractions
         Protected,
 
         /// <summary>A joker turned into this card at the showdown: a tiny fool's cap in the corner, so the player knows which.</summary>
-        Joker
+        Joker,
+
+        /// <summary>Phase 2: a card the player threw away that Lilith kept (her temptation), marked at the showdown.</summary>
+        Tempted
     }
 }
