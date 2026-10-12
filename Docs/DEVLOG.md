@@ -3105,3 +3105,21 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Kararım: oyunun duraklatma menüsü ana menünün kendisi (Esc ile dönülür): buton orada; haritaya ayrıca konmadı.
 - Testler: `FeedbackTests` (4), PlayMode `TheBugReportButton_OpensTheBox_AndTheReportGoesToTheClipboard`. EditMode 988 (984 geçti,
   4 explicit); PlayMode ChapterJourneyTests 5/5.
+### Kapanış — Demo 2.0 (2026-10-13)
+- Testler: EditMode 988 (984 geçti, 4 explicit, 0 hata). PlayMode gruplar: 1) HellPokerSceneTests + SalonRegressionTests +
+  BackdropMotionPlayTests 17/17, 2) RunJourneyTests + LuciferJourneyTests 3/3, 3) CheatJourneyTests + JesterJourneyTests 8/8,
+  4) ChapterJourneyTests 5/5.
+- Ekran görüntüleri iki dilde (`ChapterScreenshots.CaptureTheLaterChapters` 80–100, yeni `CaptureDemoTwo` 110–118: menü, hata kutusu,
+  rekorlar, sınıf seçimi + daire, 3 emanet + yükseltme pipleri, Çağırıcı'nın iblisleri, ganimet, 4. dairede ateş). Bakınca düzeltilenler:
+  dar kartta "Başlangıç" satırı iki satıra kayıp yeteneğe biniyordu (yetenek artık onun altından başlar), rekorlar taşıyordu (oyunda iki
+  sütun: `RecordsLayout.ColumnBreak`; kilitlerin ilk altısı + "ve N tane daha"), HATA / ÖNERİ butonu 104 px.
+- Son simülasyon (daire 0, 2000 koşu): kurtuluş Köylü %40.9, Büyücü %21.4, Kral %31.8, Soytarı %8.2, Çağırıcı %26.8. Bölüm başına
+  kese boşaldı / tam haraç: Köylü 3.9/71.6 · 7.1/48.9 · 5.4/67.2; Büyücü 8.9/61.9 · 14.3/35.8 · 13.8/50.5; Kral 3.6/61.2 · 8.0/35.5 · 5.8/54.7;
+  Soytarı 29.8/56.1 · 32.8/33.8 · 28.7/52.6; Çağırıcı 6.3/58.1 · 9.5/71.8 · 9.0/78.5. Daireler (500 koşu): PHASE2_CHAPTERS on birinci tur.
+- Build: `Builds/HellPoker-Demo-2.0-win64.zip` (36 MB; içinde OKUBENI, GERI_BILDIRIM, CHANGELOG.md). PlayerPrefs `reg export` ile
+  yedeklendi, zip'ten 3 duman turu (`-fpstour`, 1280×720): üçü de çıkış 0, Player.log'da hata yok, ~60 FPS; yedek geri yüklendi.
+  Turlar `runs` klasörüne 15 koşu günlüğü bıraktı (run-20261013-0255.. / 0258..), silinmedi.
+- Commit "Demo 2.0", etiket `v2.0-demo` (annotated). Push ve GitHub Release kullanıcıda.
+- Kullanıcıdan beklenen kararlar: Soytarı (%8.2) ve Büyücü (%21.4) hedefin altında, Köylü %40.9 sınırda; Kara Pazar'ın 2 emanete kadar
+  satması; Çağırıcı kese 200 / ceza 5800; dairelerin hedefi tutmadı (seçenek: daire başına şeytan kazancı −%5 → 5. daire %10); "barlar +%15"
+  ve "bir eksik kötülük" yorumları; Çift Kahkaha (+17 puan); 24 emanetin dağılımı (Lilith'ten sonra ganimet yok).

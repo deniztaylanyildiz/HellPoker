@@ -102,26 +102,29 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        /// <summary>The records' lines of the progression: the circles per class, then what is still locked.</summary>
+        /// <summary>How many locked things the records list by name (the rest are counted).</summary>
+        public const int LocksListed = 6;
+
+        /// <summary>The records' lines of the progression (their right column): the deepest circle freed per class, then what is still
+        /// locked and what opens it.</summary>
         public static IReadOnlyList<string> ProgressRecordLines(ChapterRecords r)
         {
             r = r ?? new ChapterRecords();
-            var lines = new List<string>
-            {
-                L("Deepest circle freed:", "Kurtulunan en derin daire:") + " " + string.Join(" · ", SinnerRoster.PhaseTwo.Select(c =>
-                    SinnerName(c.Id) + " " + (r.BestCircle(c.Id) >= 0 ? r.BestCircle(c.Id).ToString() : "—")))
-            };
-            var locked = ChapterUnlocks.Relics.Where(m => !m.IsReached(r)).ToList();
-            bool summonerLocked = !ChapterUnlocks.IsClassOpen(Summoner.ClassId, r);
-            if (locked.Count == 0 && !summonerLocked)
+            var lines = new List<string> { L("Deepest circle freed:", "Kurtulunan en derin daire:") };
+            lines.AddRange(SinnerRoster.PhaseTwo.Select(c => "  " + SinnerName(c.Id) + ": " + (r.BestCircle(c.Id) >= 0 ? r.BestCircle(c.Id).ToString() : "—")));
+            lines.Add("");
+            var locked = new List<string>();
+            if (!ChapterUnlocks.IsClassOpen(Summoner.ClassId, r))
+                locked.Add("  " + SinnerName(Summoner.ClassId) + " — " + MilestoneText(ChapterUnlocks.SummonerMilestone));
+            locked.AddRange(ChapterUnlocks.Relics.Where(m => !m.IsReached(r)).Select(m => "  " + RelicName(m.Id) + " — " + MilestoneText(m)));
+            if (locked.Count == 0)
             {
                 lines.Add(L("Everything is open.", "Her şey açık."));
                 return lines;
             }
             lines.Add(L("Locked:", "Kilitli:"));
-            if (summonerLocked) lines.Add("  " + SinnerName(Summoner.ClassId) + " — " + MilestoneText(ChapterUnlocks.SummonerMilestone));
-            foreach (Milestone m in locked) lines.Add("  " + RelicName(m.Id) + " — " + MilestoneText(m));
+            lines.AddRange(locked.Take(LocksListed));
+            if (locked.Count > LocksListed) lines.Add(string.Format(L("  ...and {0} more.", "  ...ve {0} tane daha."), locked.Count - LocksListed));
             return lines;
-        }
-    }
+        }    }
 }

@@ -371,6 +371,81 @@ namespace HellPoker.PlayMode.Tests
             yield return HellPokerScreenshots.Shot($"{shot}_lucifer_table");
         }
 
+        /// <summary>Demo 2.0's screens (110–118): the menu's BUG / IDEA box, the records with the circles and the locks, the class choice
+        /// with the Summoner and a circle, a demon's table with three relics and upgrades, the Summoner's imps, the spoils, the fire in
+        /// the fourth circle.</summary>
+        [UnityTest, Timeout(600000)]
+        public IEnumerator CaptureDemoTwo()
+        {
+            var book = new ChapterRecords();
+            book.RunStarted();
+            book.RunEnded(JourneyEnd.Freed, 4, Core.Sinners.Peasant.ClassId, 140);
+            book.WardenBeaten();
+            HellPokerBootstrap.BatchStore.Clear();
+            if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
+            HellPokerBootstrap.BatchStore.SetString(Presentation.Settings.ChapterArchive.RecordsKey, book.Encode());
+            HellPokerBootstrap.ForceSimulator = false;
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            yield return HellPokerScreenshots.Shot("110_menu");
+            HellPokerScreenshots.Press("MenuFeedbackButton");
+            UnityEngine.Object.FindFirstObjectByType<FeedbackView>().Text = "The gate took my last coin before Belial.";
+            yield return null;
+            yield return HellPokerScreenshots.Shot("111_feedback");
+            HellPokerScreenshots.Press("FeedbackSendButton");
+            yield return null;
+            yield return HellPokerScreenshots.Shot("112_feedback_sent");
+            HellPokerScreenshots.Press("FeedbackBackButton");
+            HellPokerScreenshots.Press("RecordsButton");
+            yield return new WaitForSeconds(0.6f);
+            yield return HellPokerScreenshots.Shot("113_records");
+            ChapterJourneyTests.Menu.GoBack();
+            yield return new WaitForSeconds(0.6f);
+            HellPokerScreenshots.Press("NewGameButton");
+            yield return new WaitForSeconds(0.8f);
+            HellPokerScreenshots.Press("CircleUp0");
+            yield return null;
+            yield return HellPokerScreenshots.Shot("114_classes_circle");
+
+            // A demon's table: three relics (their rarity frames) and two upgrades (the pips over the class badge).
+            ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 11, 1, "");
+            boss.Relics = new List<string> { Core.Relics.RelicIds.FerrymansCoin, Core.Relics.ChapterRelicIds.IronVow, Core.Relics.ChapterRelicIds.BlackBook };
+            boss.Upgrades = new List<string> { UpgradeIds.WideSatchel, UpgradeIds.Seed };
+            boss.NodeDone = false;
+            boss.Match = "boss";
+            boss.BossBarStart = boss.BossBar = 1300;
+            yield return ChapterJourneyTests.LoadWithSave(boss);
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            yield return new WaitForSeconds(0.5f);
+            yield return HellPokerScreenshots.Shot("115_boss_relics_upgrades");
+
+            // The Summoner at an imp's table: the imps' panel.
+            ChapterSave summoner = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Summoner, 11, 1, "chapter");
+            summoner.Coins = 200;
+            yield return ChapterJourneyTests.LoadWithSave(summoner);
+            HellPokerScreenshots.Press("PanelOption0");
+            yield return new WaitForSeconds(0.3f);
+            MapNode first = ChapterJourneyTests.Chapters.Run.Choices.OrderBy(n => n.Lane).First();
+            HellPokerScreenshots.Find<Button>($"Node{first.Floor}_{first.Lane}").onClick.Invoke();
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            yield return new WaitForSeconds(0.5f);
+            yield return HellPokerScreenshots.Shot("116_summoner_imps");
+
+            yield return ChapterJourneyTests.LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 1, "loot"));
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("117_spoils");
+
+            ChapterSave fire = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 1, "fire");
+            fire.Circle = 4;
+            yield return ChapterJourneyTests.LoadWithSave(fire);
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("118_fire_circle4");
+        }
+
         private static string Slug(string title) =>
             new string(title.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
     }

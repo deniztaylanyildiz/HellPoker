@@ -137,11 +137,13 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.PlaceTL(0, 110 - shift, CardWidth, 8);
             UiFactory.CreateText("Title", card, sinner.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter)
                 .rectTransform.PlaceTL(4, 120 - shift, CardWidth - 8, 18);
-            UiFactory.CreateText("Start", card, sinner.Locked ? UiText.LockedLabel : sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter)
-                .rectTransform.PlaceTL(0, 140 - shift, CardWidth, 9);
+            Text start = UiFactory.CreateText("Start", card, sinner.Locked ? UiText.LockedLabel : sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter);
+            start.rectTransform.PlaceTL(2, 140 - shift, CardWidth - 4, 9);
+            int startHeight = Math.Max(9, Mathf.CeilToInt(start.preferredHeight));
+            start.rectTransform.PlaceTL(2, 140 - shift, CardWidth - 4, startHeight);
             // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE (and the
-            // circle row). A locked class says what opens it in place of its price.
-            int top = AbilityTop - shift;
+            // circle row). A locked class says what opens it in place of its price. A start line that wraps pushes them down.
+            int top = Math.Max(AbilityTop - shift, 140 - shift + startHeight + 3);
             Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, sinner.Locked ? Palette.BoneDark : Palette.Bone, TextAnchor.UpperLeft);
             ability.rectTransform.PlaceTL(TextX, top, CardWidth - 2 * TextX, 9);
             int abilityHeight = Mathf.CeilToInt(ability.preferredHeight);

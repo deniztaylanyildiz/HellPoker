@@ -160,7 +160,7 @@ namespace HellPoker.Presentation.Views
 
             Button feedback = UiFactory.CreateButton("MenuFeedbackButton", front, "", 8, out Text feedbackLabel, ButtonSkin.Ash);
             feedbackLabel.Localized(() => UiText.FeedbackButton);
-            ((RectTransform)feedback.transform).PlaceTL(4, 4, 72, 18);
+            ((RectTransform)feedback.transform).PlaceTL(4, 4, 104, 18);
             feedback.onClick.AddListener(() => FeedbackPressed?.Invoke());
 
             UiFactory.CreateText("Footer", front, "", 8, Palette.BoneDark).WithOutline().Localized(() => UiText.MenuFooter)

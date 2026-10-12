@@ -54,6 +54,12 @@ namespace HellPoker.Presentation.Abstractions
     }
 
     /// <summary>Records across all runs.</summary>
+    /// <summary>The records' lines: this one alone splits them into two columns (the game's: the runs left, the circles and locks right).</summary>
+    public static class RecordsLayout
+    {
+        public const string ColumnBreak = "\f";
+    }
+
     public interface IRecordsView
     {
         event Action BackPressed;

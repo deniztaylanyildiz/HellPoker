@@ -435,7 +435,8 @@ namespace HellPoker.Presentation
         private void ShowRecords()
         {
             if (InSimulator) _records.Show(_session.Records, _dealerCards);
-            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records).Concat(new[] { "" }).Concat(UiText.ProgressRecordLines(_chapters.Records)).ToList());
+            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records).Concat(new[] { RecordsLayout.ColumnBreak })
+                .Concat(UiText.ProgressRecordLines(_chapters.Records)).ToList());
         }
 
         private void Choose(int index)

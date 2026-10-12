@@ -77,7 +77,8 @@ bedava); Lucifer'in Aynası 3 elde bir Göz. **Daireler** (`Circles`, 0-5, birik
 5 kötülük göstergesi bir kısa + Lucifer iki mekanik (`LuciferMirror.Second`). Sınıf her kurtuluşta bir sonraki daireyi açar (`CirclesOpen`,
 `circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Dairelerin hedefi tutmadı (PHASE2_CHAPTERS on birinci tur; seçenek
 `HELLPOKER_CIRCLE_WIN`).
-Açık (kullanıcıda): sınıf farkı (C sonrası 2000 koşu: kurtuluş Köylü %39.9, Kral %30.9, Büyücü %21.4, Soytarı %8.1).
+Açık (kullanıcıda): sınıf farkı (Demo 2.0, 2000 koşu: kurtuluş Köylü %40.9, Kral %31.8, Çağırıcı %26.8, Büyücü %21.4, Soytarı %8.2);
+dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
 
 ## Oyun
 

@@ -35,8 +35,8 @@ namespace HellPoker.Presentation.Views
         {
             MenuBackdrop.Create(screen);   // the title screen's art stays behind its sub-screens
 
-            Image panel = UiFactory.CreatePanel("RecordsPanel", screen);
-            panel.rectTransform.PlaceTL(96, 24, PixelScreen.Width - 192, PixelScreen.Height - 48);
+            _panel = UiFactory.CreatePanel("RecordsPanel", screen);
+            _panel.rectTransform.PlaceTL(96, 24, PixelScreen.Width - 192, PixelScreen.Height - 48);
 
             UiFactory.CreateText("Title", screen, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.RecordsTitle)
                 .rectTransform.PlaceTL(0, 36, PixelScreen.Width, 16);
@@ -44,6 +44,9 @@ namespace HellPoker.Presentation.Views
             _body = UiFactory.CreateText("Body", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter);
             _body.rectTransform.PlaceTL(104, 58, PixelScreen.Width - 208, 152);
             _body.lineSpacing = 1.1f;
+            _right = UiFactory.CreateText("BodyRight", screen, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _right.lineSpacing = 1.1f;
+            _right.gameObject.SetActive(false);
 
             Button back = UiFactory.CreateButton("RecordsBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Blood);
             backLabel.Localized(() => UiText.Back);
@@ -51,15 +54,37 @@ namespace HellPoker.Presentation.Views
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
+        /// <summary>Splits the lines into two columns (the game's records: the runs left, the circles and the locks right).</summary>
+        public const string ColumnBreak = RecordsLayout.ColumnBreak;
+
+        private Image _panel;
+        private Text _right;
+
         public void ShowLines(IReadOnlyList<string> lines)
         {
-            _body.text = string.Join("\n", lines ?? new string[0]);
+            lines = lines ?? new string[0];
+            int split = lines.ToList().IndexOf(ColumnBreak);
+            bool two = split >= 0;
+            LayOut(two);
+            _right.text = two ? string.Join("\n", lines.Skip(split + 1)) : "";
+            _body.text = string.Join("\n", two ? lines.Take(split) : lines);
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;
         }
 
+        /// <summary>Two columns need the wide panel; one keeps the narrow, centred one (the Boss Simulator's).</summary>
+        private void LayOut(bool two)
+        {
+            _panel.rectTransform.PlaceTL(two ? 12 : 96, 24, two ? PixelScreen.Width - 24 : PixelScreen.Width - 192, PixelScreen.Height - 48);
+            _body.alignment = two ? TextAnchor.UpperLeft : TextAnchor.UpperCenter;
+            _body.rectTransform.PlaceTL(two ? 24 : 104, 58, two ? 212 : PixelScreen.Width - 208, 152);
+            _right.rectTransform.PlaceTL(248, 58, 212, 152);
+            _right.gameObject.SetActive(two);
+        }
+
         public void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
         {
+            LayOut(false);
             var lines = new List<string>
             {
                 string.Format(UiText.RecordsRunsFormat, records.RunsStarted),
