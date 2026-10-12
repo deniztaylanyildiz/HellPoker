@@ -13,6 +13,7 @@ namespace HellPoker.Presentation.Ui
                 case Warlock.ClassId: return L("WARLOCK", "BÜYÜCÜ");
                 case King.ClassId: return L("KING", "KRAL");
                 case Jester.ClassId: return L("JESTER", "SOYTARI");
+                case Summoner.ClassId: return L("SUMMONER", "ÇAĞIRICI");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -26,6 +27,7 @@ namespace HellPoker.Presentation.Ui
                 case Warlock.ClassId: return L("Who dabbled in the dark arts", "Karanlık sanatlarla oynamış");
                 case King.ClassId: return L("Who ruled, and sinned in proportion", "Hüküm sürmüş, günahı da ona göre");
                 case Jester.ClassId: return L("Who made a joke of everything", "Her şeyi şakaya vurmuş");
+                case Summoner.ClassId: return L("Who called up what should sleep", "Uyuması gerekeni uyandırmış");
                 default: return "";
             }
         }

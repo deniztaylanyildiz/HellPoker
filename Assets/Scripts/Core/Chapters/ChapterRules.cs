@@ -178,8 +178,8 @@ namespace HellPoker.Core.Chapters
         /// <summary>The same chapter with other numbers (the tuning's knobs); the starting purses and the boss's percents go along.</summary>
         public ChapterRules With(int? ante = null, int? tributeOverStart = null, int? impReRaisePercent = null, int? impFoldPercent = null,
             int? impCoins = null, int? wardenCoins = null, int? anteStepHands = null, int? capAntes = null, int? multiplierCap = null,
-            int? soulLinePercent = null, int? firstImpCoins = null) =>
-            new ChapterRules(Number, BossId, soulLinePercent ?? SoulLinePercent, ante ?? Ante, tributeOverStart ?? TributeOverStart, PricePercent,
+            int? soulLinePercent = null, int? firstImpCoins = null, int? pricePercent = null) =>
+            new ChapterRules(Number, BossId, soulLinePercent ?? SoulLinePercent, ante ?? Ante, tributeOverStart ?? TributeOverStart, pricePercent ?? PricePercent,
                 impReRaisePercent ?? ImpReRaisePercent, impCoins ?? ImpCoins, wardenCoins ?? WardenCoins, YearsPerMissingCoin,
                 anteStepHands ?? AnteStepHands, AnteStep, WardenRelicCoins, capAntes ?? CapAntes, multiplierCap ?? MultiplierCap, ImpStrongFrom,
                 impFoldPercent ?? ImpFoldPercent,
@@ -188,8 +188,27 @@ namespace HellPoker.Core.Chapters
             {
                 StartPercent = StartPercent,
                 BossWinPercent = BossWinPercent,
-                BossLossPercent = BossLossPercent
+                BossLossPercent = BossLossPercent,
+                Circle = Circle
             };
+
+        /// <summary>The circle of Hell the chapter is played in (<see cref="Circles"/>; 0: the designer's numbers).</summary>
+        public int Circle { get; private set; }
+
+        /// <summary>The same chapter in <paramref name="circle"/>: the imps' purses, the tribute and the market as the circle has them (the
+        /// bars, the fire, the malice and Lucifer's mirror are the run's to apply).</summary>
+        public ChapterRules WithCircle(int circle)
+        {
+            circle = Circles.Clamp(circle);
+            if (circle == Circle) return this;
+            ChapterRules designed = Circle == 0 ? this : For(Number);
+            if (circle == 0) return designed;
+            int imp = Circles.ImpPurseAt(circle);
+            ChapterRules copy = designed.With(impCoins: designed.ImpCoins * imp / 100, firstImpCoins: designed.FirstImpCoins * imp / 100,
+                tributeOverStart: designed.TributeOverStart + Circles.TributeAt(circle), pricePercent: designed.PricePercent * Circles.MarketAt(circle) / 100);
+            copy.Circle = circle;
+            return copy;
+        }
 
         /// <summary>The same chapter whose demon's table pays <paramref name="winPercent"/> of a win off the bar and puts
         /// <paramref name="lossPercent"/> of a loss on it.</summary>
@@ -205,7 +224,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The ante of a match's hand <paramref name="hand"/> (1 = the first): 4, 4, 4, 5, 5, 5, 6...</summary>
         public int AnteAt(int hand) => Ante + Math.Max(0, hand - 1) / AnteStepHands * AnteStep;
 
-        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 120, the Jester 130, the Warlock 150, the
+        /// <summary>The coins a sinner of this class starts the first chapter with: the Peasant 120, the Jester 130, the Warlock 150, the Summoner 200, the
         /// King 200 (any other: the Peasant's). Also the floor of every later chapter's purse (<see cref="ChapterJourney.NextChapter"/>).</summary>
         public static int StartingCoinsFor(string classId)
         {
@@ -215,6 +234,7 @@ namespace HellPoker.Core.Chapters
                 case Sinners.King.ClassId: return 200;
                 case Sinners.Warlock.ClassId: return 150;
                 case Sinners.Jester.ClassId: return 130;
+                case Sinners.Summoner.ClassId: return 200;   // 140 asked: 19.6% free with 6500 years (ChapterSimulation 2026-10-13)
                 default: return 120;
             }
         }

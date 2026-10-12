@@ -413,4 +413,181 @@ namespace HellPoker.Core.Chapters
             return taken;
         }
     }
-}
+
+    /// <summary>The Summoner's imps (each once a hand, before the draw).</summary>
+    public enum SummonAct
+    {
+        /// <summary>One of the demon's closed cards turns.</summary>
+        Eye,
+
+        /// <summary>One of the Summoner's cards for one of the demon's open ones.</summary>
+        Hand,
+
+        /// <summary>The demon's next cheat, told truthfully (his lie, if he told one, falls).</summary>
+        Whisper
+    }
+
+    /// <summary>
+    /// The Summoner's imps: the Eye, the Hand and the Whisper, each once a hand before the draw. On the floors they cost coins
+    /// (<see cref="CoinPrices"/>; never the purse's last), at a demon's table the bar grows a share of where it began
+    /// (<see cref="BarPercents"/>, written on as the hand is settled). A summoned imp runs wild <see cref="WildPercent"/> of the time and
+    /// lowers one of the Summoner's cards. The charged power, the LEGION, makes all three free for the hand.
+    /// </summary>
+    public sealed class SummonPowers : ClassPowers
+    {
+        /// <summary>A summoned imp runs wild this often (percent).</summary>
+        public const int WildPercent = 10;
+
+        /// <summary>The coins of the Eye, the Hand, the Whisper on the floors; the bar's growth at a demon's (percent of its start).</summary>
+        public static readonly int[] CoinPrices = { 5, 15, 8 };
+        public static readonly int[] BarPercents = { 2, 5, 3 };
+
+        private readonly HashSet<SummonAct> _done = new HashSet<SummonAct>();
+        private readonly int _barStart;
+        private int _barCost;
+
+        /// <param name="barStart">The demon's bar as his table began; 0 on the floors (the imps cost coins there).</param>
+        public SummonPowers(ClassKit kit, IRandomSource random, int barStart) : base(kit, random)
+        {
+            _barStart = Math.Max(0, barStart);
+        }
+
+        /// <summary>The run's purse (the floors' price); set by the chapter as the table opens.</summary>
+        public CoinPurse Purse { get; set; }
+
+        public bool AtDemonsTable => _barStart > 0;
+
+        /// <summary>The Legion is called this hand: every imp is free.</summary>
+        public bool Legion { get; private set; }
+
+        /// <summary>The Whisper's answer this hand: the cheat coming (null: none); <see cref="Whispered"/> tells whether it was asked.</summary>
+        public Cheats.ICheat WhisperedCheat { get; private set; }
+        public bool Whispered { get; private set; }
+
+        /// <summary>An imp ran wild this hand: the card it lowered and what it became; null when none did.</summary>
+        public Card? WildFrom { get; private set; }
+        public Card? WildTo { get; private set; }
+
+        /// <summary>The imps summoned over the run, and those that ran wild (the log, the simulation).</summary>
+        public int Summons { get; private set; }
+        public int WildImps { get; private set; }
+
+        public bool DoneThisHand(SummonAct act) => _done.Contains(act);
+
+        /// <summary>What an imp costs here: coins on the floors, years on the bar at a demon's table (0 under the Legion).</summary>
+        public int PriceOf(SummonAct act) =>
+            Legion ? 0 : AtDemonsTable ? Math.Max(1, _barStart * BarPercents[(int)act] / 100) : CoinPrices[(int)act];
+
+        public override void HandDealt(HellPokerGame game)
+        {
+            _done.Clear();
+            Legion = false;
+            Whispered = false;
+            WhisperedCheat = null;
+            WildFrom = WildTo = null;
+        }
+
+        public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => _barCost;
+
+        public override void HandSettled(HellPokerGame game, RoundResult round) => _barCost = 0;
+
+        /// <summary>Why the imp cannot be summoned now.</summary>
+        public KitRefusal WhyNot(HellPokerGame game, SummonAct act)
+        {
+            if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
+            if (_done.Contains(act)) return KitRefusal.AlreadyUsed;
+            if (!AtDemonsTable && !Legion && (Purse == null || Purse.Coins <= PriceOf(act))) return KitRefusal.NoTaxes;
+            switch (act)
+            {
+                case SummonAct.Eye:
+                    return game.HouseCardsRevealed >= Hand.Size - 1 ? KitRefusal.NoCard : KitRefusal.None;
+                case SummonAct.Hand:
+                    return OpenTargets(game).Any() && Enumerable.Range(0, Hand.Size).Any(i => CanGive(game, i)) ? KitRefusal.None : KitRefusal.NoCard;
+                default:
+                    return KitRefusal.None;
+            }
+        }
+
+        public KitRefusal WhyNoLegion(HellPokerGame game)
+        {
+            if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
+            if (Legion) return KitRefusal.AlreadyUsed;
+            return IsCharged ? KitRefusal.None : KitRefusal.NotCharged;
+        }
+
+        /// <summary>The charged power: every imp free this hand.</summary>
+        public bool CallLegion(HellPokerGame game)
+        {
+            if (WhyNoLegion(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
+            Legion = true;
+            return true;
+        }
+
+        /// <summary>The Eye: the demon's next closed card turns.</summary>
+        public bool Eye(HellPokerGame game)
+        {
+            if (WhyNot(game, SummonAct.Eye) != KitRefusal.None || !game.RevealNextHouseCard()) return false;
+            Summoned(game, SummonAct.Eye);
+            return true;
+        }
+
+        /// <summary>The Whisper: the cheat coming, truthfully (null: none comes).</summary>
+        public bool Whisper(HellPokerGame game)
+        {
+            if (WhyNot(game, SummonAct.Whisper) != KitRefusal.None) return false;
+            WhisperedCheat = game.PendingCheatTruth;
+            Whispered = true;
+            Summoned(game, SummonAct.Whisper);
+            return true;
+        }
+
+        /// <summary>A card of the Summoner's he may give (one he sees, not chained).</summary>
+        public bool CanGive(HellPokerGame game, int index) =>
+            index >= 0 && index < Hand.Size && index < game.PlayerCardsRevealed && !game.IsPlayerCardHidden(index) && !game.IsPlayerCardChained(index)
+            && !game.PlayerHand[index].IsJoker;
+
+        private static IEnumerable<int> OpenTargets(HellPokerGame game) =>
+            Enumerable.Range(0, game.HouseCardsRevealed).Where(i => !game.IsHouseCardFalse(i) && !Cheats.CheatRules.IsImmune(game.HouseHand[i]));
+
+        /// <summary>The Hand: the card at <paramref name="give"/> for the demon's open card that serves the hand best. The card taken, or null.</summary>
+        public Card? Swap(HellPokerGame game, int give)
+        {
+            if (WhyNot(game, SummonAct.Hand) != KitRefusal.None || !CanGive(game, give)) return null;
+            int take = OpenTargets(game).OrderByDescending(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])),
+                Comparer<HandEvaluation>.Default).First();
+            Card taken = game.HouseHand[take], given = game.PlayerHand[give];
+            game.SetHands(game.PlayerHand.With(give, taken), game.HouseHand.With(take, given));
+            Summoned(game, SummonAct.Hand);
+            return taken;
+        }
+
+        private void Summoned(HellPokerGame game, SummonAct act)
+        {
+            int price = PriceOf(act);
+            if (AtDemonsTable) _barCost += price;
+            else if (price > 0) Purse?.TrySpend(price);
+            _done.Add(act);
+            Summons++;
+            Kit.Summons++;
+            if (Random.Next(100) < WildPercent) RunWild(game);
+        }
+
+        /// <summary>The imp runs wild: one of the Summoner's cards (not a joker, not a two) drops a rank — to a card still in the deck.</summary>
+        private void RunWild(HellPokerGame game)
+        {
+            Hand hand = game.PlayerHand;
+            var deck = game.Deck.Remaining.Reverse().ToList();   // the top first
+            int[] places = Enumerable.Range(0, Hand.Size).Where(i => !hand[i].IsJoker && hand[i].Rank > Rank.Two
+                && deck.Contains(new Card(hand[i].Rank - 1, hand[i].Suit))).ToArray();
+            if (places.Length == 0) return;
+            int at = places[Random.Next(places.Length)];
+            Card from = hand[at], to = new Card(from.Rank - 1, from.Suit);
+            deck.Remove(to);
+            game.Deck.Restore(deck);   // the lowered card leaves the deck; the old one is the imp's
+            game.SetHands(hand.With(at, to), game.HouseHand);
+            WildFrom = from;
+            WildTo = to;
+            WildImps++;
+            Kit.WildImps++;
+        }
+    }}

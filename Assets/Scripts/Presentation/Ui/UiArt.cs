@@ -83,8 +83,8 @@ namespace HellPoker.Presentation.Ui
         public static Sprite SinnerIcon(string classId)
         {
             int index = -1;
-            for (int i = 0; i < HellPoker.Core.Sinners.SinnerRoster.All.Count; i++)
-                if (HellPoker.Core.Sinners.SinnerRoster.All[i].Id == classId) index = i;
+            for (int i = 0; i < HellPoker.Core.Sinners.SinnerRoster.PhaseTwo.Count; i++)
+                if (HellPoker.Core.Sinners.SinnerRoster.PhaseTwo[i].Id == classId) index = i;
             Sprite[] icons = Strip(SinnerIcons, SinnerIconSize);
             return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
         }

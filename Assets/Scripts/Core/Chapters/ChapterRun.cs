@@ -91,6 +91,7 @@ namespace HellPoker.Core.Chapters
         private FloorTable Hooked(FloorTable table)
         {
             Hooks = ChapterHooks.Attach(table.Game, Kit, null, 0, RandomSeeds.Derive(_seed, MatchStream + 100 + _matches));
+            if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;   // the Summoner's imps cost coins on the floors
             return table;
         }
 
@@ -173,7 +174,7 @@ namespace HellPoker.Core.Chapters
             int bar = Years + TributeYears(coins) + YearsOwed;
             if (RestedByTheFire) bar = Math.Max(1, bar - bar * RestBarPercent / 100);
             if (WhettedSoul) bar += bar * WhetBarPercent / 100;
-            int percent = Effects.CombinedRelics.BossBarPercent;
+            int percent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
             return percent == 100 ? bar : Math.Max(1, bar * percent / 100);
         }
 
@@ -361,8 +362,31 @@ namespace HellPoker.Core.Chapters
             return PendingGamble;
         }
 
-        public bool CanTend(FireChoice choice) =>
-            choice == FireChoice.SilenceCurse ? Effects.Relics.Count > 0 : choice != FireChoice.WhetSoul || UpgradesOffered().Count > 0;
+        public bool CanTend(FireChoice choice) => FireOffers.Contains(choice) &&
+            (choice == FireChoice.SilenceCurse ? Effects.Relics.Count > 0 : choice != FireChoice.WhetSoul || UpgradesOffered().Count > 0);
+
+        /// <summary>The dice of the fire's offer (the fourth circle: two boons of four, the same every time the fire is shown).</summary>
+        public const int FireStream = 14;
+
+        /// <summary>The boons this chapter's fire offers: all four — or, from the fourth circle on, two of them.</summary>
+        public IReadOnlyList<FireChoice> FireOffers
+        {
+            get
+            {
+                var all = ((FireChoice[])Enum.GetValues(typeof(FireChoice))).ToList();
+                int count = Circles.FireOffersAt(Rules.Circle);
+                if (count >= all.Count) return all;
+                var dice = new SystemRandomSource(RandomSeeds.Derive(_seed, FireStream));
+                var offered = new List<FireChoice>();
+                while (offered.Count < count)
+                {
+                    int i = dice.Next(all.Count);
+                    offered.Add(all[i]);
+                    all.RemoveAt(i);
+                }
+                return offered.OrderBy(c => c).ToList();
+            }
+        }
 
         /// <summary>The soul was whetted by the fire: the demon's bar starts longer (<see cref="WhetBarPercent"/>).</summary>
         public bool WhettedSoul { get; private set; }
@@ -374,6 +398,7 @@ namespace HellPoker.Core.Chapters
         public bool TendFire(FireChoice choice, string relicId = null)
         {
             if (Current?.Kind != NodeKind.PurgatoryFire) throw new InvalidOperationException("There is no fire here.");
+            if (!FireOffers.Contains(choice)) return false;
             switch (choice)
             {
                 case FireChoice.BreakFirstCheat:
@@ -456,13 +481,13 @@ namespace HellPoker.Core.Chapters
                 Years += Years * WhetBarPercent / 100;
                 WhettedSoul = false;
             }
-            int barPercent = Effects.CombinedRelics.BossBarPercent;
+            int barPercent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
             if (startBar && barPercent != 100) Years = Math.Max(1, Years * barPercent / 100);
             Dealers.Dealer boss = Rules.Boss;
             Effects.SitAt(boss.Id, fresh: true);
             BossBarStart = Years;
-            HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Rules.BossWinPercent, Rules.BossLossPercent,
-                RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner);
+            HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Rules.BossLossPercent,
+                RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
             game.UseEffects(Effects);
             Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream));
             return game;

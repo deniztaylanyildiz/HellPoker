@@ -64,6 +64,15 @@ etkiler `ClassKit` kapasitelerinde, `ClassPowers`'ta, Soytarı'nınkiler `Upgrad
 30 coin, Araf Ateşi 4. seçenek "Ruhunu bile" (`FireChoice.WhetSoul`: yükseltme, bar %10 uzun; `ChapterRun.BarAfterGate`). Kayıt:
 `kit.upgrades`, `loot.upgrade`, `whet`. İkonlar `relic_icons.png` (`RelicRoster.IconOrder`), masada nadirlik çerçevesi (3. yuva ikincinin
 solunda), sınıf rozetinin üstünde yükseltme pipleri, metinler `UiText.Upgrades.cs`.
+**Kilitler, Çağırıcı, Daireler (Phase 2):** `ChapterUnlocks` (14 emanet açık, 10'u kilometre taşıyla; ilk kurtuluş Çağırıcı'yı açar;
+sayaçlar `ChapterRecords`: `wardens`, `bought`, `tributes`, `beaten.<boss>`), kilitli emanet çekilmez (`ChapterJourney.RelicAvailable`).
+**Çağırıcı** (`Summoner`, sadece `SinnerRoster.PhaseTwo`; kese 200, ceza 5800 — istenen 140 / 6500 simülasyonla ayarlandı): `SummonPowers`
+GÖZ / EL / FISILTI (katta 5 / 15 / 8 coin, boss'ta bar %2 / 5 / 3, el kapanınca), %10 azan iblis kartı bir rütbe düşürür, K: LEJYON (hepsi
+bedava); Lucifer'in Aynası 3 elde bir Göz. **Daireler** (`Circles`, 0-5, birikimli; `ChapterRules.WithCircle`, `ChapterJourney.Circle`, kayıtta
+`circle`): 1 iblis kesesi +%25, 2 haraç +20, 3 kalın bar (+%15, kazanç %15 az), 4 pazar ×1.25 + ateş 2 seçenek (`ChapterRun.FireOffers`),
+5 kötülük göstergesi bir kısa + Lucifer iki mekanik (`LuciferMirror.Second`). Sınıf her kurtuluşta bir sonraki daireyi açar (`CirclesOpen`,
+`circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Dairelerin hedefi tutmadı (PHASE2_CHAPTERS on birinci tur; seçenek
+`HELLPOKER_CIRCLE_WIN`).
 Açık (kullanıcıda): sınıf farkı (C sonrası 2000 koşu: kurtuluş Köylü %39.9, Kral %30.9, Büyücü %21.4, Soytarı %8.1).
 
 ## Oyun

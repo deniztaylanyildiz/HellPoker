@@ -15,8 +15,23 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>"STARTS AT 1250 YEARS".</summary>
         public string Start { get; }
 
-        public SinnerCard(string id, string name, string title, string ability, string detail, string start)
+        /// <summary>Phase 2: the class is locked (<see cref="LockNote"/> says what opens it); CHOOSE does nothing.</summary>
+        public bool Locked { get; }
+        public string LockNote { get; }
+
+        /// <summary>Phase 2's circle of Hell chosen for the class, and the deepest it has open; -1: no circle selector (the demo).</summary>
+        public int Circle { get; }
+        public int CirclesOpen { get; }
+
+        public bool ShowsCircles => CirclesOpen >= 0;
+
+        public SinnerCard(string id, string name, string title, string ability, string detail, string start, bool locked = false,
+            string lockNote = null, int circle = 0, int circlesOpen = -1)
         {
+            Locked = locked;
+            LockNote = lockNote ?? "";
+            Circle = circle;
+            CirclesOpen = circlesOpen;
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Name = name ?? "";
             Title = title ?? "";
@@ -32,10 +47,14 @@ namespace HellPoker.Presentation.Abstractions
         event Action<int> SinnerChosen;
         event Action BackPressed;
 
+        /// <summary>A card's circle arrows: its index and the step (-1 / +1).</summary>
+        event Action<int, int> CircleStepped;
+
         bool IsVisible { get; }
 
         /// <param name="dealerId">The demon the run will be played against (their hall shows behind).</param>
-        void Show(IReadOnlyList<SinnerCard> sinners, string dealerId);
+        /// <param name="note">The line under the title (the circle's rules in Phase 2); null: the usual question.</param>
+        void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null);
 
         void Hide();
     }

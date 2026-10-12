@@ -3077,3 +3077,19 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   %34-49 (A: %32-56). Tablolar PHASE2_CHAPTERS onuncu tur.
 - Testler: `ChapterBuildTests` (18), `ChapterPresenterTests` +2 (ganimet, ateş), Journey / Chapter testleri yeni kurallara göre.
   EditMode 969 (965 geçti, 4 explicit, 0 hata); PlayMode ChapterJourneyTests 4/4.
+### D) Kilitler, Çağırıcı ve Cehennem Daireleri (2026-10-13)
+- İstek: 4 sınıf + 14 emanetle başla, gerisi kartta yazan kilometre taşlarıyla açılsın; ilk kurtuluş ÇAĞIRICI'yı açsın (Göz / El / Fısıltı,
+  katta 5 / 15 / 8 coin, boss'ta bar %2 / 5 / 3, %10 iblis azar, Lejyon, kese 140, ceza 6500, Lucifer'in Aynası 3 elde bir Göz; portre,
+  metinler, kart, How to Play); her sınıf için kurtuluştan sonra bir Daire daha (5 daire), sınıf seçiminde seçici, rekorlarda en yüksek
+  daire; simülasyon Çağırıcı %25-40, her daire daha düşük, 5. daire %5-10.
+- Yapılanlar: `Summoner` (`SinnerRoster.PhaseTwo`; demo `All` değişmedi), `KitKind.Summon` + `SummonPowers` (ClassPowers.cs),
+  `LuciferMirror` (Çağırıcı'ya Göz, 5. dairede `Second` kopya), `Circles`, `ChapterRules.WithCircle`, `ChapterRun.FireOffers`,
+  `ChapterJourney.Circle` / `RelicAvailable`, `ChapterSave` `circle`, `ChapterRecords` (kilometre taşı sayaçları, `circle.<sınıf>`,
+  `CirclesOpen`), `ChapterUnlocks`; sunum: sınıf seçiminde 5 kart (dar kartta portre ×1), kilitli kart, ‹ DAİRE n › seçici ve alt başlıkta
+  dairenin kuralları, masada İBLİSLER paneli (GÖZ / EL / FISILTI, K: Lejyon, azan iblis mesajı), rekorlarda daireler + kilitliler, koşu
+  sonunda AÇILDI satırları, `pixel_sinners.py` Çağırıcı portresi ve ikonu, `UiText.Summoner.cs`.
+- Kararlarım (kullanıcıya): Çağırıcı kese 140 → **200**, ceza 6500 → **5800** (istenenle %19.6); "barlar +%15" kalın bar olarak (kazanç da %15 az
+  siler); 5. daire "bir eksik kötülük" göstergenin bir kısa olması; dairelerde hedef tutmadı (5. daire ort. %21.2) — seçenek: daire başına
+  şeytan kazancı −%5 (5. daire %10.0), uygulanmadı. Simülasyon oyuncusu Çağırıcı'da EL'i yalnızca iki çift ve üstü için kullanır.
+- Testler: `ChapterProgressTests` (13), `ChapterMenuTests` +2, `ChapterPresenterTests` +1. EditMode 984 (980 geçti, 4 explicit, 0 hata);
+  PlayMode ChapterJourneyTests 4/4.

@@ -662,5 +662,17 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(1, run.Kit.Upgrades.Count);
             StringAssert.Contains(UiText.UpgradeName(run.Kit.Upgrades[0]), _panel.Card.Text, "the fire says what it gave");
         }
+
+        [Test]
+        public void ARunsCircle_IsNeverDeeperThanTheClassHasOpen_AndAFreedomTellsWhatOpened()
+        {
+            _chapters.Start(SinnerRoster.Peasant, 3);
+            Assert.AreEqual(0, _chapters.Journey.Circle, "no circle open yet");
+            _chapters.Records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 90);
+            _chapters.Start(SinnerRoster.Peasant, 3);
+            Assert.AreEqual(1, _chapters.Journey.Circle, "one past the deepest freed");
+            Assert.IsTrue(ChapterUnlocks.IsRelicOpen(ChapterRelicIds.AbyssCoin, _chapters.Records));
+            Assert.IsNotNull(_chapters.Journey.RelicAvailable, "the run draws only open relics");
+        }
     }
 }

@@ -143,6 +143,20 @@ namespace HellPoker.Presentation
                     _view.SetMessage(string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft), Tone.Good);
                     return;
                 }
+                case SummonPowers summon:
+                {
+                    KitRefusal why = summon.WhyNoLegion(game);
+                    if (why != KitRefusal.None)
+                    {
+                        _view.SetMessage(UiText.KitRefused(why, charge, full), Tone.Warning);
+                        return;
+                    }
+                    summon.CallLegion(game);
+                    LogNote($"power: the LEGION (hand {_game.RoundNumber})");
+                    Refresh();
+                    _view.SetMessage(UiText.LegionCalled, Tone.Good);
+                    return;
+                }
                 case TreasuryPowers treasury:
                 {
                     if (_seizing && _seizeCharged)
@@ -226,6 +240,11 @@ namespace HellPoker.Presentation
 
         public void PressKitButton(int index)
         {
+            if (_kit?.Summon != null)
+            {
+                PressSummon(index);
+                return;
+            }
             if (!Playing || _kit?.Treasury == null || _pendingEvent != null || Hurry()) return;
             HellPokerGame game = KitGame;
             TreasuryPowers treasury = _kit.Treasury;
@@ -268,14 +287,82 @@ namespace HellPoker.Presentation
             }
         }
 
+        /// <summary>An imp's button: the Eye and the Whisper at once, the Hand opens the pick of the card it trades.</summary>
+        private void PressSummon(int index)
+        {
+            if (!Playing || _pendingEvent != null || Hurry()) return;
+            HellPokerGame game = KitGame;
+            SummonPowers summon = _kit.Summon;
+            SummonAct act = index == 0 ? SummonAct.Eye : index == 1 ? SummonAct.Hand : SummonAct.Whisper;
+            if (act == SummonAct.Hand && _seizing)
+            {
+                _seizing = false;   // the button again: put away
+                Refresh();
+                return;
+            }
+            KitRefusal why = summon.WhyNot(game, act);
+            if (why != KitRefusal.None)
+            {
+                _view.SetMessage(why == KitRefusal.NoTaxes ? UiText.SummonNoCoins : KitRefusalText(why), Tone.Warning);
+                return;
+            }
+            int price = summon.PriceOf(act);
+            switch (act)
+            {
+                case SummonAct.Eye:
+                    summon.Eye(game);
+                    LogNote($"imps: the EYE (hand {_game.RoundNumber}, {PriceNote(summon, price)})");
+                    _view.PlaySfx(SfxIds.ProphecySee);
+                    _view.PlaySfx(SfxIds.Flip);
+                    Refresh();
+                    _view.SetMessage(WithWild(summon, UiText.EyeOpened), Tone.Good);
+                    return;
+                case SummonAct.Whisper:
+                    summon.Whisper(game);
+                    LogNote($"imps: the WHISPER: {(summon.WhisperedCheat?.Id ?? "nothing")} (hand {_game.RoundNumber}, {PriceNote(summon, price)})");
+                    _view.PlaySfx(SfxIds.ProphecySee);
+                    Refresh();
+                    _view.SetMessage(WithWild(summon, summon.WhisperedCheat == null ? UiText.WhisperNothing
+                        : string.Format(UiText.WhisperFormat, UiText.CheatName(summon.WhisperedCheat.Id))), Tone.Good);
+                    return;
+                default:
+                    _seizing = true;
+                    Refresh();
+                    _view.SetMessage(UiText.SwapPrompt, Tone.Warning);
+                    return;
+            }
+        }
+
+        private string PriceNote(SummonPowers summon, int price) =>
+            price == 0 ? "free" : summon.AtDemonsTable ? $"+{price} on the bar" : $"{price} coins, purse {_seat?.Run.Purse.Coins}";
+
+        /// <summary>An imp that ran wild says so after what it did.</summary>
+        private string WithWild(SummonPowers summon, string message)
+        {
+            if (!summon.WildFrom.HasValue || _wildTold == summon.WildFrom) return message;
+            _wildTold = summon.WildFrom;
+            LogNote($"imps: one ran wild, {summon.WildFrom.Value} → {summon.WildTo.Value}");
+            _view.PlaySfx(SfxIds.Cheat);
+            return message + "\n" + string.Format(UiText.WildFormat, summon.WildFrom.Value, summon.WildTo.Value);
+        }
+
+        private Card? _wildTold;
+
         private int[] SeizablePlayerCards()
         {
+            if (_kit?.Summon != null && KitGame != null)
+                return Enumerable.Range(0, Hand.Size).Where(i => _kit.Summon.CanGive(KitGame, i)).ToArray();
             if (_kit?.Treasury == null || KitGame == null) return null;
             return Enumerable.Range(0, Hand.Size).Where(i => _kit.Treasury.CanGive(KitGame, i)).ToArray();
         }
 
         private void SeizeWith(int index)
         {
+            if (_kit?.Summon != null)
+            {
+                SwapWith(index);
+                return;
+            }
             HellPokerGame game = KitGame;
             Card given = _game.PlayerHand[index];
             Card? taken = _kit.Treasury.Seize(game, index, _seizeCharged);
@@ -292,13 +379,33 @@ namespace HellPoker.Presentation
             _view.SetMessage(string.Format(UiText.SeizedFormat, taken.Value, given), Tone.Good);
         }
 
+        /// <summary>The imp's hand: the picked card for the demon's open card that serves the hand best.</summary>
+        private void SwapWith(int index)
+        {
+            SummonPowers summon = _kit.Summon;
+            Card given = _game.PlayerHand[index];
+            int price = summon.PriceOf(SummonAct.Hand);
+            Card? taken = summon.Swap(KitGame, index);
+            if (taken == null)
+            {
+                _view.SetMessage(UiText.SwapPrompt, Tone.Warning);   // not that card: the pick stays open
+                return;
+            }
+            _seizing = false;
+            _discards.Remove(index);
+            LogNote($"imps: the HAND, {taken} for {given} (hand {_game.RoundNumber}, {PriceNote(summon, price)})");
+            _view.PlaySfx(SfxIds.Seize);
+            Refresh();
+            _view.SetMessage(WithWild(summon, string.Format(UiText.SwappedFormat, taken.Value, given)), Tone.Good);
+        }
+
         // ------------------------------------------------------------------ what the panel and the lines show
 
         /// <summary>The line under the message while a kit pick is under way; null otherwise.</summary>
         private string KitHint()
         {
             if (_kit == null) return null;
-            if (_seizing) return UiText.SeizePrompt;
+            if (_seizing) return _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
             if (_kit.Prophecy != null && _kit.Prophecy.RearrangesLeft > 0)
                 return string.Format(UiText.RearrangePromptFormat, _kit.Prophecy.RearrangesLeft);
             if (_kit.Rule is BelialRoleSwap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && BelialRoleSwap.ComingIn(KitGame))
@@ -343,6 +450,19 @@ namespace HellPoker.Presentation
                     string title = rearranging ? string.Format(UiText.KitRearrangeTitleFormat, prophecy.RearrangesLeft) : UiText.KitProphecyTitle;
                     _view.SetKit(new KitDisplay(title, prophecy.TopCards(game).Select(c => new KitCard(c, clickable: rearranging)).ToArray(), null,
                         UiText.KitProphecyHint, waiting: rearranging));
+                    return;
+                }
+                case SummonPowers summon:
+                {
+                    string Price(SummonAct act) => summon.Legion ? UiText.KitFree : summon.AtDemonsTable
+                        ? string.Format(UiText.KitBarPriceFormat, SummonPowers.BarPercents[(int)act]) : summon.PriceOf(act).ToString();
+                    KitButton Button(SummonAct act, string format) =>
+                        new KitButton(string.Format(format, Price(act)), summon.WhyNot(game, act) != KitRefusal.None);
+                    _view.SetKit(new KitDisplay(summon.Legion ? UiText.KitSummonLegionTitle : UiText.KitSummonTitle, null, new[]
+                    {
+                        Button(SummonAct.Eye, UiText.KitEyeButtonFormat), Button(SummonAct.Hand, UiText.KitHandButtonFormat),
+                        Button(SummonAct.Whisper, UiText.KitWhisperButtonFormat)
+                    }, UiText.KitSummonHint, waiting: _seizing));
                     return;
                 }
                 case TreasuryPowers treasury:

@@ -13,7 +13,10 @@ namespace HellPoker.Core.Chapters
         None,
         Satchel,
         Prophecy,
-        Treasury
+        Treasury,
+
+        /// <summary>The Summoner's imps (the Eye, the Hand, the Whisper).</summary>
+        Summon
     }
 
     /// <summary>
@@ -61,6 +64,7 @@ namespace HellPoker.Core.Chapters
                 case Peasant.ClassId: return KitKind.Satchel;
                 case Warlock.ClassId: return KitKind.Prophecy;
                 case King.ClassId: return KitKind.Treasury;
+                case Summoner.ClassId: return KitKind.Summon;
                 default: return KitKind.None;
             }
         }
@@ -199,6 +203,8 @@ namespace HellPoker.Core.Chapters
         public int TaxesEarned { get; set; }
         public int TaxesLost { get; private set; }
         public int PalaceGuards { get; set; }
+        public int Summons { get; set; }
+        public int WildImps { get; set; }
 
         // ------------------------------------------------------------------ the save
 

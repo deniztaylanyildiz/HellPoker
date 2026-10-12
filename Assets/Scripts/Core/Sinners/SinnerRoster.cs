@@ -11,9 +11,15 @@ namespace HellPoker.Core.Sinners
         public static readonly SinnerClass King = new King();
         public static readonly SinnerClass Jester = new Jester();
 
+        public static readonly SinnerClass Summoner = new Summoner();
+
+        /// <summary>The demo's classes (the Boss Simulator offers these).</summary>
         public static IReadOnlyList<SinnerClass> All { get; } = new[] { Peasant, Warlock, King, Jester };
 
-        /// <summary>The class with this id; null for an unknown one.</summary>
-        public static SinnerClass Find(string id) => All.FirstOrDefault(c => c.Id == id);
+        /// <summary>Phase 2's classes: the demo's and the Summoner (locked until the first freedom).</summary>
+        public static IReadOnlyList<SinnerClass> PhaseTwo { get; } = new[] { Peasant, Warlock, King, Jester, Summoner };
+
+        /// <summary>The class with this id (Phase 2's included); null for an unknown one.</summary>
+        public static SinnerClass Find(string id) => PhaseTwo.FirstOrDefault(c => c.Id == id);
     }
 }

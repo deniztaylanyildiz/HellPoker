@@ -535,6 +535,42 @@ Mührü haracı %25 düşürüyor).
   iki jokerle kaybı neredeyse siliyor); Soytarı hedefin çok altında olduğu için bırakıldı.
 - En çok alınanlar: yükseltmeler (her sınıfta dördü de ~%20-22), sonra Mum Dibi, Eski Harita, Kanlı Yüzük, Demir Yemin (yaygınlık + fiyat).
 
+## On birinci tur: kilitler, Çağırıcı ve Cehennem Daireleri (2026-10-13)
+
+**Kilitler:** koşu 4 sınıf ve 14 emanetle başlar (`ChapterUnlocks`). Kilitli 10 emanet ve kilometre taşları (rekor defterinde sayılır):
+Kanlı Zar 3 koşu, Fare Dişi pazardan 3 emanet, Tuz Çemberi bir bekçiyi yen, Eski Harita Belial'in bölümüne ulaş, Gümüş Çan bir haracı tam
+öde, Kuzgun Tüyü Belial'i yen, Kara Kitap Lilith'in bölümüne ulaş, Cellat İpi Lilith'i yen, Lilith'in Gözyaşı Lucifer'e ulaş, Uçurum Sikkesi
+bir kez kurtul. İlk kurtuluş ÇAĞIRICI'yı açar (sadece Phase 2; Boss Simülatörü görmez). Kilitli emanet pazarda, bekçide, ganimette çıkmaz;
+kilitler sınıf kartında ve REKORLAR'da yazar, açılan her şey koşu sonu panelinde "AÇILDI".
+
+**Çağırıcı:** İblisler GÖZ (şeytanın kapalı bir kartı açılır), EL (bir kartın onun açık en iyi kartıyla değişir), FISILTI (sıradaki hile,
+doğrusu); elde birer kez, değişten önce; katta 5 / 15 / 8 coin (son coin alınmaz), boss masasında bar başlangıcının %2 / 5 / 3'ü kadar
+uzar (el kapanınca yazılır). Her çağrıda %10 iblis azar: bir kartın bir rütbe düşer (alt kart desteden çıkar). Dolu güç LEJYON: elde
+üçü bedava. Lucifer'in Aynası her 3 elde bir GÖZ'ü çağırır (bir kartını bilir, artırmasını ona göre yapar).
+- İstenen kese 140 / toplam ceza 6500 ile kurtuluş %19.6 (500) → **kese 200, ceza 5800** (2000 koşu: %26.8). Ara denemeler: 5800/140
+  %24.4, 5800/170 %24.7 (2000), 5600/170 %23.8 (2000).
+
+**Cehennem Daireleri** (`Circles`; birikimli; sınıf kartında ‹ DAİRE n ›, sınıf her kurtuluşta en derin açık dairesinin bir sonrakini açar,
+`ChapterRecords.CirclesOpen`; rekorlarda sınıf başına en derin kurtulunan daire):
+1 iblis keseleri +%25 · 2 haraç +20 · 3 barlar +%15 (**kalın bar**: %15 uzun başlar ve kazanç %15 az siler — tek başına uzun bar bahisler
+bara oranlı olduğu için hiçbir şey değiştirmiyordu) · 4 pazar ×1.25, ateş 2 seçenek · 5 şeytanların kötülük göstergesi bir kısa (her hile bir
+el erken, bütün masa boyunca; "bir eksik kötülükle başlar"ın tek seferlik yorumu etkisizdi), Lucifer iki mekaniği kopyalar.
+
+Simülasyon (sınıf başına 500 koşu, ortalama kurtuluş; Köylü / Büyücü / Kral / Soytarı / Çağırıcı):
+
+| Daire | Ort. | K / B / Kr / S / Ç |
+|---|---|---|
+| 0 (2000 koşu) | %25.4 | 39.9 / 21.4 / 30.9 / 8.1 / 26.8 |
+| 1 | %26.2 | 40.2 / 23.0 / 32.4 / 7.4 / 27.8 |
+| 2 | %25.9 | 40.4 / 21.4 / 30.8 / 7.8 / 29.0 |
+| 3 | %20.2 | 34.2 / 17.2 / 26.6 / 5.2 / 17.8 |
+| 4 | %20.8 | 35.2 / 17.8 / 24.6 / 8.0 / 18.2 |
+| 5 | %21.2 | 38.6 / 16.4 / 26.2 / 7.6 / 17.0 |
+
+**Hedef tutmadı** (her daire daha düşük, 5. daire %5-10). İblis keseleri iyi oynayan için kazanç (eşleşme daha uzun, daha çok coin),
+haraç +20 ve pazar küçük. Kullanıcıya seçenek (uygulanmadı, `ChapterTuning.CircleWinStepPercent` / `HELLPOKER_CIRCLE_WIN`): **her daire
+şeytanların kazancını %5 kırpsın** → 5. daire ort. %10.0 (26.6 / 5.0 / 9.8 / 3.8 / 5.0); %4 → %12.6, %8 → %2.9.
+
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

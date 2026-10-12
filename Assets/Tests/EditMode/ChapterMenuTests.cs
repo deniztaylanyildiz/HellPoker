@@ -15,14 +15,21 @@ namespace HellPoker.Core.Tests
         {
             public event Action<int> SinnerChosen;
             public event Action BackPressed;
+            public event Action<int, int> CircleStepped;
             public bool IsVisible { get; private set; }
             public string DealerId { get; private set; }
+            public IReadOnlyList<SinnerCard> Cards { get; private set; }
+            public string Note { get; private set; }
 
-            public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId)
+            public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null)
             {
                 IsVisible = true;
                 DealerId = dealerId;
+                Cards = sinners;
+                Note = note;
             }
+
+            public void Step(int index, int delta) => CircleStepped?.Invoke(index, delta);
 
             public void Hide() => IsVisible = false;
             public void Choose(int index) => SinnerChosen?.Invoke(index);
@@ -37,13 +44,17 @@ namespace HellPoker.Core.Tests
             public bool IsVisible { get; private set; }
             public string MusicId => "mammon";
             public SinnerClass Started { get; private set; }
+            public int StartedCircle { get; private set; }
             public int Abandoned { get; private set; }
             public event Action MenuRequested;
             public event Action NewRunRequested;
 
-            public void Start(SinnerClass sinnerClass)
+            public void Start(SinnerClass sinnerClass) => Start(sinnerClass, 0);
+
+            public void Start(SinnerClass sinnerClass, int circle)
             {
                 Started = sinnerClass;
+                StartedCircle = circle;
                 HasRun = true;
             }
 
@@ -216,6 +227,51 @@ private MainMenuPresenterTests.FakeMenuView _menu;
             _sinners.Choose(0);
             Assert.AreEqual(0, _session.NewRuns);
             Assert.AreEqual(0, _session.Abandoned, "the simulator's save stays");
+        }
+
+        // ------------------------------------------------------------------ the Summoner's lock and the circles of Hell
+
+        [Test]
+        public void TheGamesClassChoice_HasTheSummoner_LockedUntilTheFirstFreedom()
+        {
+            _menu.PressNewGame();
+            Assert.AreEqual(5, _sinners.Cards.Count, "the four and the Summoner");
+            SinnerCard summoner = _sinners.Cards[4];
+            Assert.AreEqual(Summoner.ClassId, summoner.Id);
+            Assert.IsTrue(summoner.Locked);
+            Assert.AreEqual(Presentation.Ui.UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone), summoner.LockNote);
+            _sinners.Choose(4);
+            Assert.IsNull(_chapters.Started, "a locked class is not chosen");
+
+            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100);
+            _sinners.Back();
+            _menu.PressNewGame();
+            Assert.IsFalse(_sinners.Cards[4].Locked, "free once: the Summoner opens");
+            _sinners.Choose(4);
+            Assert.AreEqual(Summoner.ClassId, _chapters.Started.Id);
+        }
+
+        [Test]
+        public void ACircleOpensForAClass_WithEachFreedom_AndIsChosenOnItsCard()
+        {
+            _menu.PressNewGame();
+            Assert.AreEqual(0, _sinners.Cards[0].CirclesOpen, "no circle before a freedom");
+            _sinners.Step(0, 1);
+            Assert.AreEqual(0, _sinners.Cards[0].Circle);
+
+            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100, circle: 0);
+            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100, circle: 1);
+            _sinners.Back();
+            _menu.PressNewGame();
+            Assert.AreEqual(2, _sinners.Cards[0].CirclesOpen, "free in the first circle: the second opens");
+            Assert.AreEqual(0, _sinners.Cards[1].CirclesOpen, "for that class only");
+            _sinners.Step(0, 1);
+            _sinners.Step(0, 1);
+            _sinners.Step(0, 1);
+            Assert.AreEqual(2, _sinners.Cards[0].Circle, "never past what is open");
+            Assert.AreEqual(Presentation.Ui.UiText.CircleNote(2), _sinners.Note, "its rules under the title");
+            _sinners.Choose(0);
+            Assert.AreEqual(2, _chapters.StartedCircle);
         }
     }
 }

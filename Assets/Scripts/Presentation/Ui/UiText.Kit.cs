@@ -19,6 +19,8 @@ namespace HellPoker.Presentation.Ui
                     "Yalanları ve destenin üstündeki 1-3 kartı görür. Güç: gördüğünü dibe yolla.");
                 case King.ClassId: return L("A tax per win: open a card 1, free raise 2, seize 4. No cheat touches his J Q K.",
                     "Kazanç başına vergi: kart aç 1, bedava artır 2, müsadere 4. J Q K'sına hile işlemez.");
+                case Summoner.ClassId: return L("Imps: EYE a closed card 5, HAND a swap 15, WHISPER the next cheat 8. Power: all free.",
+                    "İblisler: GÖZ kapalı kart 5, EL takas 15, FISILTI sıradaki hile 8. Güç: hepsi bedava.");
                 default: return SinnerAbility(id);
             }
         }
@@ -31,6 +33,8 @@ namespace HellPoker.Presentation.Ui
                 case Peasant.ClassId: return L("Dip into the satchel and the demon re-raises more.", "Heybeye uzanırsan şeytan daha çok artırır.");
                 case Warlock.ClassId: return L("The demon knows one of your cards.", "Şeytan kartlarından birini bilir.");
                 case King.ClassId: return L("A demon's hand lost halves the taxes.", "Kaybedilen boss eli vergiyi yarıya indirir.");
+                case Summoner.ClassId: return L("At a demon's table the imps cost bar. One in ten runs wild.",
+                    "Şeytan masasında iblisler bar ister. Onda biri azar.");
                 default: return SinnerDetail(id);
             }
         }
@@ -47,7 +51,8 @@ namespace HellPoker.Presentation.Ui
             "cards every hand. K (charged): send up to 2 seen cards to the bottom.\n" +
             "KING, TREASURY: a tax for every hand won (at most {2}). Before the draw: OPEN {3}, FREE raise {4}, SEIZE {5}. No cheat " +
             "touches his J, Q or K. A demon's hand lost halves the taxes. K (charged): a free seizure.\n" +
-            "JESTER: his jokers, as ever.\n\n" +
+            "JESTER: his jokers, as ever. SUMMONER, IMPS: EYE (a closed card) 5, HAND (yours for an open one) 15, WHISPER (the next cheat, " +
+            "true) 8 coins — at a demon's table the bar grows 2 / 5 / 3%; one imp in ten runs wild and lowers a card. K (charged): the LEGION.\n\n" +
             "THE DEMONS' RULES (their own tables): MAMMON, INTEREST: every hand you do not win, the bar grows {6}%. BELIAL, ROLE SWAP: " +
             "every 4th hand one of his face-down cards trades places with one of yours. LILITH, TEMPTATION: a card you throw that betters " +
             "her hand, she may keep ({7}%). LUCIFER, MIRROR: he copies your class. Under {8}% of the bar a demon cheats faster.",
@@ -58,7 +63,8 @@ namespace HellPoker.Presentation.Ui
             "kartlarından birini bilir. K (dolu): gördüğü en çok 2 kartı dibe yollar.\n" +
             "KRAL, HAZİNE: kazandığı her elde vergi (en çok {2}). Draw'dan önce: AÇ {3}, BEDAVA artırma {4}, MÜSADERE {5}. J, Q ve " +
             "K'sına hile işlemez. Kaybedilen boss eli vergiyi yarıya indirir. K (dolu): bedava müsadere.\n" +
-            "SOYTARI: jokerleri, her zamanki gibi.\n\n" +
+            "SOYTARI: jokerleri, her zamanki gibi. ÇAĞIRICI, İBLİSLER: GÖZ (kapalı bir kart) 5, EL (seninki açık biriyle) 15, FISILTI " +
+            "(sıradaki hile, doğrusu) 8 coin — şeytan masasında bar %2 / 5 / 3 uzar; onda bir iblis azar ve bir kartını düşürür. K (dolu): LEJYON.\n\n" +
             "ŞEYTANLARIN KURALLARI (kendi masalarında): MAMMON, FAİZ: kazanamadığın her elde bar %{6} uzar. BELIAL, ROL TAKASI: her " +
             "4. elde kapalı kartlarından biri seninkiyle yer değiştirir. LILITH, BAŞTAN ÇIKARMA: attığın kart elini iyileştiriyorsa " +
             "alabilir (%{7}). LUCIFER, AYNA: sınıfını kopyalar. Bar %{8} altına inince şeytan daha hızlı hile yapar.");

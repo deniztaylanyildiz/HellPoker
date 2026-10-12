@@ -108,6 +108,7 @@ namespace HellPoker.Presentation
             {
                 _sinnerSelect.SinnerChosen += ChooseSinner;
                 _sinnerSelect.BackPressed += BackFromSinners;
+                _sinnerSelect.CircleStepped += StepCircle;
             }
             if (_chapters != null)
             {
@@ -182,6 +183,7 @@ namespace HellPoker.Presentation
             {
                 _sinnerSelect.SinnerChosen -= ChooseSinner;
                 _sinnerSelect.BackPressed -= BackFromSinners;
+                _sinnerSelect.CircleStepped -= StepCircle;
             }
             if (_chapters != null)
             {
@@ -433,7 +435,7 @@ namespace HellPoker.Presentation
         private void ShowRecords()
         {
             if (InSimulator) _records.Show(_session.Records, _dealerCards);
-            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records));
+            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records).Concat(new[] { "" }).Concat(UiText.ProgressRecordLines(_chapters.Records)).ToList());
         }
 
         private void Choose(int index)
@@ -480,28 +482,58 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>Who was the player, up there? The class cards, over the chosen demon's hall.</summary>
+        /// <summary>The classes on the choice screen: the demo's, or Phase 2's (the Summoner too, locked until the first freedom).</summary>
+        private SinnerClass[] ChoiceClasses => _chapterChoice ? SinnerRoster.PhaseTwo.ToArray() : _classes;
+
+        /// <summary>The circle of Hell chosen on the class choice, by class (Phase 2).</summary>
+        private readonly Dictionary<string, int> _circleChoice = new Dictionary<string, int>();
+        private string _circleNote;
+
+        private int CircleOf(string classId) =>
+            Math.Min(_circleChoice.TryGetValue(classId, out int c) ? c : 0, _chapters?.Records?.CirclesOpen(classId) ?? 0);
+
         private void OpenSinnerChoice(bool curtain)
         {
             HideAll();
-            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury): their own words.
-            _sinnerSelect.Show(_classes.Select(c => new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id),
-                _chapterChoice ? UiText.ChapterSinnerAbility(c.Id) : UiText.SinnerAbility(c.Id),
-                _chapterChoice ? UiText.ChapterSinnerDetail(c.Id) : UiText.SinnerDetail(c.Id), _chapterChoice
-                    ? string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id))
-                    : string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
-                _pendingDealer?.Id);
+            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury, the imps): their own words, their
+            // locks and their circles.
+            Core.Chapters.ChapterRecords records = _chapters?.Records;
+            _sinnerSelect.Show(ChoiceClasses.Select(c => _chapterChoice
+                    ? new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.ChapterSinnerAbility(c.Id),
+                        UiText.ChapterSinnerDetail(c.Id),
+                        string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id)),
+                        !Core.Chapters.ChapterUnlocks.IsClassOpen(c.Id, records), UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone),
+                        CircleOf(c.Id), records?.CirclesOpen(c.Id) ?? 0)
+                    : new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id),
+                        string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
+                _pendingDealer?.Id, _chapterChoice ? _circleNote : null);
             if (curtain) Curtain();
+        }
+
+        /// <summary>A class card's circle arrows: the circle steps within what the class has open; its rules show under the title.</summary>
+        private void StepCircle(int index, int delta)
+        {
+            SinnerClass[] classes = ChoiceClasses;
+            if (!_chapterChoice || index < 0 || index >= classes.Length) return;
+            string id = classes[index].Id;
+            int circle = Math.Max(0, Math.Min(CircleOf(id) + Math.Sign(delta), _chapters?.Records?.CirclesOpen(id) ?? 0));
+            _circleChoice[id] = circle;
+            _circleNote = UiText.CircleNote(circle);
+            OpenSinnerChoice(curtain: false);
         }
 
         private void ChooseSinner(int index)
         {
-            if (_pendingDealer == null || index < 0 || index >= _classes.Length) return;
+            SinnerClass[] classes = ChoiceClasses;
+            if (_pendingDealer == null || index < 0 || index >= classes.Length) return;
+            if (_chapterChoice && !Core.Chapters.ChapterUnlocks.IsClassOpen(classes[index].Id, _chapters?.Records)) return;   // locked: the card says why
             Dealer dealer = _pendingDealer;
             _pendingDealer = null;
             if (_chapterChoice)
             {
                 _chapterChoice = false;
-                _chapters.Start(_classes[index]);
+                _circleNote = null;
+                _chapters.Start(classes[index], CircleOf(classes[index].Id));
                 OpenChapters();
                 return;
             }

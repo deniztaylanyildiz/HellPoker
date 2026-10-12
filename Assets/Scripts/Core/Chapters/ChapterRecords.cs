@@ -32,12 +32,46 @@ namespace HellPoker.Core.Chapters
 
         public IReadOnlyDictionary<string, int> FreedByClass => _freedByClass;
 
+        private readonly Dictionary<string, int> _circleByClass = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> _beatenByBoss = new Dictionary<string, int>();
+
+        /// <summary>The deepest circle each class walked free in (absent: never free).</summary>
+        public IReadOnlyDictionary<string, int> CircleByClass => _circleByClass;
+
+        /// <summary>How often each demon was beaten (the milestones' count).</summary>
+        public IReadOnlyDictionary<string, int> BeatenByBoss => _beatenByBoss;
+
+        /// <summary>The milestones' counts: wardens beaten, relics bought at the black market, tributes paid in full.</summary>
+        public int WardensBeaten { get; private set; }
+        public int RelicsBought { get; private set; }
+        public int TributesPaid { get; private set; }
+
+        public void WardenBeaten() => WardensBeaten++;
+        public void RelicBought() => RelicsBought++;
+        public void TributePaidInFull() => TributesPaid++;
+
+        public void BossBeaten(string bossId)
+        {
+            if (string.IsNullOrEmpty(bossId)) return;
+            _beatenByBoss[bossId] = (_beatenByBoss.TryGetValue(bossId, out int n) ? n : 0) + 1;
+        }
+
+        public int Beaten(string bossId) => bossId != null && _beatenByBoss.TryGetValue(bossId, out int n) ? n : 0;
+
+        /// <summary>The deepest circle the class walked free in; -1 for never.</summary>
+        public int BestCircle(string classId) =>
+            classId == null ? -1 : _circleByClass.TryGetValue(classId, out int c) ? c : _freedByClass.ContainsKey(classId) ? 0 : -1;   // an older book: free in the first
+
+        /// <summary>The deepest circle the class may play: one past the deepest it walked free in (0 until its first freedom).</summary>
+        public int CirclesOpen(string classId) => Math.Min(Circles.Deepest, BestCircle(classId) + 1);
+
         public int Damned => PurseEmptied + SoulsLost + CastDown + Abandoned;
 
         public void RunStarted() => Runs++;
 
         /// <summary>A run ended: how, how far it came (chapter 1-3; 4 for Lucifer's table), its class and its hands.</summary>
-        public void RunEnded(JourneyEnd end, int deepest, string classId, int hands)
+        /// <param name="circle">The circle the run was played in: a freedom there opens the next for its class.</param>
+        public void RunEnded(JourneyEnd end, int deepest, string classId, int hands, int circle = 0)
         {
             DeepestChapter = Math.Max(DeepestChapter, deepest);
             if (deepest >= 4) LuciferReached++;
@@ -47,6 +81,7 @@ namespace HellPoker.Core.Chapters
                     Freed++;
                     if (!string.IsNullOrEmpty(classId)) _freedByClass[classId] = (_freedByClass.TryGetValue(classId, out int n) ? n : 0) + 1;
                     if (!FastestFreedom.HasValue || hands < FastestFreedom.Value) FastestFreedom = hands;
+                    if (!string.IsNullOrEmpty(classId)) _circleByClass[classId] = Math.Max(BestCircle(classId), Circles.Clamp(circle));
                     break;
                 case JourneyEnd.PurseEmptied: PurseEmptied++; break;
                 case JourneyEnd.Damned: SoulsLost++; break;
@@ -65,6 +100,11 @@ namespace HellPoker.Core.Chapters
                 "fastest=" + (FastestFreedom.HasValue ? I(FastestFreedom.Value) : "")
             };
             lines.AddRange(_freedByClass.OrderBy(p => p.Key).Select(p => "freed." + p.Key + "=" + I(p.Value)));
+            lines.AddRange(_circleByClass.OrderBy(p => p.Key).Select(p => "circle." + p.Key + "=" + I(p.Value)));
+            lines.AddRange(_beatenByBoss.OrderBy(p => p.Key).Select(p => "beaten." + p.Key + "=" + I(p.Value)));
+            lines.Add("wardens=" + I(WardensBeaten));
+            lines.Add("bought=" + I(RelicsBought));
+            lines.Add("tributes=" + I(TributesPaid));
             return string.Join("\n", lines);
         }
 
@@ -92,6 +132,13 @@ namespace HellPoker.Core.Chapters
             book.FastestFreedom = values.TryGetValue("fastest", out string f) && f.Length > 0 ? Count("fastest") : (int?)null;
             foreach (var pair in values.Where(p => p.Key.StartsWith("freed.", StringComparison.Ordinal)))
                 book._freedByClass[pair.Key.Substring("freed.".Length)] = Count(pair.Key);
+            foreach (var pair in values.Where(p => p.Key.StartsWith("circle.", StringComparison.Ordinal)))
+                book._circleByClass[pair.Key.Substring("circle.".Length)] = Circles.Clamp(Count(pair.Key));
+            foreach (var pair in values.Where(p => p.Key.StartsWith("beaten.", StringComparison.Ordinal)))
+                book._beatenByBoss[pair.Key.Substring("beaten.".Length)] = Count(pair.Key);
+            book.WardensBeaten = Count("wardens");
+            book.RelicsBought = Count("bought");
+            book.TributesPaid = Count("tributes");
             return book;
         }
     }

@@ -55,14 +55,15 @@ namespace HellPoker.Core.Chapters
         public override void HandDealt(HellPokerGame game) => StruckThisHand = false;
 
         /// <summary>The rule for a demon's table (Lucifer's mirrors the class); null for a demon without one.</summary>
-        public static DemonRule For(string bossId, int barStart, ClassKit kit, IRandomSource random)
+        /// <param name="mirrorsTwo">Lucifer copies a second mechanic too (the fifth circle).</param>
+        public static DemonRule For(string bossId, int barStart, ClassKit kit, IRandomSource random, bool mirrorsTwo = false)
         {
             switch (bossId)
             {
                 case DealerRoster.MammonId: return new MammonInterest(barStart, random);
                 case DealerRoster.BelialId: return new BelialRoleSwap(barStart, random);
                 case DealerRoster.LilithId: return new LilithTemptation(barStart, random);
-                case DealerRoster.LuciferId: return new LuciferMirror(barStart, random, kit);
+                case DealerRoster.LuciferId: return new LuciferMirror(barStart, random, kit, mirrorsTwo ? LuciferMirror.SecondFor(kit.Kind) : (KitKind?)null);
                 default: return null;
             }
         }
@@ -216,16 +217,33 @@ namespace HellPoker.Core.Chapters
     /// </summary>
     public sealed class LuciferMirror : DemonRule
     {
-        private readonly ClassKit _kit;
+        /// <summary>Against the Summoner he summons his own Eye every this many hands: he knows one of the player's cards.</summary>
+        public const int EyeEveryHands = 3;
 
-        public LuciferMirror(int barStart, IRandomSource random, ClassKit kit) : base(barStart, random)
+        private readonly ClassKit _kit;
+        private int _hands;
+
+        public LuciferMirror(int barStart, IRandomSource random, ClassKit kit, KitKind? second = null) : base(barStart, random)
         {
             _kit = kit ?? throw new ArgumentNullException(nameof(kit));
+            Second = second;
         }
 
         public override string Id => "mirror";
 
         public KitKind Mirrors => _kit.Kind;
+
+        /// <summary>The second mechanic he copies (the fifth circle); null for none.</summary>
+        public KitKind? Second { get; }
+
+        /// <summary>The fifth circle's second copy: the satchel — against the Peasant (his own), the prophecy.</summary>
+        public static KitKind SecondFor(KitKind kind) => kind == KitKind.Satchel ? KitKind.Prophecy : KitKind.Satchel;
+
+        /// <summary>He plays this mechanic against the player (his class's, or the second).</summary>
+        public bool Copies(KitKind kind) => _kit.Kind == kind || Second == kind;
+
+        /// <summary>Against the Summoner: the card of the player's his Eye showed him this hand; null when none.</summary>
+        public Card? EyeSaw { get; private set; }
 
         /// <summary>The card Lucifer seized this hand (and gave); null when none.</summary>
         public Card? Seized { get; private set; }
@@ -234,7 +252,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>Against the Warlock: this hand he sent the top card to the bottom (rather than drawing it).</summary>
         public bool SentDown { get; private set; }
 
-        public override IEnumerable<Card> CardsOutOfDeck => _kit.Kind == KitKind.Satchel && _kit.LuciferBag.HasValue
+        public override IEnumerable<Card> CardsOutOfDeck => Copies(KitKind.Satchel) && _kit.LuciferBag.HasValue
             ? new[] { _kit.LuciferBag.Value } : Enumerable.Empty<Card>();
 
         public override void HandDealt(HellPokerGame game)
@@ -242,13 +260,28 @@ namespace HellPoker.Core.Chapters
             base.HandDealt(game);
             Seized = GivenBack = null;
             SentDown = false;
+            EyeSaw = null;
+            if (Copies(KitKind.Summon) && ++_hands % EyeEveryHands == 0)
+            {
+                EyeSaw = game.PlayerHand[Random.Next(Hand.Size)];
+                StruckThisHand = true;
+                Triggers++;
+            }
+        }
+
+        /// <summary>His Eye showed him a high card: with less than two pair he does not raise back; a low one: he raises anyway.</summary>
+        public override bool HouseReRaises(HellPokerGame game, bool wants)
+        {
+            if (!EyeSaw.HasValue || EyeSaw.Value.IsJoker) return wants;
+            if (EyeSaw.Value.Rank >= Rank.Jack) return wants && game.Evaluator.Evaluate(game.HouseHand).Category >= HandCategory.TwoPair;
+            return wants || EyeSaw.Value.Rank <= Rank.Nine;
         }
 
         // ---- against the Peasant: a satchel of one
 
         public override IReadOnlyDictionary<int, Card> HouseTakesFromOutside(HellPokerGame game, IReadOnlyList<int> discards)
         {
-            if (_kit.Kind != KitKind.Satchel || !_kit.LuciferBag.HasValue || discards.Count == 0) return null;
+            if (!Copies(KitKind.Satchel) || !_kit.LuciferBag.HasValue || discards.Count == 0) return null;
             Card bag = _kit.LuciferBag.Value;
             int at = BestPlaceFor(game, game.HouseHand, bag, discards.Contains);
             if (at < 0) return null;
@@ -260,7 +293,7 @@ namespace HellPoker.Core.Chapters
 
         public override void HandDrawn(HellPokerGame game, ExchangeResult player, ExchangeResult house)
         {
-            if (_kit.Kind != KitKind.Satchel || _kit.LuciferBag.HasValue) return;
+            if (!Copies(KitKind.Satchel) || _kit.LuciferBag.HasValue) return;
             Card[] thrown = house.Discarded.Where(c => !c.IsJoker && !game.PlayerHand.Contains(c)).ToArray();
             if (thrown.Length > 0) _kit.LuciferBag = thrown.OrderByDescending(c => c.Rank).First();
         }
@@ -269,7 +302,7 @@ namespace HellPoker.Core.Chapters
 
         public override IReadOnlyList<int> AdjustHouseDiscards(HellPokerGame game, IReadOnlyList<int> discards)
         {
-            if (_kit.Kind != KitKind.Prophecy || game.Deck.Count < 2) return discards;
+            if (!Copies(KitKind.Prophecy) || game.Deck.Count < 2) return discards;
             Card top = game.Deck.Remaining[game.Deck.Remaining.Count - 1];
             if (top.IsJoker) return discards;
             int at = BestPlaceFor(game, game.HouseHand, top, discards.Count > 0 ? (Func<int, bool>)discards.Contains : null);
@@ -297,13 +330,13 @@ namespace HellPoker.Core.Chapters
 
         public override void HandSettled(HellPokerGame game, RoundResult round)
         {
-            if (_kit.Kind == KitKind.Treasury && !round.Folded && !round.HouseFolded && round.Showdown?.Outcome == ShowdownOutcome.HouseWins)
+            if (Copies(KitKind.Treasury) && !round.Folded && !round.HouseFolded && round.Showdown?.Outcome == ShowdownOutcome.HouseWins)
                 _kit.LuciferTaxes = Math.Min(ClassKit.TaxMax, _kit.LuciferTaxes + 1);
         }
 
         public override void DrawBegins(HellPokerGame game)
         {
-            if (_kit.Kind != KitKind.Treasury || _kit.LuciferTaxes < ClassKit.SeizePrice) return;
+            if (!Copies(KitKind.Treasury) || _kit.LuciferTaxes < ClassKit.SeizePrice) return;
             Hand house = game.HouseHand;
             int bestMine = -1, bestHis = -1;
             HandEvaluation bestEval = game.Evaluator.Evaluate(house);

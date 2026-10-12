@@ -17,6 +17,7 @@ namespace HellPoker.Core.Tests
         /// <summary>Before the draw is made (every card seen): the King's acts.</summary>
         public static void BeforeDraw(HellPokerGame game, ChapterHooks kit)
         {
+            if (kit?.Summon != null && game.Phase == GamePhase.Drawing) Summon(game, kit.Summon);
             TreasuryPowers treasury = kit?.Treasury;
             if (treasury == null || game.Phase != GamePhase.Drawing) return;
             int give = WorstCard(game, i => treasury.CanGive(game, i));
@@ -106,6 +107,29 @@ namespace HellPoker.Core.Tests
             int place = discards.OrderBy(i => i).First();
             int[] rest = discards.Where(d => d != place).ToArray();
             return Kept(game, game.PlayerHand.With(place, top[0]), rest) > Kept(game, game.PlayerHand, discards);
+        }
+
+        /// <summary>
+        /// The Summoner: the Legion whenever charged (then all three imps, free); otherwise the Hand only when a demon's open card betters
+        /// the hand to two pair or better (on the floors only with coins to spare).
+        /// </summary>
+        private static void Summon(HellPokerGame game, SummonPowers summon)
+        {
+            if (summon.WhyNoLegion(game) == KitRefusal.None) summon.CallLegion(game);
+            if (summon.Legion)
+            {
+                if (summon.WhyNot(game, SummonAct.Eye) == KitRefusal.None) summon.Eye(game);
+                if (summon.WhyNot(game, SummonAct.Whisper) == KitRefusal.None) summon.Whisper(game);
+            }
+            if (summon.WhyNot(game, SummonAct.Hand) != KitRefusal.None) return;
+            int give = WorstCard(game, i => summon.CanGive(game, i));
+            if (give < 0) return;
+            HandCategory now = game.Evaluator.Evaluate(game.PlayerHand).Category;
+            HandCategory best = Enumerable.Range(0, game.HouseCardsRevealed).Where(h => !game.IsHouseCardFalse(h) && !game.HouseHand[h].IsJoker)
+                .Select(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])).Category).DefaultIfEmpty(now).Max();
+            if (best <= now) return;
+            bool worth = summon.Legion || (best >= HandCategory.TwoPair && (summon.AtDemonsTable || summon.Purse != null && summon.Purse.Coins - summon.PriceOf(SummonAct.Hand) >= 40));
+            if (worth) summon.Swap(game, give);
         }
 
         /// <summary>The lowest card that makes nothing (a card in no pair); -1 when none may be given.</summary>

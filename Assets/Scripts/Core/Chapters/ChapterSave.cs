@@ -19,6 +19,9 @@ namespace HellPoker.Core.Chapters
 
         public string ClassId;
         public int Seed;
+
+        /// <summary>The circle of Hell (optional key; an older save: 0).</summary>
+        public int Circle;
         public int Chapter = 1;
         public bool Lucifer;
         public int LuciferBarStart;
@@ -94,6 +97,7 @@ namespace HellPoker.Core.Chapters
                 "p2=" + Version,
                 "class=" + ClassId,
                 "seed=" + Seed.ToString(CultureInfo.InvariantCulture),
+                "circle=" + Circle,
                 "chapter=" + Chapter,
                 "lucifer=" + B(Lucifer),
                 "lucifer.start=" + LuciferBarStart,
@@ -176,6 +180,7 @@ namespace HellPoker.Core.Chapters
                 {
                     ClassId = S("class"),
                     Seed = I("seed"),
+                    Circle = Circles.Clamp(I("circle")),
                     Chapter = I("chapter", 1),
                     Lucifer = Bool("lucifer"),
                     LuciferBarStart = I("lucifer.start"),

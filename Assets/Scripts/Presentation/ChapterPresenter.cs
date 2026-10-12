@@ -162,12 +162,17 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ the run
 
-        public void Start(SinnerClass sinnerClass)
+        public void Start(SinnerClass sinnerClass) => Start(sinnerClass, 0);
+
+        /// <summary>A new chapter run as this class in <paramref name="circle"/> (the deepest the class has open at most).</summary>
+        public void Start(SinnerClass sinnerClass, int circle)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
             if (HasRun) Abandon();
             EnsureTable();
-            _journey = ChapterJourney.Begin(sinnerClass, _newSeed());
+            circle = Math.Max(0, Math.Min(circle, _records.CirclesOpen(sinnerClass.Id)));
+            _journey = ChapterJourney.Begin(sinnerClass, _newSeed(), circle);
+            _journey.RelicAvailable = id => ChapterUnlocks.IsRelicOpen(id, _records);
             _match = null;
             _bossGame = null;
             _atTable = false;
@@ -179,7 +184,7 @@ namespace HellPoker.Presentation
             _records.RunStarted();
             _archive?.SaveRecords(_records);
             _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, BossShares.Total(sinnerClass.Id), DateTime.Now);
-            Note($"phase 2 run: {sinnerClass.Id}, {_run.Purse.Coins} coins, sentence {BossShares.Total(sinnerClass.Id)} years");
+            Note($"phase 2 run: {sinnerClass.Id}, circle {circle}, {_run.Purse.Coins} coins, sentence {BossShares.Total(sinnerClass.Id)} years");
             ShowMap();
             ShowChapterOpening();
         }
@@ -451,7 +456,9 @@ namespace HellPoker.Presentation
                 {
                     if (market.BuyRelic(id))
                     {
-                        Note($"black market: bought {id} for {offer.Price} (purse {_run.Purse.Coins})");
+                        Note($"black market: bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
+                        _records.RelicBought();
+                        _archive?.SaveRecords(_records);
                         ShowMarket(market, UiText.RelicName(id));
                     }
                 });
@@ -575,34 +582,45 @@ namespace HellPoker.Presentation
             bool silence = _run.CanTend(FireChoice.SilenceCurse);
             bool whet = _run.CanTend(FireChoice.WhetSoul);
             string genitive = UiText.GenitiveInSentence(UiText.Dealer(_run.Rules.BossId));
-            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, string.Format(UiText.FireTextFormat, boss),
-                    new[]
-                    {
-                        new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)),
-                        new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence),
-                        new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, genitive, ChapterRun.RestBarPercent)),
-                        new PanelOption(UiText.FireWhet, string.Format(UiText.FireWhetDetailFormat, genitive, ChapterRun.WhetBarPercent) +
-                            (whet ? "" : "\n" + UiText.FireWhetNone), whet)
-                    }),
-                new Action[]
+            var options = new List<PanelOption>();
+            var answers = new List<Action>();
+            // From the fourth circle on the fire offers two of its four boons.
+            foreach (FireChoice choice in _run.FireOffers)
+            {
+                switch (choice)
                 {
-                    () => Tend(FireChoice.BreakFirstCheat, null, UiText.FireDoneBreak),
-                    () =>
-                    {
-                        if (!silence) return;
-                        var relics = _run.Effects.Relics.ToArray();
-                        if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
-                        else ShowSilenceChoice(relics);
-                    },
-                    () => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest),
-                    () =>
-                    {
-                        if (!whet) return;
-                        Tend(FireChoice.WhetSoul, null, null);
-                    }
-                }, "fire");
+                    case FireChoice.BreakFirstCheat:
+                        options.Add(new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)));
+                        answers.Add(() => Tend(FireChoice.BreakFirstCheat, null, UiText.FireDoneBreak));
+                        break;
+                    case FireChoice.SilenceCurse:
+                        options.Add(new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence));
+                        answers.Add(() =>
+                        {
+                            if (!silence) return;
+                            var relics = _run.Effects.Relics.ToArray();
+                            if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
+                            else ShowSilenceChoice(relics);
+                        });
+                        break;
+                    case FireChoice.RestByTheFire:
+                        options.Add(new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, genitive, ChapterRun.RestBarPercent)));
+                        answers.Add(() => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest));
+                        break;
+                    default:
+                        options.Add(new PanelOption(UiText.FireWhet, string.Format(UiText.FireWhetDetailFormat, genitive, ChapterRun.WhetBarPercent) +
+                            (whet ? "" : "\n" + UiText.FireWhetNone), whet));
+                        answers.Add(() =>
+                        {
+                            if (whet) Tend(FireChoice.WhetSoul, null, null);
+                        });
+                        break;
+                }
+            }
+            string text = string.Format(UiText.FireTextFormat, boss);
+            if (_run.FireOffers.Count < 4) text += "\n" + UiText.FireCircleNote;
+            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, text, options), answers, "fire");
         }
-
         private void ShowSilenceChoice(IReadOnlyList<string> relics)
         {
             var options = relics.Select(id => new PanelOption(UiText.RelicName(id), "− " + UiText.RelicCurse(id))).ToList();
@@ -663,6 +681,11 @@ namespace HellPoker.Presentation
             int relicsBefore = _run.Effects.Relics.Count;
             _run.FinishTable(match);
             _journey.FloorHands += match.HandsPlayed;
+            if (match.IsWarden && match.MatchWon && !gamble)
+            {
+                _records.WardenBeaten();
+                _archive?.SaveRecords(_records);
+            }
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
             string kind = gamble ? "gambler's hand" : match.IsWarden ? "warden" : "imp's table";
             Note($"chapter {_journey.Chapter} floor {(_run.Current?.Floor ?? 0) + 1}: {kind}, {match.HandsPlayed} hands, {Signed(match.Coins)} coins" +
@@ -744,6 +767,11 @@ namespace HellPoker.Presentation
         {
             ClosePanel();
             GateToll toll = _run.PayTribute();
+            if (toll.PaidInFull)
+            {
+                _records.TributePaidInFull();
+                _archive?.SaveRecords(_records);
+            }
             Note($"chapter {_journey.Chapter} gate: tribute {_run.Tribute}, had {toll.CoinsBefore}, missing {toll.Missing} (+{toll.YearsForMissing} years)" +
                  (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}");
             _bossGame = _run.OpenBossTable(_bossTable);
@@ -779,6 +807,8 @@ namespace HellPoker.Presentation
                 return;
             }
             _run.LeaveBossTable(0);
+            _records.BossBeaten(rules.BossId);
+            _archive?.SaveRecords(_records);
             Note($"{rules.BossId}: beaten in {game.RoundNumber} hands");
             if (_journey.Chapter >= ChapterRules.Chapters)
             {
@@ -912,7 +942,11 @@ namespace HellPoker.Presentation
             ChapterJourney journey = _journey;
             int deepest = journey.Stage == JourneyStage.Lucifer ? 4 : journey.Chapter;
             journey.Finish(end);
-            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands);
+            ChapterRecords before = ChapterRecords.Decode(_records.Encode());
+            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands, journey.Circle);
+            IReadOnlyList<string> opened = ChapterUnlocks.Opened(before, _records);
+            bool circleOpened = end == JourneyEnd.Freed && _records.CirclesOpen(journey.Sinner.Id) > before.CirclesOpen(journey.Sinner.Id);
+            if (opened.Count > 0) Note("unlocked: " + string.Join(", ", opened));
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
             _log?.End(end.ToString().ToUpperInvariant(), _run.Years, journey.TotalHands);
@@ -949,6 +983,10 @@ namespace HellPoker.Presentation
                     break;
             }
             text += "\n\n" + Summary(journey);
+            foreach (string id in opened)
+                text += "\n" + string.Format(UiText.UnlockedFormat, id == Core.Sinners.Summoner.ClassId ? UiText.SinnerName(id) : UiText.RelicName(id));
+            if (circleOpened)
+                text += "\n" + string.Format(UiText.CircleOpenedFormat, UiText.SinnerName(journey.Sinner.Id), _records.CirclesOpen(journey.Sinner.Id));
             ShowMap();
             ShowPanel(new PanelCard(portrait, UiText.Dealer(portrait).Name, title, text,
                     new[] { new PanelOption(UiText.ChapterNewRun), new PanelOption(UiText.Menu, isLeave: true) }),
@@ -1020,6 +1058,7 @@ namespace HellPoker.Presentation
                 return;
             }
             _journey = journey;
+            _journey.RelicAvailable = id => ChapterUnlocks.IsRelicOpen(id, _records);
             _ended = false;
             _endTrack = null;
             _visible = true;

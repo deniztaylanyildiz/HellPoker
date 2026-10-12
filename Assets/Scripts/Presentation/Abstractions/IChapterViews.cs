@@ -188,6 +188,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A new chapter run as this class (a run in progress is abandoned: it counts as damned).</summary>
         void Start(Core.Sinners.SinnerClass sinnerClass);
 
+        /// <summary>A new chapter run as this class in a circle of Hell (at most the deepest the class has open).</summary>
+        void Start(Core.Sinners.SinnerClass sinnerClass, int circle);
+
         /// <summary>Back to the run that waits (the saved one is loaded; a hand left in the middle is lost).</summary>
         void Continue();
 

@@ -92,7 +92,7 @@ namespace HellPoker.Core.Tests
                 purse.imp, purse.warden, step, EnvInt("HELLPOKER_CAP", designer.CapAntes), EnvInt("HELLPOKER_MULT", designer.MultiplierCap),
                 firstImpCoins: EnvInt("HELLPOKER_FIRST_IMP", purse.imp / 2))
                 .WithStartPercent(EnvInt("HELLPOKER_START", 100));
-            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester")
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
 
             var report = new StringBuilder();
@@ -343,12 +343,13 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<string, int> HeldAtCh2 = new Dictionary<string, int>(), FreedHeldAtCh2 = new Dictionary<string, int>();
 
             /// <summary>The class mechanics used, over all runs.</summary>
-            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost;
+            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost, Summons, WildImps;
 
             public void AddKit(ClassKit kit)
             {
                 Kept += kit.Kept; Taken += kit.TakenFromSatchel; Harvests += kit.Harvests; Rearranges += kit.Rearranges; Reveals += kit.Reveals;
                 FreeRaises += kit.FreeRaises; Seizures += kit.Seizures; TaxesEarned += kit.TaxesEarned; TaxesLost += kit.TaxesLost;
+                Summons += kit.Summons; WildImps += kit.WildImps;
             }
         }
 
@@ -369,8 +370,11 @@ namespace HellPoker.Core.Tests
             {
                 if (EnvInt("HELLPOKER_JESTER_PURSE", 0) > 0) ChapterTuning.StartingCoins[Jester.ClassId] = EnvInt("HELLPOKER_JESTER_PURSE", 0);
                 if (EnvInt("HELLPOKER_JESTER_TOTAL", 0) > 0) ChapterTuning.SentenceTotals[Jester.ClassId] = EnvInt("HELLPOKER_JESTER_TOTAL", 0);
+                if (EnvInt("HELLPOKER_SUMMONER_PURSE", 0) > 0) ChapterTuning.StartingCoins[Summoner.ClassId] = EnvInt("HELLPOKER_SUMMONER_PURSE", 0);
+                if (EnvInt("HELLPOKER_SUMMONER_TOTAL", 0) > 0) ChapterTuning.SentenceTotals[Summoner.ClassId] = EnvInt("HELLPOKER_SUMMONER_TOTAL", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE2", 0) > 0) ChapterTuning.TributeOverStart[2] = EnvInt("HELLPOKER_TRIBUTE2", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
+                ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", 0);
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
                 WholeRunReport();
             }
@@ -385,10 +389,10 @@ namespace HellPoker.Core.Tests
         {
             int runs = EnvInt("HELLPOKER_RUNS", 1000);
             int seedShift = EnvInt("HELLPOKER_SEED", 0);
-            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester")
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
             var report = new StringBuilder();
-            report.AppendLine($"Phase 2 whole runs: {runs} per class, the designer's numbers. Player: the chapter simulation's on the floors, the balance " +
+            report.AppendLine($"Phase 2 whole runs: {runs} per class, circle {EnvInt("HELLPOKER_CIRCLE", 0)}. Player: the chapter simulation's on the floors, the balance " +
                               "simulation's at the tables; a demon's spoils: a relic while a slot is free, else the coins.");
             report.AppendLine("Targets: purse emptied 10-25% a chapter; tribute paid in full 40-60%; Mammon 15-25 hands / 10-20% damned, Belial 15-25 / 15-25%, " +
                               "Lilith 20-30 / 20-30%, Lucifer 15-25 / cast down 30-50%.");
@@ -446,7 +450,8 @@ namespace HellPoker.Core.Tests
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
                 report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)} / {Avg((int)t.Harvests, t.Runs)};  " +
                                   $"{Avg((int)t.Rearranges, t.Runs)};  {Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
-                                  $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)}");
+                                  $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)};  imps {Avg((int)t.Summons, t.Runs)} " +
+                                  $"(wild {Avg((int)t.WildImps, t.Runs)})");
 
             report.AppendLine();
             report.AppendLine("relics and upgrades: taken (market + wardens + spoils; the fire's upgrades), and freedom of the runs that began chapter 2 " +
@@ -480,7 +485,7 @@ namespace HellPoker.Core.Tests
         private static void PlayWholeRun(SinnerClass cls, int seed, RunTally tally, RunTally all)
         {
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
-            ChapterJourney journey = ChapterJourney.Begin(cls, seed);
+            ChapterJourney journey = ChapterJourney.Begin(cls, seed, EnvInt("HELLPOKER_CIRCLE", 0));   // a knob: the circle of Hell
             if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
             PlayWholeRun(journey, seed, tally, all);
             foreach (RunTally t in new[] { tally, all }) t.AddKit(journey.Kit);

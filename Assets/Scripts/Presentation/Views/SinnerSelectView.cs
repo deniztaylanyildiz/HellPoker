@@ -40,6 +40,21 @@ namespace HellPoker.Presentation.Views
 
         public event Action<int> SinnerChosen;
         public event Action BackPressed;
+        public event Action<int, int> CircleStepped;
+
+        private Text _subtitle;
+
+        /// <summary>Below this card width the portrait is drawn once (48 px), not twice: five cards need the room for their words.</summary>
+        private const int SmallPortraitBelow = 100;
+
+        /// <summary>How far up a card's words move when its portrait is drawn once.</summary>
+        private int Shift => CardWidth < SmallPortraitBelow ? 48 : 0;
+
+        /// <summary>Where the ability text starts on the cards on show.</summary>
+        public int AbilityTopNow => AbilityTop - Shift;
+
+        /// <summary>The top of the circle row (Phase 2): the ability and the price must end above it.</summary>
+        public const int CircleTop = ChooseTop - 13;
 
         public bool IsVisible => _canvas.enabled;
 
@@ -59,8 +74,8 @@ namespace HellPoker.Presentation.Views
 
             UiFactory.CreateText("Title", screen, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.ChooseSinnerTitle)
                 .rectTransform.PlaceTL(0, 4, PixelScreen.Width, 16);
-            UiFactory.CreateText("Subtitle", screen, "", 8, Palette.BoneMid).WithOutline().Localized(() => UiText.ChooseSinnerSubtitle)
-                .rectTransform.PlaceTL(0, 21, PixelScreen.Width, 9);
+            _subtitle = UiFactory.CreateText("Subtitle", screen, UiText.ChooseSinnerSubtitle, 8, Palette.BoneMid).WithOutline();
+            _subtitle.rectTransform.PlaceTL(0, 21, PixelScreen.Width, 9);
 
             _cards = UiFactory.CreateRect("Cards", screen).Stretch();
 
@@ -70,8 +85,10 @@ namespace HellPoker.Presentation.Views
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
-        public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId)
+        public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null)
         {
+            _subtitle.text = note ?? UiText.ChooseSinnerSubtitle;
+            _subtitle.color = note == null ? Palette.BoneMid : Palette.Ember;
             foreach (Transform child in _cards)
             {
                 child.gameObject.SetActive(false);
@@ -104,33 +121,59 @@ namespace HellPoker.Presentation.Views
             Transform card = box.transform;
 
             // The portrait at twice its size (48 → 96): whole pixels.
+            // The portrait at twice its size (48 → 96) — once (48) when five cards share the row: whole pixels either way.
+            int size = Shift > 0 ? 48 : 96;
             Image frame = UiFactory.CreateImage("Frame", card, Palette.Black);
-            frame.rectTransform.PlaceTL((CardWidth - 100) / 2, 6, 100, 100);
-            UiFactory.AddBorder(frame.gameObject, Palette.Gold, 1f);
+            frame.rectTransform.PlaceTL((CardWidth - size - 4) / 2, 6, size + 4, size + 4);
+            UiFactory.AddBorder(frame.gameObject, sinner.Locked ? Palette.BoneDark : Palette.Gold, 1f);
             Sprite portrait = UiArt.SinnerPortrait(sinner.Id);
-            Image picture = UiFactory.CreateImage("Portrait", frame.transform, portrait != null ? Color.white : Palette.Plum);
+            Image picture = UiFactory.CreateImage("Portrait", frame.transform, portrait == null ? Palette.Plum : sinner.Locked ? Palette.Dusk : Color.white);
             picture.sprite = portrait;
             picture.raycastTarget = false;
-            picture.rectTransform.PlaceTL(2, 2, 96, 96);
+            picture.rectTransform.PlaceTL(2, 2, size, size);
 
-            UiFactory.CreateText("Name", card, sinner.Name, 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline()
-                .rectTransform.PlaceTL(0, 110, CardWidth, 8);
+            int shift = Shift;
+            UiFactory.CreateText("Name", card, sinner.Name, 8, sinner.Locked ? Palette.BoneDark : Palette.GoldLight, style: FontStyle.Bold).WithOutline()
+                .rectTransform.PlaceTL(0, 110 - shift, CardWidth, 8);
             UiFactory.CreateText("Title", card, sinner.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter)
-                .rectTransform.PlaceTL(4, 120, CardWidth - 8, 18);
-            UiFactory.CreateText("Start", card, sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter)
-                .rectTransform.PlaceTL(0, 140, CardWidth, 9);
-            // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE.
-            Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, Palette.Bone, TextAnchor.UpperLeft);
-            ability.rectTransform.PlaceTL(TextX, AbilityTop, CardWidth - 2 * TextX, 9);
+                .rectTransform.PlaceTL(4, 120 - shift, CardWidth - 8, 18);
+            UiFactory.CreateText("Start", card, sinner.Locked ? UiText.LockedLabel : sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter)
+                .rectTransform.PlaceTL(0, 140 - shift, CardWidth, 9);
+            // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE (and the
+            // circle row). A locked class says what opens it in place of its price.
+            int top = AbilityTop - shift;
+            Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, sinner.Locked ? Palette.BoneDark : Palette.Bone, TextAnchor.UpperLeft);
+            ability.rectTransform.PlaceTL(TextX, top, CardWidth - 2 * TextX, 9);
             int abilityHeight = Mathf.CeilToInt(ability.preferredHeight);
-            ability.rectTransform.PlaceTL(TextX, AbilityTop, CardWidth - 2 * TextX, abilityHeight);
-            Text detail = UiFactory.CreateText("Detail", card, sinner.Detail, 8, Palette.LilacLight, TextAnchor.UpperLeft);
-            detail.rectTransform.PlaceTL(TextX, AbilityTop + abilityHeight + 2, CardWidth - 2 * TextX, 9);
-            detail.rectTransform.PlaceTL(TextX, AbilityTop + abilityHeight + 2, CardWidth - 2 * TextX, Mathf.CeilToInt(detail.preferredHeight));
+            ability.rectTransform.PlaceTL(TextX, top, CardWidth - 2 * TextX, abilityHeight);
+            Text detail = UiFactory.CreateText("Detail", card, sinner.Locked ? sinner.LockNote : sinner.Detail, 8,
+                sinner.Locked ? Palette.Ember : Palette.LilacLight, TextAnchor.UpperLeft);
+            detail.rectTransform.PlaceTL(TextX, top + abilityHeight + 2, CardWidth - 2 * TextX, 9);
+            detail.rectTransform.PlaceTL(TextX, top + abilityHeight + 2, CardWidth - 2 * TextX, Mathf.CeilToInt(detail.preferredHeight));
 
-            Button choose = UiFactory.CreateButton($"ChooseSinner{index}", card, UiText.ChooseSinner, 8, out _, ButtonSkin.Ember);
-            ((RectTransform)choose.transform).PlaceTL((CardWidth - 88) / 2, ChooseTop, 88, 18);
+            if (sinner.ShowsCircles && !sinner.Locked) BuildCircleRow(card, sinner, index);
+
+            Button choose = UiFactory.CreateButton($"ChooseSinner{index}", card, sinner.Locked ? UiText.LockedLabel : UiText.ChooseSinner, 8, out _,
+                sinner.Locked ? ButtonSkin.Ash : ButtonSkin.Ember);
+            ((RectTransform)choose.transform).PlaceTL((CardWidth - Math.Min(88, CardWidth - 8)) / 2, ChooseTop, Math.Min(88, CardWidth - 8), 18);
             choose.onClick.AddListener(() => SinnerChosen?.Invoke(index));
+        }
+
+        /// <summary>Phase 2's circle row: ‹ CIRCLE n › (the arrows only where there is a circle to go to).</summary>
+        private void BuildCircleRow(Transform card, SinnerCard sinner, int index)
+        {
+            string label = sinner.Circle <= 0 ? UiText.CircleNone : string.Format(UiText.CircleLabelFormat, sinner.Circle);
+            Text text = UiFactory.CreateText("Circle", card, label, 8, sinner.Circle > 0 ? Palette.Ember : Palette.BoneMid, TextAnchor.MiddleCenter);
+            text.rectTransform.PlaceTL(14, CircleTop, CardWidth - 28, 11);
+            if (sinner.Circle > 0) AddArrow(card, $"CircleDown{index}", "<", 3, () => CircleStepped?.Invoke(index, -1));
+            if (sinner.Circle < sinner.CirclesOpen) AddArrow(card, $"CircleUp{index}", ">", CardWidth - 15, () => CircleStepped?.Invoke(index, 1));
+        }
+
+        private static void AddArrow(Transform card, string name, string glyph, int x, Action pressed)
+        {
+            Button arrow = UiFactory.CreateButton(name, card, glyph, 8, out _, ButtonSkin.Ash);
+            ((RectTransform)arrow.transform).PlaceTL(x, CircleTop, 12, 11);
+            arrow.onClick.AddListener(() => pressed());
         }
     }
 }

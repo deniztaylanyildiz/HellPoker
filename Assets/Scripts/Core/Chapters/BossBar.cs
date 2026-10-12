@@ -23,6 +23,7 @@ namespace HellPoker.Core.Chapters
             { Peasant.ClassId, new[] { 1300, 1950, 2200, 1050 } },   // 6500
             { Warlock.ClassId, new[] { 1300, 1950, 2200, 1050 } },   // 6500
             { King.ClassId,    new[] { 1600, 2400, 2700, 1300 } },   // 8000
+            { Summoner.ClassId, new[] { 1160, 1740, 1972, 928 } },   // 5800 (6500 and 140 coins asked: 19.6% free; 200 coins: 26.8%)
         };
 
         /// <summary>The years a sinner of <paramref name="classId"/> owes <paramref name="bossId"/> (any other class: the Peasant's).</summary>
@@ -145,10 +146,11 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>The demon's table for a bar: the boss's own temper, cheats and payouts (scaled by the chapter's percents).</summary>
+        /// <param name="maliceShort">The demon's gauge is this much smaller (the fifth circle: one), never below one.</param>
         public static HellPokerGame Create(GameRules template, Dealer boss, int bar, int soulLinePercent, int winPercent, int lossPercent,
-            int seed, Cheats.ICheatGuard guard, Sinner sinner) =>
+            int seed, Cheats.ICheatGuard guard, Sinner sinner, int maliceShort = 0) =>
             HellPokerGameFactory.Create(Rules(template, boss, bar, soulLinePercent), new ScaledPayoutTable(boss.Payouts, winPercent, lossPercent),
-                seed, boss.Betting, boss.Cheats, boss.MaliceMax, guard, boss.BackfirePercent, sinner);
+                seed, boss.Betting, boss.Cheats, Math.Max(1, boss.MaliceMax - Math.Max(0, maliceShort)), guard, boss.BackfirePercent, sinner);
 
         /// <summary>The demon is beaten (the bar is empty) or the soul burned: the table is over.</summary>
         public static bool IsOver(GamePhase phase) => phase == GamePhase.Absolved || phase == GamePhase.Damned;

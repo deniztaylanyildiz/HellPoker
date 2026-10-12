@@ -1,6 +1,6 @@
 """The sinner classes: a 48x48 portrait for each (shown at x2 on the choice screen) and a 16x16 badge icon strip.
 
-Same palette as everything else (pixel.py). Order of the icon strip = SinnerRoster.All: peasant, warlock, king, jester.
+Same palette as everything else (pixel.py). Order of the icon strip = SinnerRoster.PhaseTwo: peasant, warlock, king, jester, summoner.
 """
 import os
 
@@ -8,7 +8,7 @@ from pixel import C, Img, RAMP_BONE, RAMP_GOLD, RAMP_LILAC, RAMP_RED, sheet
 
 SIZE = 48
 ICON = 16
-ORDER = ["peasant", "warlock", "king", "jester"]
+ORDER = ["peasant", "warlock", "king", "jester", "summoner"]
 
 
 def _backdrop(img, glow):
@@ -148,6 +148,46 @@ def jester():
     return img
 
 
+def _imp(img, cx, cy, colour, eye):
+    """A small horned imp: a round head, two horns, two lit eyes, a pointed tail curling under it."""
+    head = img.m_ellipse(cx, cy, 3.2, 2.8)
+    img.paint(head, colour)
+    img.put(cx - 2, cy - 3, colour)
+    img.put(cx - 3, cy - 4, colour)
+    img.put(cx + 2, cy - 3, colour)
+    img.put(cx + 3, cy - 4, colour)
+    img.put(cx - 1, cy, eye)
+    img.put(cx + 1, cy, eye)
+    img.paint(img.m_line([(cx, cy + 3), (cx + 2, cy + 5), (cx + 4, cy + 4)], 1), colour)
+
+
+def summoner():
+    img = Img(SIZE, SIZE)
+    _backdrop(img, C.HELL)
+    # A dark green robe, a summoning circle glowing on the ground, two imps hovering at his shoulders.
+    circle = img.m_ellipse(24, 45, 20, 3) & ~img.m_ellipse(24, 45, 17, 1.8)
+    img.paint(circle, C.EMBER)
+    robe = img.m_poly([(9, 47), (13, 30), (24, 27), (35, 30), (39, 47)])
+    img.shade(robe, [C.BLACK, C.GREEN_DARK, C.GREEN], light=(-1, -1))
+    for x in range(14, 36, 6):
+        img.put(x, 41, C.EMBER)
+        img.put(x + 1, 40, C.AMBER)
+    _face(img, 24, 21, C.BONE_MID, C.BONE_SHADE)
+    # A shaved head with a burned sigil, a thin mouth.
+    img.put(24, 15, C.HELL)
+    img.put(23, 16, C.HELL)
+    img.put(25, 16, C.HELL)
+    img.paint(img.m_rect(22, 26, 26, 26), C.BONE_SHADE)
+    # His raised hands, a flame between them.
+    img.paint(img.m_ellipse(13, 33, 2.4, 2.4), C.BONE_MID)
+    img.paint(img.m_ellipse(35, 33, 2.4, 2.4), C.BONE_MID)
+    img.paint(img.m_ellipse(24, 37, 2.2, 3.2), C.AMBER)
+    img.put(24, 36, C.EMBER)
+    _imp(img, 8, 14, C.RED, C.AMBER)
+    _imp(img, 40, 12, C.CRIMSON, C.GOLD_LIGHT)
+    img.outline(C.BLACK, mask=img.px != C.NIGHT)
+    return img
+
 def icon(class_id):
     """The 16x16 badge: a pitchfork, a glowing eye, a crown, a fool's cap."""
     img = Img(ICON, ICON)
@@ -175,11 +215,16 @@ def icon(class_id):
         img.paint(img.m_rect(4, 11, 12, 13), C.BONE)
         img.put(6, 12, C.BLACK)
         img.put(10, 12, C.BLACK)
+    elif class_id == "summoner":
+        # A summoning circle with an imp rising out of it.
+        ring = img.m_ellipse(8, 12, 7, 3) & ~img.m_ellipse(8, 12, 5, 1.6)
+        img.paint(ring, C.EMBER)
+        _imp(img, 8, 6, C.RED, C.AMBER)
     img.outline(C.BLACK)
     return img
 
 
-PORTRAITS = {"peasant": peasant, "warlock": warlock, "king": king, "jester": jester}
+PORTRAITS = {"peasant": peasant, "warlock": warlock, "king": king, "jester": jester, "summoner": summoner}
 
 
 def write_all(art_dir):
