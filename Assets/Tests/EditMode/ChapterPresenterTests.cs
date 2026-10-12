@@ -428,5 +428,70 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(KitKind.Satchel, ((LuciferMirror)_table.Kit.Rule).Mirrors);
             Assert.AreEqual(UiText.DemonRuleLine(_table.Kit.Rule), _tableView.DealerView.LastLine);
         }
-    }
+
+        // ------------------------------------------------------------------ the demon's health bar
+
+        private void SitAtMammon()
+        {
+            _chapters.Dispose();
+            var archive = new ChapterArchive(new MemoryStore());
+            archive.SaveRun(new ChapterSave
+            {
+                ClassId = Core.Sinners.Peasant.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1300, Match = "boss", BossBarStart = 1300,
+                BossBar = 1300, NodeDone = false
+            });
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, null, GameRules.Default, () => 4242, archive);
+            _chapters.Continue();
+            Assert.IsTrue(_chapters.IsAtTable);
+        }
+
+        [Test]
+        public void ADemonsTable_ShowsHisBar_UnderThePortrait_NotTheOldCounter()
+        {
+            SitAtMammon();
+            BossBarDisplay bar = _tableView.BossBar;
+            Assert.IsFalse(bar.IsHidden);
+            Assert.AreEqual(1300, bar.Value);
+            Assert.AreEqual(1300, bar.Start);
+            Assert.AreEqual(_table.Game.Rules.SoulThreshold, bar.Limit, "it ends at the soul line");
+            Assert.AreEqual(BarLine.Soul, bar.Line);
+            Assert.AreEqual(Currency.Bar, _tableView.Currency, "the corner counter goes (the view hides it)");
+            Assert.AreEqual("", _tableView.DealerView.Dealer.Title, "the bar sits where the line under the name was");
+        }
+
+        [Test]
+        public void MammonsInterest_IsDrawnAsItsOwnStep_AfterTheHand()
+        {
+            SitAtMammon();
+            _table.PerformAction();   // the deal
+            _tableView.BossBars.Clear();
+            _table.Bet(BetAction.Fold);
+            int interest = (1300 * MammonInterest.InterestPercent + 99) / 100;
+            int after = _table.Game.Years;
+            Assert.Greater(after, 1300 + interest, "the fold and the interest");
+            int i = _tableView.BossBars.FindIndex(b => b.Value == after - interest);
+            Assert.GreaterOrEqual(i, 0, "the fold first");
+            Assert.AreEqual(after, _tableView.BossBars.Last().Value, "then the interest");
+            Assert.Greater(_tableView.BossBars.FindLastIndex(b => b.Value == after), i);
+        }
+
+        [Test]
+        public void LucifersBar_EndsAtTheFallLine()
+        {
+            SitAtLucifer(1050, "AH");
+            BossBarDisplay bar = _tableView.BossBar;
+            Assert.AreEqual(BarLine.Fall, bar.Line);
+            Assert.AreEqual(BossTable.LuciferGate(1050), bar.Limit);
+            Assert.AreEqual(1050, bar.Start);
+        }
+
+        [Test]
+        public void TheMapAndTheGate_ShowTheBarSmall_NoYears()
+        {
+            Begin();
+            Assert.IsFalse(_map.State.Bar.IsHidden);
+            Assert.AreEqual(_chapters.Run.Years, _map.State.Bar.Value);
+            StringAssert.Contains(UiText.Upper(UiText.GenitiveOf(UiText.Dealer(DealerRoster.MammonId))), _map.State.BarLabel);
+            Assert.IsFalse(_map.State.Lines.Any(l => l.Contains(_chapters.Run.Years.ToString())), "no years on the map");
+        }    }
 }

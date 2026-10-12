@@ -60,6 +60,10 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Phase 2: the class panel under the dialog box (the satchel, the prophecy, the treasury); <see cref="KitDisplay.Hidden"/>: none.</summary>
         void SetKit(KitDisplay kit);
 
+        /// <summary>Phase 2: the demon's health bar under the portrait (no number; <see cref="BossBarDisplay.Hidden"/>: none). A change from
+        /// the last one shown is drawn (a win flashes out, a loss fills in).</summary>
+        void SetBossBar(BossBarDisplay bar);
+
         /// <summary>A small card of the class panel was clicked (its index in <see cref="KitDisplay.Cards"/>).</summary>
         event Action<int> KitCardPressed;
 

@@ -35,12 +35,12 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        public static string ChapterRulesButton => L("PHASE 2", "PHASE 2");
+        public static string ChapterRulesButton => L("POWERS", "GÜÇLER");
 
         /// <summary>{0} the satchel's size, {1} its re-raise risk, {2} the taxes' most, {3}-{5} the treasury's prices, {6} the interest,
         /// {7} the temptation's chance, {8} the cornered line.</summary>
         public static string ChapterRulesPageFormat => L(
-            "PHASE 2: THE CHAPTERS. The gauge charges as ever; the powers change.\n" +
+            "POWERS AND RULES. The gauge under the portrait charges: a win +1, a loss +2, a fold +1; full, K uses the power.\n" +
             "PEASANT, SATCHEL: after the draw keep one thrown card ({0} at most). In the draw click it to take it, but the demon sees: " +
             "his re-raise comes {1}% more often. K (charged): HARVEST, every thrown place from the satchel, unseen.\n" +
             "WARLOCK, PROPHECY: sees the deck's top card (2 after Mammon, 3 from Lilith on) and the lies. The demon knows one of his " +
@@ -51,7 +51,7 @@ namespace HellPoker.Presentation.Ui
             "THE DEMONS' RULES (their own tables): MAMMON, INTEREST: every hand you do not win, the bar grows {6}%. BELIAL, ROLE SWAP: " +
             "every 4th hand one of his face-down cards trades places with one of yours. LILITH, TEMPTATION: a card you throw that betters " +
             "her hand, she may keep ({7}%). LUCIFER, MIRROR: he copies your class. Under {8}% of the bar a demon cheats faster.",
-            "PHASE 2: BÖLÜMLER. Gösterge aynı dolar; güçler değişir.\n" +
+            "GÜÇLER VE KURALLAR. Portrenin altındaki gösterge dolar: kazanç +1, kayıp +2, çekilme +1; dolunca K gücü kullanır.\n" +
             "KÖYLÜ, HEYBE: draw'dan sonra attığın bir kartı sakla (en çok {0}). Draw'da ona tıklayıp al, ama şeytan görür: artırması " +
             "%{1} daha sık gelir. K (dolu): HASAT, atılan her yer heybeden, gizlice.\n" +
             "BÜYÜCÜ, KEHANET: destenin üstündeki kartı (Mammon'dan sonra 2, Lilith'ten itibaren 3) ve yalanları görür. Şeytan her elde " +

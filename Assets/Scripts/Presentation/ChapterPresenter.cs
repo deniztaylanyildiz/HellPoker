@@ -240,10 +240,9 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             var lines = new List<string>
             {
-                string.Format(UiText.MapTributeFormat, _run.Tribute),
-                string.Format(UiText.MapYearsFormat, _run.Years, UiText.GenitiveInSentence(UiText.Dealer(rules.BossId)))
+                string.Format(UiText.MapTributeFormat, _run.Tribute)
             };
-            if (_run.YearsOwed > 0) lines.Add(string.Format(UiText.MapOwedFormat, _run.YearsOwed));
+            if (_run.YearsOwed > 0) lines.Add(UiText.MapOwed);
             lines.Add("");
             lines.Add(UiText.MapRelicsLabel);
             if (_run.Effects.Relics.Count == 0) lines.Add("  " + UiText.MapNoRelics);
@@ -260,8 +259,21 @@ namespace HellPoker.Presentation
             string prompt = _run.Current == null ? UiText.MapPromptStart : UiText.MapPrompt;
             MapNode[] choices = _atTable || _panel.IsOpen || !_nodeDone ? Array.Empty<MapNode>() : _run.Choices.ToArray();
             return new ChapterMapState(_run.Map, _run.Current, choices, _selected, _run.Trail.ToArray(), title, prompt, _run.Purse.Coins, lines, Describe,
-                UiText.GateTitle(rules.Number), rules.Number);
+                UiText.GateTitle(rules.Number), rules.Number, BarAt(_run.Years + _run.YearsOwed, BossShares.For(_journey.Sinner.Id, rules.BossId)),
+                BarLabel());
         }
+
+        /// <summary>The chapter demon's bar, small and without a number (the map's, the gate's): <paramref name="value"/> toward the soul
+        /// line of a table that would begin at <paramref name="tableStart"/>; the tick where the run's share began.</summary>
+        private BossBarDisplay BarAt(int value, int tableStart)
+        {
+            ChapterRules rules = _run.Rules;
+            int share = BossShares.For(_journey.Sinner.Id, rules.BossId);
+            int limit = Math.Max(value + 1, Math.Max(tableStart, share) * rules.SoulLinePercent / 100);
+            return new BossBarDisplay(value, share, limit, BarLine.Soul, null);
+        }
+
+        private string BarLabel() => UiText.Upper(string.Format(UiText.MapBarLabelFormat, UiText.GenitiveOf(UiText.Dealer(_run.Rules.BossId))));
 
         /// <summary>A node in words: its name and what waits there.</summary>
         private string Describe(MapNode node)
@@ -678,12 +690,12 @@ namespace HellPoker.Presentation
             int after = _run.Years + _run.TributeYears(coins) + _run.YearsOwed;
             if (_run.RestedByTheFire) after -= after * ChapterRun.RestBarPercent / 100;
             var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, tribute, coins) };
-            lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing, _run.TributeYears(coins))
+            lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing)
                 : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
-            if (_run.YearsOwed > 0) lines.Add(string.Format(UiText.GateOwedFormat, _run.YearsOwed));
-            lines.Add(string.Format(UiText.GateAfterFormat, after));
+            if (_run.YearsOwed > 0) lines.Add(UiText.GateOwed);
+            lines.Add(UiText.GateAfter);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle(rules.Number), string.Join("\n", lines),
-                new[] { new PanelOption(UiText.GatePay) }), new Action[] { SitWithTheDemon }, "gate");
+                new[] { new PanelOption(UiText.GatePay) }, bar: BarAt(after, after), barLabel: BarLabel()), new Action[] { SitWithTheDemon }, "gate");
         }
 
         private void SitWithTheDemon()
@@ -1085,8 +1097,8 @@ namespace HellPoker.Presentation
         internal static ChapterSave PlacedSave(SinnerClass sinnerClass, int seed, int chapter, string pending)
         {
             ChapterJourney journey = ChapterJourney.Begin(sinnerClass, seed);
-            journey.Run.PayTribute();
-            if (pending != "chapter") journey.Run.LeaveBossTable(0);
+            if (pending != "gate") journey.Run.PayTribute();
+            if (pending == "loot" || pending == "lucifer") journey.Run.LeaveBossTable(0);   // the demon beaten
             ChapterSave save = journey.Capture();
             save.Chapter = chapter;
             save.NodeDone = true;

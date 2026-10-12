@@ -23,16 +23,19 @@ namespace HellPoker.Presentation
 
         private TablePresenter _table;
         private ChapterPresenter _chapters;
+        private MainMenuPresenter _menu;
         private readonly StringBuilder _report = new StringBuilder();
 
         public static bool IsRequested => System.Environment.GetCommandLineArgs().Contains(Argument);
 
         /// <param name="chapters">Phase 2's chapters: the tour also crosses from the first chapter into the second (a run saved at
         /// Mammon's spoils, continued from the menu). Null: the demo alone.</param>
-        public void Run(TablePresenter table, ChapterPresenter chapters = null)
+        /// <param name="menu">The title menu: the tour switches it to the Boss Simulator (F9's way) for the demons' halls.</param>
+        public void Run(TablePresenter table, ChapterPresenter chapters = null, MainMenuPresenter menu = null)
         {
             _table = table;
             _chapters = chapters;
+            _menu = menu;
             StartCoroutine(Tour());
         }
 
@@ -40,9 +43,7 @@ namespace HellPoker.Presentation
         private IEnumerator ChapterLeg()
         {
             _chapters.PrepareTour(Core.Sinners.SinnerRoster.Peasant);
-            Press("MenuButton");
-            yield return new WaitForSecondsRealtime(0.8f);
-            Press("ChaptersContinueButton");
+            Press("ContinueButton");
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 spoils");
             int coins = _chapters.Panel?.Options.Count ?? 1;
@@ -66,6 +67,17 @@ namespace HellPoker.Presentation
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("menu");
 
+            // The game first: a saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE).
+            if (_chapters != null)
+            {
+                yield return ChapterLeg();
+                Press("MenuButton");
+                yield return new WaitForSecondsRealtime(0.8f);
+            }
+
+            // Then the Boss Simulator (the old demo, F9): every demon's hall and Lucifer's.
+            if (_menu != null && !_menu.InSimulator) _menu.ToggleSimulator();
+            yield return new WaitForSecondsRealtime(0.8f);
             Press("NewGameButton");
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("choose a demon");
@@ -90,8 +102,6 @@ namespace HellPoker.Presentation
             // The summoning scene (the dark falling, his words) plays out before the hall is measured.
             yield return new WaitForSecondsRealtime(Settle * 4);
             yield return Measure(_table.IsAtFinalTable ? "lucifer" : "lucifer (not summoned)");
-
-            if (_chapters != null) yield return ChapterLeg();
 
             Debug.Log(_report.ToString());
             Application.Quit();

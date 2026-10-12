@@ -3014,3 +3014,24 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   geçti, ~60 FPS, Player.log temiz), anahtar silinip yedek geri yüklendi.
 - Not: arka planda koşan boss simülasyonu bir kez bellek azlığından Claude Code tarafından durduruldu; sonra boss başına ayrı, ön planda koşuldu.
 - Açık: sınıf farkı (Soytarı); Bölüm 2-3'te tam haraç %80-99 (taban kese bölümleri kolaylaştırıyor).
+
+### Tek oyun ve şeytanın can barı (2026-10-12)
+- İstek: A) boss masasında portrenin altında gerçek can barı (rakamsız; kazançta kısalan kısım parlayıp söner, kayıpta koyu kırmızı dolar;
+  sonunda ruh çizgisi, yaklaştıkça koyulaşır; sağ üstteki sayaç boss masasında gizli; haritada ve kapıda küçük bar; Lucifer'de düşüş çizgisi;
+  Mammon'un faizi ayrıca gösterilsin). B) YENİ OYUN / DEVAM ET Phase 2'yi açar; eski demo "Boss Simülatörü" (F9 ya da HELLPOKER_DEV=1),
+  kaydı ve rekorları ayrı; rekorlar Phase 2'yi gösterir; How to Play'de Phase 2 ana sayfa, demo sayfaları simülatöre; OKUBENI tek oyun;
+  boss masasındaki demo kalıntıları kalksın. C) testler, iki dilde ekran görüntüleri, HellPoker-1.4.0-win64.zip, kayıt yedekli duman turu,
+  commit "Tek oyun ve şeytan can barı".
+- Yapılanlar: `BossBarWidget` (masada 92×7, haritada ve kapıda küçük; zemin siyah, renk %60 / %92'de koyulaşır), `BossBarDisplay` / `BarLine`,
+  `ITableView.SetBossBar`, `TablePresenter.ShowBossBar` (faiz iki adım), boss masasında isim altı satırı boş (el sayısı hover'da);
+  `MainMenuPresenter` oyun / simülatör kipi (`InSimulator`, `ToggleSimulator`, `simulator` parametresi), `MainMenuView.SetSimulator`
+  (Phase 2 düğmeleri kalktı, simülatör etiketi, sayfa sırası), `IRecordsView.ShowLines`, F9 (`KeyboardInput`), `HellPokerBootstrap.StartsInSimulator`
+  + `ForceSimulator`; metinler `GameTagline`, `GameRulesPage`, `ChapterRecordLines`, harita / kapı metinlerinden yıl kalktı; bölüm masasında
+  son 250 / son anlar yok; `FpsTour` önce oyunu (DEVAM ile Bölüm 1 → 2), sonra F9 ile simülatör salonlarını gezer; bundleVersion 1.4.0;
+  OKUBENI ve GERI_BILDIRIM tek oyun.
+- Kararlarım: How to Play'de oyun kipinde ELLER ve HİLELER de kaldı (oyunda da geçerli); batchmode'da menü simülatörde açılır (eski
+  testler ve ekran görüntüleri değişmeden çalışsın), oyunun testleri `ForceSimulator = false` der; Lucifer'in bar dolgusu başlangıçta
+  %80'de (düşüş çizgisi %125) olduğu için koyu kırmızıya geç geçer.
+- Testler: EditMode 937 (933 geçti, 4 explicit, 0 hata; yeni: can barı görünür / faiz iki adım / Lucifer düşüş çizgisi / harita barı,
+  menü akışı, F9, HELLPOKER_DEV, rekorlar); PlayMode 17 + 3 + 8 + 4 (yeni: F9 ile simülatör ve demo kaydının yeni oyundan sağ çıkması).
+  `ChapterScreenshots.CaptureTheLaterChapters` (80–100: menü, OYUN / GÜÇLER sayfaları, üç kapı, dört boss masası) iki dilde bakıldı.

@@ -11,14 +11,11 @@ namespace HellPoker.Presentation.Abstractions
         event Action SettingsPressed;
         event Action RecordsPressed;
 
-        /// <summary>The Phase 2 button: a new chapter run.</summary>
-        event Action ChaptersPressed;
-
-        /// <summary>The Phase 2 CONTINUE button: back to the chapter run that waits.</summary>
-        event Action ChaptersContinuePressed;
-
-        /// <summary>The Phase 2 buttons: shown when <paramref name="available"/>; CONTINUE only while a chapter run waits.</summary>
-        void SetChapters(bool available, bool inProgress);
+        /// <summary>
+        /// The menu leads to the game (NEW GAME / CONTINUE: the chapters; How to Play: the game's pages) or, <paramref name="simulator"/>, to
+        /// the Boss Simulator (the old demo: its run, CHANGE TABLE, its rules pages, a label under the title).
+        /// </summary>
+        void SetSimulator(bool simulator);
 
 
         /// <summary>The player accepted the warning open over the menu (New Game or Quit over a run in progress).</summary>

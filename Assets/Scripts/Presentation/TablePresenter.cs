@@ -835,7 +835,6 @@ namespace HellPoker.Presentation
         /// <summary>Under the name: a floor's imp's purse and ante (the ghost's: his one hand); the demon's hand count.</summary>
         private string SeatTitle()
         {
-            bool between = _game.Phase == GamePhase.Betting;
             if (CoinMode)
             {
                 FloorTable floor = _seat.Floor;
@@ -843,8 +842,8 @@ namespace HellPoker.Presentation
                 if (floor.FreeHandsLeft > 0) return string.Format(UiText.FloorFreeSeatTitleFormat, floor.HousePurse.Coins, floor.FreeHandsLeft);
                 return string.Format(UiText.FloorSeatTitleFormat, floor.HousePurse.Coins, floor.AnteNow, floor.HandsToNextAnte);
             }
-            int played = Math.Max(1, _game.RoundNumber + (between ? 1 : 0));
-            return string.Format(_game.IsSoulAtStake ? UiText.BossSoulSeatTitleFormat : UiText.BossSeatTitleFormat, played);
+            // A demon's table: the health bar sits where this line was (the hand and the soul are in its hover).
+            return "";
         }
 
         private DealerCard SeatCard()
@@ -1826,7 +1825,8 @@ namespace HellPoker.Presentation
             bool finalTable = _game.Rules.IsFinalTable;
             // While Lucifer waits below, an ordinary table never plays its final stretch: at the gate the next hand is his.
             bool luciferWaits = _finalDealer != null && _game.Rules.LuciferGateYears > 0;
-            bool finalStretch = finalTable ? IsLastMoments : _game.IsRaiseForced && !luciferWaits;
+            // A chapter's table has no final stretch and no "last moments" (those are the Boss Simulator's, the old demo's): only its bar.
+            bool finalStretch = _seat == null && (finalTable ? IsLastMoments : _game.IsRaiseForced && !luciferWaits);
             _view.SetFinalStretch(finalStretch, finalTable
                 ? UiText.LastMomentsBanner
                 : string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));
@@ -1843,6 +1843,7 @@ namespace HellPoker.Presentation
             ShowPower();
             ShowDeck();
             ShowKit();
+            ShowBossBar();
         }
 
         /// <summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
@@ -387,6 +388,46 @@ namespace HellPoker.Presentation
             if (_kit.Treasury != null && _kit.Kit.TaxesLost > _taxesLostAtDeal)
                 lines.Add(UiText.TaxesHalved);
             return lines.Count == 0 ? message : message + "\n" + string.Join("\n", lines);
+        }
+
+        // ------------------------------------------------------------------ the demon's health bar
+
+        /// <summary>The hand whose result the bar has shown (Mammon's interest is drawn as its own step, once).</summary>
+        private int _barRoundShown = -1;
+
+        /// <summary>
+        /// The demon's health bar under the portrait (a chapter demon's table only): what is left of the player's share, toward the soul
+        /// line (Lucifer's: the fall line). A settled hand's interest is drawn as a second step after the hand's own change.
+        /// </summary>
+        private void ShowBossBar()
+        {
+            if (!BarMode || _seat.Limit <= 0)
+            {
+                _view.SetBossBar(BossBarDisplay.Hidden);
+                return;
+            }
+            bool settled = _game.LastRound != null && (_game.Phase == GamePhase.RoundOver || _game.IsGameOver);
+            int interest = KitGame?.HookYearsThisHand ?? 0;
+            if (settled && interest > 0 && _barRoundShown != _game.RoundNumber && !_relabelling)
+            {
+                _view.SetBossBar(BarOf(_game.Years - interest));
+                _view.Pause(InterestPause);
+            }
+            if (settled) _barRoundShown = _game.RoundNumber;
+            _view.SetBossBar(BarOf(_game.Years));
+        }
+
+        /// <summary>The beat between a hand's own change of the bar and Mammon's interest on it.</summary>
+        private const float InterestPause = 0.5f;
+
+        private BossBarDisplay BarOf(int value)
+        {
+            bool fall = _seat.CastDown != null;
+            int played = Math.Max(1, _game.RoundNumber + (_game.Phase == GamePhase.Betting ? 1 : 0));
+            string label = UiText.Upper(string.Format(UiText.BarLabelFormat, UiText.GenitiveOf(_dealerText)));
+            string hint = string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
+                fall ? UiText.BarMarkFall : UiText.BarMarkSoul);
+            return new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint);
         }
 
         /// <summary>At the showdown: the thrown card Lilith kept is marked in her hand.</summary>

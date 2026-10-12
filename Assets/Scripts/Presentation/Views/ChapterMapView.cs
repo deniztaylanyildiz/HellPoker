@@ -55,6 +55,11 @@ namespace HellPoker.Presentation.Views
         private Text _title;
         private Text _coins;
         private Text _lines;
+        private Text _barLabel;
+        private BossBarWidget _bar;
+
+        /// <summary>The demon's bar in the side panel (for tests and screenshots).</summary>
+        public BossBarWidget Bar => _bar;
         private Text _prompt;
         private GameObject _tip;
         private Text _tipText;
@@ -119,8 +124,13 @@ namespace HellPoker.Presentation.Views
             _coins.rectTransform.PlaceTL(34, 58, SideWidth - 40, 16);
             _coins.horizontalOverflow = HorizontalWrapMode.Overflow;
 
+            // The chapter demon's bar, small and without a number.
+            _barLabel = UiFactory.CreateText("BarLabel", side.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft).WithOutline();
+            _barLabel.rectTransform.PlaceTL(8, 80, SideWidth - 16, 9);
+            _bar = BossBarWidget.Create(side.transform, "MapBossBar", 8, 91, SideWidth - 20, 6);
+
             _lines = UiFactory.CreateText("Lines", side.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).WithOutline();
-            _lines.rectTransform.PlaceTL(8, 82, SideWidth - 16, 140);
+            _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, 106);
             _lines.lineSpacing = 1f;
 
             UiFactory.CreateText("Keys", side.transform, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).WithOutline().Localized(() => UiText.MapKeysHint)
@@ -181,6 +191,8 @@ namespace HellPoker.Presentation.Views
             _title.text = state.Title;
             _coins.text = state.Coins.ToString();
             _lines.text = string.Join("\n", state.Lines);
+            _barLabel.text = state.BarLabel;
+            _bar.Apply(state.Bar, animate: true);
             _prompt.text = state.Prompt;
             Sprite[] icons = UiArt.Strip(NodeIcons, IconSize);
             _gate.sprite = icons != null && icons.Length > GateIcon ? icons[GateIcon] : null;

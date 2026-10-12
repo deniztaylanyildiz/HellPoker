@@ -147,6 +147,12 @@ namespace HellPoker.Presentation.Views
 
         private RelicBarView _relics;
         private KitView _kit;
+        private BossBarWidget _bossBar;
+
+        /// <summary>The demon's health bar under the portrait (for tests and screenshots).</summary>
+        public BossBarWidget BossBar => _bossBar;
+
+        public void SetBossBar(BossBarDisplay bar) => _sequencer.Do(() => _bossBar.Apply(bar, animate: true));
 
         /// <summary>Phase 2's class panel (for tests and screenshots).</summary>
         public KitView Kit => _kit;
@@ -294,6 +300,8 @@ namespace HellPoker.Presentation.Views
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
             // Phase 2's class panel: under the dialog box, where a chapter's table has no LEAVE TABLE.
             _kit = KitView.Create(screen, 4, 207, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
+            // Phase 2: the demon's health bar, under the name (in place of the line under it).
+            _bossBar = BossBarWidget.Create(screen, "BossBar", 8, 122, 92, 7, hover: true);
             // The joker picker sits where the bet controls do (they are hidden while it is open).
             _jokerPicker = JokerPickerView.Create(screen, Middle, ControlsY - 12, _sequencer, (rank, suit) => JokerStepPressed?.Invoke(rank, suit),
                 () => JokerConfirmPressed?.Invoke());
@@ -504,7 +512,8 @@ namespace HellPoker.Presentation.Views
             _soul.SetGauge(gauge);
             _sequencer.Do(() =>
             {
-                _sentence.SetVisible(!gauge.Visible);
+                _soulVisible = gauge.Visible;
+                _sentence.SetVisible(!gauge.Visible && _currency != Currency.Bar);
                 _dealer.SetSoul(gauge.Visible);
                 if (gauge.Visible)
                     _salon.SetMode(SalonMode.Soul);
@@ -566,6 +575,7 @@ namespace HellPoker.Presentation.Views
         }
 
         private Currency _currency = Currency.Years;
+        private bool _soulVisible;
 
         public void SetCurrency(Currency currency)
         {
@@ -573,6 +583,8 @@ namespace HellPoker.Presentation.Views
             {
                 _currency = currency;
                 _sentence.SetNumberHidden(currency == Currency.Bar);
+                // A demon's table shows the bar under the portrait: the old counter in the corner goes (the soul's lamp still comes).
+                _sentence.SetVisible(currency != Currency.Bar && !_soulVisible);
             });
         }
     }

@@ -18,6 +18,12 @@ namespace HellPoker.Presentation.Abstractions
         /// came from, the table to the menu, and the menu back into a run in progress.
         /// </summary>
         void GoBack();
+
+        /// <summary>F9 on the title menu: the Boss Simulator (the old demo, kept as a developer's mode) on or off.</summary>
+        void ToggleSimulator();
+
+        /// <summary>True while the menu leads to the Boss Simulator instead of the game.</summary>
+        bool InSimulator { get; }
     }
 
     /// <summary>Setting shortcuts an input source can trigger.</summary>

@@ -63,6 +63,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <param name="dealers">Every demon, for the absolutions per table.</param>
         /// <param name="phase2">Phase 2's records in a line (its own book); null: none.</param>
         void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null);
+
+        /// <summary>The game's records, line by line (the chapters' book).</summary>
+        void ShowLines(IReadOnlyList<string> lines);
         void Hide();
     }
 }

@@ -83,6 +83,13 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            // F9 on the title menu: the Boss Simulator (the old demo, a developer's mode) — or back to the game.
+            if (keyboard.f9Key.wasPressedThisFrame && _menu.IsAtMenuRoot)
+            {
+                _menu.ToggleSimulator();
+                return;
+            }
+
             if (_menu.IsMenuOpen) return;
 
             if (keyboard.hKey.wasPressedThisFrame)

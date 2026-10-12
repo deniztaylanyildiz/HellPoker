@@ -21,19 +21,10 @@ namespace HellPoker.Core.Tests
             public event Action ChangeTablePressed;
             public event Action SettingsPressed;
             public event Action RecordsPressed;
-            public event Action ChaptersPressed;
-            public bool ChaptersAvailable { get; private set; }
-            public bool ChaptersInProgress { get; private set; }
+            /// <summary>The menu leads to the Boss Simulator (the old demo).</summary>
+            public bool Simulator { get; private set; }
 
-            public void SetChapters(bool available, bool inProgress)
-            {
-                ChaptersAvailable = available;
-                ChaptersInProgress = inProgress;
-            }
-
-            public void PressChapters() => ChaptersPressed?.Invoke();
-            public event Action ChaptersContinuePressed;
-            public void PressChaptersContinue() => ChaptersContinuePressed?.Invoke();
+            public void SetSimulator(bool simulator) => Simulator = simulator;
             public event Action Confirmed;
             public event Action LanguagePressed;
 
@@ -277,6 +268,15 @@ namespace HellPoker.Core.Tests
             public event Action BackPressed;
 
             public string Phase2 { get; private set; }
+
+            /// <summary>The game's records, as last shown (null: the simulator's were).</summary>
+            public IReadOnlyList<string> Lines { get; private set; }
+
+            public void ShowLines(IReadOnlyList<string> lines)
+            {
+                IsVisible = true;
+                Lines = lines;
+            }
 
             public void Show(HellPoker.Core.Game.RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
             {

@@ -61,78 +61,86 @@ namespace HellPoker.Core.Tests
             public void AskForNewRun() => NewRunRequested?.Invoke();
         }
 
-        private MainMenuPresenterTests.FakeMenuView _menu;
+private MainMenuPresenterTests.FakeMenuView _menu;
         private MainMenuPresenterTests.FakeSession _session;
+        private MainMenuPresenterTests.FakeRecords _records;
+        private MainMenuPresenterTests.FakeDealerSelectView _dealers;
         private FakeSinnerSelect _sinners;
         private FakeChapters _chapters;
         private MainMenuPresenter _presenter;
 
         [SetUp]
-        public void SetUp()
+        public void SetUp() => Build(simulator: false);
+
+        private void Build(bool simulator)
         {
+            _presenter?.Dispose();
             _menu = new MainMenuPresenterTests.FakeMenuView();
             _session = new MainMenuPresenterTests.FakeSession();
+            _records = new MainMenuPresenterTests.FakeRecords();
+            _dealers = new MainMenuPresenterTests.FakeDealerSelectView();
             _sinners = new FakeSinnerSelect();
             _chapters = new FakeChapters();
-            _presenter = new MainMenuPresenter(_menu, new MainMenuPresenterTests.FakeDealerSelectView(), new MainMenuPresenterTests.FakeSettingsView(),
-                new MainMenuPresenterTests.FakeEndScreen(), new MainMenuPresenterTests.FakeRecords(), new FakeTableView(), _session,
+            _presenter = new MainMenuPresenter(_menu, _dealers, new MainMenuPresenterTests.FakeSettingsView(),
+                new MainMenuPresenterTests.FakeEndScreen(), _records, new FakeTableView(), _session,
                 new MainMenuPresenterTests.FakeQuitter(), new MainMenuPresenterTests.FakeTransition(), DealerRoster.All, null, _sinners,
-                SinnerRoster.All, null, _chapters);
+                SinnerRoster.All, null, _chapters, simulator);
         }
 
         [TearDown]
         public void TearDown() => _presenter.Dispose();
 
         [Test]
-        public void ThePhaseTwoButtonShowsWhenTheChaptersAreThere()
+        public void TheMenuLeadsToTheGame_NotTheSimulator()
         {
-            Assert.IsTrue(_menu.ChaptersAvailable);
-            Assert.IsFalse(_menu.ChaptersInProgress);
+            Assert.IsFalse(_presenter.InSimulator);
+            Assert.IsFalse(_menu.Simulator);
+            Assert.IsFalse(_menu.ContinueShown, "no run yet");
         }
 
         [Test]
-        public void ThePhaseTwoButtonAsksForAClassThenOpensTheChapter()
+        public void NewGame_AsksForAClass_ThenOpensTheChapter()
         {
-            _menu.PressChapters();
+            _menu.PressNewGame();
             Assert.IsTrue(_sinners.IsVisible);
+            Assert.IsFalse(_dealers.IsVisible, "no demon to choose: the game starts with Mammon's chapter");
             Assert.AreEqual(DealerRoster.MammonId, _sinners.DealerId, "Mammon's hall behind the choice: the first chapter is his");
             _sinners.Choose(2);
             Assert.AreSame(SinnerRoster.All[2], _chapters.Started);
-            Assert.IsTrue(_chapters.IsVisible);
-            Assert.AreEqual(0, _session.NewRuns, "the demo's run is not touched");
+            Assert.IsTrue(_chapters.IsVisible, "the map");
+            Assert.AreEqual(0, _session.NewRuns, "the simulator's run is not touched");
         }
 
         [Test]
         public void BackFromTheClassChoiceIsTheMenu()
         {
-            _menu.PressChapters();
+            _menu.PressNewGame();
             _sinners.Back();
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsNull(_chapters.Started);
         }
 
         [Test]
-        public void AChapterRunInProgressIsGoneBackTo_ByContinue()
+        public void Continue_GoesBackToTheChapterRun()
         {
-            _menu.PressChapters();
+            _menu.PressNewGame();
             _sinners.Choose(0);
             _chapters.AskForMenu();
             Assert.IsTrue(_menu.IsVisible);
-            Assert.IsFalse(_chapters.IsVisible);
-            Assert.IsTrue(_menu.ChaptersInProgress, "CONTINUE shows while a run waits");
-            _menu.PressChaptersContinue();
+            Assert.IsTrue(_menu.ContinueShown, "CONTINUE shows while a run waits");
+            _menu.PressContinue();
             Assert.IsTrue(_chapters.IsVisible, "straight back to the chapter, no class choice");
             Assert.IsFalse(_sinners.IsVisible);
         }
 
         [Test]
-        public void ANewChapterRunOverOneInProgressAsksFirst_AndAbandonsIt()
+        public void NewGameOverARunInProgress_AsksFirst_AndAbandonsIt()
         {
-            _menu.PressChapters();
+            _menu.PressNewGame();
             _sinners.Choose(0);
             _chapters.AskForMenu();
             _sinners.Hide();
-            _menu.PressChapters();
+            _menu.PressNewGame();
             Assert.IsTrue(_menu.IsConfirming, "a run waits: the player is asked first");
             Assert.IsFalse(_sinners.IsVisible);
             Assert.AreEqual(0, _chapters.Abandoned);
@@ -144,11 +152,70 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ANewChapterRunAsksForTheClassAgain()
         {
-            _menu.PressChapters();
+            _menu.PressNewGame();
             _sinners.Choose(0);
             _chapters.HasRun = false;
             _chapters.AskForNewRun();
             Assert.IsTrue(_sinners.IsVisible);
+        }
+
+        [Test]
+        public void F9_OpensTheBossSimulator_TheOldDemo_AndBack()
+        {
+            _presenter.ToggleSimulator();
+            Assert.IsTrue(_presenter.InSimulator);
+            Assert.IsTrue(_menu.Simulator, "the menu says so");
+            _menu.PressNewGame();
+            Assert.IsTrue(_dealers.IsVisible, "the simulator's new run: a demon first");
+            Assert.IsFalse(_sinners.IsVisible);
+            _dealers.PressBack();
+            _presenter.ToggleSimulator();
+            Assert.IsFalse(_presenter.InSimulator);
+            _menu.PressNewGame();
+            Assert.IsTrue(_sinners.IsVisible, "the game again");
+        }
+
+        [Test]
+        public void HELLPOKER_DEV_OrABatchRun_OpensTheSimulator_ThePlayersGameOtherwise()
+        {
+            Assert.IsFalse(HellPokerBootstrap.StartsInSimulator(null, false, null), "a player's game: the game");
+            Assert.IsFalse(HellPokerBootstrap.StartsInSimulator("0", false, null));
+            Assert.IsTrue(HellPokerBootstrap.StartsInSimulator("1", false, null), "HELLPOKER_DEV=1");
+            Assert.IsTrue(HellPokerBootstrap.StartsInSimulator(null, true, null), "the old demo's tests");
+            Assert.IsFalse(HellPokerBootstrap.StartsInSimulator("1", true, false), "a test that asks for the game");
+        }
+
+        [Test]
+        public void TheDevFlag_StartsInTheSimulator()
+        {
+            Build(simulator: true);
+            Assert.IsTrue(_presenter.InSimulator);
+            Assert.IsTrue(_menu.Simulator);
+        }
+
+        [Test]
+        public void Records_ShowTheGamesBook_TheSimulatorsOwnInTheSimulator()
+        {
+            _menu.PressRecords();
+            Assert.IsNotNull(_records.Lines, "the game's records");
+            Assert.IsNull(_records.Phase2);
+            _records.PressBack();
+            _presenter.ToggleSimulator();
+            _menu.PressRecords();
+            Assert.AreEqual(DealerRoster.All.Count, _records.DealersShown, "the simulator's records: the demo's book");
+        }
+
+        [Test]
+        public void TheSimulatorsRun_IsNeverTouchedByTheGame()
+        {
+            _menu.PressNewGame();
+            _sinners.Choose(1);
+            _chapters.AskForMenu();
+            _menu.PressNewGame();
+            _menu.Confirm();
+            _sinners.Choose(0);
+            Assert.AreEqual(0, _session.NewRuns);
+            Assert.AreEqual(0, _session.Abandoned, "the simulator's save stays");
         }
     }
 }

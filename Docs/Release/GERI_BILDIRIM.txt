@@ -9,49 +9,48 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 1. İLK İZLENİM
-   Oyunu açtığında ilk ne düşündün? Ana menü ve şeytan seçme ekranı sana ne hissettirdi?
+   Oyunu açtığında ilk ne düşündün? Ana menü, sınıf seçimi ve harita sana ne hissettirdi?
 
    >
 
 
 2. KURALLAR
-   Ne yapman gerektiğini anladın mı? Nerede takıldın? (HOW TO PLAY sayfası, şeytanların ipuçları,
+   Ne yapman gerektiğini anladın mı? Nerede takıldın? (HOW TO PLAY sayfaları, şeytanların ipuçları,
    "NOW: ..." el adı, H tuşundaki el tablosu işine yaradı mı?)
 
    >
 
 
-3. TEMPO
-   Eller çok mu hızlı, çok mu yavaş geçti? Beklerken sıkıldığın ya da acele ettirildiğini hissettiğin bir an oldu mu?
+3. HARİTA VE KESE
+   Haritada yol seçmek anlaşılır mıydı? Kesen nerede, hangi bölümde boşaldı? Kapıya kaç coin'le vardın, haracı ödeyebildin mi?
+   Kara Pazar'dan bir şey aldın mı?
 
    >
 
 
-4. ZORLUK VE EN ZOR ŞEYTAN
-   Hangi şeytan(lar)la oynadın, aşağı yukarı kaç el sürdü, nasıl bitti (kurtuldun / lanetlendin / bıraktın)?
-   Sence en zor şeytan hangisi, neden?
+4. CAN BARI
+   Şeytanın portresinin altındaki kırmızı can barı anlaşılır mıydı? Rakam olmaması rahatsız etti mi?
+   Barın sonundaki işareti (ruh / Lucifer'de düşüş) fark ettin mi? Kazanıp kaybettikçe barın değiştiğini gördün mü?
 
    >
 
 
-5. HİLELER: ADİL Mİ, ANLAŞILIR MI?
-   Şeytanlar hile yapıyor: portrenin üstünde yapacakları hilenin adı ve işareti çıkıyor, sonra kartlarda görünüyor.
-   Bu işareti fark ettin mi, ne anlama geldiğini anladın mı? Hileler adil hissettirdi mi, yoksa haksızlık gibi mi?
-   En çok hangi hile sinirini bozdu?
+5. ZORLUK
+   Hangi bölüme kadar indin? Lucifer'e ulaştın mı, kurtuldun mu? En zor şeytan hangisiydi, neden?
 
    >
 
 
-6. BELİAL'İN SAHTE KARTI
-   Belial (kırmızı, boynuzlu şeytan) bazen açtığı kartlardan birini sahte gösterir; sahte kart hafifçe parlar.
-   Bunu fark ettin mi? Sahte karta kanıp yanlış karar verdiğin oldu mu?
+6. SINIF VE GÜÇ
+   Hangi sınıfı seçtin (Köylü / Büyücü / Kral / Soytarı)? Paneldeki gücü (Heybe / Kehanet / Hazine / jokerler) anladın mı,
+   ne sıklıkla işine yaradı? K ile dolu gücü kullandın mı?
 
    >
 
 
-7. BİR HİLE SANA YARADI MI?
-   Bazen şeytanın hilesi geri teper ve senin işine yarar (kartın üstünde "BACKFIRE" yazar, şeytan kızar).
-   Böyle bir an yaşadın mı? Nasıl hissettirdi?
+7. ŞEYTAN KURALLARI VE HİLELER
+   Şeytanların kendi kuralları (Mammon'un Faizi, Belial'in Rol Takası, Lilith'in Baştan Çıkarması, Lucifer'in Aynası)
+   hissedildi mi? Hileler (portrenin üstündeki niyet) adil miydi? En çok hangisi sinirini bozdu?
 
    >
 
@@ -77,43 +76,19 @@ Poker biliyor musun? (hiç / biraz / iyi):
     >
 
 
-11. SINIF
-    Hangi sınıfı seçtin (Köylü / Büyücü / Kral / Soytarı)? Gücünü ve 5 pipli göstergeyi anladın mı? Kaç kez kullandın,
-    doğru anda kullanabildin mi, adil miydi?
-    Soytarı'yı denedin mi? Joker kuralı (tek joker istediğin kart, iki joker kayıp) ve destedeki joker sayacı
-    (kazanınca +1, 10'un üstünde kayıpta -1) anlaşıldı mı? El sonundaki kart seçici rahat mıydı?
-    Deste artık eller boyunca devam ediyor: kalan kart sayacını kullandın mı, kart saydın mı? KARIŞTIR'ı (S, +10 yıl)
-    hiç kullandın mı, adil buldun mu? Masa değiştirince destenin devam ettiğini fark ettin mi?
-    Kral'sın: hile duyurulunca K ile bütün elini korumak anlaşılır mıydı? 2K ya da yüksek çözünürlükte yazılar keskin miydi?
+11. EMANETLER VE TEKLİFLER
+    Emanet aldın mı (ganimet, bekçi, Kara Pazar), hangisi? Yabancıların tekliflerinden hangisini kabul ettin, neden?
 
     >
 
 
-12. ELLER ARASI OLAYLAR
-    Eller arası bir olay çıktı mı (ortada açılan bir teklif paneli)? Hangisi, ne seçtin, neden?
+12. SES, MÜZİK VE DİL
+    Rahatsız eden ya da çok sessiz kalan bir şey var mıydı? Hangi dilde oynadın, garip okunan bir cümle gördün mü?
 
     >
 
 
-13. EMANETLER
-    Emanet aldın mı, hangisi? İşe yaradı mı, laneti hissettin mi? (Kemik Zar özellikle)
-
-    >
-
-
-14. SES VE MÜZİK
-    Rahatsız eden ya da çok sessiz kalan bir şey var mıydı?
-
-    >
-
-
-15. DİL
-    Hangi dilde oynadın? Garip / bozuk okunan bir Türkçe cümle gördün mü?
-
-    >
-
-
-Demo'dan sonra oyunda en çok ne görmek istersin?
+Oyunda en çok ne görmek istersin?
 
 >
 

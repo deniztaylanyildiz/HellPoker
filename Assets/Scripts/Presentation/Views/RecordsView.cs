@@ -51,6 +51,13 @@ namespace HellPoker.Presentation.Views
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
+        public void ShowLines(IReadOnlyList<string> lines)
+        {
+            _body.text = string.Join("\n", lines ?? new string[0]);
+            _canvas.enabled = true;
+            GetComponent<GraphicRaycaster>().enabled = true;
+        }
+
         public void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
         {
             var lines = new List<string>

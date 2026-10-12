@@ -33,6 +33,11 @@ namespace HellPoker.Presentation.Views
         private Text _title;
         private Text _text;
         private Text _detail;
+        private Text _barLabel;
+        private BossBarWidget _bar;
+
+        /// <summary>The bar under the words (for tests and screenshots).</summary>
+        public BossBarWidget Bar => _bar;
         private RectTransform _options;
         private Image _pick;
         private readonly List<Button> _buttons = new List<Button>();
@@ -84,6 +89,10 @@ namespace HellPoker.Presentation.Views
             _detail = UiFactory.CreateText("Detail", panel.transform, "", 8, Palette.GoldLight, TextAnchor.LowerLeft);
             _detail.lineSpacing = 1f;
 
+            // A demon's bar under the words (the gate's), small and without a number.
+            _barLabel = UiFactory.CreateText("BarLabel", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
+            _bar = BossBarWidget.Create(panel.transform, "PanelBossBar", 0, 0, 160, 6);
+
             _options = UiFactory.CreateRect("Options", panel.transform).PlaceTL(0, 0, Width, Height);
             _pick = UiFactory.CreateImage("Pick", _options, Palette.Ember);
             _pick.raycastTarget = false;
@@ -114,6 +123,16 @@ namespace HellPoker.Presentation.Views
             _text.text = card.Text;
             _text.rectTransform.PlaceTL(left, textTop, Width - left - 8, 10);
             int textBottom = textTop + Mathf.CeilToInt(_text.preferredHeight);
+            bool bar = !card.Bar.IsHidden;
+            _barLabel.gameObject.SetActive(bar);
+            if (bar)
+            {
+                _barLabel.text = card.BarLabel;
+                _barLabel.rectTransform.PlaceTL(left, textBottom + 4, Width - left - 8, 9);
+                ((RectTransform)_bar.transform).PlaceTL(left, textBottom + 14, 160, 6);
+                textBottom += 22;
+            }
+            _bar.Apply(card.Bar, animate: false);
             int header = Math.Max(card.PortraitId != null ? 8 + Portrait + 4 : 0, textBottom);
             bool details = false;
             foreach (PanelOption option in card.Options) details |= option.Detail.Length > 0;

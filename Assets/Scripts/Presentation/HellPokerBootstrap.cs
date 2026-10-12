@@ -125,7 +125,8 @@ namespace HellPoker.Presentation
                 }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs);
 
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
-                new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter);
+                new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter,
+                StartsInSimulator(System.Environment.GetEnvironmentVariable(DevVariable), Application.isBatchMode, ForceSimulator));
 
             gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter, _chapterPresenter);
 
@@ -134,7 +135,7 @@ namespace HellPoker.Presentation
             if (Debug.isDebugBuild)
                 FpsCounter.Create(transform);
             if (FpsTour.IsRequested)
-                gameObject.AddComponent<FpsTour>().Run(_tablePresenter, _chapterPresenter);
+                gameObject.AddComponent<FpsTour>().Run(_tablePresenter, _chapterPresenter, _menuPresenter);
         }
 
         /// <summary>
@@ -155,6 +156,18 @@ namespace HellPoker.Presentation
             batchMode ? Language.English : GameSettings.LanguageForSystem(system == SystemLanguage.Turkish);
 
         private static ISettingsStore Store => Application.isBatchMode ? BatchStore : (ISettingsStore)new PlayerPrefsStore();
+
+        /// <summary>The environment variable that opens the menu in the Boss Simulator (the old demo, a developer's mode): "1".</summary>
+        public const string DevVariable = "HELLPOKER_DEV";
+
+        /// <summary>Tests: the menu opens in the simulator (true) or the game (false) whatever else says; null: the usual rule.</summary>
+        public static bool? ForceSimulator;
+
+        /// <summary>
+        /// Whether the menu opens in the Boss Simulator: HELLPOKER_DEV=1 — or a batch run (the old demo's tests and screenshots play the
+        /// simulator; the game's tests say so with <see cref="ForceSimulator"/>). F9 on the menu switches at any time.
+        /// </summary>
+        internal static bool StartsInSimulator(string devValue, bool batchMode, bool? forced) => forced ?? (devValue == "1" || batchMode);
 
         /// <summary>The in-memory store of batch runs (tests may clear it).</summary>
         public static readonly MemoryStore BatchStore = new MemoryStore();

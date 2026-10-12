@@ -1,3 +1,4 @@
+using System.Linq;
 using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
 
@@ -8,14 +9,66 @@ namespace HellPoker.Presentation.Ui
     {
         // ------------------------------------------------------------------ the title menu
 
-        public static string ChaptersButton => L("PHASE 2: NEW RUN", "PHASE 2: YENİ KOŞU");
-        public static string ChaptersContinueButton => L("PHASE 2: CONTINUE", "PHASE 2: DEVAM ET");
-        public static string ChaptersAbandonWarning => L("Your Phase 2 run will be lost — and counted as damned.",
-            "Süren Phase 2 koşun kaybedilir — ve lanet sayılır.");
+        public static string ChaptersAbandonWarning => L("Your run will be lost — and counted as damned.", "Süren koşun kaybedilir — ve lanet sayılır.");
 
-        /// <summary>{0} runs, {1} freed, {2} damned, {3} Lucifer reached, {4} fewest hands to freedom.</summary>
-        public static string RecordsPhase2Format => L("PHASE 2: runs {0} · free {1} · damned {2} · Lucifer met {3} · fastest {4}",
-            "PHASE 2: koşu {0} · kurtulan {1} · lanet {2} · Lucifer'e varan {3} · en hızlı {4}");
+        // ------------------------------------------------------------------ the title menu (the game; the Boss Simulator apart)
+
+        public static string GameTagline => L("Your sentence is split among the demons of Hell.\nBeat them at poker, one by one, down to Lucifer.",
+            "Cezan cehennemin şeytanları arasında paylaştırıldı.\nOnları teker teker pokerde yen, Lucifer'e kadar.");
+        public static string GameSubtagline => L("Five Card Draw  ·  coins on the floors  ·  every demon has a bar",
+            "Beş Kart Poker  ·  katlarda coin  ·  her şeytanın bir barı var");
+
+        /// <summary>Under the title while the menu leads to the old demo (a developer's mode).</summary>
+        public static string SimulatorLabel => L("BOSS SIMULATOR (F9)", "BOSS SİMÜLATÖRÜ (F9)");
+
+        public static string GameRulesButton => L("THE GAME", "OYUN");
+
+        public static string GameRulesPage() => L(
+            "HELL POKER: Five Card Draw against the House, all the way down to Lucifer. Choose who you were (a class), then go down " +
+            "three chapters: Mammon's Vault, Belial's Stage, Lilith's Night.\n" +
+            "THE MAP: start at any table of the first floor, then follow the lit paths: tables (an imp, for coins), wardens (a relic), " +
+            "strangers' offers, the black market, a treasure, and the purgatory fire on the last floor.\n" +
+            "THE PURSE: on the floors you play for coins. A table goes on until one purse is empty; if it is yours, the run is over. " +
+            "The ante grows every 3 hands, a win pays at most x3.\n" +
+            "THE GATE: the demon takes a tribute in coins; every coin you lack goes on his bar.\n" +
+            "THE DEMON'S BAR: your share of the sentence is his health bar, under his portrait. A win shortens it, a loss lengthens it. " +
+            "Empty it and he is beaten (take his spoils); let it reach the mark at its end and your soul goes on the table.\n" +
+            "LUCIFER waits after Lilith: empty his bar and you are FREE; let it climb past its mark and you fall.\n" +
+            "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
+            "Hand (the black aces and eights) beats everything.",
+            "HELL POKER: kasaya karşı Beş Kart Poker, Lucifer'e kadar. Kim olduğunu seç (bir sınıf), sonra üç bölüm in: Mammon'un " +
+            "Kasası, Belial'in Sahnesi, Lilith'in Gecesi.\n" +
+            "HARİTA: ilk kattaki herhangi bir masadan başla, sonra yanan yolları izle: masalar (coin'le bir iblis), bekçiler (bir " +
+            "emanet), yabancıların teklifleri, Kara Pazar, bir hazine ve son katta Araf Ateşi.\n" +
+            "KESE: katlarda coin'le oynarsın. Masa bir kese boşalana kadar sürer; boşalan seninkiyse koşu biter. Ante her 3 elde " +
+            "büyür, kazanç en çok x3 öder.\n" +
+            "KAPI: şeytan coin'le haraç alır; eksik her coin onun barına yazılır.\n" +
+            "ŞEYTANIN BARI: cezanın o şeytana düşen payı, portresinin altındaki can barıdır. Kazanç kısaltır, kayıp uzatır. " +
+            "Boşaltırsan yenilir (ganimetini al); sonundaki işarete ulaşırsa ruhun masaya konur.\n" +
+            "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN; işaretini geçerse düşersin.\n" +
+            "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
+            "(siyah aslar ve sekizler) her eli yener.");
+
+        /// <summary>The game's records, a line each.</summary>
+        public static System.Collections.Generic.IReadOnlyList<string> ChapterRecordLines(ChapterRecords r)
+        {
+            r = r ?? new ChapterRecords();
+            return new[]
+            {
+                string.Format(L("Runs: {0}", "Koşu: {0}"), r.Runs),
+                string.Format(L("Freed: {0}", "Kurtulan: {0}"), r.Freed),
+                string.Format(L("Damned: {0}  (purse {1} · soul {2} · fall {3} · abandoned {4})",
+                    "Lanet: {0}  (kese {1} · ruh {2} · düşüş {3} · bırakılan {4})"), r.Damned, r.PurseEmptied, r.SoulsLost, r.CastDown, r.Abandoned),
+                "",
+                string.Format(L("Lucifer reached: {0}", "Lucifer'e ulaşan: {0}"), r.LuciferReached),
+                string.Format(L("Deepest chapter: {0}", "En derin bölüm: {0}"), r.DeepestChapter),
+                r.FastestFreedom.HasValue ? string.Format(L("Fastest freedom: {0} hands", "En hızlı kurtuluş: {0} el"), r.FastestFreedom.Value)
+                    : L("Fastest freedom: —", "En hızlı kurtuluş: —"),
+                "",
+                string.Format(L("Freed as: {0}", "Sınıfa göre kurtuluş: {0}"), string.Join(" · ",
+                    HellPoker.Core.Sinners.SinnerRoster.All.Select(c => SinnerName(c.Id) + " " + (r.FreedByClass.TryGetValue(c.Id, out int n) ? n : 0))))
+            };
+        }
 
         /// <summary>{0} the class's whole sentence, {1} its starting purse (the class choice of a Phase 2 run).</summary>
         public static string ChapterSinnerStartFormat => L("Starts: {0} years · {1} coins", "Başlangıç: {0} yıl · {1} coin");
@@ -37,9 +90,8 @@ namespace HellPoker.Presentation.Ui
         public static string MapFloorFormat => L("FLOOR {0}", "KAT {0}");
         public static string MapCoinsLabel => L("COINS", "COIN");
         public static string MapTributeFormat => L("Tribute at the gate: {0}", "Kapıda haraç: {0}");
-        /// <summary>{0} the years of the run's share at the chapter's demon (his bar), {1} his name with its genitive, in a sentence.</summary>
-        public static string MapYearsFormat => L("{1} bar: {0} years", "{1} barı: {0} yıl");
-        public static string MapOwedFormat => L("Owed at the gate: +{0} years", "Kapıda borç: +{0} yıl");
+        /// <summary>The floors' offers left something owing: it goes on the demon's bar at the gate.</summary>
+        public static string MapOwed => L("Owed at the gate: on the bar", "Kapıda borç: bara yazılır");
         public static string MapPromptStart => L("Choose where to start.", "Nereden başlayacağını seç.");
         public static string MapPrompt => L("Choose your way down.", "Aşağı inen yolunu seç.");
         public static string MapKeysHint => L("Click a lit node  ·  arrows + Enter  ·  Esc menu", "Yanan düğüme tıkla  ·  oklar + Enter  ·  Esc menü");
@@ -210,15 +262,24 @@ namespace HellPoker.Presentation.Ui
         public static string GateTextFormat => L("{0} takes the tribute: {1} coins. You have {2}.", "{0} haracını alır: {1} coin. Sende {2} var.");
 
         /// <summary>{0} coins missing, {1} the years.</summary>
-        public static string GateShortFormat => L("You lack {0} coins: +{1} years on the bar.", "{0} coin eksiğin var: barına +{1} yıl.");
+        public static string GateShortFormat => L("You lack {0} coins: they go on the bar.", "{0} coin eksiğin var: eksik bara yazılır.");
 
         /// <summary>{0} coins left over.</summary>
         public static string GatePaidFormat => L("Paid in full. {0} coins go on with you.", "Tamamı ödendi. {0} coin seninle devam eder.");
-        public static string GateOwedFormat => L("The floors' bargains come due: +{0} years.", "Katlardaki pazarlıkların bedeli: +{0} yıl.");
+        public static string GateOwed => L("The floors' bargains come due: they go on the bar too.", "Katlardaki pazarlıkların bedeli de bara yazılır.");
 
         /// <summary>{0} the demon's bar as his table begins (years).</summary>
-        public static string GateAfterFormat => L("The bar: {0} years of your sentence. Empty it — or lose your soul trying.",
-            "Barı: cezandan {0} yıl. Boşalt — ya da bu uğurda ruhunu kaybet.");
+        public static string GateAfter => L("Empty the bar — or lose your soul trying.", "Barı boşalt — ya da bu uğurda ruhunu kaybet.");
+
+        /// <summary>The demon's bar on the map and at the gate: {0} the demon's name with its genitive (capitals).</summary>
+        public static string MapBarLabelFormat => L("{0} BAR", "{0} BARI");
+
+        /// <summary>The bar's hover at the table: {0} the bar's name, {1} the hand, {2} what its end's mark means.</summary>
+        public static string BossBarHintFormat => L("{0}\nHand {1}: empty the bar.\nThe mark at its end: {2}.", "{0}\nEl {1}: barı boşalt.\nSonundaki işaret: {2}.");
+        public static string BossBarSoulHintFormat => L("{0}\nHand {1}: your soul is on the table.\nThe mark at its end: {2}.",
+            "{0}\nEl {1}: ruhun masada.\nSonundaki işaret: {2}.");
+        public static string BarMarkSoul => L("your soul", "ruhun");
+        public static string BarMarkFall => L("your fall", "düşüşün");
         public static string GatePay => L("PAY AND SIT", "ÖDE VE OTUR");
 
         // ------------------------------------------------------------------ a beaten demon's spoils

@@ -30,10 +30,23 @@ namespace HellPoker.Presentation.Views
         private GameObject _cheatsBody;
         private GameObject _sinnersBody;
         private GameObject _chapterBody;
+        private GameObject _gameBody;
+        private GameObject _simulatorLabel;
+        private Text _tagline;
+        private Text _subtagline;
+
+        /// <summary>The menu leads to the Boss Simulator (the old demo) instead of the game.</summary>
+        private bool _simulator;
+
+        /// <summary>True while the menu leads to the Boss Simulator (for tests).</summary>
+        public bool InSimulator => _simulator;
         private HandRanksPanel _handRanks;
 
         /// <summary>The pages of How to Play, in the order the page button cycles them.</summary>
-        private enum Page { Rules, Hands, Cheats, Sinners, Chapters }
+        private enum Page { Game, Powers, Rules, Hands, Cheats, Sinners }
+
+        /// <summary>The first page of How to Play: the game's, or the simulator's rules.</summary>
+        private Page MainPage => _simulator ? Page.Rules : Page.Game;
 
         private Page _page;
         private Text _pageLabel;
@@ -46,11 +59,6 @@ namespace HellPoker.Presentation.Views
         public event Action ChangeTablePressed;
         public event Action SettingsPressed;
         public event Action RecordsPressed;
-        public event Action ChaptersPressed;
-
-        public event Action ChaptersContinuePressed;
-        private GameObject _chaptersButton;
-        private GameObject _chaptersContinueButton;
         public event Action Confirmed;
         public event Action LanguagePressed;
 
@@ -113,11 +121,21 @@ namespace HellPoker.Presentation.Views
                 UiFactory.CreateText("DemoLabel", front, UiText.DemoLabel, 8, Palette.Ember, style: FontStyle.Bold).WithOutline()
                     .rectTransform.PlaceTL((PixelScreen.Width - 64) / 2, 72, 64, 9);
 
-            Text taglineText = UiFactory.CreateText("Tagline", front, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline().Localized(tagline);
-            taglineText.rectTransform.PlaceTL(40, 88, PixelScreen.Width - 80, 18);
+            // The game's words — or, in the Boss Simulator, the old demo's (its sentence of years).
+            _tagline = UiFactory.CreateText("Tagline", front, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline()
+                .Localized(() => _simulator ? tagline() : UiText.GameTagline);
+            _tagline.rectTransform.PlaceTL(40, 88, PixelScreen.Width - 80, 18);
             UiFactory.CreateSprite("Divider", front, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 110, 48, 3);
-            UiFactory.CreateText("Subtagline", front, "", 8, Palette.BoneMid).WithOutline().Localized(() => UiText.MenuSubtagline)
-                .rectTransform.PlaceTL(40, 117, PixelScreen.Width - 80, 9);
+            _subtagline = UiFactory.CreateText("Subtagline", front, "", 8, Palette.BoneMid).WithOutline()
+                .Localized(() => _simulator ? UiText.MenuSubtagline : UiText.GameSubtagline);
+            _subtagline.rectTransform.PlaceTL(40, 117, PixelScreen.Width - 80, 9);
+
+            // The Boss Simulator says so under the title (F9 again: back to the game).
+            Text simulator = UiFactory.CreateText("SimulatorLabel", front, "", 8, Palette.Ember, style: FontStyle.Bold).WithOutline()
+                .Localized(() => UiText.SimulatorLabel);
+            simulator.rectTransform.PlaceTL(0, 12, PixelScreen.Width, 9);
+            _simulatorLabel = simulator.gameObject;
+            _simulatorLabel.SetActive(false);
 
             // Two columns in reading order; buttons that are hidden leave no gap (see LayOut).
             Transform buttons = UiFactory.CreateRect("Buttons", front).Stretch();
@@ -127,13 +145,7 @@ namespace HellPoker.Presentation.Views
             GameObject settings = CreateMenuButton(buttons, "SettingsButton", () => UiText.SettingsButton, ButtonSkin.Ash, () => SettingsPressed?.Invoke());
             GameObject howToPlay = CreateMenuButton(buttons, "HowToPlayButton", () => UiText.HowToPlay, ButtonSkin.Ash, () => ShowRules(true));
             GameObject records = CreateMenuButton(buttons, "RecordsButton", () => UiText.Records, ButtonSkin.Ash, () => RecordsPressed?.Invoke());
-            // Phase 2's chapters, apart from the demo's run (a test build's door to them).
-            _chaptersContinueButton = CreateMenuButton(buttons, "ChaptersContinueButton", () => UiText.ChaptersContinueButton, ButtonSkin.Ember,
-                () => ChaptersContinuePressed?.Invoke());
-            _chaptersContinueButton.SetActive(false);
-            _chaptersButton = CreateMenuButton(buttons, "ChaptersButton", () => UiText.ChaptersButton, ButtonSkin.Ember, () => ChaptersPressed?.Invoke());
-            _chaptersButton.SetActive(false);
-            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, _chaptersContinueButton, _chaptersButton, settings, howToPlay, records });
+            _grid.AddRange(new[] { _continueButton, _changeTableButton, newGame, settings, howToPlay, records });
             _quitButton = CreateMenuButton(buttons, "QuitButton", () => UiText.Quit, ButtonSkin.Ash, () => QuitPressed?.Invoke());
             LayOut();
 
@@ -231,6 +243,13 @@ namespace HellPoker.Presentation.Views
             _chapterBody = chapterText.gameObject;
             _chapterBody.SetActive(false);
 
+            // The game's own first page: the chapters, the map, the purse, the bar, Lucifer.
+            Text gameText = UiFactory.CreateText("GameRules", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(UiText.GameRulesPage);
+            gameText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            gameText.lineSpacing = 1f;
+            _gameBody = gameText.gameObject;
+            _gameBody.SetActive(false);
+
             _handRanks = HandRanksPanel.Create(panel.transform, (PixelScreen.Width - 16 - HandRanksPanel.Width) / 2, 30);
 
             // RULES → HANDS → CHEATS → SINNERS page switch (the label names the next page), then BACK.
@@ -281,8 +300,8 @@ namespace HellPoker.Presentation.Views
                 return true;
             }
             if (!_rulesPanel.activeSelf) return false;
-            if (_page != Page.Rules)
-                ShowPage(Page.Rules);   // another page goes back to the rules first
+            if (_page != MainPage)
+                ShowPage(MainPage);   // another page goes back to the first one first
             else
                 ShowRules(false);
             return true;
@@ -290,16 +309,17 @@ namespace HellPoker.Presentation.Views
 
         private Page Next(Page page)
         {
-            Page next = page;
-            for (int i = 0; i < 5; i++)
+            // The game: GAME → POWERS → HANDS → CHEATS. The Boss Simulator: RULES → HANDS → CHEATS → SINNERS.
+            Page[] order = _simulator ? new[] { Page.Rules, Page.Hands, Page.Cheats, Page.Sinners } : new[] { Page.Game, Page.Powers, Page.Hands, Page.Cheats };
+            int at = Array.IndexOf(order, page);
+            for (int i = 1; i <= order.Length; i++)
             {
-                next = next == Page.Rules ? Page.Hands : next == Page.Hands ? Page.Cheats : next == Page.Cheats ? Page.Sinners
-                    : next == Page.Sinners ? Page.Chapters : Page.Rules;
+                Page next = order[(at + i + order.Length) % order.Length];
                 if (next == Page.Cheats && !HasText(_cheatsBody)) continue;
                 if (next == Page.Sinners && !HasText(_sinnersBody)) continue;
                 return next;
             }
-            return Page.Rules;
+            return MainPage;
         }
 
         private static bool HasText(GameObject body) => body != null && !string.IsNullOrEmpty(body.GetComponent<Text>().text);
@@ -314,30 +334,36 @@ namespace HellPoker.Presentation.Views
             _rulesBody.SetActive(page == Page.Rules);
             _cheatsBody.SetActive(page == Page.Cheats);
             _sinnersBody.SetActive(page == Page.Sinners);
-            _chapterBody.SetActive(page == Page.Chapters);
+            _chapterBody.SetActive(page == Page.Powers);
+            _gameBody.SetActive(page == Page.Game);
             Page next = Next(page);
             _pageLabel.text = next == Page.Hands ? UiText.HandsButton : next == Page.Cheats ? UiText.CheatsButton
-                : next == Page.Sinners ? UiText.SinnersButton : next == Page.Chapters ? UiText.ChapterRulesButton : UiText.RulesButton;
+                : next == Page.Sinners ? UiText.SinnersButton : next == Page.Powers ? UiText.ChapterRulesButton
+                : next == Page.Game ? UiText.GameRulesButton : UiText.RulesButton;
         }
 
         private void ShowRules(bool show)
         {
-            ShowPage(Page.Rules);
+            ShowPage(MainPage);
             _rulesPanel.SetActive(show);
             _front.SetActive(!show);
         }
 
-        public void SetChapters(bool available, bool inProgress)
+        public void SetSimulator(bool simulator)
         {
-            _chaptersButton.SetActive(available);
-            _chaptersContinueButton.SetActive(available && inProgress);
+            _simulator = simulator;
+            _simulatorLabel.SetActive(simulator);
+            _tagline.GetComponent<LocalizedText>()?.Rewrite();
+            _subtagline.GetComponent<LocalizedText>()?.Rewrite();
+            _changeTableButton.SetActive(simulator && _continueButton.activeSelf);
             LayOut();
+            if (_rulesPanel != null) ShowPage(MainPage);
         }
 
         public void Show(bool canContinue)
         {
             _continueButton.SetActive(canContinue);
-            _changeTableButton.SetActive(canContinue);
+            _changeTableButton.SetActive(canContinue && _simulator);
             LayOut();
             ShowRules(false);
             _confirm.SetActive(false);

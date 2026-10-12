@@ -39,9 +39,16 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The chapter (1-3): the map's backdrop.</summary>
         public int Chapter { get; }
 
+        /// <summary>The chapter demon's bar as it would stand at the gate (small, no number), and its name.</summary>
+        public BossBarDisplay Bar { get; }
+        public string BarLabel { get; }
+
         public ChapterMapState(ChapterMap map, MapNode current, IReadOnlyCollection<MapNode> choices, MapNode selected, IReadOnlyList<MapNode> trail,
-            string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe, string gateLabel = null, int chapter = 1)
+            string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe, string gateLabel = null, int chapter = 1,
+            BossBarDisplay bar = null, string barLabel = null)
         {
+            Bar = bar ?? BossBarDisplay.Hidden;
+            BarLabel = barLabel ?? "";
             GateLabel = gateLabel ?? "";
             Chapter = chapter;
             Map = map ?? throw new ArgumentNullException(nameof(map));
@@ -108,8 +115,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The answer the keyboard points at.</summary>
         public int Selected { get; }
 
-        public PanelCard(string portraitId, string owner, string title, string text, IReadOnlyList<PanelOption> options, int selected = 0)
+        /// <summary>A demon's bar under the words (the gate's), with its name; hidden for none.</summary>
+        public BossBarDisplay Bar { get; }
+        public string BarLabel { get; }
+
+        public PanelCard(string portraitId, string owner, string title, string text, IReadOnlyList<PanelOption> options, int selected = 0,
+            BossBarDisplay bar = null, string barLabel = null)
         {
+            Bar = bar ?? BossBarDisplay.Hidden;
+            BarLabel = barLabel ?? "";
             PortraitId = portraitId;
             Owner = owner ?? "";
             Title = title ?? "";

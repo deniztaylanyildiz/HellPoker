@@ -63,9 +63,10 @@ namespace HellPoker.Presentation
         public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
             IReadOnlyList<Dealer> dealers, Dealer finalDealer = null, ISinnerSelectView sinnerSelect = null,
-            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null)
+            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null, bool simulator = false)
         {
             _chapters = chapters;
+            _simulator = simulator;
             _audio = audio ?? NullAudio.Instance;
             _sinnerSelect = sinnerSelect;
             _classes = (classes ?? SinnerRoster.All).ToArray();
@@ -84,9 +85,9 @@ namespace HellPoker.Presentation
             _dealers = dealers.ToArray();
             _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
 
-            _menu.NewGamePressed += AskForNewGame;
+            _menu.NewGamePressed += NewGame;
             _menu.Confirmed += GoAhead;
-            _menu.ContinuePressed += OpenTable;
+            _menu.ContinuePressed += Continue;
             _menu.ChangeTablePressed += AskToChangeTables;
             _menu.SettingsPressed += OpenSettings;
             _menu.RecordsPressed += OpenRecords;
@@ -108,8 +109,6 @@ namespace HellPoker.Presentation
                 _sinnerSelect.SinnerChosen += ChooseSinner;
                 _sinnerSelect.BackPressed += BackFromSinners;
             }
-            _menu.ChaptersPressed += OpenChaptersOrChoose;
-            _menu.ChaptersContinuePressed += ContinueChapters;
             if (_chapters != null)
             {
                 _chapters.MenuRequested += OpenMenu;
@@ -149,8 +148,8 @@ namespace HellPoker.Presentation
             }
             else if (_menu.IsVisible)
             {
-                if (!_menu.CloseOverlay() && _session.CanContinue)
-                    OpenTable();
+                if (!_menu.CloseOverlay() && CanContinue)
+                    Continue();
             }
             else
             {
@@ -160,9 +159,9 @@ namespace HellPoker.Presentation
 
         public void Dispose()
         {
-            _menu.NewGamePressed -= AskForNewGame;
+            _menu.NewGamePressed -= NewGame;
             _menu.Confirmed -= GoAhead;
-            _menu.ContinuePressed -= OpenTable;
+            _menu.ContinuePressed -= Continue;
             _menu.ChangeTablePressed -= AskToChangeTables;
             _menu.SettingsPressed -= OpenSettings;
             _menu.RecordsPressed -= OpenRecords;
@@ -184,8 +183,6 @@ namespace HellPoker.Presentation
                 _sinnerSelect.SinnerChosen -= ChooseSinner;
                 _sinnerSelect.BackPressed -= BackFromSinners;
             }
-            _menu.ChaptersPressed -= OpenChaptersOrChoose;
-            _menu.ChaptersContinuePressed -= ContinueChapters;
             if (_chapters != null)
             {
                 _chapters.MenuRequested -= OpenMenu;
@@ -208,15 +205,6 @@ namespace HellPoker.Presentation
             string taunt = mammon?.Scorn == null ? null : UiText.Pick(mammon.Scorn, Environment.TickCount & int.MaxValue);
             _asking = Asking.NewChapterRun;
             _menu.AskToConfirm(taunt, UiText.ChaptersAbandonWarning, UiText.AbandonButton);
-        }
-
-        /// <summary>Phase 2's records in a line for the records screen; null without the chapters or before any run.</summary>
-        private string Phase2Records()
-        {
-            Core.Chapters.ChapterRecords r = _chapters?.Records;
-            if (r == null || r.Runs == 0) return null;
-            return string.Format(UiText.RecordsPhase2Format, r.Runs, r.Freed, r.Damned, r.LuciferReached,
-                r.FastestFreedom.HasValue ? r.FastestFreedom.Value.ToString() : "—");
         }
 
         /// <summary>Phase 2's CONTINUE: the run that waits (the saved one is loaded).</summary>
@@ -279,7 +267,7 @@ namespace HellPoker.Presentation
             }
             else if (_records.IsVisible)
             {
-                _records.Show(_session.Records, _dealerCards, Phase2Records());
+                ShowRecords();
             }
             else if (_endScreen.IsVisible && _lastSummary != null)
             {
@@ -288,6 +276,7 @@ namespace HellPoker.Presentation
             else if (_menu.IsVisible && _menu.IsConfirming)
             {
                 if (_asking == Asking.Quit) AskToQuit();
+                else if (_asking == Asking.NewChapterRun) OpenChaptersOrChoose();
                 else AskForNewGame();
             }
         }
@@ -341,7 +330,8 @@ namespace HellPoker.Presentation
         /// </summary>
         private void AskToQuit()
         {
-            AbandonRisk risk = _session.AbandonRisk;
+            // The game's run is saved at every step (a hand left in the middle is lost on the next launch, as its rules say).
+            AbandonRisk risk = InSimulator ? _session.AbandonRisk : AbandonRisk.None;
             if (risk != AbandonRisk.Hand && risk != AbandonRisk.Soul)
             {
                 _quitter.Quit();
@@ -435,8 +425,15 @@ namespace HellPoker.Presentation
         private void OpenRecords()
         {
             HideAll();
-            _records.Show(_session.Records, _dealerCards, Phase2Records());
+            ShowRecords();
             Curtain();
+        }
+
+        /// <summary>The game's records (the chapters' book) — or, in the Boss Simulator, the old demo's.</summary>
+        private void ShowRecords()
+        {
+            if (InSimulator) _records.Show(_session.Records, _dealerCards);
+            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records));
         }
 
         private void Choose(int index)
@@ -539,9 +536,39 @@ namespace HellPoker.Presentation
         {
             HideAll();
             _chapterChoice = false;
-            _menu.SetChapters(_chapters != null, _chapters != null && _chapters.CanContinue);
-            _menu.Show(_session.CanContinue);
+            _menu.SetSimulator(InSimulator);
+            _menu.Show(CanContinue);
             Curtain();
+        }
+
+        // ------------------------------------------------------------------ the game, or the Boss Simulator
+
+        /// <summary>The menu leads to the Boss Simulator (the old demo) instead of the game: F9 / HELLPOKER_DEV — and always without chapters.</summary>
+        private bool _simulator;
+
+        public bool InSimulator => _simulator || _chapters == null;
+
+        /// <summary>CONTINUE: the game's run that waits — or the simulator's.</summary>
+        private bool CanContinue => InSimulator ? _session.CanContinue : _chapters.CanContinue;
+
+        public void ToggleSimulator()
+        {
+            if (_chapters == null || !IsAtMenuRoot) return;
+            _simulator = !_simulator;
+            OpenMenu();
+        }
+
+        /// <summary>NEW GAME: a chapter run (the class first) — or, in the simulator, a demon's table.</summary>
+        private void NewGame()
+        {
+            if (InSimulator) AskForNewGame();
+            else OpenChaptersOrChoose();
+        }
+
+        private void Continue()
+        {
+            if (InSimulator) OpenTable();
+            else ContinueChapters();
         }
 
         private void OpenSettings()

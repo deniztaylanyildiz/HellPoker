@@ -15,6 +15,19 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Tek oyun (1.4.0):** ana menünün YENİ OYUN / DEVAM ET düğmeleri Phase 2 koşusunu açar (sınıf → harita); "PHASE 2" düğmeleri yok.
+Eski demo silinmedi: **Boss Simülatörü** (geliştirici kipi; `MainMenuPresenter.InSimulator`): ana menüde **F9** (`IMenuCommands.ToggleSimulator`,
+sadece menü kökünde) ya da `HELLPOKER_DEV=1`; batchmode'da (testler) varsayılan simülatör, oyunun testleri `HellPokerBootstrap.ForceSimulator =
+false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MASA DEĞİŞTİR / YENİ OYUN → şeytan, demo kuralları, demo rekorları,
+başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
+`ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
+(`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-1.4.0-win64.zip` (bundleVersion 1.4.0; OKUBENI / GERI_BILDIRIM tek oyunu anlatır).
+**Şeytanın can barı** (`BossBarWidget`, `BossBarDisplay`, `ITableView.SetBossBar`): boss masasında adın altında (isim altı satırı boş;
+el sayısı barın hover'ında), rakamsız; sonunda ruh çizgisi (leylak) ya da Lucifer'in düşüş çizgisi (kor) işareti, başlangıçta ince çentik;
+çizgiye yaklaştıkça koyulaşır; kısalınca kaybedilen kısım parlayıp söner, uzayınca yeni kısım koyu kırmızı dolar; Mammon'un faizi ayrı bir
+adım (`TablePresenter.ShowBossBar`). Boss masasında sağ üstteki sayaç gizli (`TableView.SetCurrency(Bar)`; ruh lambası yine çıkar).
+Haritada (`ChapterMapState.Bar`) ve kapıda (`PanelCard.Bar`) küçük bar; yıl yazısı yok.
 **Phase 2 (oynanabilir, 1.3.0-phase2):** tasarım ve simülasyon tabloları `Docs/PHASE2_CHAPTERS.md`. Ana menüde **PHASE 2 TESTİ** /
 **PHASE 2: DEVAM** (yeni koşu eskisinin üstüne onayla, eskisi lanet sayılır): sınıf → Bölüm 1 Mammon'un Kasası (8 kat) → Bölüm 2
 Belial'in Sahnesi (10) → Bölüm 3 Lilith'in Gecesi (12) → Lucifer (KURTULUŞ / DÜŞTÜN: bar başlangıcın %125'ini geçerse). Demo (YENİ OYUN /

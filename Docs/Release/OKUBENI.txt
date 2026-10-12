@@ -3,14 +3,14 @@ HELL POKER {VERSION}
 
 Merhaba! Oynadığın için teşekkürler.
 
-BU BİR DEMO SÜRÜMÜDÜR. İçinde: üç kurpiyer şeytan (Mammon, Belial, Lilith) ve finalde Lucifer; dört sınıf (Köylü, Büyücü,
-Kral, Soytarı); eller arasında olaylar; lanetli emanetler; eller boyunca devam eden, sayılabilen deste. Oyun bitmiş bir
-oyun değil: hatalar olabilir, sayılar değişebilir.
+Hell Poker'da kasaya karşı 5 kartlık poker (5 Card Draw) oynayarak cehennemin dibine, Lucifer'e kadar inersin. Üç bölüm var:
+Mammon'un Kasası, Belial'in Sahnesi, Lilith'in Gecesi; sonunda Lucifer. Oyun bitmiş bir oyun değil: hatalar olabilir, sayılar
+değişebilir.
 
 Bilinen sınırlamalar:
   - 2K gibi yüksek çözünürlüklü ekranlarda yazılar bulanık görünürse Ayarlar > GÖRÜNTÜ > PİKSEL ÖLÇEĞİ'nde TAM PİKSEL'i seç.
-  - Soytarı'nın jokeriyle Ölü Adamın Eli yapılabilir (bilerek böyle).
-  - Denge hâlâ test aşamasında.
+  - Denge hâlâ test aşamasında: sınıflar arasında fark var (Soytarı çok zor).
+  - Şeytanın kuralı masa açılırken söylenir; ilk oynayışta ilk ipucu bu repliğin üstüne yazılabilir (kurallar How to Play'de de var).
 
 
 NASIL AÇILIR
@@ -24,64 +24,78 @@ NASIL AÇILIR
 
 OYUN NE?
 --------
-Cehennemde 1000 yıl cezan var. Kasaya, yani bir şeytana karşı 5 kartlık poker (5 Card Draw) oynayarak cezanı sıfıra
-indirmeye çalışıyorsun. Kazanınca ceza azalır, kaybedince artar.
+YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Büyücü, Kral ya da Soytarı. Cezan cehennemin şeytanları arasında paylaştırılmıştır;
+her şeytanda bir payın var.
 
-Yeni oyunda önce şeytanı, sonra kim olduğunu seçersin: Köylü (en kolay), Büyücü, Kral ya da Soytarı. İlk üçünün bir gücü var:
-portrenin altındaki rozette 5 pip: kazandığın elde +1, kaybettiğin elde +2, çekildiğin elde +1 dolar (berabere 0). Dolunca
-pipler parlar ve "HAZIR: K" yazar. K tuşu ya da rozete tık gücü AÇAR ("GÜÇ AÇIK", rozet yanıp söner); tekrar K kapatır,
-gösterge dolu kalır. Açık güç sen kullanana kadar açık kalır, bu arada bahis yapabilirsin. Köylü: ÇEKİL düğmesi
-"BEDAVA ÇEKİL" olur, sıradaki çekilme bedelsiz (eller boyunca bekler). Büyücü: duyurulan küçük bir hileyi engeller (kalkan
-niyet şeridinin üstünde, hile gelene kadar bekler). Kral: şeytan bir hile duyurduğunda K bütün elini o el boyunca korur
-(kartlarda taç; kartlarını yine değiştirebilirsin); yalnızca şeytanın kendi tarafına dokunan hileler (sahte yüz, haraç, bakış) geçer. Gösterge koşu boyunca seninle: masa değişince sıfırlanmaz.
-Soytarı 750 yılla başlar; gücü ve göstergesi yok, onun numarası deste: her masada destede joker var (koşu 2 jokerle başlar, kazandığın
-her el bir tane ekler; 10'un üstündeyken kaybedersen bir tane eksilir, 2'nin altına inmez; rozette sayısı yazar, ör. ×3).
-Joker eldeyken ? yüzlü bir soytarı kartıdır. El sonunda tek jokerin elinde olmayan istediğin karta dönüşür: küçük bir
-seçici açılır, en iyi kart hazır seçili gelir (oklar değiştirir, Enter onaylar). Elinde 2 joker varsa el sonunda
-kaybedersin: fazlasını kart değiştirirken at (ekranda uyarı çıkar). İkinizde de 2 ya da daha fazla joker varsa jokeri az olan
-kazanır, eşitse el berabere (yıl değişmez). Sonuç jokerinin hangi karta döndüğüne bağlı değilse seçici açılmaz, joker kendiliğinden
-en iyi karta döner. Şeytan da joker çekebilir, onun için de aynı kurallar.
-Destede 20 jokere ulaşırsan jokerler silinir, sayı 2'ye döner ve koşuda bir kez Soytarı'nın Çıngırağı emanetini kazanırsın
-(kazanılan el ante'nin yarısı kadar fazla yıl siler, kaybedilen el yarısı kadar fazla ekler).
-Deste eller boyunca devam eder: dağıtılan ve değiştirilen kartlar desteye dönmez, kalan kart sayısı kasanın kartlarının üstünde
-yazar (kart sayabilirsin). Deste bir eli kaldıramayacak kadar azalınca şeytan 52 kartı yeniden karar; istersen eller arasında
-KARIŞTIR (S) ile 10 yıl ödeyip desteyi kendin de karıştırabilirsin (her elden önce bir kez; deste tamken, şeytan zaten karacakken,
-300 yılın altında ve ruhun masadayken olmaz). Masa değişince ve oyunu kapatıp açınca deste kaldığı yerden devam eder.
-Soytarı'nın destesi her el karılır.
-Eller arasında bazen ortada bir teklif paneli açılır (bir olay): kabul et ya da geç. Bazı teklifler lanetli bir emanet verir;
-emanetler portrenin yanında küçük kutularda durur, üstüne gelince ne yaptıkları yazar.
+HARİTA: her bölüm katlardan oluşan bir harita. İlk kattaki herhangi bir masadan başla, sonra yalnızca yanan yollardan in. Düğümün
+üstüne gelince ne olduğu yazar.
+  - Masa (kartlar): bir iblise karşı coin'le oynarsın. Masa bir kese boşalana kadar sürer. İblisinki boşalırsa geçersin; SENİNKİ
+    boşalırsa koşu biter.
+  - Bekçi (altın göz): daha zengin, hileci bir iblis; yenersen bir lanetli emanet verir.
+  - Yabancı (kukuletalı): bir teklif; kabul et ya da geç.
+  - Kara Pazar (terazi): lanetli emanetler ve hizmetler. Hazine: bedava coin. Araf Ateşi (son kat): şeytanın masası için bir lütuf.
 
-Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR (kurallar, eller, hileler, günahkârlar sayfaları).
+KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür, kazanç en çok ×3 öder. Bir bölüm başlarken kesen
+sınıfının başlangıç kesesinin altındaysa ona tamamlanır.
+
+KAPI ve CAN BARI: son katın altındaki kapıda şeytan coin'le haraç alır; eksik her coin onun barına yazılır. Sonra masası: cezanın
+o şeytana düşen payı, portresinin altındaki kırmızı CAN BARIDIR (rakam yok). Kazandığın elde bar kısalır, kaybettiğinde uzar.
+Bar biterse şeytan yenilir ve ganimetini alırsın; barın sonundaki işarete ulaşırsa ruhun masaya konur, ruhun biterse lanetlenirsin.
+Bu masada her şey barın yüzdesiyle yazılır.
+
+LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN; barı sonundaki işareti geçerse düşersin (koşu biter).
+
+SINIF GÜÇLERİ (portrenin altındaki 5 pip: kazanç +1, kayıp +2, çekilme +1; dolunca K gücü kullanır). Masada diyalog kutusunun
+altındaki panelde:
+  - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (en çok 3). Sonraki kart değiştirmelerde heybedeki
+    karta tıklarsan desteden çekmek yerine o gelir; ama şeytan görür, o el daha sık artırır. K: HASAT, atılan her yer heybeden, gizlice.
+  - Büyücü, KEHANET: destenin üstündeki kartları görür (1, sonra 2, sonra 3). Bedeli: şeytan her elde kartlarından birini bilir.
+    K: gördüğün kartlardan en çok 2'sini destenin dibine yolla. Yalanları da görür.
+  - Kral, HAZİNE: kazandığın her elde 1 vergi. Kart değiştirmeden önce: AÇ (şeytanın bir kartı açılır), BEDAVA (sıradaki artırman
+    şeytanın parasıyla), MÜSADERE (bir kartını ver, şeytanın en iyi açık kartını al). J, Q, K'na hiçbir hile dokunamaz. Şeytanın
+    masasında kaybedilen el vergilerin yarısını götürür. K: bedava müsadere.
+  - Soytarı: destede joker var (2 ile başlar, kazandıkça artar). Tek joker el sonunda istediğin karta döner; elinde 2 joker varsa
+    kaybedersin, fazlasını kart değiştirirken at. Şeytan da joker çekebilir.
+
+ŞEYTAN KURALLARI (sadece şeytanların kendi masalarında; masa açılırken söylerler):
+  - Mammon, FAİZ: kazanamadığın her elde bar biraz uzar.
+  - Belial, ROL TAKASI: her 4 elde bir kapalı kartlarından biri seninkiyle yer değiştirir.
+  - Lilith, BAŞTAN ÇIKARMA: attığın kart elini iyileştiriyorsa alabilir.
+  - Lucifer, AYNA: senin sınıfını kopyalar.
+  - Bar başlangıcının dörtte birinin altına inince şeytan köşeye sıkışır ve daha hızlı hile yapar.
+
+Şeytanlar hile de yapar: portrenin üstünde bir sonraki hilesi duyurulur (niyet), hile kartlarda görünür vurur.
+
+Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR (oyun, güçler, eller, hileler).
 Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüde sağ üstteki TR / EN butonuyla ya da L tuşuyla değiştirirsin.
 Poker bilmiyorsan dert etme:
   - H tuşu hangi elin hangisini yendiğini gösterir.
   - Oyun elinin adını söyler ("NOW: ONE PAIR").
   - Kart değiştirirken tutman iyi olan kartlar altın çerçeveyle parlar.
-  - Şeytanlar ilk seferlerde ne olduğunu kendileri anlatır.
+
+Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür. Bir elin ortasında oyunu kapatırsan o el kaybedilmiş sayılır.
 
 
 KONTROLLER
 ----------
-  Space / Enter   dağıt · kart değiştir · pas · karşıla
+  Space / Enter   dağıt · kart değiştir · pas · karşıla (haritada: seç)
+  Oklar           haritada yol seç · el sonunda jokerin kartını seç (Soytarı)
   R               artır (raise)
   F               çekil (fold)
   D               kart değiştirmeye kadar pas geç (check to draw)
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
-  Oklar           el sonunda jokerin kartını seç (sol / sağ değer, yukarı / aşağı renk; Soytarı)
   H               el sıralaması
-  S               desteyi karıştır (eller arasında, +10 yıl)
-  K               sınıfının gücünü aç / kapat (gösterge doluyken; Kral'da sonra karta tıkla)
+  K               sınıfının gücü (gösterge doluyken)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
 
   Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
   Ayarlarda (SETTINGS / AYARLAR) üç sekme var, Q / E ya da ok tuşlarıyla geçersin:
-    OYUN: animasyon hızı, el rehberi, ipuçları, dil · GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği
-    (ekranı doldur), dikey senkron · SES: ana ses, müzik, efektler.
-  Kemik Zar emanetini taşıyorsan: zarın kutusuna tıkla, sonra yeniden çekmek istediğin karta tıkla.
-  Fareyle de oynanır: butonlara ve kartlara tıkla.
+    OYUN: animasyon hızı, el rehberi, ipuçları, dil · GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği,
+    dikey senkron · SES: ana ses, müzik, efektler.
+  Fareyle de oynanır: butonlara, kartlara ve haritadaki düğümlere tıkla.
 
 
 BİR SORUN OLURSA
@@ -103,4 +117,4 @@ GERİ BİLDİRİM
 -------------
 GERI_BILDIRIM.txt dosyasındaki soruları cevaplayıp bana geri gönderirsen çok sevinirim. Kısa cevaplar da olur.
 
-İyi eğlenceler — ve şeytanların gösterdiği işaretlere dikkat et.
+İyi eğlenceler — ve şeytanların barına dikkat et.
