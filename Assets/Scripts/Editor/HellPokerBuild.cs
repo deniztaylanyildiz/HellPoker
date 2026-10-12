@@ -57,9 +57,11 @@ namespace HellPoker.Editor
                     if (relative.Split('/')[0].EndsWith("_DoNotShip")) continue;   // Burst's debug info stays home
                     zip.CreateEntryFromFile(file, root + relative, System.IO.Compression.CompressionLevel.Optimal);
                 }
-                foreach (string note in new[] { "OKUBENI.txt", "GERI_BILDIRIM.txt" }.Concat(extraNotes ?? new string[0]))
+                foreach (string note in new[] { "OKUBENI.txt", "GERI_BILDIRIM.txt", "CHANGELOG.md" }.Concat(extraNotes ?? new string[0]))
                 {
-                    string text = File.ReadAllText(Path.Combine(ReleaseTexts, note)).Replace("{VERSION}",
+                    // The changelog is the repository's own (its root); the tester notes live in Docs/Release.
+                    string source = File.Exists(Path.Combine(ReleaseTexts, note)) ? Path.Combine(ReleaseTexts, note) : note;
+                    string text = File.ReadAllText(source).Replace("{VERSION}",
                         HellPoker.Core.Game.ReleaseVersion.IsDemo(version) ? HellPoker.Core.Game.ReleaseVersion.Display(version) : version)
                         .Replace("{FOLDER}", HellPoker.Core.Game.ReleaseVersion.FileName(version));   // the folder the zip unpacks to
                     ZipArchiveEntry entry = zip.CreateEntry(root + note);

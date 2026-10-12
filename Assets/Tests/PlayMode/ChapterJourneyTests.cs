@@ -129,6 +129,33 @@ namespace HellPoker.PlayMode.Tests
             Assert.AreEqual(1, ((TablePresenter)Chapters.Table).Floor.HandsPlayed);
         }
 
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheBugReportButton_OpensTheBox_AndTheReportGoesToTheClipboard()
+        {
+            yield return OpenChapters();
+            HellPokerScreenshots.Find<Button>("MapMenuButton").onClick.Invoke();   // the game's pause menu: the title menu
+            yield return new WaitForSeconds(0.6f);
+            HellPokerScreenshots.Press("MenuFeedbackButton");
+            yield return null;
+            var box = UnityEngine.Object.FindFirstObjectByType<FeedbackView>();
+            Assert.IsTrue(box.IsOpen);
+            Assert.IsTrue(box.IsBug);
+            HellPokerScreenshots.Press("FeedbackIdeaButton");
+            Assert.IsFalse(box.IsBug);
+            box.Text = "More demons, please.";
+            HellPokerScreenshots.Press("FeedbackSendButton");
+            yield return null;
+            StringAssert.Contains("caveengine@gmail.com", box.Status);
+            var feedback = (FeedbackPresenter)typeof(HellPokerBootstrap).GetField("_feedbackPresenter", BindingFlags.NonPublic | BindingFlags.Instance)
+                .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
+            Assert.AreEqual("[Hell Poker ÖNERİ] More demons, please.", feedback.LastSubject);
+            StringAssert.Contains("Class: peasant", feedback.LastBody, "where the run stands");
+            StringAssert.StartsWith("mailto:caveengine@gmail.com", feedback.LastLink);
+            HellPokerScreenshots.Press("FeedbackBackButton");
+            Assert.IsFalse(box.IsOpen);
+            Assert.IsTrue(Menu.IsAtMenuRoot);
+        }
+
         /// <summary>A Phase 2 run saved before the scene loads (the menu then offers CONTINUE).</summary>
         internal static IEnumerator LoadWithSave(ChapterSave save)
         {

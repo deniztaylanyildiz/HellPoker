@@ -3093,3 +3093,15 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   şeytan kazancı −%5 (5. daire %10.0), uygulanmadı. Simülasyon oyuncusu Çağırıcı'da EL'i yalnızca iki çift ve üstü için kullanır.
 - Testler: `ChapterProgressTests` (13), `ChapterMenuTests` +2, `ChapterPresenterTests` +1. EditMode 984 (980 geçti, 4 explicit, 0 hata);
   PlayMode ChapterJourneyTests 4/4.
+### E) Playtest demosu — Demo 2.0 (2026-10-13)
+- İstek: ana menü ve duraklatma menüsünde Hata / Öneri butonu (tür + kısa metin, `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..."
+  / "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, koşu günlüğünün son satırları; olmazsa panoya kopyala ve adresi
+  göster); bundleVersion 2.0.0-demo ve DEMO etiketi; OKUBENI, GERI_BILDIRIM (sorular), CHANGELOG.md.
+- Yapılanlar: `FeedbackReport` (konu, gövde, mailto, düz metin), `FeedbackPresenter` (rapor her zaman panoya, bağlantı 1800 karakteri
+  geçerse günlük bağlantıdan çıkar), `FeedbackView` (kendi canvas'ı, HATA / ÖNERİ, InputField 400 karakter, GÖNDER / GERİ, durum satırı),
+  `UnityLinks` (batchmode'da e-posta açmaz), `MainMenuView` sol üstte HATA / ÖNERİ, `KeyboardInput` kutu açıkken sadece Esc (kapatır),
+  `IChapterSession.Feedback` (`ChapterPresenter`: sınıf, daire, bölüm / Lucifer, kat, günlük), bundleVersion 2.0.0-demo (menüde "Demo 2.0"
+  ve DEMO etiketi, zip `HellPoker-Demo-2.0-win64.zip`), `CHANGELOG.md` (kök; zip'e de girer), OKUBENI / GERI_BILDIRIM güncellendi.
+- Kararım: oyunun duraklatma menüsü ana menünün kendisi (Esc ile dönülür): buton orada; haritaya ayrıca konmadı.
+- Testler: `FeedbackTests` (4), PlayMode `TheBugReportButton_OpensTheBox_AndTheReportGoesToTheClipboard`. EditMode 988 (984 geçti,
+  4 explicit); PlayMode ChapterJourneyTests 5/5.

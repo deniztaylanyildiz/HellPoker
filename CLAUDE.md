@@ -22,7 +22,11 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-1.4.0-win64.zip` (bundleVersion 1.4.0; OKUBENI / GERI_BILDIRIM tek oyunu anlatır).
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.0-win64.zip` (bundleVersion **2.0.0-demo**: menüde "Demo 2.0" + DEMO
+etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
+(`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
+"[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
+da kopyalanır; kutu açıkken klavye sadece Esc'i dinler.
 **Şeytanın can barı** (`BossBarWidget`, `BossBarDisplay`, `ITableView.SetBossBar`): boss masasında adın altında (isim altı satırı boş;
 el sayısı barın hover'ında), rakamsız; sonunda ruh çizgisi (leylak) ya da Lucifer'in düşüş çizgisi (kor) işareti, başlangıçta ince çentik;
 çizgiye yaklaştıkça koyulaşır; kısalınca kaybedilen kısım parlayıp söner, uzayınca yeni kısım koyu kırmızı dolar; Mammon'un faizi ayrı bir

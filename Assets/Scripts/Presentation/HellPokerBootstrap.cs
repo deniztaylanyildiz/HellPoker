@@ -57,6 +57,7 @@ namespace HellPoker.Presentation
 
         private TablePresenter _tablePresenter;
         private ChapterPresenter _chapterPresenter;
+        private FeedbackPresenter _feedbackPresenter;
         private MainMenuPresenter _menuPresenter;
         private SettingsPresenter _settingsPresenter;
 
@@ -128,7 +129,12 @@ namespace HellPoker.Presentation
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter,
                 StartsInSimulator(System.Environment.GetEnvironmentVariable(DevVariable), Application.isBatchMode, ForceSimulator));
 
-            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter, _chapterPresenter);
+            // The tester's bug report / idea box, from the title menu (also the game's pause menu): mail and the clipboard.
+            FeedbackView feedbackView = FeedbackView.Create(transform);
+            _feedbackPresenter = new FeedbackPresenter(feedbackView, new UnityLinks(), () => _chapterPresenter.Feedback, Application.version);
+            menu.FeedbackPressed += () => _feedbackPresenter.Open();
+
+            gameObject.AddComponent<KeyboardInput>().Bind(_tablePresenter, _menuPresenter, _settingsPresenter, _chapterPresenter, _feedbackPresenter);
 
             // Development builds (and the editor): F3 shows the frame rate. Any build: -fpstour walks every screen, measures, quits
             // (also the release build's smoke test: its log must stay clean through every screen change).
@@ -208,6 +214,7 @@ namespace HellPoker.Presentation
             _chapterPresenter?.CloseLog();
             UiFactory.ButtonClicked = null;   // the scene's sound goes with it
             _menuPresenter?.Dispose();
+            _feedbackPresenter?.Dispose();
             _chapterPresenter?.Dispose();   // and the chapter's table with it
             _tablePresenter?.Dispose();
             _settingsPresenter?.Dispose();

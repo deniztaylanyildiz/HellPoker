@@ -62,6 +62,9 @@ namespace HellPoker.Presentation.Views
         public event Action Confirmed;
         public event Action LanguagePressed;
 
+        /// <summary>BUG / IDEA in the top left corner (the title menu is also the game's pause menu): the report box.</summary>
+        public event Action FeedbackPressed;
+
         public bool IsVisible => _canvas.enabled;
 
         private const int ConfirmWidth = 272;
@@ -154,6 +157,11 @@ namespace HellPoker.Presentation.Views
             languageLabel.Localized(() => UiText.LanguageButton);
             ((RectTransform)language.transform).PlaceTL(PixelScreen.Width - 32, 4, 28, 18);
             language.onClick.AddListener(() => LanguagePressed?.Invoke());
+
+            Button feedback = UiFactory.CreateButton("MenuFeedbackButton", front, "", 8, out Text feedbackLabel, ButtonSkin.Ash);
+            feedbackLabel.Localized(() => UiText.FeedbackButton);
+            ((RectTransform)feedback.transform).PlaceTL(4, 4, 72, 18);
+            feedback.onClick.AddListener(() => FeedbackPressed?.Invoke());
 
             UiFactory.CreateText("Footer", front, "", 8, Palette.BoneDark).WithOutline().Localized(() => UiText.MenuFooter)
                 .rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);

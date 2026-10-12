@@ -136,6 +136,11 @@ namespace HellPoker.Presentation
         public bool CanContinue => HasRun || (_archive?.HasRun ?? false);
 
         public bool IsVisible => _visible;
+
+        /// <summary>Where the run stands, for a bug report (null with no run going on): the class, circle, chapter, floor, the log's lines.</summary>
+        public FeedbackContext Feedback => _journey == null ? null
+            : new FeedbackContext(_journey.Sinner.Id, _journey.Circle, _journey.Stage == JourneyStage.Lucifer ? 4 : _journey.Chapter,
+                _run.Current == null ? 0 : _run.Current.Floor + 1, _log?.Lines.ToArray());
         public bool IsMapOpen => _visible && !_atTable;
         public bool IsAtTable => _visible && _atTable;
 

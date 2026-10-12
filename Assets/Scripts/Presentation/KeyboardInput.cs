@@ -20,8 +20,13 @@ namespace HellPoker.Presentation
         /// <summary>Phase 2: the chapter's map and panels, and the chapter's own table (null: none).</summary>
         private IChapterCommands _chapters;
 
-        public void Bind(ITableCommands table, IMenuCommands menu, ISettingsCommands settings, IChapterCommands chapters = null)
+        /// <summary>The bug report box: while it is open the keys are its text's (Esc closes it).</summary>
+        private IFeedbackCommands _feedback;
+
+        public void Bind(ITableCommands table, IMenuCommands menu, ISettingsCommands settings, IChapterCommands chapters = null,
+            IFeedbackCommands feedback = null)
         {
+            _feedback = feedback;
             _table = table;
             _menu = menu;
             _settings = settings;
@@ -38,6 +43,12 @@ namespace HellPoker.Presentation
             if (enter && alt)
             {
                 _settings?.ToggleFullscreen();
+                return;
+            }
+
+            if (_feedback != null && _feedback.IsFeedbackOpen)
+            {
+                if (keyboard.escapeKey.wasPressedThisFrame) _feedback.CloseFeedback();
                 return;
             }
 

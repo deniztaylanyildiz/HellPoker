@@ -182,6 +182,9 @@ namespace HellPoker.Presentation.Abstractions
 
         bool IsVisible { get; }
 
+        /// <summary>Where the run stands, for a bug report; null with no run.</summary>
+        FeedbackContext Feedback { get; }
+
         /// <summary>The music the chapter's screen plays now.</summary>
         string MusicId { get; }
 

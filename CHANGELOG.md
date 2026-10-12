@@ -1,50 +1,33 @@
-# Hell Poker — Sürüm geçmişi
+# Hell Poker — değişiklikler
 
-Ayrıntılar `Docs/DEVLOG.md`'de.
+## Demo 2.0 (2.0.0-demo) — 2026-10-13
 
-## Demo 1.0 (1.0.0-demo) — 2026-10-07
-- İlk demo: üç şeytan + Lucifer, dört sınıf, olaylar, emanetler, sayılan deste.
-- Soytarı: jokerlerle sonucu kesinleşen el hemen biter, gereksiz bahis turu açılmaz.
-- Ana menüde "DEMO" etiketi; köşedeki sürüm ve koşu günlüğü "Demo 1.0" yazar.
-- Zip: `HellPoker-Demo-1.0-win64.zip`; OKUBENI'de demo içeriği ve bilinen sınırlamalar.
+Phase 2'nin ilk oyun testi demosu: tek oyun (YENİ OYUN / DEVAM ET), üç bölüm ve Lucifer.
 
-## 0.1.6 — 2026-10-06 / 07
-- Deste koşuya ait: masa değişince ve oyunu kapatıp açınca deste kaldığı yerden devam eder (kayıtta `deck`).
-- KARIŞTIR'ın red nedenleri (deste tam, şeytan zaten karacak, ruh çizgisi); 10 kartın altında sayaç "KARIŞIYOR".
-- Kral: güç duyurulan hileye karşı bütün eli korur, kart seçimi yok.
-- Soytarı 750 yılla başlar; sonuç belliyken joker seçicisi açılmaz; iki tarafta da 2+ jokerde az olan kazanır.
-- Keskin piksel yazı: metin köşeleri tam ekran pikseline, font atlası Point filtre.
+### Yeni
+- **Hata / öneri butonu:** ana menünün sol üstünde (oyun sırasında Esc ile menüye dönülür). Hata ya da öneri seçilir, kısa bir metin
+  yazılır; e-posta uygulaması caveengine@gmail.com adresine hazır bir e-postayla açılır (konu "[Hell Poker HATA] ..." /
+  "[Hell Poker ÖNERİ] ..."; içinde sürüm, sınıf, daire, bölüm, kat ve koşunun son satırları). Rapor her zaman panoya da kopyalanır.
+- **Çağırıcı** (beşinci sınıf, ilk kurtuluşla açılır): iblisleri çağırır — GÖZ (şeytanın kapalı bir kartı), EL (bir kartını onun açık
+  bir kartıyla değiş), FISILTI (sıradaki hile, doğrusu). Katta coin, şeytan masasında bar ister; onda bir iblis azar. Güç: LEJYON.
+- **Cehennem Daireleri:** bir sınıfla kurtulunca o sınıf için bir sonraki daire açılır (5 daire, sınıf kartında seçilir).
+- **Kilitler:** 14 emanet ve 4 sınıfla başlanır; diğerleri kilometre taşlarıyla açılır (REKORLAR'da yazar).
+- **24 emanet**, nadirlikleriyle (yaygın, nadir, efsanevi lanetli, şeytanın kendi ganimeti); **3 emanet yuvası** (Kara Pazar ikiye kadar satar).
+- **Sınıf yükseltmeleri:** her sınıfa 4; şeytanın ganimetinde (2 emanet + 1 yükseltme ya da 30 coin) ve Araf Ateşi'nin yeni
+  seçeneği RUHUNU BİLE'de (yükseltme, ama bar %10 uzun).
+- **Phase 2 sesleri:** bölüm başına harita müziği, katların müziği, Lucifer çağrısı, kurtuluş / kese boşaldı bitişleri; coin, can barı,
+  ruh uyarısı, düğüm, ganimet, Kara Pazar, ateş, heybe, kehanet, vergi, müsadere ve dört şeytan kuralının efektleri; ekranlar arası geçiş.
+- **Denge:** 2. ve 3. bölümün haracı başlangıç +180 / +270, Köylü'nün heybe riski %30.
 
-## 0.1.5 — 2026-10-05 / 06
-- Sınıf güçleri 5 pipli şarj göstergesine bağlandı (kazanç +1, kayıp +2, çekilme +1); güç açılır ve kullanılana kadar açık kalır.
-- Koşu günlüğü (her koşu bir metin dosyası), pencere ortalama, odak.
-- Oyun ikonu: piksel şeytan.
-- Dördüncü sınıf Soytarı: jokerli deste, joker seçici, 20 jokerde Soytarı'nın Çıngırağı.
-- Deste eller boyunca devam eder; kalan kart sayacı ve KARIŞTIR (+10 yıl).
+### Bilinen
+- Sınıflar arasında fark sürüyor (Soytarı çok zor); derin dairelerin zorluğu henüz hedefinde değil.
 
-## 0.1.4 — 2026-10-05
-- Ayarlar üç sekmede: OYUN, GÖRÜNTÜ (tam ekran / pencere, pencere boyutu, piksel ölçeği, dikey senkron), SES (ana ses).
+## 1.4.0 — 2026-10-12
+- Tek oyun: YENİ OYUN / DEVAM ET Phase 2'yi açar; eski demo "Boss Simülatörü" oldu (F9 ya da HELLPOKER_DEV=1).
+- Şeytanların gerçek can barı (rakamsız; ruh çizgisi, Lucifer'de düşüş çizgisi, Mammon'un faizi ayrı adım).
 
-## 0.1.3 — 2026-10-04 / 05
-- Günahkâr sınıfları: Köylü, Büyücü, Kral.
-- Eller arası olaylar ve lanetli emanetler; Kemik Zar şeytan başına bir kez.
-- Kodla üretilen chiptune ses ve müzik.
-- Türkçe dil desteği; dil yalnızca ana menüden değişir.
-- Oyun testi belgeleri (OKUBENI, GERI_BILDIRIM, PLAYTEST).
+## 1.3.0-phase2 — 2026-10-12
+- Sınıf güçleri (heybe, kehanet, hazine) ve şeytan kuralları (faiz, rol takası, baştan çıkarma, ayna).
 
-## 0.1.2 — 2026-10-03
-- Kaçış açıkları kapandı: el ortasında kapatma eli kaybettirir, hileden kaçana kin.
-- Alaycı şeytan replikleri, Diken'in bedeli önceden söylenir.
-- Kötülük göstergesi masa değişiminde oranla taşınır.
-
-## 0.1.1 — 2026-10-03
-- Hile düzeltmeleri ve geri tepme (backfire).
-- Animasyon akıcılığı ve okunabilirlik (yazılar her zeminde okunur).
-- Stüdyo logosu (Caveman) açılışı; arkadaşlar için ilk test build'i.
-
-## 0.1.0 — 2026-10-01 / 02
-- 5 Card Draw çekirdeği, kart kart bahis, son 250 yıl, mühür ve CHECK TO DRAW.
-- Kurpiyer şeytanlar (Mammon, Belial, Lilith), ruh mekaniği, masa değiştirme.
-- Final: Lucifer (çağrılma, düşüş, Sabah Yıldızı).
-- Şeytan hileleri ve kötülük göstergesi; 16-bit piksel art, salonlar, ana menü.
-- İlk oynanabilir Windows build'i.
+## Demo 1.0 (1.0.0-demo) — v1.0-demo
+- Kasaya karşı 5 kart poker, üç şeytan ve Lucifer; ruh, hileler, sınıflar, olaylar, emanetler.

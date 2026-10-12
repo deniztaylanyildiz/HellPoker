@@ -43,6 +43,7 @@ namespace HellPoker.Core.Tests
             public Core.Chapters.ChapterRecords Records { get; } = new Core.Chapters.ChapterRecords();
             public bool IsVisible { get; private set; }
             public string MusicId => "mammon";
+            public FeedbackContext Feedback => null;
             public SinnerClass Started { get; private set; }
             public int StartedCircle { get; private set; }
             public int Abandoned { get; private set; }
