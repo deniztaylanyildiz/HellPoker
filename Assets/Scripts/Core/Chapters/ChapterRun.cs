@@ -193,17 +193,19 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>A new run's first chapter: the purse the sinner's class starts with (<see cref="ChapterRules.StartingCoinsOf"/>) and
         /// the class's share of the sentence at the chapter's demon (<see cref="BossShares"/>).</summary>
-        public static ChapterRun Begin(ChapterRules rules, Sinner sinner, RunEffects effects, int seed)
+        public static ChapterRun Begin(ChapterRules rules, Sinner sinner, RunEffects effects, int seed, int mapVersion = ChapterMap.CurrentVersion)
         {
             if (rules == null) throw new ArgumentNullException(nameof(rules));
-            return new ChapterRun(rules, sinner, effects, BossShares.For(sinner?.Id, rules.BossId), rules.StartingCoinsOf(sinner?.Id), seed);
+            return new ChapterRun(rules, sinner, effects, BossShares.For(sinner?.Id, rules.BossId), rules.StartingCoinsOf(sinner?.Id), seed,
+                mapVersion: mapVersion);
         }
 
         /// <param name="years">The run's share of the sentence at the chapter's demon.</param>
         /// <param name="coins">The purse the chapter starts with: a new run's class purse, or what is left from the last chapter.</param>
         /// <param name="kit">The class's Phase 2 mechanics carried from the last chapter (null: a new one).</param>
+        /// <param name="mapVersion">The map's generator (<see cref="ChapterMap.CurrentVersion"/>; an older save's own).</param>
         public ChapterRun(ChapterRules rules, Sinner sinner, RunEffects effects, int years, int coins, int seed, IReadOnlyList<Card> deck = null,
-            ClassKit kit = null)
+            ClassKit kit = null, int mapVersion = ChapterMap.CurrentVersion)
         {
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             Sinner = sinner ?? throw new ArgumentNullException(nameof(sinner));
@@ -216,9 +218,30 @@ namespace HellPoker.Core.Chapters
             Purse = new CoinPurse(coins);
             _seed = seed;
             _nodeRandom = new SystemRandomSource(RandomSeeds.Derive(seed, NodeStream));
-            Map = ChapterMap.Generate(rules, new SystemRandomSource(RandomSeeds.Derive(seed, MapStream)));
+            Map = ChapterMap.Generate(rules, new SystemRandomSource(RandomSeeds.Derive(seed, MapStream)), mapVersion);
             DeckCards = deck ?? Array.Empty<Card>();
         }
+
+        /// <summary>What waits at <paramref name="node"/>: an unknown node's content, any other node's own kind.</summary>
+        public static NodeKind KindOf(MapNode node) => node == null ? NodeKind.Table : node.Kind == NodeKind.Unknown ? node.Hidden : node.Kind;
+
+        /// <summary>What waits where the player stands (an unknown node: what it turned out to be); null before the first floor.</summary>
+        public NodeKind? CurrentKind => Current == null ? (NodeKind?)null : KindOf(Current);
+
+        private readonly HashSet<MapNode> _revealed = new HashSet<MapNode>();
+
+        /// <summary>An unknown node shows what it holds from now on (a lost soul's way, a lantern's light).</summary>
+        public void Reveal(MapNode node)
+        {
+            if (node != null && node.Kind == NodeKind.Unknown) _revealed.Add(node);
+        }
+
+        /// <summary>The unknown nodes revealed ahead of time (for the save).</summary>
+        public IReadOnlyCollection<MapNode> Revealed => _revealed;
+
+        /// <summary>What the map shows at <paramref name="node"/>: its kind, or an unknown's content once it is walked or revealed.</summary>
+        public NodeKind ShownKind(MapNode node) =>
+            node.Kind != NodeKind.Unknown || _revealed.Contains(node) || _trail.Contains(node) || Effects.CombinedRelics.RevealsUnknown ? KindOf(node) : NodeKind.Unknown;
 
         /// <summary>The nodes the player may step to: the first floor's at the start, then the ones the current node leads to.</summary>
         public IEnumerable<MapNode> Choices => Current == null ? Map.Floors[0] : Map.NextFrom(Current);
@@ -239,11 +262,11 @@ namespace HellPoker.Core.Chapters
         /// <param name="houseCoins">A saved match's imp purse (-1: a fresh match).</param>
         public FloorTable OpenTable(int houseCoins = -1)
         {
-            if (Current == null || (Current.Kind != NodeKind.Table && Current.Kind != NodeKind.Warden))
+            if (Current == null || (CurrentKind != NodeKind.Table && CurrentKind != NodeKind.Warden))
                 throw new InvalidOperationException("There is no table here.");
             TableMarks marks = NextTableMarks;
             NextTableMarks = TableMarks.None;
-            return Hooked(Current.Kind == NodeKind.Warden
+            return Hooked(CurrentKind == NodeKind.Warden
                 ? FloorTable.Warden(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, houseCoins)
                 : FloorTable.Imp(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, Current.Floor, houseCoins));
         }
@@ -316,7 +339,7 @@ namespace HellPoker.Core.Chapters
 
         public void TakeTreasure()
         {
-            if (Current?.Kind != NodeKind.Treasure) throw new InvalidOperationException("There is no treasure here.");
+            if (CurrentKind != NodeKind.Treasure) throw new InvalidOperationException("There is no treasure here.");
             Purse.Add(TreasureCoins);
         }
 
@@ -328,14 +351,14 @@ namespace HellPoker.Core.Chapters
 
         public BlackMarket OpenMarket()
         {
-            if (Current?.Kind != NodeKind.BlackMarket) throw new InvalidOperationException("There is no market here.");
+            if (CurrentKind != NodeKind.BlackMarket) throw new InvalidOperationException("There is no market here.");
             return new BlackMarket(this, _nodeRandom);
         }
 
         /// <summary>The offer at the current event node: one not seen this chapter if any can appear; null when none can.</summary>
         public IFloorEvent DrawEvent(IReadOnlyList<IFloorEvent> deck = null)
         {
-            if (Current?.Kind != NodeKind.Event) throw new InvalidOperationException("There is no event here.");
+            if (CurrentKind != NodeKind.Event) throw new InvalidOperationException("There is no event here.");
             var can = (deck ?? FloorEventDeck.For(Rules)).Where(e => e.CanAppear(this)).ToList();
             var fresh = can.Where(e => !_eventsSeen.Contains(e.Id)).ToList();
             var pool = fresh.Count > 0 ? fresh : can;
@@ -404,7 +427,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The purgatory fire's boon. <paramref name="relicId"/>: the relic whose curse is silenced.</summary>
         public bool TendFire(FireChoice choice, string relicId = null)
         {
-            if (Current?.Kind != NodeKind.PurgatoryFire) throw new InvalidOperationException("There is no fire here.");
+            if (CurrentKind != NodeKind.PurgatoryFire) throw new InvalidOperationException("There is no fire here.");
             if (!FireOffers.Contains(choice)) return false;
             switch (choice)
             {
@@ -586,8 +609,8 @@ namespace HellPoker.Core.Chapters
             int floor = 0;
             foreach (int lane in trailLanes ?? Enumerable.Empty<int>())
             {
-                if (floor >= Map.FloorCount || lane < 0 || lane >= Rules.Lanes) break;
-                MapNode node = Map[floor, lane];
+                MapNode node = Map.Find(floor, lane);
+                if (node == null) break;
                 if (Current != null && !Map.NextFrom(Current).Contains(node)) break;
                 Current = node;
                 _trail.Add(node);

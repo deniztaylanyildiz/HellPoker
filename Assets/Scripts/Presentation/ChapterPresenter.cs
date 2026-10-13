@@ -295,7 +295,7 @@ namespace HellPoker.Presentation
             MapNode[] choices = _atTable || _panel.IsOpen || !_nodeDone ? Array.Empty<MapNode>() : _run.Choices.ToArray();
             return new ChapterMapState(_run.Map, _run.Current, choices, _selected, _run.Trail.ToArray(), title, prompt, _run.Purse.Coins, lines, Describe,
                 UiText.GateTitle(rules.Number), rules.Number, BarAt(_run.Years + _run.YearsOwed, BossShares.For(_journey.Sinner.Id, rules.BossId)),
-                BarLabel());
+                BarLabel(), _run.ShownKind);
         }
 
         /// <summary>The chapter demon's bar, small and without a number (the map's, the gate's): <paramref name="value"/> toward the soul
@@ -315,7 +315,9 @@ namespace HellPoker.Presentation
         {
             ChapterRules rules = _run.Rules;
             string what;
-            switch (node.Kind)
+            NodeKind shown = _run.ShownKind(node);
+            if (shown == NodeKind.Unknown) return UiText.NodeName(NodeKind.Unknown) + "\n" + UiText.NodeUnknown;
+            switch (shown)
             {
                 case NodeKind.Table: what = string.Format(UiText.NodeTableFormat, _run.ImpCoinsAt(node.Floor), rules.Ante, rules.AnteStepHands); break;
                 case NodeKind.Warden:
@@ -326,9 +328,9 @@ namespace HellPoker.Presentation
                 case NodeKind.Event: what = UiText.NodeEvent; break;
                 case NodeKind.BlackMarket: what = UiText.NodeMarket; break;
                 case NodeKind.Treasure: what = string.Format(UiText.NodeTreasureFormat, _run.TreasureCoins); break;
-                default: what = UiText.NodeFire; break;
+                default: what = node.Floor == _run.Map.FloorCount - 1 ? UiText.NodeFire : UiText.NodeCamp; break;
             }
-            return UiText.NodeName(node.Kind) + "\n" + what;
+            return UiText.NodeName(shown) + (node.Kind == NodeKind.Unknown ? " (?)" : "") + "\n" + what;
         }
 
         private static MapNode PickDefault(IEnumerable<MapNode> choices)
@@ -351,7 +353,8 @@ namespace HellPoker.Presentation
             _run.MoveTo(node);
             _nodeDone = false;
             _selected = PickDefault(_run.Choices);
-            switch (node.Kind)
+            if (node.Kind == NodeKind.Unknown) Note($"chapter {_journey.Chapter} floor {node.Floor + 1}: unknown, it was {node.Hidden}");
+            switch (ChapterRun.KindOf(node))
             {
                 case NodeKind.Table:
                 case NodeKind.Warden:

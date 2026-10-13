@@ -43,10 +43,14 @@ namespace HellPoker.Presentation.Abstractions
         public BossBarDisplay Bar { get; }
         public string BarLabel { get; }
 
+        /// <summary>The icon a node shows: its kind — an unknown node's "?" until it is walked or revealed.</summary>
+        public Func<MapNode, NodeKind> Shown { get; }
+
         public ChapterMapState(ChapterMap map, MapNode current, IReadOnlyCollection<MapNode> choices, MapNode selected, IReadOnlyList<MapNode> trail,
             string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe, string gateLabel = null, int chapter = 1,
-            BossBarDisplay bar = null, string barLabel = null)
+            BossBarDisplay bar = null, string barLabel = null, Func<MapNode, NodeKind> shown = null)
         {
+            Shown = shown ?? (n => n.Kind);
             Bar = bar ?? BossBarDisplay.Hidden;
             BarLabel = barLabel ?? "";
             GateLabel = gateLabel ?? "";

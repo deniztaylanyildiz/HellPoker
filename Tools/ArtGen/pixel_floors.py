@@ -354,7 +354,7 @@ def chapter_map():
     return img
 
 
-# ------------------------------------------------------------------ node icons (16x16): table, event, market, warden, treasure, fire, gate
+# ------------------------------------------------------------------ node icons (16x16): table, event, market, warden, treasure, fire, unknown, gate
 
 def icon_table():
     img = Img(16, 16)
@@ -445,7 +445,32 @@ def icon_gate():
     return img
 
 
-ICONS = [icon_table, icon_event, icon_market, icon_warden, icon_treasure, icon_fire, icon_gate]
+def icon_unknown():
+    """A "?" in bone on a dusky violet stone: what waits there is seen only on stepping in."""
+    img = Img(16, 16)
+    stone = img.m_ellipse(8, 8, 7.2, 7.2)
+    img.shade(stone, [C.NIGHT, C.DUSK, C.PLUM], shadow=1)
+    glyph = [
+        "..####..",
+        ".##..##.",
+        ".##..##.",
+        "....##..",
+        "...##...",
+        "...##...",
+        "........",
+        "...##...",
+        "...##...",
+    ]
+    for gy, row in enumerate(glyph):
+        for gx, ch in enumerate(row):
+            if ch == "#":
+                img.put(4 + gx, 3 + gy, C.BONE)
+    img.put(4 + 2, 3, C.WHITE)
+    img.outline(C.BLACK)
+    return img
+
+
+ICONS = [icon_table, icon_event, icon_market, icon_warden, icon_treasure, icon_fire, icon_unknown, icon_gate]
 
 
 # ================================================================== the floors' strangers (48x48)

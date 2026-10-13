@@ -132,6 +132,7 @@ namespace HellPoker.Presentation.Ui
                 case NodeKind.BlackMarket: return L("BLACK MARKET", "KARA PAZAR");
                 case NodeKind.Warden: return L("THE WARDEN", "BEKÇİ");
                 case NodeKind.Treasure: return L("TREASURE", "HAZİNE");
+                case NodeKind.Unknown: return L("UNKNOWN", "BİLİNMEYEN");
                 default: return L("PURGATORY FIRE", "ARAF ATEŞİ");
             }
         }
@@ -161,6 +162,12 @@ namespace HellPoker.Presentation.Ui
         public static string NodeMarket => L("Cursed relics and services, for coins.", "Lanetli emanetler ve hizmetler, coin karşılığı.");
         public static string NodeTreasureFormat => L("Coins between the bones: +{0}.", "Kemiklerin arasında coin: +{0}.");
         public static string NodeFire => L("The last floor: one boon for the demon's table.", "Son kat: şeytanın masası için bir lütuf.");
+        public static string NodeCamp => L("A fire on the way down: one boon for what comes.", "Yolun ortasında bir ateş: gelecek için bir lütuf.");
+        public static string NodeUnknown => L("Who knows? A stranger, an imp, the market, coins — or a warden.",
+            "Kim bilir? Bir yabancı, bir iblis, pazar, coin — ya da bir bekçi.");
+
+        /// <summary>{0} what an unknown node turned out to hold (a node's name).</summary>
+        public static string NodeUnknownWasFormat => L("It was: {0}.", "Çıkan: {0}.");
 
         // ------------------------------------------------------------------ panels
 

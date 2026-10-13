@@ -100,7 +100,8 @@ namespace HellPoker.Core.Chapters
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
             var journey = new ChapterJourney(seed, new Sinner(sinnerClass), PhaseTwoEffects()) { Chapter = 1, Circle = Circles.Clamp(circle) };
             journey.Sentence = new RunSentence(RunSentence.StartFor(sinnerClass.Id, journey.Circle));
-            journey.Run = ChapterRun.Begin(journey.RulesFor(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1));
+            journey.Run = ChapterRun.Begin(journey.RulesFor(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1),
+                ChapterTuning.MapVersion > 0 ? ChapterTuning.MapVersion : ChapterMap.CurrentVersion);
             journey.Run.Sentence = journey.Sentence;
             return journey;
         }
@@ -144,7 +145,8 @@ namespace HellPoker.Core.Chapters
             int floor = minimumPurse >= 0 ? minimumPurse : ChapterRules.StartingCoinsFor(Sinner.Id);
             int coins = Math.Max(floor, Run.Purse.Coins);
             PurseToppedUp = coins - Run.Purse.Coins;
-            Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), coins, ChapterSeed(Seed, Chapter), kit: Kit)
+            Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), coins, ChapterSeed(Seed, Chapter), kit: Kit,
+                mapVersion: Run.Map.Version)   // a run keeps its maps' generator
             {
                 RelicAvailable = _relicAvailable,
                 Sentence = Sentence
@@ -227,7 +229,8 @@ namespace HellPoker.Core.Chapters
             for (int i = 0; i < 4 && i < save.BossHands.Count; i++) journey.BossHands[i] = Math.Max(0, save.BossHands[i]);
             ChapterRules rules = journey.RulesFor(chapter);
             journey.Sentence = new RunSentence(save.Sentence >= 0 ? save.Sentence : SentenceOfAnOldSave(save, journey.Circle));
-            journey.Run = new ChapterRun(rules, sinner, effects, Math.Max(1, save.Years), Math.Max(0, save.Coins), ChapterSeed(save.Seed, chapter))
+            journey.Run = new ChapterRun(rules, sinner, effects, Math.Max(1, save.Years), Math.Max(0, save.Coins), ChapterSeed(save.Seed, chapter),
+                mapVersion: save.MapVersion)
             {
                 Sentence = journey.Sentence
             };
@@ -265,6 +268,7 @@ namespace HellPoker.Core.Chapters
                 Seed = Seed,
                 Circle = Circle,
                 Chapter = Chapter,
+                MapVersion = run.Map.Version,
                 Lucifer = Stage == JourneyStage.Lucifer,
                 LuciferBarStart = LuciferBarStart,
                 Coins = run.Purse.Coins,

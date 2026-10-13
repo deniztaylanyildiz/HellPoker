@@ -58,12 +58,14 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the map
 
         [Test]
-        public void TheMapKeepsItsShapeForEverySeed()
+        public void TheDemoTwoMap_KeepsItsShapeForEverySeed()
         {
+            // Demo 2.0's generator (version 1): an older save's map still comes from it.
             ChapterRules rules = ChapterRules.For(1);
             for (int seed = 0; seed < 300; seed++)
             {
-                ChapterMap map = ChapterMap.Generate(rules, new SystemRandomSource(seed));
+                ChapterMap map = ChapterMap.Generate(rules, new SystemRandomSource(seed), version: 1);
+                Assert.AreEqual(1, map.Version);
                 Assert.AreEqual(8, map.FloorCount);
                 Assert.That(map.Floors.All(f => f.Count == 6));
                 Assert.That(map.Floors[0].All(n => n.Kind == NodeKind.Table), "the first floor is all tables");
@@ -103,7 +105,7 @@ namespace HellPoker.Core.Tests
         {
             for (int seed = 0; seed < 50; seed++)
             {
-                ChapterMap map = ChapterMap.Generate(ChapterRules.For(2), new SystemRandomSource(seed));
+                ChapterMap map = ChapterMap.Generate(ChapterRules.For(2), new SystemRandomSource(seed), version: 1);
                 Assert.AreEqual(2, map.Count(NodeKind.Warden));
                 for (int start = 0; start < 6; start++) Assert.IsTrue(ReachesAWarden(map, start));
             }
@@ -403,11 +405,11 @@ namespace HellPoker.Core.Tests
         public void ThePlayerStartsOnAnyFirstFloorTableAndFollowsThePaths()
         {
             ChapterRun run = Run();
-            Assert.AreEqual(6, run.Choices.Count());
+            Assert.AreEqual(3, run.Choices.Count(), "three starts");
             MapNode start = run.Map[0, 2];
             run.MoveTo(start);
             CollectionAssert.AreEquivalent(start.Next, run.Choices.Select(n => n.Lane));
-            MapNode far = run.Map.Floors[1].First(n => !start.Next.Contains(n.Lane));
+            MapNode far = run.Map.Floors[1].FirstOrDefault(n => !start.Next.Contains(n.Lane)) ?? run.Map.Floors[2].First();
             Assert.Throws<InvalidOperationException>(() => run.MoveTo(far));
         }
 

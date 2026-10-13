@@ -3155,3 +3155,20 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   43.8 / 25.2 / 32.4 / 8.6 / 31.8 (fark ≤ 1.4); boss el sayıları ve lanet oranları aynı. Kurtulanların kalan cezası ort. 4251 yıl (Köylü 2886,
   Kral 5309), TERTEMİZ %0 — puan bu (kararı kullanıcıya bırakıldı). Yeni düğmeler `HELLPOKER_BAR_HEAL`, `HELLPOKER_BOSS_LOSS`.
 - Testler: `SentenceTests` (9). EditMode 998 (994 geçti, 4 explicit).
+### Demo 2.1 — B: daha rastgele harita (2026-10-13)
+- `MapMaker` (harita sürüm 2, `ChapterMap.CurrentVersion`): katlarda 2-5 düğüm (bir öncekiyle aynı sayı değil), 1. kat 3 düğüm (en az bir masa;
+  diğerleri masa / olay / bilinmeyen), son kat tek kamp (kapıdan önce). Yollar iki kat arasında soldan sağa bir merdiven: her düğümden yol
+  çıkar, her düğüme yol gelir, ayrılır / birleşir, kesişmez. Hazine bölümün orta üçte birinde, ayrı katlarda 1-2 (%70 iki). Ortada kamp
+  (`CampWindow`: Bölüm 1 3-5, Bölüm 2 4-6, Bölüm 3 5-8. kat) her başlangıçtan ulaşılır; bekçiler 4. kattan (son kat değil), her başlangıçtan
+  biri; art arda iki pazar / iki kamp yok. Yeni düğüm `NodeKind.Unknown` "?": içi haritayla zarlanır (`MapNode.Hidden`; olay 55, masa 20,
+  pazar 10, hazine 10, bekçi 5; 4. kattan önce bekçi masa, 3. kattan önce pazar olay olur). `ChapterRun.KindOf / CurrentKind / ShownKind /
+  Reveal` (yürünen ya da açılan "?" içini gösterir; `RelicEffects.RevealsUnknown` G'deki fener için). `RelicEffects.Extras` (G'nin emanetleri
+  için toplanan işaretler). Kayıt `map` (yoksa 1: Demo 2.0 üreteci; koşu bölümden bölüme kendi sürümünü korur). Harita ekranı düğümleri kat
+  genişliğine yayar (`ChapterMapView.PositionOf`), "?" ikonu (`pixel_floors.icon_unknown`, `map_nodes` şeridinde kapıdan önce; GateIcon 7),
+  hover "BİLİNMEYEN".
+- Simülasyon (500 koşu, daire 0; eski harita `HELLPOKER_MAP=1`): yol başına (Bölüm 1 / 2 / 3) masa 2.7 / 3.6 / 4.6 (eski 3.3 / 4.0 / 4.9),
+  olay 0.8 / 1.3 / 1.8, pazar 0.5 / 0.6 / 0.8, bekçi 1.3 / 1.1 / 1.1, hazine 0.7 / 0.7 / 0.6 (eski 0.9), kamp 1.3 / 1.2 / 1.2, "?" 0.4 / 0.8 / 1.0.
+  Kurtuluş 27.7 (eski harita 28.4). Kese boşalma / tam haraç farkları çoğunlukla ±5 içinde; 3. bölümde tam haraç ortalama +4.4 (Büyücü ve
+  Soytarı +8.5, örneklem 167-292 koşu). Ayar: erken katta masa 55 / olay 25 / ? 10 / pazar 15, geç katta 25 / 25 / 25 / 30; simülasyon oyuncusu
+  hazineyi masadan önce seçer. Düğme `HELLPOKER_MAP`.
+- Testler: `MapTests` (9); eski harita testleri sürüm 1'e sabitlendi. EditMode 1007 (1003 geçti, 4 explicit).

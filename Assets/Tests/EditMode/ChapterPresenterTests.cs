@@ -104,7 +104,7 @@ namespace HellPoker.Core.Tests
             Assert.IsEmpty(_map.State.Choices, "nothing is picked under a panel");
             _panel.Press(0);
             Assert.IsFalse(_panel.IsOpen);
-            Assert.AreEqual(6, _map.State.Choices.Count);
+            Assert.AreEqual(3, _map.State.Choices.Count, "three starts");
             Assert.AreEqual(120, _map.State.Coins, "the Peasant's purse");
             Assert.IsTrue(_chapters.HasRun);
             Assert.IsTrue(_chapters.IsMapOpen);

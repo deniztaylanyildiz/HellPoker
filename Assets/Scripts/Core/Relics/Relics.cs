@@ -11,6 +11,9 @@ namespace HellPoker.Core.Relics
     /// </summary>
     public sealed class RelicEffects
     {
+        // (Before None: the static fields are set in order.)
+        private static readonly IReadOnlyDictionary<string, int> NoExtras = new Dictionary<string, int>();
+
         public static readonly RelicEffects None = new RelicEffects();
 
         /// <summary>The ante, in percent (the Ferryman's Coin: 80).</summary>
@@ -57,10 +60,21 @@ namespace HellPoker.Core.Relics
         /// <summary>A demon's bar as his table begins, in percent.</summary>
         public int BossBarPercent { get; }
 
+        /// <summary>Phase 2's other marks (<see cref="RelicExtras"/>): counts and percent points that add up from relic to relic.</summary>
+        public IReadOnlyDictionary<string, int> Extras { get; }
+
+        /// <summary>A mark of <see cref="Extras"/>; 0 when no relic carries it.</summary>
+        public int Extra(string key) => key != null && Extras.TryGetValue(key, out int n) ? n : 0;
+
+        /// <summary>The unknown nodes of the map show what they hold (the Ferryman's Lantern).</summary>
+        public bool RevealsUnknown => Extra(RelicExtras.RevealUnknown) > 0;
+
         public RelicEffects(int antePercent = 100, int winPercent = 100, int houseCardsDelta = 0, int reRaiseExtraUnits = 0,
             int maliceExtraPerHand = 0, int redrawsPerTable = 0, int soulLossPercent = -1, int winAntePercent = 0, int lossAntePercent = 0,
-            int treasurePercent = 100, int marketPercent = 100, int tributePercent = 100, int impPursePercent = 100, int bossBarPercent = 100)
+            int treasurePercent = 100, int marketPercent = 100, int tributePercent = 100, int impPursePercent = 100, int bossBarPercent = 100,
+            IReadOnlyDictionary<string, int> extras = null)
         {
+            Extras = extras ?? NoExtras;
             if (treasurePercent < 0 || marketPercent <= 0 || tributePercent < 0 || impPursePercent <= 0 || bossBarPercent <= 0)
                 throw new ArgumentOutOfRangeException(nameof(treasurePercent));
             TreasurePercent = treasurePercent;
@@ -91,8 +105,28 @@ namespace HellPoker.Core.Relics
                 ReRaiseExtraUnits + other.ReRaiseExtraUnits, MaliceExtraPerHand + other.MaliceExtraPerHand, RedrawsPerTable + other.RedrawsPerTable, soul,
                 WinAntePercent + other.WinAntePercent, LossAntePercent + other.LossAntePercent, TreasurePercent * other.TreasurePercent / 100,
                 MarketPercent * other.MarketPercent / 100, TributePercent * other.TributePercent / 100, ImpPursePercent * other.ImpPursePercent / 100,
-                BossBarPercent * other.BossBarPercent / 100);
+                BossBarPercent * other.BossBarPercent / 100, AddExtras(Extras, other.Extras));
         }
+
+        private static IReadOnlyDictionary<string, int> AddExtras(IReadOnlyDictionary<string, int> a, IReadOnlyDictionary<string, int> b)
+        {
+            if (b.Count == 0) return a;
+            if (a.Count == 0) return b;
+            var sum = new Dictionary<string, int>();
+            foreach (var p in a) sum[p.Key] = p.Value;
+            foreach (var p in b) sum[p.Key] = (sum.TryGetValue(p.Key, out int n) ? n : 0) + p.Value;
+            return sum;
+        }
+
+        /// <summary>Phase 2's marks as a relic's own (key, amount) pairs.</summary>
+        public static IReadOnlyDictionary<string, int> Marks(params (string key, int amount)[] marks) =>
+            marks.ToDictionary(m => m.key, m => m.amount);
+    }
+
+    /// <summary>The keys of <see cref="RelicEffects.Extras"/>: Phase 2's marks of the relics (Demo 2.1's), each read where its rule is.</summary>
+    public static class RelicExtras
+    {
+        public const string RevealUnknown = "reveal.unknown";
     }
 
     /// <summary>

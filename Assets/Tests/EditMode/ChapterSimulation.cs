@@ -49,6 +49,9 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<FireChoice, int> Fire = new Dictionary<FireChoice, int>();
             public readonly Dictionary<NodeKind, int> Path = new Dictionary<NodeKind, int>();
 
+            /// <summary>What the unknown nodes stepped on held.</summary>
+            public readonly Dictionary<NodeKind, int> Unknowns = new Dictionary<NodeKind, int>();
+
             /// <summary>Relics taken (the market, a warden, the spoils) and class upgrades taken (the spoils, the fire), by id.</summary>
             public readonly Dictionary<string, int> RelicPicks = new Dictionary<string, int>(), UpgradePicks = new Dictionary<string, int>();
 
@@ -73,6 +76,7 @@ namespace HellPoker.Core.Tests
                 foreach (var p in o.Accepted) Bump(Accepted, p.Key, p.Value);
                 foreach (var p in o.Fire) Bump(Fire, p.Key, p.Value);
                 foreach (var p in o.Path) Bump(Path, p.Key, p.Value);
+                foreach (var p in o.Unknowns) Bump(Unknowns, p.Key, p.Value);
             }
         }
 
@@ -217,11 +221,12 @@ namespace HellPoker.Core.Tests
                 MapNode next = ChooseNext(run, random, wardenSeen);
                 run.MoveTo(next);
                 Bump(tally.Path, next.Kind);
-                switch (next.Kind)
+                if (next.Kind == NodeKind.Unknown) Bump(tally.Unknowns, next.Hidden);
+                switch (ChapterRun.KindOf(next))
                 {
                     case NodeKind.Table:
                     case NodeKind.Warden:
-                        wardenSeen |= next.Kind == NodeKind.Warden;
+                        wardenSeen |= ChapterRun.KindOf(next) == NodeKind.Warden;
                         FloorTable table = run.OpenTable();
                         PlayMatch(table, payouts, tally);
                         int carried = effects.Relics.Count;
@@ -379,6 +384,7 @@ namespace HellPoker.Core.Tests
                 if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
                 ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", Circles.WinStepPercent);
                 ChapterTuning.BarHealPercent = EnvInt("HELLPOKER_BAR_HEAL", BossTable.BarHealPercent);
+                ChapterTuning.MapVersion = EnvInt("HELLPOKER_MAP", 0);   // 1: Demo 2.0's map
                 int[] losses = EnvInts("HELLPOKER_BOSS_LOSS");   // "250,220,110,90": Mammon, Belial, Lilith, Lucifer
                 for (int i = 0; losses != null && i < losses.Length && i < 4; i++) ChapterTuning.BossLossPercent[i + 1] = losses[i];
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
@@ -420,6 +426,14 @@ namespace HellPoker.Core.Tests
                 }
                 report.AppendLine($"{cls.Id,-9} lucifer: sat {tally.BossSat[3]}, hands {AvgOf(tally.BossHands[3])} ({Median(tally.BossHands[3])}), " +
                                   $"cast down {Pct(tally.CastDown, tally.BossSat[3])}, soul lost {Pct(tally.BossDamned[3], tally.BossSat[3])}");
+            }
+            report.AppendLine();
+            report.AppendLine("the way down, a run on average per chapter (the nodes stepped on; ? = unknown, what it held after the arrow)");
+            for (int ch = 0; ch < 3; ch++)
+            {
+                Tally c = all.Chapters[ch];
+                report.AppendLine($"  ch{ch + 1}: " + string.Join("  ", c.Path.OrderBy(p => p.Key).Select(p => $"{p.Key} {Avg(p.Value, c.Runs)}")) +
+                                  "   ? -> " + string.Join(" ", c.Unknowns.OrderBy(p => p.Key).Select(p => $"{p.Key} {Avg(p.Value, c.Runs)}")));
             }
             report.AppendLine();
             report.AppendLine($"class     reached Lucifer   freed   sentence left when freed: avg (p10/p50/p90), spotless   (bar heal {ChapterTuning.BarHealPercent}%)");
@@ -604,6 +618,8 @@ namespace HellPoker.Core.Tests
                     case NodeKind.Table: return 4;
                     case NodeKind.BlackMarket: return canShop ? 3 : 1;
                     case NodeKind.Event: return 2;
+                    case NodeKind.Unknown: return 2;
+                    case NodeKind.Treasure: return 5;   // free coins
                     default: return 0;
                 }
             }

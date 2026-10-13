@@ -25,6 +25,9 @@ namespace HellPoker.Core.Chapters
         /// simulation tries others (HELLPOKER_BAR_HEAL).</summary>
         public static int BarHealPercent = BossTable.BarHealPercent;
 
+        /// <summary>A new run's map generator in place of <see cref="ChapterMap.CurrentVersion"/> (HELLPOKER_MAP; 0: the game's).</summary>
+        public static int MapVersion;
+
         /// <summary>A demon's loss percent in place of the chapter's (1-3; 4: Lucifer) (HELLPOKER_BOSS_LOSS).</summary>
         public static readonly Dictionary<int, int> BossLossPercent = new Dictionary<int, int>();
 
@@ -36,6 +39,7 @@ namespace HellPoker.Core.Chapters
             CircleWinStepPercent = Circles.WinStepPercent;
             BarHealPercent = BossTable.BarHealPercent;
             BossLossPercent.Clear();
+            MapVersion = 0;
         }
     }
 }

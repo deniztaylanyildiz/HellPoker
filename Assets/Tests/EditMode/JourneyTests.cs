@@ -203,7 +203,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(100, back.Run.YearsOwed);
             Assert.AreEqual(run.Current.Lane, back.Run.Current.Lane);
             Assert.AreEqual(run.Current.Floor, back.Run.Current.Floor);
-            Assert.AreEqual(run.Map[3, 3].Kind, back.Run.Map[3, 3].Kind, "the same seed, the same map");
+            CollectionAssert.AreEqual(run.Map.Floors.SelectMany(f => f).Select(n => n.ToString()), back.Run.Map.Floors.SelectMany(f => f).Select(n => n.ToString()),
+                "the same seed, the same map");
             CollectionAssert.AreEqual(journey.Effects.Relics, back.Effects.Relics);
             Assert.IsTrue(back.Run.NextTableMarks.OpenCard);
             Assert.AreEqual(25, back.Run.NextTableMarks.OpenCardLiePercent);
@@ -256,7 +257,7 @@ namespace HellPoker.Core.Tests
                 ChapterRules rules = ChapterRules.For(chapter);
                 for (int seed = 0; seed < 60; seed++)
                 {
-                    ChapterMap map = ChapterMap.Generate(rules, new SystemRandomSource(seed));
+                    ChapterMap map = ChapterMap.Generate(rules, new SystemRandomSource(seed), version: 1);   // Demo 2.0's generator
                     Assert.AreEqual(floors, map.FloorCount);
                     Assert.That(map.Floors[0].All(n => n.Kind == NodeKind.Table));
                     Assert.That(map.Floors[treasure].All(n => n.Kind == NodeKind.Treasure), $"chapter {chapter}: the treasure on floor {treasure + 1}");

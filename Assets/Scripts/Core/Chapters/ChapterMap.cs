@@ -24,7 +24,10 @@ namespace HellPoker.Core.Chapters
         Treasure,
 
         /// <summary>The purgatory fire (the last floor, always): one boon of three.</summary>
-        PurgatoryFire
+        PurgatoryFire,
+
+        /// <summary>Unknown ("?"): what waits there is only seen on stepping in (<see cref="MapNode.Hidden"/>; the dice of the map's).</summary>
+        Unknown
     }
 
     /// <summary>One node: its floor (0 is the first), its lane, what waits there and the lanes of the next floor it leads to.</summary>
@@ -35,12 +38,16 @@ namespace HellPoker.Core.Chapters
         public NodeKind Kind { get; }
         public IReadOnlyList<int> Next { get; }
 
-        public MapNode(int floor, int lane, NodeKind kind, IReadOnlyList<int> next)
+        /// <summary>What an unknown node holds (an event, a table, the market, a treasure or a warden); its own kind for any other.</summary>
+        public NodeKind Hidden { get; }
+
+        public MapNode(int floor, int lane, NodeKind kind, IReadOnlyList<int> next, NodeKind? hidden = null)
         {
             Floor = floor;
             Lane = lane;
             Kind = kind;
             Next = next ?? Array.Empty<int>();
+            Hidden = kind == NodeKind.Unknown ? hidden ?? NodeKind.Event : kind;
         }
 
         public override string ToString() => $"F{Floor + 1}L{Lane}:{Kind}";
@@ -66,9 +73,21 @@ namespace HellPoker.Core.Chapters
 
         public MapNode this[int floor, int lane] => _floors[floor][lane];
 
-        private ChapterMap(MapNode[][] floors)
+        /// <summary>The node at <paramref name="floor"/> and <paramref name="lane"/>; null when there is none (a floor of fewer nodes).</summary>
+        public MapNode Find(int floor, int lane) =>
+            floor < 0 || floor >= _floors.Length || lane < 0 || lane >= _floors[floor].Length ? null : _floors[floor][lane];
+
+        /// <summary>The generator that made the map (<see cref="CurrentVersion"/>; 1: Demo 2.0's even floors). A save keeps it: an older
+        /// run's map comes back from its own generator.</summary>
+        public int Version { get; }
+
+        /// <summary>1: Demo 2.0's map (every floor <see cref="ChapterRules.Lanes"/> nodes, straight paths); 2: Demo 2.1's.</summary>
+        public const int CurrentVersion = 2;
+
+        private ChapterMap(MapNode[][] floors, int version)
         {
             _floors = floors;
+            Version = version;
         }
 
         /// <summary>The nodes a player at <paramref name="node"/> may go to next (none from the last floor).</summary>
@@ -77,11 +96,18 @@ namespace HellPoker.Core.Chapters
 
         public int Count(NodeKind kind) => _floors.Sum(f => f.Count(n => n.Kind == kind));
 
-        public static ChapterMap Generate(ChapterRules rules, IRandomSource random)
+        /// <param name="version">The generator (<see cref="CurrentVersion"/>; 1 for a save from before Demo 2.1).</param>
+        public static ChapterMap Generate(ChapterRules rules, IRandomSource random, int version = CurrentVersion)
         {
             if (rules == null) throw new ArgumentNullException(nameof(rules));
             if (random == null) throw new ArgumentNullException(nameof(random));
+            return version <= 1 ? GenerateEven(rules, random) : MapMaker.Make(rules, random);
+        }
 
+        /// <summary>Demo 2.0's map: every floor <see cref="ChapterRules.Lanes"/> nodes, the first all tables, the
+        /// <see cref="ChapterRules.TreasureFloor"/> all treasure, the last all fire; straight paths that sometimes step aside.</summary>
+        private static ChapterMap GenerateEven(ChapterRules rules, IRandomSource random)
+        {
             int floors = rules.Floors, lanes = rules.Lanes;
             var kinds = new NodeKind[floors][];
             for (int f = 0; f < floors; f++)
@@ -140,8 +166,10 @@ namespace HellPoker.Core.Chapters
             var map = new MapNode[floors][];
             for (int f = 0; f < floors; f++)
                 map[f] = Enumerable.Range(0, lanes).Select(l => new MapNode(f, l, kinds[f][l], next[f][l].OrderBy(x => x).ToArray())).ToArray();
-            return new ChapterMap(map);
+            return new ChapterMap(map, 1);
         }
+
+        internal static ChapterMap Of(MapNode[][] floors, int version) => new ChapterMap(floors, version);
 
         /// <summary>Wardens stand from this floor (0-based: the fourth) on.</summary>
         public const int WardenFromFloor = 3;

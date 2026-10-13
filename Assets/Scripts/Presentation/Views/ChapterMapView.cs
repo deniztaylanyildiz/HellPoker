@@ -41,7 +41,7 @@ namespace HellPoker.Presentation.Views
 
         /// <summary>The icons' order in Ui/map_nodes.png: the node kinds, then the gate.</summary>
         public const string NodeIcons = "Ui/map_nodes";
-        public const int GateIcon = 6;
+        public const int GateIcon = 7;
 
         private Canvas _canvas;
         private RectTransform _screen;
@@ -84,6 +84,7 @@ namespace HellPoker.Presentation.Views
             public Image Frame;
             public Image Icon;
             public Button Button;
+            public NodeKind Shown;
         }
 
         public static ChapterMapView Create(Transform parent)
@@ -164,6 +165,17 @@ namespace HellPoker.Presentation.Views
 
         private static int LaneX(float lane) => MapLeft + 10 + Mathf.RoundToInt(lane * LaneStep) + 10;
 
+        /// <summary>The map's width in lanes (a Demo 2.0 map fills them all).</summary>
+        private const int DisplayLanes = 6;
+
+        /// <summary>Where a node sits across the map, in lanes: a floor's nodes spread evenly over its width (a lone camp in the middle,
+        /// over the gate); a full floor of six, lane by lane.</summary>
+        private float PositionOf(MapNode node)
+        {
+            int count = _builtFor?.Floors[node.Floor].Count ?? DisplayLanes;
+            return count >= DisplayLanes ? node.Lane : (node.Lane + 0.5f) * DisplayLanes / count - 0.5f;
+        }
+
         private int FloorY(int floor, int floors) => FloorTop + floor * _floorStep + NodeFrame / 2;
 
         /// <summary>The gate's icon, under the last floor.</summary>
@@ -227,7 +239,7 @@ namespace HellPoker.Presentation.Views
             foreach (IReadOnlyList<MapNode> floor in map.Floors)
             foreach (MapNode node in floor)
             {
-                int x = LaneX(node.Lane) - NodeFrame / 2, y = FloorY(node.Floor, map.FloorCount) - NodeFrame / 2;
+                int x = LaneX(PositionOf(node)) - NodeFrame / 2, y = FloorY(node.Floor, map.FloorCount) - NodeFrame / 2;
                 Image frame = UiFactory.CreateImage($"Node{node.Floor}_{node.Lane}", _screen, Palette.Black);
                 frame.rectTransform.PlaceTL(x, y, NodeFrame, NodeFrame);
                 frame.raycastTarget = true;
@@ -245,15 +257,20 @@ namespace HellPoker.Presentation.Views
                 Image icon = UiFactory.CreateImage("Icon", frame.transform, Color.white);
                 icon.raycastTarget = false;
                 icon.rectTransform.PlaceTL((NodeFrame - IconSize) / 2, (NodeFrame - IconSize) / 2, IconSize, IconSize);
-                int kind = (int)node.Kind;
-                icon.sprite = icons != null && kind < icons.Length ? icons[kind] : null;
-                if (icon.sprite == null) icon.color = FallbackColor(node.Kind);
+                SetIcon(icon, node.Kind, icons);
 
                 AddHover(frame.gameObject, () => ShowTip(captured), () => _tip.SetActive(false));
-                _nodes.Add(new NodeWidget { Node = node, Frame = frame, Icon = icon, Button = button });
+                _nodes.Add(new NodeWidget { Node = node, Frame = frame, Icon = icon, Button = button, Shown = node.Kind });
             }
             _tip.transform.SetAsLastSibling();
             _prompt.transform.SetAsLastSibling();
+        }
+
+        private static void SetIcon(Image icon, NodeKind kind, Sprite[] icons)
+        {
+            int index = (int)kind;
+            icon.sprite = icons != null && index < icons.Length ? icons[index] : null;
+            if (icon.sprite == null) icon.color = FallbackColor(kind);
         }
 
         private static Color FallbackColor(NodeKind kind)
@@ -265,6 +282,7 @@ namespace HellPoker.Presentation.Views
                 case NodeKind.BlackMarket: return Palette.GreenLight;
                 case NodeKind.Warden: return Palette.Hell;
                 case NodeKind.Treasure: return Palette.Gold;
+                case NodeKind.Unknown: return Palette.Bone;
                 default: return Palette.Ember;
             }
         }
@@ -285,8 +303,8 @@ namespace HellPoker.Presentation.Views
             if (_state == null) return;
             _tipText.text = _state.Describe(node);
             int width = 180, height = 50;
-            int x = LaneX(node.Lane) + NodeFrame / 2 + 4;
-            if (x + width > PixelScreen.Width - 2) x = LaneX(node.Lane) - NodeFrame / 2 - 4 - width;
+            int x = LaneX(PositionOf(node)) + NodeFrame / 2 + 4;
+            if (x + width > PixelScreen.Width - 2) x = LaneX(PositionOf(node)) - NodeFrame / 2 - 4 - width;
             int y = Mathf.Clamp(FloorY(node.Floor, _state.Map.FloorCount) - height / 2, 2, PixelScreen.Height - height - 2);
             _tipRect.PlaceTL(x, y, width, height);
             _tip.SetActive(true);
@@ -299,9 +317,16 @@ namespace HellPoker.Presentation.Views
             if (_state == null) return;
             bool lit = Mathf.Repeat(_blink, 0.8f) < 0.5f;
             var trail = new HashSet<MapNode>(_state.Trail);
+            Sprite[] icons = UiArt.Strip(NodeIcons, IconSize);
             foreach (NodeWidget w in _nodes)
             {
                 MapNode node = w.Node;
+                NodeKind shown = _state.Shown(node);   // an unknown node: "?" until walked or revealed
+                if (w.Shown != shown)
+                {
+                    w.Shown = shown;
+                    SetIcon(w.Icon, shown, icons);
+                }
                 bool choice = _state.Choices.Contains(node);
                 bool here = node == _state.Current;
                 bool walked = trail.Contains(node);
@@ -312,7 +337,7 @@ namespace HellPoker.Presentation.Views
                 else if (walked) frame = Palette.Plum;
                 w.Frame.color = frame;
                 Color tint = choice || here ? Color.white : walked ? new Color(0.75f, 0.75f, 0.75f) : past ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.5f, 0.5f, 0.5f);
-                w.Icon.color = w.Icon.sprite != null ? tint : FallbackColor(node.Kind) * tint;
+                w.Icon.color = w.Icon.sprite != null ? tint : FallbackColor(shown) * tint;
             }
         }
 
@@ -342,15 +367,15 @@ namespace HellPoker.Presentation.Views
                 bool open = node == state.Current && state.Choices.Contains(next);
                 bool behind = state.Current != null && next.Floor <= state.Current.Floor && !walked;
                 Color32 color = walked ? gold : open ? amber : behind ? dark : dim;
-                Line(pixels, LaneX(node.Lane), FloorY(node.Floor, map.FloorCount) + NodeFrame / 2,
-                    LaneX(next.Lane), FloorY(next.Floor, map.FloorCount) - NodeFrame / 2 - 1, color, dotted: !walked && !open);
+                Line(pixels, LaneX(PositionOf(node)), FloorY(node.Floor, map.FloorCount) + NodeFrame / 2,
+                    LaneX(PositionOf(next)), FloorY(next.Floor, map.FloorCount) - NodeFrame / 2 - 1, color, dotted: !walked && !open);
             }
             // The last floor's fires lead down to the gate.
             int gateX = LaneX(2.5f), gateY = GateY - 1;
             foreach (MapNode fire in map.Floors[map.FloorCount - 1])
             {
                 bool walked = trail.Count > 0 && trail[trail.Count - 1] == fire;
-                Line(pixels, LaneX(fire.Lane), FloorY(fire.Floor, map.FloorCount) + NodeFrame / 2, gateX, gateY, walked ? gold : dark, dotted: !walked);
+                Line(pixels, LaneX(PositionOf(fire)), FloorY(fire.Floor, map.FloorCount) + NodeFrame / 2, gateX, gateY, walked ? gold : dark, dotted: !walked);
             }
             _pathTexture.SetPixels32(pixels);
             _pathTexture.Apply(false);

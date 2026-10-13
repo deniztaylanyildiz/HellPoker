@@ -23,6 +23,9 @@ namespace HellPoker.Core.Chapters
         /// <summary>The circle of Hell (optional key; an older save: 0).</summary>
         public int Circle;
         public int Chapter = 1;
+
+        /// <summary>The chapter map's generator (<see cref="ChapterMap.Version"/>; optional key: 1 for a save from before Demo 2.1).</summary>
+        public int MapVersion = ChapterMap.CurrentVersion;
         public bool Lucifer;
         public int LuciferBarStart;
         public int Coins;
@@ -102,6 +105,7 @@ namespace HellPoker.Core.Chapters
                 "seed=" + Seed.ToString(CultureInfo.InvariantCulture),
                 "circle=" + Circle,
                 "chapter=" + Chapter,
+                "map=" + MapVersion,
                 "lucifer=" + B(Lucifer),
                 "lucifer.start=" + LuciferBarStart,
                 "coins=" + Coins,
@@ -186,6 +190,7 @@ namespace HellPoker.Core.Chapters
                     Seed = I("seed"),
                     Circle = Circles.Clamp(I("circle")),
                     Chapter = I("chapter", 1),
+                    MapVersion = Math.Max(1, I("map", 1)),
                     Lucifer = Bool("lucifer"),
                     LuciferBarStart = I("lucifer.start"),
                     Coins = I("coins"),
