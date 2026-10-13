@@ -163,12 +163,12 @@ namespace HellPoker.Core.Chapters
 
     public static class FloorEventDeck
     {
-        /// <summary>Every offer (each says where it may appear).</summary>
+        /// <summary>Every offer (each says where it may appear): Demo 2.0's nine, then Demo 2.1's sixteen (<see cref="ChoiceEventDeck"/>).</summary>
         public static IReadOnlyList<IFloorEvent> Standard => new IFloorEvent[]
         {
             new PurgatoryUsurer(), new MammonsLedger(), new GamblerGhost(), new LyingWitness(), new Spectacle(), new FalseCoin(),
             new NightBargain(), new Desire(), new Insomnia()
-        };
+        }.Concat(ChoiceEventDeck.All).ToArray();
 
         /// <summary>The offers of a chapter: the Usurer and the Gambler everywhere, and the chapter's own three.</summary>
         public static IReadOnlyList<IFloorEvent> For(ChapterRules rules)

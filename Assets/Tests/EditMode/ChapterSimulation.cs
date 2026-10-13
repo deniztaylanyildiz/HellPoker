@@ -52,6 +52,10 @@ namespace HellPoker.Core.Tests
             /// <summary>What the unknown nodes stepped on held.</summary>
             public readonly Dictionary<NodeKind, int> Unknowns = new Dictionary<NodeKind, int>();
 
+            /// <summary>Demo 2.1's offers: the choices made ("id/choice"), and the coins and years each offer moved in all.</summary>
+            public readonly Dictionary<string, int> Choices = new Dictionary<string, int>(), EventCoins = new Dictionary<string, int>(),
+                EventYears = new Dictionary<string, int>();
+
             /// <summary>Relics taken (the market, a warden, the spoils) and class upgrades taken (the spoils, the fire), by id.</summary>
             public readonly Dictionary<string, int> RelicPicks = new Dictionary<string, int>(), UpgradePicks = new Dictionary<string, int>();
 
@@ -77,6 +81,9 @@ namespace HellPoker.Core.Tests
                 foreach (var p in o.Fire) Bump(Fire, p.Key, p.Value);
                 foreach (var p in o.Path) Bump(Path, p.Key, p.Value);
                 foreach (var p in o.Unknowns) Bump(Unknowns, p.Key, p.Value);
+                foreach (var p in o.Choices) Bump(Choices, p.Key, p.Value);
+                foreach (var p in o.EventCoins) Bump(EventCoins, p.Key, p.Value);
+                foreach (var p in o.EventYears) Bump(EventYears, p.Key, p.Value);
             }
         }
 
@@ -281,6 +288,11 @@ namespace HellPoker.Core.Tests
                         if (offer == null) break;
                         tally.EventsSeen++;
                         Bump(tally.Offered, offer.Id);
+                        if (offer is IChoiceEvent choiceEvent)
+                        {
+                            PlayChoiceEvent(run, choiceEvent, payouts, tally);
+                            break;
+                        }
                         bool behind = run.Purse.Coins < start + rules.TributeOverStart * (next.Floor + 1) / rules.Floors;
                         // Coins for years only behind the pace; the tables' marks (the witness, the show, insomnia) and desire always.
                         bool forCoins = offer.Id == FloorEventIds.Usurer || offer.Id == FloorEventIds.GamblerGhost || offer.Id == FloorEventIds.FalseCoin
@@ -325,6 +337,56 @@ namespace HellPoker.Core.Tests
             return true;
         }
 
+        /// <summary>
+        /// Demo 2.1's offers as the simulation's player takes them: the choice worth the most (passing is worth nothing), the trap seen only
+        /// by the Warlock — and by the Summoner, whose imp looks a swindler over for its coins. A swap takes the better of the two; a chase is
+        /// played out.
+        /// </summary>
+        private static void PlayChoiceEvent(ChapterRun run, IChoiceEvent offer, FloorPayoutTable payouts, Tally tally)
+        {
+            bool sees = ChoiceEventDeck.SeesTraps(run);
+            if (!sees && offer.Family == EventFamily.Scam && run.Sinner.Id == Summoner.ClassId && run.Purse.Coins > Reserve &&
+                run.Purse.TrySpend(ChapterPresenterEyePrice)) sees = true;
+            int coins = run.Purse.Coins, years = run.Sentence?.Years ?? 0;
+            bool taken = false;
+            for (int step = 0; step < 3; step++)
+            {
+                var choices = offer.Choices(run).Where(c => offer.CanChoose(run, c)).ToList();
+                if (choices.Count == 0) break;
+                string best = choices.OrderByDescending(c => offer.Worth(run, c, sees) - (offer.Cost(run, c) > 0 && run.Purse.Coins - offer.Cost(run, c) < Reserve ? 1000 : 0))
+                    .ThenBy(c => c == EventChoices.Pass ? 0 : 1).First();
+                EventOutcome outcome = offer.Choose(run, best);
+                Bump(tally.Choices, offer.Id + "/" + best.Split(':')[0]);
+                taken |= best != EventChoices.Pass;
+                if (outcome.OpensTable && run.PendingChase != null)
+                {
+                    FloorTable chase = run.PendingChase;
+                    PlayMatch(chase, payouts, null);
+                    run.FinishTable(chase);
+                }
+                if (run.WardenRelicWaiting != null) run.TakeWardenCoins();
+                if (!outcome.Waits) break;
+            }
+            Bump(tally.EventCoins, offer.Id, run.Purse.Coins - coins);
+            Bump(tally.EventYears, offer.Id, (run.Sentence?.Years ?? 0) - years);
+            RunSeen.Add(offer.Id);
+            if (taken)
+            {
+                Bump(tally.Accepted, offer.Id);
+                RunTaken.Add(offer.Id);
+            }
+        }
+
+        /// <summary>Demo 2.1's offers seen in the whole run being played.</summary>
+        private static readonly List<string> RunSeen = new List<string>();
+
+        /// <summary>Demo 2.1's offers taken (not passed) in the whole run being played, and whether it walked free.</summary>
+        private static readonly List<string> RunTaken = new List<string>();
+        private static bool RunFreed;
+
+        /// <summary>The Summoner's eye on a swindler (the presentation's price).</summary>
+        private const int ChapterPresenterEyePrice = 5;
+
         // ------------------------------------------------------------------ a whole run: the three chapters, then Lucifer
 
         private sealed class RunTally
@@ -345,6 +407,12 @@ namespace HellPoker.Core.Tests
 
             /// <summary>The jokers in the deck as each chapter (and Lucifer's table) ended, for the runs that got there.</summary>
             public readonly List<int>[] Jokers = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+
+            /// <summary>Demo 2.1's offers: the runs that took one, and those of them freed.</summary>
+            public readonly Dictionary<string, int> EventRuns = new Dictionary<string, int>(), EventFreed = new Dictionary<string, int>();
+
+            /// <summary>... and the runs that saw one and passed it (the fair comparison: both got that far).</summary>
+            public readonly Dictionary<string, int> EventPassedRuns = new Dictionary<string, int>(), EventPassedFreed = new Dictionary<string, int>();
 
             /// <summary>The runs that began the second chapter, and those of them freed; by a relic or an upgrade held as it began.</summary>
             public int ReachedCh2, FreedFromCh2;
@@ -497,6 +565,36 @@ namespace HellPoker.Core.Tests
                 }
             }
 
+            report.AppendLine();
+            report.AppendLine("Demo 2.1's offers (all classes): offered, the choices, coins / years an offer moved on average, freed when taken vs when " +
+                              "seen and passed (both got that far; a gap past 5 points is marked !; an encounter cannot be passed)");
+            var everyChapter = new Tally();
+            foreach (Tally c in all.Chapters) everyChapter.Add(c);
+            foreach (IChoiceEvent e in ChoiceEventDeck.All)
+            {
+                int offered = everyChapter.Offered.TryGetValue(e.Id, out int o) ? o : 0;
+                string choices = string.Join(" ", everyChapter.Choices.Where(p => p.Key.StartsWith(e.Id + "/", StringComparison.Ordinal))
+                    .OrderByDescending(p => p.Value).Select(p => $"{p.Key.Substring(e.Id.Length + 1)} {p.Value}"));
+                int runsWith = all.EventRuns.TryGetValue(e.Id, out int r) ? r : 0, freedWith = all.EventFreed.TryGetValue(e.Id, out int f) ? f : 0;
+                int passed = all.EventPassedRuns.TryGetValue(e.Id, out int pr) ? pr : 0, freedPassed = all.EventPassedFreed.TryGetValue(e.Id, out int pf) ? pf : 0;
+                // Within each class (a class that plays it one way and a weaker class the other way would fake a gap), weighted.
+                double gapSum = 0, weightSum = 0;
+                foreach (var (_, ct) in perClass)
+                {
+                    int cw = ct.EventRuns.TryGetValue(e.Id, out int a) ? a : 0, cp = ct.EventPassedRuns.TryGetValue(e.Id, out int b) ? b : 0;
+                    if (cw < 10 || cp < 10) continue;
+                    double g = 100.0 * (ct.EventFreed.TryGetValue(e.Id, out int fa) ? fa : 0) / cw - 100.0 * (ct.EventPassedFreed.TryGetValue(e.Id, out int fb) ? fb : 0) / cp;
+                    double weight = Math.Min(cw, cp);
+                    gapSum += g * weight;
+                    weightSum += weight;
+                }
+                double gap = weightSum == 0 ? 0 : gapSum / weightSum;
+                string mark = weightSum >= 30 && Math.Abs(gap) > 5 ? " !" : "";
+                report.AppendLine($"  {e.Id,-19} offered {offered,5}  [{choices}]  coins {Avg(everyChapter.EventCoins.TryGetValue(e.Id, out int ec) ? ec : 0, offered),6}" +
+                                  $"  years {Avg(everyChapter.EventYears.TryGetValue(e.Id, out int ey) ? ey : 0, offered),7}  freed taken {Pct(freedWith, runsWith),6}" +
+                                  $" / passed {Pct(freedPassed, passed),6} ({(gap >= 0 ? "+" : "")}{gap:0.0}){mark}");
+            }
+
             TestContext.WriteLine(report.ToString());
             Assert.Pass(report.ToString());
         }
@@ -506,10 +604,26 @@ namespace HellPoker.Core.Tests
         private static void PlayWholeRun(SinnerClass cls, int seed, RunTally tally, RunTally all)
         {
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
+            RunTaken.Clear();
+            RunSeen.Clear();
+            RunFreed = false;
             ChapterJourney journey = ChapterJourney.Begin(cls, seed, EnvInt("HELLPOKER_CIRCLE", 0));   // a knob: the circle of Hell
             if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
             PlayWholeRun(journey, seed, tally, all);
-            foreach (RunTally t in new[] { tally, all }) t.AddKit(journey.Kit);
+            foreach (RunTally t in new[] { tally, all })
+            {
+                t.AddKit(journey.Kit);
+                foreach (string id in RunTaken.Distinct())
+                {
+                    Bump(t.EventRuns, id);
+                    if (RunFreed) Bump(t.EventFreed, id);
+                }
+                foreach (string id in RunSeen.Distinct().Except(RunTaken))
+                {
+                    Bump(t.EventPassedRuns, id);
+                    if (RunFreed) Bump(t.EventPassedFreed, id);
+                }
+            }
         }
 
         private static void PlayWholeRun(ChapterJourney journey, int seed, RunTally tally, RunTally all)
@@ -576,6 +690,7 @@ namespace HellPoker.Core.Tests
                 else if (lucifer.Phase == GamePhase.Absolved)
                 {
                     t.Freed++;
+                    RunFreed = true;
                     t.FreedSentences.Add(journey.Sentence.Years);
                     t.FreedFromCh2++;
                     foreach (string id in heldAtCh2) Bump(t.FreedHeldAtCh2, id);

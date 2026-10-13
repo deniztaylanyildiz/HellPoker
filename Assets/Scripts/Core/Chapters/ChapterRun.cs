@@ -52,6 +52,19 @@ namespace HellPoker.Core.Chapters
         }
     }
 
+    /// <summary>What waited at the gate besides the tribute: a debtor imp's coins (−1: no loan; 0: he never came), the insurer gone.</summary>
+    public sealed class GateArrival
+    {
+        public int LoanRepaid { get; }
+        public bool InsurerGone { get; }
+
+        public GateArrival(int loanRepaid, bool insurerGone)
+        {
+            LoanRepaid = loanRepaid;
+            InsurerGone = insurerGone;
+        }
+    }
+
     /// <summary>
     /// One chapter's floors, from the first table to the gate and the demon's table: the map, the purse, where the player stands, and
     /// the run's parts that go along (the sinner — charge, jokers —, the relics, the deck, the share of the sentence at this demon). The
@@ -152,6 +165,12 @@ namespace HellPoker.Core.Chapters
         /// <summary>The gambler's single hand, opened by his offer; null when none is waiting.</summary>
         public FloorTable PendingGamble { get; private set; }
 
+        /// <summary>The pickpocket's chase, opened by the choice to run after him; null when none is waiting.</summary>
+        public FloorTable PendingChase { get; private set; }
+
+        /// <summary>A side table (the gambler's hand, the pickpocket's chase) waiting to be played; null for none.</summary>
+        public FloorTable PendingSideTable => PendingGamble ?? PendingChase;
+
         public bool AtGate => Current != null && Current.Floor == Map.FloorCount - 1;
 
         /// <summary>The coins the gate takes from this sinner: their class's starting purse and the chapter's
@@ -244,7 +263,10 @@ namespace HellPoker.Core.Chapters
             node.Kind != NodeKind.Unknown || _revealed.Contains(node) || _trail.Contains(node) || Effects.CombinedRelics.RevealsUnknown ? KindOf(node) : NodeKind.Unknown;
 
         /// <summary>The nodes the player may step to: the first floor's at the start, then the ones the current node leads to.</summary>
-        public IEnumerable<MapNode> Choices => Current == null ? Map.Floors[0] : Map.NextFrom(Current);
+        public IEnumerable<MapNode> Choices =>
+            Current == null ? Map.Floors[0]
+            : SkipNext && Current.Floor + 2 < Map.FloorCount ? Map.NextFrom(Current).SelectMany(Map.NextFrom).Distinct()
+            : Map.NextFrom(Current);
 
         public void MoveTo(MapNode node)
         {
@@ -252,9 +274,23 @@ namespace HellPoker.Core.Chapters
             if (PurseEmptied) throw new InvalidOperationException("The run is over: the purse is empty.");
             if (!Choices.Contains(node)) throw new InvalidOperationException($"{node} cannot be reached from here.");
             if (WardenRelicWaiting != null) throw new InvalidOperationException("The warden's relic waits for a choice.");
+            if (Current != null && node.Floor == Current.Floor + 2)
+            {
+                // The lava ferry: carried over a floor — through one of its nodes, nothing done there.
+                MapNode over = Map.NextFrom(Current).First(n => Map.NextFrom(n).Contains(node));
+                _trail.Add(over);
+                _skipped.Add(over);
+                SkipNext = false;
+            }
             Current = node;
             _trail.Add(node);
+            Arrival = null;
         }
+
+        private readonly HashSet<MapNode> _skipped = new HashSet<MapNode>();
+
+        /// <summary>A node of the trail the ferry carried the player over (nothing was done there).</summary>
+        public bool WasSkipped(MapNode node) => _skipped.Contains(node);
 
         private int NextMatchSeed() => RandomSeeds.Derive(RandomSeeds.Derive(_seed, MatchStream), ++_matches);
 
@@ -266,9 +302,122 @@ namespace HellPoker.Core.Chapters
                 throw new InvalidOperationException("There is no table here.");
             TableMarks marks = NextTableMarks;
             NextTableMarks = TableMarks.None;
-            return Hooked(CurrentKind == NodeKind.Warden
+            bool warden = CurrentKind == NodeKind.Warden;
+            if (houseCoins < 0)
+            {
+                // A fresh match takes what the offers left for it: the accountant's cheaper antes, a reported ledger's richer warden.
+                if (AnteCutTables > 0)
+                {
+                    marks = marks.With(new TableMarks(anteDelta: -1));
+                    AnteCutTables--;
+                }
+                if (warden && NextWardenPursePercent != 100)
+                {
+                    houseCoins = Math.Max(1, Rules.WardenCoins * NextWardenPursePercent / 100);
+                    NextWardenPursePercent = 100;
+                }
+            }
+            return Hooked(warden
                 ? FloorTable.Warden(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, houseCoins)
                 : FloorTable.Imp(Rules, Sinner, Effects, Purse, NextMatchSeed(), DeckCards, marks, Current.Floor, houseCoins));
+        }
+
+        // ------------------------------------------------------------------ what Demo 2.1's offers leave behind
+
+        /// <summary>The next tables (imps' or wardens') whose ante is one less (Mammon's accountant, his ledger put right).</summary>
+        public int AnteCutTables { get; set; }
+
+        /// <summary>The next warden's purse, in percent of his own (a reported ledger: 150).</summary>
+        public int NextWardenPursePercent { get; set; } = 100;
+
+        /// <summary>Coins a debtor imp owes back at the gate (0: none) — and whether he will be there to pay (rolled as the loan is made).</summary>
+        public int LoanDue { get; set; }
+        public bool LoanPays { get; set; }
+
+        /// <summary>The soul insurance was bought (the insurer is gone by the gate).</summary>
+        public bool Insured { get; set; }
+
+        /// <summary>The confession: this chapter's demon sits down with his malice full.</summary>
+        public bool BossMaliceFull { get; set; }
+
+        /// <summary>The lava ferry: the next step skips a floor (to a node two floors down, through one of the next floor's).</summary>
+        public bool SkipNext { get; set; }
+
+        /// <summary>A number an offer keeps while its panel waits (the coins a pickpocket took).</summary>
+        public int EventMemo { get; set; }
+
+        /// <summary>The relics a sin swap offers in place of the one given (empty when none waits).</summary>
+        public List<string> EventOffers { get; } = new List<string>();
+
+        /// <summary>The offers of Demo 2.1 seen anywhere in the run (each comes once a run); shared by the run's chapters.</summary>
+        public ISet<string> RunEventsSeen { get; set; } = new HashSet<string>();
+
+        /// <summary>The dice of the nodes (the market, the offers, the relics), for an offer's outcome.</summary>
+        public IRandomSource NodeDice => _nodeRandom;
+
+        /// <summary>An amount of an offer grown with the chapter: ×1, ×1.25, ×1.5.</summary>
+        public int Scaled(int amount) => amount * (100 + 25 * Math.Max(0, Rules.Number - 1)) / 100;
+
+        /// <summary>A relic the run is given (an offer's, a lottery's): carried when a slot is free, else it waits for a choice (as a
+        /// warden's does). False when none could be drawn.</summary>
+        public bool GiveRelic(string id)
+        {
+            if (id == null) return false;
+            if (!Effects.AddRelic(id)) WardenRelicWaiting = id;
+            return true;
+        }
+
+        /// <summary>A relic of <paramref name="rarity"/> not carried (a locked one never); null when none is left.</summary>
+        public string DrawRelic(RelicRarity rarity) =>
+            ChapterRelics.Draw(_nodeRandom, rarity == RelicRarity.Common ? new RelicWeights(1, 0, 0) : rarity == RelicRarity.Rare ? new RelicWeights(0, 1, 0)
+                : new RelicWeights(0, 0, 1), 1, Effects.Relics.ToList(), RelicAvailable).FirstOrDefault();
+
+        /// <summary>Whether <paramref name="count"/> relics of <paramref name="rarity"/> (null: any) could still be drawn.</summary>
+        public bool CanDrawRelic(RelicRarity? rarity, int count = 1) =>
+            ChapterRelics.All.Count(id => !Effects.Relics.Contains(id) && (RelicAvailable == null || RelicAvailable(id)) &&
+                                          (rarity == null || ChapterRelics.RarityOf(id) == rarity.Value)) >= count;
+
+        /// <summary>A helper's good turn, in percent, as the relics bend it (the Lost Soul's Letter more, the Liar's Tongue less).</summary>
+        public int HelpPercent(int percent) =>
+            Math.Max(0, percent * (100 + Effects.CombinedRelics.Extra(RelicExtras.HelpGoodPercent)) / 100);
+
+        /// <summary>A class upgrade the run does not have yet, given at once; null when every one is had.</summary>
+        public string GiveUpgrade()
+        {
+            IReadOnlyList<string> upgrades = UpgradesOffered();
+            if (upgrades.Count == 0) return null;
+            string upgrade = upgrades[_nodeRandom.Next(upgrades.Count)];
+            return Kit.AddUpgrade(upgrade) ? upgrade : null;
+        }
+
+        /// <summary>The pickpocket's chase for <paramref name="stolen"/> coins: play <see cref="PendingChase"/>, then <see cref="FinishTable"/>.</summary>
+        public FloorTable OpenChase(int stolen, int houseCoins = -1, int handsPlayed = 0)
+        {
+            EventMemo = Math.Max(1, stolen);
+            PendingChase = Hooked(FloorTable.Chase(Rules, ChaseHands, EventMemo + Scaled(ChaseBonus), Sinner, Effects, Purse, NextMatchSeed(), DeckCards, houseCoins));
+            if (handsPlayed > 0) PendingChase.Resume(handsPlayed);
+            return PendingChase;
+        }
+
+        /// <summary>The chase: this many hands; caught, the thief gives back what he took and this much more.</summary>
+        public const int ChaseHands = 3, ChaseBonus = 10;
+
+        /// <summary>The last chase was won (the stolen coins came back, and more); null before one.</summary>
+        public bool? ChaseWon { get; private set; }
+
+        /// <summary>What the gate found (the debtor imp, the insurer); set as the player arrives, once.</summary>
+        public GateArrival Arrival { get; private set; }
+
+        /// <summary>The player stands at the gate: a debtor imp pays back (or is gone), the insurer is gone. Once.</summary>
+        public GateArrival ArriveAtGate()
+        {
+            if (Arrival != null) return Arrival;
+            int repaid = LoanDue <= 0 ? -1 : LoanPays ? LoanDue : 0;
+            if (repaid > 0) Purse.Add(repaid);
+            Arrival = new GateArrival(repaid, Insured);
+            LoanDue = 0;
+            Insured = false;
+            return Arrival;
         }
 
         /// <summary>The marks of a saved match come back (they were taken by <see cref="OpenTable"/> before it was saved).</summary>
@@ -292,6 +441,14 @@ namespace HellPoker.Core.Chapters
             if (table == PendingGamble)
             {
                 PendingGamble = null;
+                return;
+            }
+            if (table == PendingChase)
+            {
+                PendingChase = null;
+                ChaseWon = !PurseEmptied && table.Coins > 0;
+                if (ChaseWon == true) Purse.Add(EventMemo + Scaled(ChaseBonus));
+                EventMemo = 0;
                 return;
             }
             if (!table.MatchWon || !table.IsWarden) return;
@@ -359,12 +516,19 @@ namespace HellPoker.Core.Chapters
         public IFloorEvent DrawEvent(IReadOnlyList<IFloorEvent> deck = null)
         {
             if (CurrentKind != NodeKind.Event) throw new InvalidOperationException("There is no event here.");
-            var can = (deck ?? FloorEventDeck.For(Rules)).Where(e => e.CanAppear(this)).ToList();
+            // Demo 2.1's offers come once a run; the chapters' own once a chapter while others are left.
+            var can = (deck ?? FloorEventDeck.For(Rules)).Where(e => e.CanAppear(this) && !(e is IChoiceEvent && RunEventsSeen.Contains(e.Id))).ToList();
             var fresh = can.Where(e => !_eventsSeen.Contains(e.Id)).ToList();
             var pool = fresh.Count > 0 ? fresh : can;
             if (pool.Count == 0) return null;
             IFloorEvent offer = pool[_nodeRandom.Next(pool.Count)];
             _eventsSeen.Add(offer.Id);
+            if (offer is IChoiceEvent choice)
+            {
+                RunEventsSeen.Add(offer.Id);
+                EventOffers.Clear();
+                if (choice.IsEncounter) choice.Appear(this);   // it happens as it appears (the pickpocket's hand)
+            }
             return offer;
         }
 
@@ -457,6 +621,7 @@ namespace HellPoker.Core.Chapters
         /// </summary>
         public GateToll PayTribute()
         {
+            ArriveAtGate();
             int before = Purse.Coins;
             int tribute = Tribute;
             int paid = TributePaid(before);
@@ -520,6 +685,8 @@ namespace HellPoker.Core.Chapters
             HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Rules.BossLossPercent,
                 RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
             game.UseEffects(Effects);
+            if (startBar && BossMaliceFull) game.RestoreMalice(game.MaliceMax, false);   // the confession: he knows
+            BossMaliceFull = false;
             Sentence?.Follow(game);
             Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream));
             return game;
@@ -633,6 +800,28 @@ namespace HellPoker.Core.Chapters
             LootUpgrade = bossBeaten && ClassUpgrades.For(Sinner.Id).Contains(lootUpgrade) ? lootUpgrade : null;
             LootTaken = lootTaken;
             WhettedSoul = whetted;
+        }
+
+        /// <summary>What Demo 2.1's offers left behind, as a save kept it (the unknown nodes revealed as "floor:lane").</summary>
+        public void RestoreOffers(int anteCut, int wardenPurse, int loan, bool loanPays, bool insured, bool bossMalice, bool skip, int memo,
+            IEnumerable<string> offers, ISet<string> runEvents, IEnumerable<string> revealed)
+        {
+            AnteCutTables = Math.Max(0, anteCut);
+            NextWardenPursePercent = wardenPurse > 0 ? wardenPurse : 100;
+            LoanDue = Math.Max(0, loan);
+            LoanPays = loanPays;
+            Insured = insured;
+            BossMaliceFull = bossMalice;
+            SkipNext = skip;
+            EventMemo = Math.Max(0, memo);
+            EventOffers.Clear();
+            EventOffers.AddRange((offers ?? Enumerable.Empty<string>()).Where(id => RelicRoster.Find(id) != null));
+            if (runEvents != null) RunEventsSeen = runEvents;
+            foreach (string code in revealed ?? Enumerable.Empty<string>())
+            {
+                string[] parts = code.Split(':');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int f) && int.TryParse(parts[1], out int l)) Reveal(Map.Find(f, l));
+            }
         }
     }
 }

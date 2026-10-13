@@ -56,37 +56,47 @@ namespace HellPoker.Core.Chapters
         /// <summary>The first hands without an ante — and without a raise (Lilith's Insomnia).</summary>
         public int FreeHands { get; }
 
-        public TableMarks(bool openCard = false, int openCardLiePercent = 0, bool hidesAll = false, int winPercent = 100, int freeHands = 0)
+        /// <summary>The house's cards face up as the first hand is dealt (the hungry gambler's tip: two); 0 for none.</summary>
+        public int FirstHandOpen { get; }
+
+        /// <summary>Every hand's ante more or less (the lost soul's way: +1; the accountant's ledger: −1; never below 1).</summary>
+        public int AnteDelta { get; }
+
+        public TableMarks(bool openCard = false, int openCardLiePercent = 0, bool hidesAll = false, int winPercent = 100, int freeHands = 0,
+            int firstHandOpen = 0, int anteDelta = 0)
         {
             if (openCardLiePercent < 0 || openCardLiePercent > 100) throw new ArgumentOutOfRangeException(nameof(openCardLiePercent));
-            if (winPercent <= 0 || freeHands < 0) throw new ArgumentOutOfRangeException(nameof(winPercent));
+            if (winPercent <= 0 || freeHands < 0 || firstHandOpen < 0) throw new ArgumentOutOfRangeException(nameof(winPercent));
             OpenCard = openCard;
             OpenCardLiePercent = openCardLiePercent;
             HidesAll = hidesAll;
             WinPercent = winPercent;
             FreeHands = freeHands;
+            FirstHandOpen = firstHandOpen;
+            AnteDelta = anteDelta;
         }
 
         public static TableMarks None { get; } = new TableMarks();
 
-        public bool IsNone => !OpenCard && !HidesAll && FreeHands == 0 && WinPercent == 100;
+        public bool IsNone => !OpenCard && !HidesAll && FreeHands == 0 && WinPercent == 100 && FirstHandOpen == 0 && AnteDelta == 0;
 
         /// <summary>Two marks on the same match (an offer on top of a bought eye).</summary>
         public TableMarks With(TableMarks other) =>
             other == null || other.IsNone ? this
             : new TableMarks(OpenCard || other.OpenCard, Math.Max(OpenCardLiePercent, other.OpenCardLiePercent), HidesAll || other.HidesAll,
-                WinPercent * other.WinPercent / 100, Math.Max(FreeHands, other.FreeHands));
+                WinPercent * other.WinPercent / 100, Math.Max(FreeHands, other.FreeHands), Math.Max(FirstHandOpen, other.FirstHandOpen),
+                AnteDelta + other.AnteDelta);
 
-        /// <summary>"eye,lie,hide,win,free" for the save.</summary>
-        public string Encode() => $"{(OpenCard ? 1 : 0)},{OpenCardLiePercent},{(HidesAll ? 1 : 0)},{WinPercent},{FreeHands}";
+        /// <summary>"eye,lie,hide,win,free,first,ante" for the save (an older save's five read as before).</summary>
+        public string Encode() => $"{(OpenCard ? 1 : 0)},{OpenCardLiePercent},{(HidesAll ? 1 : 0)},{WinPercent},{FreeHands},{FirstHandOpen},{AnteDelta}";
 
         public static TableMarks Decode(string text)
         {
             if (string.IsNullOrEmpty(text)) return None;
             string[] parts = text.Split(',');
-            if (parts.Length != 5 || !parts.All(p => int.TryParse(p, out _))) return None;
+            if ((parts.Length != 5 && parts.Length != 7) || !parts.All(p => int.TryParse(p, out _))) return None;
             int[] n = parts.Select(int.Parse).ToArray();
-            try { return new TableMarks(n[0] == 1, n[1], n[2] == 1, n[3], n[4]); }
+            try { return new TableMarks(n[0] == 1, n[1], n[2] == 1, n[3], n[4], n.Length > 5 ? n[5] : 0, n.Length > 6 ? n[6] : 0); }
             catch (ArgumentException) { return None; }
         }
     }
@@ -221,14 +231,18 @@ namespace HellPoker.Core.Chapters
                 Game.UseEffects(effects);
             }
             if (deck != null && deck.Count > 0) Game.RestoreDeck(deck);
-            Game.HouseCardsOpenAtDeal = Marks.OpenCard && !Marks.HidesAll ? 1 : 0;
             SetStakes();
         }
+
+        /// <summary>The house's cards face up at the deal: the bought eye's one — the first hand, the hungry gambler's two.</summary>
+        private int OpenAtDeal(int hand) =>
+            Marks.HidesAll ? 0 : Math.Max(Marks.OpenCard ? 1 : 0, hand == 1 ? Marks.FirstHandOpen : 0);
 
         /// <summary>The coming hand's stakes: its ante and cap, and never more on the table than either purse holds.</summary>
         private void SetStakes()
         {
             int ante = AnteNow;
+            Game.HouseCardsOpenAtDeal = OpenAtDeal(_settled ? HandsPlayed + 1 : HandsPlayed);
             Game.StakesOverride = StakeScale.Fixed(ante, ante * _capAntes);
             Game.StakeLimit = Math.Max(1, Math.Min(_purse.Coins, HousePurse?.Coins ?? int.MaxValue));
             Game.RaiseForbidden = _freeHands > 0;
@@ -272,10 +286,25 @@ namespace HellPoker.Core.Chapters
             return Match(rules, _ => stake, 1, 0, -1, 1, stake, warden: false, sinner, effects, purse, seed, deck, null);
         }
 
+        /// <summary>The pickpocket's chase: <paramref name="hands"/> hands against the thief, his purse the coins he stole (and his own);
+        /// the chase is won when the player comes out of it with more coins than went in.</summary>
+        public static FloorTable Chase(ChapterRules rules, int hands, int thiefCoins, Sinner sinner, RunEffects effects, CoinPurse purse, int seed,
+            IReadOnlyList<Card> deck = null, int houseCoins = -1)
+        {
+            if (rules == null) throw new ArgumentNullException(nameof(rules));
+            if (hands <= 0 || thiefCoins <= 0) throw new ArgumentOutOfRangeException(nameof(hands));
+            return Match(rules, rules.AnteAt, rules.CapAntes, thiefCoins, houseCoins, hands, null, warden: false, sinner, effects, purse, seed, deck, null);
+        }
+
         private static FloorTable Match(ChapterRules rules, Func<int, int> anteAt, int capAntes, int houseStart, int houseCoins, int? handsLimit,
             int? lossCap, bool warden, Sinner sinner, RunEffects effects, CoinPurse purse, int seed, IReadOnlyList<Card> deck, TableMarks marks)
         {
             marks = marks ?? TableMarks.None;
+            if (marks.AnteDelta != 0)
+            {
+                Func<int, int> plain = anteAt;
+                anteAt = hand => Math.Max(1, plain(hand) + marks.AnteDelta);
+            }
             int ante = anteAt(1), cap = ante * capAntes;
             Dealer boss = rules.Boss;
             HouseBettingStyle temper = warden ? boss.Betting : new HouseBettingStyle(rules.ImpStrongFrom, rules.ImpReRaisePercent, 0);

@@ -3172,3 +3172,24 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   Soytarı +8.5, örneklem 167-292 koşu). Ayar: erken katta masa 55 / olay 25 / ? 10 / pazar 15, geç katta 25 / 25 / 25 / 30; simülasyon oyuncusu
   hazineyi masadan önce seçer. Düğme `HELLPOKER_MAP`.
 - Testler: `MapTests` (9); eski harita testleri sürüm 1'e sabitlendi. EditMode 1007 (1003 geçti, 4 explicit).
+### Demo 2.1 — C: yeni olaylar (yardım, dolandırıcılık, cehennem) (2026-10-13)
+- Altyapı `IChoiceEvent` / `ChoiceEvent` (`Core/Chapters/ChoiceEvents.cs`): 2-4 seçenek, `Choose` → `EventOutcome` (kese ve ceza farkı, emanet,
+  yükseltme, ikinci seçim, yan masa), `Worth` (simülasyon oyuncusu için coin karşılığı; yıl 5'e 1). Aile: Yardım 6, Dolandırıcılık 4, Cehennem 6.
+  Karşılaşmalar (Cep Hırsızı, Ateş Yağmuru) geçilemez, darbesi çekilirken vurur (`Appear`). Ölçek `ChapterRun.Scaled` ×1 / ×1.25 / ×1.5.
+  Yıllar cezaya hemen, bara kapıda (`OweAtGate`), silinenler ikisinden (`StrikeYears`). Koşuda bir kez (`RunEventsSeen`, kayıtta `events.run`;
+  eski 9 olay bölümde bir kez kalır). Dolandırıcının metninde küçük ipucu hep var; Büyücü (ve G'deki Yalancının Dili) tuzağı açıkça görür
+  ("KEHANET: ..."), Çağırıcı 5 coin'e iblisin gözüyle bir kez.
+- Olaylar: Zincirli Ruh (20c: %60 yaygın emanet ya da −100 yıl, %40 iblis), Düşmüş Melek (+150 yıl: nadir emanet ya da yükseltme), Aç Kumarbaz
+  (15c: sonraki masada iblisin ilk eli iki kart açık; `TableMarks.FirstHandOpen`), Borçlu İblis (30c: %70 kapıda 60c), Kayıp Ruh (sonraki iki katın
+  "?"leri açılır, sonraki masada ante +1; `TableMarks.AnteDelta`), Mammon'un Muhasebecisi (3 masa ante −1 ya da +40c ve sonraki bekçinin kesesi
+  %150), Üç Bardak (10/20/40, gerçek %20, Büyücü hep bulur), Sahte Af (50c: %50 hiçbir şey, %50 −200 yıl), Ruh Sigortası (25c, hep tuzak: kapıda
+  sigortacı yok), Cep Hırsızı (kesenin %10'u; kovala: 3 ellik masa `FloorTable.Chase`, önde biterse geri + 10), Lav Kayıkçısı (15c ya da +100 yıl:
+  bir kat atla; iz her kata bir düğüm yazar), Piyango (10c: %70 boş, %25 40c, %5 efsanevi), İtiraf Hücresi (−150 yıl, şeytanın göstergesi dolu
+  başlar), Ateş Yağmuru (10c ya da +50 yıl), Günah Takası (bir emanet ver, iki tanesinden birini al), Kör Kâhin (5c: şeytanın kuralı ve barın
+  uzun / orta / kısa oluşu). Kapı: `ChapterRun.ArriveAtGate` (borç, sigortacı; panelde satırlar). Kayıt: `ev.*`, `events.run`, `revealed`,
+  maç "chase". Sunum: `ChapterPresenter.ShowChoiceOffer / ChooseOffer / ShowOfferResult` (sonuç kendi panelinde, "event.done"),
+  metinler `UiText.Offers.cs`, portreler `Tools/ArtGen/pixel_strangers.py` (16, `generate_art.py floors`).
+- Simülasyon (500 koşu, D'den önce): kurtuluş 27.3. Oyuncu: Borçlu İblis'e borç verir, Muhasebeci'yi ihbar eder, piyango ve itiraf alır,
+  Sahte Af'ı (tuzağı görmeyen) satın alır; Zincirli Ruh, Aç Kumarbaz, Kayıp Ruh, Kayıkçı, Kâhin'i geçer (değeri ≤ 0). Rapor sınıf içinde "alan /
+  görüp geçen" kurtuluş farkını basar (sınıf karışımı sahte fark üretiyordu).
+- Testler: `OfferTests` (22). EditMode 1029 (1025 geçti, 4 explicit).

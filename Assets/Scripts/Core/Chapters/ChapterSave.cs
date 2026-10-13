@@ -69,6 +69,20 @@ namespace HellPoker.Core.Chapters
         public string LootUpgrade;
         public bool Whetted;
 
+        /// <summary>Optional keys of what Demo 2.1's offers left: cheaper tables, a richer warden, a loan, the insurance, the confession, the
+        /// ferry, a number kept, a swap's offers, the offers seen this run, the unknown nodes revealed ("floor:lane").</summary>
+        public int AnteCut;
+        public int WardenPurse = 100;
+        public int Loan;
+        public bool LoanPays;
+        public bool Insured;
+        public bool BossMalice;
+        public bool Skip;
+        public int Memo;
+        public List<string> Offers = new List<string>();
+        public List<string> RunEvents = new List<string>();
+        public List<string> Revealed = new List<string>();
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -141,6 +155,17 @@ namespace HellPoker.Core.Chapters
                 "kit.upgrades=" + string.Join(",", Upgrades),
                 "loot.upgrade=" + (LootUpgrade ?? ""),
                 "whet=" + B(Whetted),
+                "ev.antecut=" + AnteCut,
+                "ev.warden=" + WardenPurse,
+                "ev.loan=" + Loan,
+                "ev.loanpays=" + B(LoanPays),
+                "ev.insured=" + B(Insured),
+                "ev.malice=" + B(BossMalice),
+                "ev.skip=" + B(Skip),
+                "ev.memo=" + Memo,
+                "ev.offers=" + string.Join(",", Offers),
+                "events.run=" + string.Join(",", RunEvents),
+                "revealed=" + string.Join(",", Revealed),
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -226,6 +251,17 @@ namespace HellPoker.Core.Chapters
                     Upgrades = Ids("kit.upgrades").Where(ClassUpgrades.IsKnown).Distinct().ToList(),
                     LootUpgrade = ClassUpgrades.IsKnown(S("loot.upgrade")) ? S("loot.upgrade") : null,
                     Whetted = Bool("whet"),
+                    AnteCut = I("ev.antecut"),
+                    WardenPurse = I("ev.warden", 100),
+                    Loan = I("ev.loan"),
+                    LoanPays = Bool("ev.loanpays"),
+                    Insured = Bool("ev.insured"),
+                    BossMalice = Bool("ev.malice"),
+                    Skip = Bool("ev.skip"),
+                    Memo = I("ev.memo"),
+                    Offers = Ids("ev.offers"),
+                    RunEvents = Ids("events.run"),
+                    Revealed = Ids("revealed"),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

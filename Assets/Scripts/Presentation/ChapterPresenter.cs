@@ -388,6 +388,9 @@ namespace HellPoker.Presentation
             _nodeDone = true;
             if (_run.AtGate)
             {
+                GateArrival arrival = _run.ArriveAtGate();
+                if (arrival.LoanRepaid >= 0 || arrival.InsurerGone)
+                    Note($"gate: loan {(arrival.LoanRepaid > 0 ? "+" + arrival.LoanRepaid : arrival.LoanRepaid == 0 ? "fled" : "-")}, insurer {(arrival.InsurerGone ? "gone" : "-")}");
                 ShowGate();
                 Save();
                 return;
@@ -537,6 +540,11 @@ namespace HellPoker.Presentation
         private void ShowOffer(IFloorEvent offer)
         {
             _audio.PlaySfx(SfxIds.EventOpen);
+            if (offer is IChoiceEvent choice)
+            {
+                ShowChoiceOffer(choice, eyeOpen: false);
+                return;
+            }
             string portrait = offer.Id == FloorEventIds.MammonsLedger ? _run.Rules.BossId : "Events/" + offer.Id;
             ShowPanel(new PanelCard(portrait, UiText.FloorEventOwner(offer.Id), UiText.FloorEventTitle(offer.Id), OfferText(offer),
                     new[] { new PanelOption(UiText.EventAccept), new PanelOption(UiText.EventPass, isLeave: true) }),
@@ -557,6 +565,104 @@ namespace HellPoker.Presentation
                         Onward();
                     }
                 }, "event:" + offer.Id);
+        }
+
+        // ------------------------------------------------------------------ Demo 2.1's offers: choices, dice, a result
+
+        /// <summary>
+        /// A stranger of Demo 2.1: the offer (a swindler's small hint always; the trap plainly for the Warlock's prophecy and the Liar's
+        /// Tongue, or once the Summoner's imp has looked for coins), its choices, and the result on a panel of its own.
+        /// </summary>
+        private void ShowChoiceOffer(IChoiceEvent offer, bool eyeOpen)
+        {
+            string text = string.Format(UiText.OfferText(offer.Id), UiText.OfferArgs(offer, _run));
+            if (offer.Family == EventFamily.Scam)
+            {
+                string hint = UiText.OfferHint(offer.Id), trap = UiText.OfferTrap(offer.Id);
+                if (hint != null) text += "\n" + hint;
+                if (trap != null && ChoiceEventDeck.SeesTraps(_run)) text += "\n" + string.Format(UiText.ProphecyTrapFormat, trap);
+                else if (trap != null && eyeOpen) text += "\n" + string.Format(UiText.EyeTrapFormat, trap);
+            }
+            var options = new List<PanelOption>();
+            var answers = new List<Action>();
+            foreach (string choice in offer.Choices(_run))
+            {
+                string c = choice;
+                bool relic = c.StartsWith(EventChoices.GivePrefix, StringComparison.Ordinal) || c.StartsWith(EventChoices.TakePrefix, StringComparison.Ordinal);
+                string id = relic ? c.Substring(c.IndexOf(':') + 1) : null;
+                string label = relic ? UiText.RelicName(id) : UiText.OfferChoice(offer.Id, c, offer.Cost(_run, c));
+                string detail = relic ? UiText.RelicPanelDetail(id) : UiText.OfferChoiceDetail(offer.Id, c);
+                bool can = offer.CanChoose(_run, c);
+                if (!can && offer.Cost(_run, c) > 0) detail = (detail == null ? "" : detail + "\n") + UiText.MarketNoCoins;
+                options.Add(new PanelOption(label, detail, can, isLeave: c == EventChoices.Pass));
+                answers.Add(() =>
+                {
+                    if (offer.CanChoose(_run, c)) ChooseOffer(offer, c);
+                });
+            }
+            // The Summoner's imp looks a swindler over, once, for coins.
+            if (offer.Family == EventFamily.Scam && !eyeOpen && _run.Sinner.Id == Summoner.ClassId && UiText.OfferTrap(offer.Id) != null &&
+                !ChoiceEventDeck.SeesTraps(_run))
+            {
+                int price = SummonerEyePrice;
+                bool can = _run.Purse.Coins > price;
+                options.Insert(Math.Max(0, options.Count - 1), new PanelOption(string.Format(UiText.OfferEyeFormat, price),
+                    UiText.OfferEyeDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can));
+                answers.Insert(Math.Max(0, answers.Count - 1), () =>
+                {
+                    if (!_run.Purse.TrySpend(price)) return;
+                    Note($"offer {offer.Id}: the imp's eye ({price} coins)");
+                    ShowChoiceOffer(offer, eyeOpen: true);
+                });
+            }
+            ShowPanel(new PanelCard("Events/" + offer.Id, UiText.OfferOwner(offer.Id), UiText.OfferTitle(offer.Id), text, options), answers,
+                "event:" + offer.Id);
+        }
+
+        /// <summary>The Summoner's eye on a swindler: these coins.</summary>
+        public const int SummonerEyePrice = 5;
+
+        private void ChooseOffer(IChoiceEvent offer, string choice)
+        {
+            EventOutcome outcome = offer.Choose(_run, choice);
+            Note($"offer {offer.Id}: {choice} -> {outcome.Result}" + (outcome.Coins != 0 ? $", {Signed(outcome.Coins)} coins" : "") +
+                 (outcome.Years != 0 ? $", {Signed(outcome.Years)} years" : "") + (outcome.Relic != null ? $", relic {outcome.Relic}" : "") +
+                 (outcome.Upgrade != null ? $", upgrade {outcome.Upgrade}" : "") + $" (purse {_run.Purse.Coins}, sentence {_journey.Sentence.Years})");
+            if (outcome.Waits)
+            {
+                ShowChoiceOffer(offer, eyeOpen: false);   // the swap's two offers
+                return;
+            }
+            if (outcome.OpensTable && _run.PendingChase != null)
+            {
+                StartMatch(_run.PendingChase);
+                return;
+            }
+            if (choice == EventChoices.Pass)
+            {
+                Onward();
+                return;
+            }
+            ShowOfferResult(offer, outcome);
+        }
+
+        private void ShowOfferResult(IChoiceEvent offer, EventOutcome o)
+        {
+            var lines = new List<string> { string.Format(UiText.OfferResult(offer.Id, o.Result), o.Value) };
+            if (offer.Id == ChoiceEventIds.BlindSeer)
+            {
+                string rule = UiText.SeerRule(_run.Rules.BossId);
+                if (rule != null) lines.Add(string.Format(UiText.SeerRuleFormat, rule));
+            }
+            if (o.Coins != 0) lines.Add(string.Format(UiText.OfferCoinsFormat, Signed(o.Coins)));
+            if (o.Years != 0) lines.Add(string.Format(UiText.OfferYearsFormat, Signed(o.Years)));
+            if (o.Relic != null && o.Result != "give")
+                lines.Add(string.Format(UiText.OfferRelicFormat, UiText.RelicName(o.Relic), UiText.RelicGift(o.Relic), UiText.RelicCurse(o.Relic)));
+            if (o.Upgrade != null) lines.Add(string.Format(UiText.OfferUpgradeFormat, UiText.UpgradeName(o.Upgrade), UiText.UpgradeText(o.Upgrade)));
+            ShowPanel(new PanelCard("Events/" + offer.Id, UiText.OfferOwner(offer.Id), UiText.OfferTitle(offer.Id), string.Join("\n", lines),
+                    new[] { new PanelOption(UiText.PanelOn) }),
+                new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } }, "event.done");
+            if (!_atTable) _map.Show(MapState());
         }
 
         private void TakeOffer(IFloorEvent offer)
@@ -687,6 +793,8 @@ namespace HellPoker.Presentation
         {
             FloorTable match = _match;
             bool gamble = match == _run.PendingGamble;
+            bool chase = match == _run.PendingChase;
+            int stolen = _run.EventMemo;
             int relicsBefore = _run.Effects.Relics.Count;
             _run.FinishTable(match);
             _journey.FloorHands += match.HandsPlayed;
@@ -696,7 +804,7 @@ namespace HellPoker.Presentation
                 _archive?.SaveRecords(_records);
             }
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
-            string kind = gamble ? "gambler's hand" : match.IsWarden ? "warden" : "imp's table";
+            string kind = gamble ? "gambler's hand" : chase ? $"pickpocket's chase ({(_run.ChaseWon == true ? "caught" : "got away")})" : match.IsWarden ? "warden" : "imp's table";
             Note($"chapter {_journey.Chapter} floor {(_run.Current?.Floor ?? 0) + 1}: {kind}, {match.HandsPlayed} hands, {Signed(match.Coins)} coins" +
                  (match.TollTaken > 0 ? $", toll {match.TollTaken}" : "") + (match.CoinsToVault > 0 ? $", {match.CoinsToVault} to the vault" : "") +
                  $" (purse {_run.Purse.Coins})" + (given != null ? $", relic {given}" : ""));
@@ -710,8 +818,24 @@ namespace HellPoker.Presentation
                 FinishRun(JourneyEnd.PurseEmptied, house: ChapterCast.HouseOf(match, _run.Rules), hands: match.HandsPlayed);
                 return;
             }
+            if (chase)
+            {
+                ShowChaseEnd(match, stolen);
+                Save();
+                return;
+            }
             ShowMatchEnd(match, gamble, given);
             Save();
+        }
+
+        /// <summary>The pickpocket's chase is over: caught (the coins back, and more) or gone.</summary>
+        private void ShowChaseEnd(FloorTable match, int stolen)
+        {
+            var lines = new List<string> { string.Format(UiText.MatchTextFormat, match.HandsPlayed, match.Wins, Signed(match.Coins)) };
+            lines.Add(_run.ChaseWon == true ? string.Format(UiText.ChaseWonFormat, stolen + _run.Scaled(ChapterRun.ChaseBonus)) : UiText.ChaseLost);
+            lines.Add(string.Format(UiText.MatchPurseFormat, _run.Purse.Coins));
+            ShowPanel(new PanelCard("Events/" + ChoiceEventIds.Pickpocket, UiText.OfferOwner(ChoiceEventIds.Pickpocket), UiText.ChaseTitle,
+                string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) }), new Action[] { Onward }, "matchend");
         }
 
         private void ShowMatchEnd(FloorTable match, bool gamble, string relicGiven)
@@ -763,7 +887,13 @@ namespace HellPoker.Presentation
             int tribute = _run.Tribute;
             int missing = tribute - _run.TributePaid(coins);
             int after = _run.BarAfterGate(coins);
-            var lines = new List<string> { string.Format(UiText.GateTextFormat, boss, tribute, coins) };
+            var lines = new List<string>();
+            // What waited at the gate besides the tribute: the debtor imp (or his absence), the insurer's ash.
+            GateArrival arrival = _run.Arrival;
+            if (arrival != null && arrival.LoanRepaid > 0) lines.Add(string.Format(UiText.GateLoanRepaidFormat, arrival.LoanRepaid));
+            else if (arrival != null && arrival.LoanRepaid == 0) lines.Add(UiText.GateLoanFled);
+            if (arrival != null && arrival.InsurerGone) lines.Add(UiText.GateInsurerGone);
+            lines.Add(string.Format(UiText.GateTextFormat, boss, tribute, coins));
             lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing)
                 : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
             if (_run.YearsOwed > 0) lines.Add(UiText.GateOwed);
@@ -1027,7 +1157,7 @@ namespace HellPoker.Presentation
             save.Pending = _pending;
             if (_match != null)
             {
-                save.Match = _match == _run.PendingGamble ? "gamble" : _match.IsWarden ? "warden" : "imp";
+                save.Match = _match == _run.PendingGamble ? "gamble" : _match == _run.PendingChase ? "chase" : _match.IsWarden ? "warden" : "imp";
                 save.MatchHouse = _match.HousePurse?.Coins ?? -1;
                 save.MatchHands = _match.HandsPlayed;
                 save.MatchMarks = _match.Marks.Encode();
@@ -1109,6 +1239,27 @@ namespace HellPoker.Presentation
                     StartMatch(table);
                     return;
                 }
+                case "chase":
+                {
+                    FloorTable chase = _run.OpenChase(save.Memo, save.MatchHouse, handLost ? Math.Max(0, save.MatchHands - 1) : save.MatchHands);
+                    _match = chase;
+                    if (handLost)
+                    {
+                        int lost = chase.ForfeitHand(save.HandStake);
+                        Note($"a hand of the chase left in the middle is lost: {lost} coins");
+                        if (chase.IsOver)
+                        {
+                            _atTable = true;
+                            ShowMap();
+                            FinishMatch();
+                            return;
+                        }
+                        ShowLostHand(string.Format(UiText.LostHandCoinsFormat, -lost), () => StartMatch(chase));
+                        return;
+                    }
+                    StartMatch(chase);
+                    return;
+                }
                 case "gamble":
                     if (handLost)
                     {
@@ -1176,7 +1327,8 @@ namespace HellPoker.Presentation
             if (pending.StartsWith("event:", StringComparison.Ordinal))
             {
                 IFloorEvent offer = FloorEventDeck.Find(pending.Substring("event:".Length));
-                if (offer != null && offer.CanAppear(_run)) ShowOffer(offer);
+                if (offer is IChoiceEvent choice) ShowChoiceOffer(choice, eyeOpen: false);   // its blow already struck (an encounter's)
+                else if (offer != null && offer.CanAppear(_run)) ShowOffer(offer);
                 else Onward();
                 return;
             }

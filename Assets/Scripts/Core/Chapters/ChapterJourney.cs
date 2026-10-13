@@ -103,8 +103,12 @@ namespace HellPoker.Core.Chapters
             journey.Run = ChapterRun.Begin(journey.RulesFor(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1),
                 ChapterTuning.MapVersion > 0 ? ChapterTuning.MapVersion : ChapterMap.CurrentVersion);
             journey.Run.Sentence = journey.Sentence;
+            journey.Run.RunEventsSeen = journey._runEvents;
             return journey;
         }
+
+        /// <summary>Demo 2.1's offers seen this run (each comes once a run): every chapter's run shares the set.</summary>
+        private HashSet<string> _runEvents = new HashSet<string>();
 
         /// <summary>The run's sentence in years (<see cref="RunSentence"/>): shown from the first floor to Lucifer; what is left of it when
         /// the run walks free is the score.</summary>
@@ -149,7 +153,8 @@ namespace HellPoker.Core.Chapters
                 mapVersion: Run.Map.Version)   // a run keeps its maps' generator
             {
                 RelicAvailable = _relicAvailable,
-                Sentence = Sentence
+                Sentence = Sentence,
+                RunEventsSeen = _runEvents
             };
             Kit.EnterChapter(Chapter);
             Sown = Kit.Sow(new SystemRandomSource(RandomSeeds.Derive(RandomSeeds.Derive(Seed, SeedStream), Chapter)));
@@ -237,6 +242,9 @@ namespace HellPoker.Core.Chapters
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
                 save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
+            journey._runEvents = new HashSet<string>(save.RunEvents ?? new List<string>());
+            journey.Run.RestoreOffers(save.AnteCut, save.WardenPurse, save.Loan, save.LoanPays, save.Insured, save.BossMalice, save.Skip, save.Memo,
+                save.Offers, journey._runEvents, save.Revealed);
             if (save.Lucifer)
             {
                 journey.Stage = JourneyStage.Lucifer;
@@ -297,6 +305,17 @@ namespace HellPoker.Core.Chapters
                 LootTaken = run.LootTaken,
                 LootUpgrade = run.LootUpgrade,
                 Whetted = run.WhettedSoul,
+                AnteCut = run.AnteCutTables,
+                WardenPurse = run.NextWardenPursePercent,
+                Loan = run.LoanDue,
+                LoanPays = run.LoanPays,
+                Insured = run.Insured,
+                BossMalice = run.BossMaliceFull,
+                Skip = run.SkipNext,
+                Memo = run.EventMemo,
+                Offers = run.EventOffers.ToList(),
+                RunEvents = _runEvents.ToList(),
+                Revealed = run.Revealed.Select(n => n.Floor + ":" + n.Lane).ToList(),
                 Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,

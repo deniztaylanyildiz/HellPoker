@@ -127,6 +127,12 @@ namespace HellPoker.Core.Relics
     public static class RelicExtras
     {
         public const string RevealUnknown = "reveal.unknown";
+
+        /// <summary>A swindler's trap reads plainly (the Liar's Tongue).</summary>
+        public const string TrapHints = "trap.hints";
+
+        /// <summary>Points on a helper's good turn, in percent (the Lost Soul's Letter +20, the Liar's Tongue −15).</summary>
+        public const string HelpGoodPercent = "help.good";
     }
 
     /// <summary>
