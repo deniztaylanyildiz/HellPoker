@@ -21,12 +21,21 @@ namespace HellPoker.Core.Chapters
         /// <see cref="Circles.WinStepPercent"/>; the simulation tries others (HELLPOKER_CIRCLE_WIN).</summary>
         public static int CircleWinStepPercent = Circles.WinStepPercent;
 
+        /// <summary>A lost hand heals a demon's bar by this much of its cost: the game's is <see cref="BossTable.BarHealPercent"/>; the
+        /// simulation tries others (HELLPOKER_BAR_HEAL).</summary>
+        public static int BarHealPercent = BossTable.BarHealPercent;
+
+        /// <summary>A demon's loss percent in place of the chapter's (1-3; 4: Lucifer) (HELLPOKER_BOSS_LOSS).</summary>
+        public static readonly Dictionary<int, int> BossLossPercent = new Dictionary<int, int>();
+
         public static void Reset()
         {
             StartingCoins.Clear();
             SentenceTotals.Clear();
             TributeOverStart.Clear();
             CircleWinStepPercent = Circles.WinStepPercent;
+            BarHealPercent = BossTable.BarHealPercent;
+            BossLossPercent.Clear();
         }
     }
 }

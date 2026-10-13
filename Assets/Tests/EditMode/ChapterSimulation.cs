@@ -325,6 +325,9 @@ namespace HellPoker.Core.Tests
         private sealed class RunTally
         {
             public int Runs, ReachedLucifer, Freed, CastDown;
+
+            /// <summary>The years left of the sentence of every run that walked free (its score).</summary>
+            public readonly List<int> FreedSentences = new List<int>();
             public readonly Tally[] Chapters = { new Tally(), new Tally(), new Tally() };
             public readonly int[] BossSat = new int[4], BossDamned = new int[4];
             public readonly List<int>[] BossHands = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
@@ -375,6 +378,9 @@ namespace HellPoker.Core.Tests
                 if (EnvInt("HELLPOKER_TRIBUTE2", 0) > 0) ChapterTuning.TributeOverStart[2] = EnvInt("HELLPOKER_TRIBUTE2", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
                 ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", Circles.WinStepPercent);
+                ChapterTuning.BarHealPercent = EnvInt("HELLPOKER_BAR_HEAL", BossTable.BarHealPercent);
+                int[] losses = EnvInts("HELLPOKER_BOSS_LOSS");   // "250,220,110,90": Mammon, Belial, Lilith, Lucifer
+                for (int i = 0; losses != null && i < losses.Length && i < 4; i++) ChapterTuning.BossLossPercent[i + 1] = losses[i];
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
                 WholeRunReport();
             }
@@ -416,9 +422,10 @@ namespace HellPoker.Core.Tests
                                   $"cast down {Pct(tally.CastDown, tally.BossSat[3])}, soul lost {Pct(tally.BossDamned[3], tally.BossSat[3])}");
             }
             report.AppendLine();
-            report.AppendLine("class     reached Lucifer   freed");
+            report.AppendLine($"class     reached Lucifer   freed   sentence left when freed: avg (p10/p50/p90), spotless   (bar heal {ChapterTuning.BarHealPercent}%)");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
-                report.AppendLine($"{cls?.Id ?? "all",-9} {Pct(t.ReachedLucifer, t.Runs),15}  {Pct(t.Freed, t.Runs),6}");
+                report.AppendLine($"{cls?.Id ?? "all",-9} {Pct(t.ReachedLucifer, t.Runs),15}  {Pct(t.Freed, t.Runs),6}   {AvgOf(t.FreedSentences),6} " +
+                                  $"({Percentiles(t.FreedSentences)}), {Pct(t.FreedSentences.Count(y => y == 0), t.FreedSentences.Count)}");
             report.AppendLine();
             report.AppendLine("demons' rules, a table on average (struck / hands cornered): interest, role swap, temptation, mirror");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
@@ -555,6 +562,7 @@ namespace HellPoker.Core.Tests
                 else if (lucifer.Phase == GamePhase.Absolved)
                 {
                     t.Freed++;
+                    t.FreedSentences.Add(journey.Sentence.Years);
                     t.FreedFromCh2++;
                     foreach (string id in heldAtCh2) Bump(t.FreedHeldAtCh2, id);
                 }

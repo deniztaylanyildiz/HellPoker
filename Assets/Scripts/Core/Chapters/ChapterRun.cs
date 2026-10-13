@@ -107,6 +107,10 @@ namespace HellPoker.Core.Chapters
         /// <summary>Years the floors' offers left owing: written on the demon's bar at the gate.</summary>
         public int YearsOwed { get; private set; }
 
+        /// <summary>The run's sentence (<see cref="RunSentence"/>): years owed or struck go on or off it at once, the tribute's at the gate,
+        /// and it follows the demon's table. Null for a chapter played alone (no run around it).</summary>
+        public RunSentence Sentence { get; set; }
+
         /// <summary>Where the player stands; null before the first floor.</summary>
         public MapNode Current { get; private set; }
 
@@ -346,13 +350,16 @@ namespace HellPoker.Core.Chapters
         {
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
             YearsOwed += years;
+            Sentence?.Add(years);
         }
 
         /// <summary>Years struck off the share now (never the last one: only a hand ends a sentence).</summary>
         public void StrikeYears(int years)
         {
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
-            Years -= Math.Min(years, Years - 1);
+            int struck = Math.Min(years, Years - 1);
+            Years -= struck;
+            Sentence?.Strike(struck);
         }
 
         /// <summary>The gambler's single hand for <paramref name="stake"/> coins: play <see cref="PendingGamble"/>, then <see cref="FinishTable"/>.</summary>
@@ -433,6 +440,7 @@ namespace HellPoker.Core.Chapters
             int missing = tribute - paid;
             int yearsForMissing = missing * Rules.YearsPerMissingCoin;
             Years += yearsForMissing + YearsOwed;
+            Sentence?.Add(yearsForMissing);   // what was owed went on the sentence as it was owed
             int owed = YearsOwed;
             YearsOwed = 0;
             Purse.Add(-paid);
@@ -489,6 +497,7 @@ namespace HellPoker.Core.Chapters
             HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Rules.BossLossPercent,
                 RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
             game.UseEffects(Effects);
+            Sentence?.Follow(game);
             Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream));
             return game;
         }
@@ -513,6 +522,7 @@ namespace HellPoker.Core.Chapters
         public void LeaveBossTable(int years)
         {
             if (years < 0) throw new ArgumentOutOfRangeException(nameof(years));
+            Sentence?.Unfollow();
             Years = years;
             BossBeaten = years == 0;
             if (BossBeaten && _loot == null) DrawLoot();

@@ -28,6 +28,9 @@ namespace HellPoker.Core.Chapters
         public int Coins;
         public int Years;
         public int Owed;
+
+        /// <summary>The run's sentence (<see cref="RunSentence"/>; optional key: -1 for a save from before it was kept).</summary>
+        public int Sentence = -1;
         public int Charge;
         public bool Ward;
         public int Jokers;
@@ -104,6 +107,7 @@ namespace HellPoker.Core.Chapters
                 "coins=" + Coins,
                 "years=" + Years,
                 "owed=" + Owed,
+                "sentence=" + Sentence,
                 "charge=" + Charge,
                 "ward=" + B(Ward),
                 "jokers=" + Jokers,
@@ -187,6 +191,7 @@ namespace HellPoker.Core.Chapters
                     Coins = I("coins"),
                     Years = I("years"),
                     Owed = I("owed"),
+                    Sentence = Math.Max(-1, I("sentence", -1)),
                     Charge = I("charge"),
                     Ward = Bool("ward"),
                     Jokers = I("jokers"),

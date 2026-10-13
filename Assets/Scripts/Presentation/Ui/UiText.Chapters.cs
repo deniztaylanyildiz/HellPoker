@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
@@ -96,8 +97,21 @@ namespace HellPoker.Presentation.Ui
         public static string MapFloorFormat => L("FLOOR {0}", "KAT {0}");
         public static string MapCoinsLabel => L("COINS", "COIN");
         public static string MapTributeFormat => L("Tribute at the gate: {0}", "Kapıda haraç: {0}");
+
+        /// <summary>{0} the run's sentence in years (the map's first line).</summary>
+        public static string MapSentenceFormat => L("Sentence: {0} years", "Ceza: {0} yıl");
+
+        /// <summary>{0} the run's sentence after the gate (the tribute's missing coins on it).</summary>
+        public static string GateSentenceFormat => L("Your sentence after the gate: {0} years.", "Kapıdan sonra cezan: {0} yıl.");
+
+        /// <summary>{0} the years left of the sentence as the run walks free (its score).</summary>
+        public static string FreedSentenceFormat => L("You walked free. Sentence: {0} years.", "Kurtuldun. Ceza: {0} yıl.");
+        public static string FreedClean => L("You walked free. Sentence: none — SPOTLESS.", "Kurtuldun. Ceza: hiç — TERTEMİZ.");
+
+        /// <summary>{0} a circle, {1} the fewest years a run walked free with there (the records).</summary>
+        public static string LowestSentenceFormat => L("C{0} {1} yrs", "D{0} {1} yıl");
         /// <summary>The floors' offers left something owing: it goes on the demon's bar at the gate.</summary>
-        public static string MapOwed => L("Owed at the gate: on the bar", "Kapıda borç: bara yazılır");
+        public static string MapOwed => L("Owed: on your sentence now, on the bar at the gate", "Borç: cezana şimdi, bara kapıda yazılır");
         public static string MapPromptStart => L("Choose where to start.", "Nereden başlayacağını seç.");
         public static string MapPrompt => L("Choose your way down.", "Aşağı inen yolunu seç.");
         public static string MapKeysHint => L("Click a lit node  ·  arrows + Enter  ·  Esc menu", "Yanan düğüme tıkla  ·  oklar + Enter  ·  Esc menü");
@@ -465,13 +479,45 @@ namespace HellPoker.Presentation.Ui
         public static string BarStakeInfoFormat => L("Win: the bar −{0}% at least   ·   Lose: +{1}% at least",
             "Kazanç: bar en az −%{0}   ·   Kayıp: en az +%{1}");
 
-        /// <summary>{0} player hand, {1} house hand, {2} percent of the bar.</summary>
-        public static string BarWinFormat => L("{0} beats {1}.  You cut the bar by {2}%.", "{0}, {1} elini yendi.  Barı %{2} kısalttın.");
+        /// <summary>{0} player hand, {1} house hand (the bar's and the sentence's lines follow: <see cref="BarSentenceLines"/>).</summary>
+        public static string BarWinFormat => L("{0} beats {1}.", "{0}, {1} elini yendi.");
 
-        /// <summary>{0} house hand, {1} player hand, {2} percent of the bar.</summary>
-        public static string BarLossFormat => L("{0} beats your {1}.  The bar grows {2}%.", "{0}, senin {1} elini yendi.  Barı %{2} uzattın.");
-        public static string BarFoldFormat => L("You fold.  The bar grows {0}%.", "Çekildin.  Barı %{0} uzattın.");
+        /// <summary>{0} house hand, {1} player hand.</summary>
+        public static string BarLossFormat => L("{0} beats your {1}.", "{0}, senin {1} elini yendi.");
+        public static string BarFold => L("You fold.", "Çekildin.");
         public static string BarPushFormat => L("Push — {0} against {1}. The bar stands.", "Berabere — {0}, {1} karşısında. Bar aynı.");
+
+        /// <summary>{0} the demon's bar's change, signed ("−12%" / "+8%"; Turkish "−%12").</summary>
+        public static string BarChangeFormat => L("Demon: {0}", "Şeytan: {0}");
+
+        /// <summary>{0} the sentence's change in years, signed ("−240" / "+120").</summary>
+        public static string SentenceChangeFormat => L("Sentence: {0} years", "Ceza: {0} yıl");
+
+        /// <summary>A percent with its sign, the language's way round: "−12%" / "−%12".</summary>
+        public static string SignedPercent(int percent) =>
+            (percent < 0 ? "−" : "+") + L("{0}%", "%{0}").Replace("{0}", Math.Abs(percent).ToString());
+
+        /// <summary>Years with their sign: "−240" / "+120".</summary>
+        public static string SignedYears(int years) => (years < 0 ? "−" : "+") + Math.Abs(years);
+
+        /// <summary>A demon's hand's two lines: what it did to his bar (a percent of the bar the table began with) and to the run's sentence.</summary>
+        public static string BarSentenceLines(int barPercent, int sentenceYears) =>
+            string.Format(BarChangeFormat, SignedPercent(barPercent)) + "\n" + string.Format(SentenceChangeFormat, SignedYears(sentenceYears));
+
+        /// <summary>The bar's hover, roughly (never a number): much / half / little of it left against the bar the table began with.</summary>
+        public static string BarLeft(int value, int start)
+        {
+            long third = Math.Max(1, start) * 100L;
+            long left = value * 300L;
+            string word = left >= third * 2 ? L("much", "çok") : left >= third ? L("half", "yarı") : L("little", "az");
+            return string.Format(L("Left: {0}", "Kalan: {0}"), word);
+        }
+
+        /// <summary>The counter's label at a demon's table: the run's sentence (the number), in years.</summary>
+        public static string SentenceLabel => L("SENTENCE · YEARS", "CEZA · YIL");
+
+        /// <summary>{0} the floor's tribute line, {1} the run's sentence in years (under the purse).</summary>
+        public static string FloorSentenceLineFormat => L("{0} · {1} yrs", "{0} · {1} yıl");
 
         /// <summary>{0} the demon's name with its genitive, in a sentence ("Mammon's" / "Mammon'un").</summary>
         public static string BossBeatenFormat => L("{0} bar is empty. Beaten.", "{0} barı boşaldı. Yenildi.");

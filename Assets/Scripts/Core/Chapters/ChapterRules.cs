@@ -141,6 +141,7 @@ namespace HellPoker.Core.Chapters
         public static ChapterRules For(int chapter)
         {
             ChapterRules rules = Designed(chapter);
+            if (ChapterTuning.BossLossPercent.TryGetValue(chapter, out int loss)) rules = rules.WithBossPayouts(rules.BossWinPercent, loss);
             return ChapterTuning.TributeOverStart.TryGetValue(chapter, out int over) ? rules.With(tributeOverStart: over) : rules;
         }
 
@@ -148,10 +149,10 @@ namespace HellPoker.Core.Chapters
         {
             switch (chapter)
             {
-                // Mammon's table: wins 175%, losses 125% of his payouts (BossSimulation 2026-10-10: 17.5 hands, 11% damned; at
-                // 100 / 100 it was 54 hands).
+                // Mammon's table: wins 175%, losses 250% of his payouts — half of a loss heals the bar (BossTable.BarHealPercent), so the
+                // bar grows as it did at 125% before Demo 2.1 (BossSimulation 2026-10-10: 17.5 hands, 11% damned; at 100 / 100 it was 54).
                 case 1: return new ChapterRules(1, DealerRoster.MammonId, soulLinePercent: 200, ante: 4, tributeOverStart: 60, pricePercent: 100,
-                    impReRaisePercent: 10, impCoins: 30, wardenCoins: 50, maxWardens: 3).WithBossPayouts(175, 125);
+                    impReRaisePercent: 10, impCoins: 30, wardenCoins: 50, maxWardens: 3).WithBossPayouts(MammonWinPercent, MammonLossPercent);
                 case 2: return new ChapterRules(2, DealerRoster.BelialId, soulLinePercent: 175, ante: 5, tributeOverStart: 180, pricePercent: 120,
                     impReRaisePercent: 20, impCoins: 30, wardenCoins: 60, treasureCoins: 25, floors: 10, treasureFloor: 5)
                     .WithBossPayouts(BelialWinPercent, BelialLossPercent);
@@ -165,12 +166,17 @@ namespace HellPoker.Core.Chapters
         public const int Chapters = 3;
 
         /// <summary>The boss tables' payout percents (BossSimulation 2026-10-10, see PHASE2_CHAPTERS.md): Belial 16.5 hands / 20.5% damned,
-        /// Lilith 23.1 / 22.1%.</summary>
-        public const int BelialWinPercent = 130, BelialLossPercent = 110, LilithWinPercent = 130, LilithLossPercent = 55;
+        /// Lilith 23.1 / 22.1%. The losses are the sentence's: since Demo 2.1 a loss heals the bar by half of it
+        /// (<see cref="BossTable.BarHealPercent"/>), so they are twice the bar's old percents (125 / 110 / 55 / 45).</summary>
+        public const int MammonWinPercent = 175, MammonLossPercent = 250, BelialWinPercent = 130, BelialLossPercent = 220,
+            LilithWinPercent = 130, LilithLossPercent = 110;
 
         /// <summary>Lucifer's table: his payouts' percents and the cast-down line (the bar past this share of its start). BossSimulation
         /// 2026-10-10: 22.6 hands, 43% cast down (at 150 / 100: 66% cast down, most of them on the first hands).</summary>
-        public const int LuciferWinPercent = 110, LuciferLossPercent = 45, LuciferCastDownPercent = 125;
+        public const int LuciferWinPercent = 110, LuciferLossPercent = 90, LuciferCastDownPercent = 125;
+
+        /// <summary>Lucifer's loss percent as played (the simulation may try another).</summary>
+        public static int LuciferLoss => ChapterTuning.BossLossPercent.TryGetValue(4, out int loss) ? loss : LuciferLossPercent;
 
         /// <summary>The coins of an imp on <paramref name="floor"/> (0-based): the first floor's are weaker.</summary>
         public int ImpCoinsAt(int floor) => floor == 0 ? FirstImpCoins : ImpCoins;

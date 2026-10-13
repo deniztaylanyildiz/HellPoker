@@ -513,7 +513,7 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _soulVisible = gauge.Visible;
-                _sentence.SetVisible(!gauge.Visible && _currency != Currency.Bar);
+                _sentence.SetVisible(!gauge.Visible);
                 _dealer.SetSoul(gauge.Visible);
                 if (gauge.Visible)
                     _salon.SetMode(SalonMode.Soul);
@@ -582,9 +582,10 @@ namespace HellPoker.Presentation.Views
             _sequencer.Do(() =>
             {
                 _currency = currency;
-                _sentence.SetNumberHidden(currency == Currency.Bar);
-                // A demon's table shows the bar under the portrait: the old counter in the corner goes (the soul's lamp still comes).
-                _sentence.SetVisible(currency != Currency.Bar && !_soulVisible);
+                // A demon's table shows his bar under the portrait (no number) and the run's sentence in the corner (the soul's lamp in
+                // its place while the soul is on the table).
+                _sentence.SetNumberHidden(false);
+                _sentence.SetVisible(!_soulVisible);
             });
         }
     }

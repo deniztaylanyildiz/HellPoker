@@ -106,6 +106,10 @@ namespace HellPoker.Core.Chapters
     /// </summary>
     public static class BossTable
     {
+        /// <summary>A lost hand at a demon's table heals his bar by this much of its cost (percent, rounded up); the whole cost goes on the
+        /// run's sentence (<see cref="RunSentence"/>). The simulation tries others (<see cref="ChapterTuning.BarHealPercent"/>).</summary>
+        public const int BarHealPercent = 50;
+
         /// <summary>
         /// Lucifer at the end of Phase 2: the demo's Morning Star (his temper, his cheats and The Fall, his payouts) but with his stakes
         /// measured against the bar like every other demon's (his fixed 50 / 150 would never empty a bar of a thousand years).
@@ -147,10 +151,15 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The demon's table for a bar: the boss's own temper, cheats and payouts (scaled by the chapter's percents).</summary>
         /// <param name="maliceShort">The demon's gauge is this much smaller (the fifth circle: one), never below one.</param>
+        /// <remarks>A loss heals the bar by <see cref="ChapterTuning.BarHealPercent"/> of it (the game's <see cref="HellPokerGame.BarHealPercent"/>).</remarks>
         public static HellPokerGame Create(GameRules template, Dealer boss, int bar, int soulLinePercent, int winPercent, int lossPercent,
-            int seed, Cheats.ICheatGuard guard, Sinner sinner, int maliceShort = 0) =>
-            HellPokerGameFactory.Create(Rules(template, boss, bar, soulLinePercent), new ScaledPayoutTable(boss.Payouts, winPercent, lossPercent),
+            int seed, Cheats.ICheatGuard guard, Sinner sinner, int maliceShort = 0)
+        {
+            HellPokerGame game = HellPokerGameFactory.Create(Rules(template, boss, bar, soulLinePercent), new ScaledPayoutTable(boss.Payouts, winPercent, lossPercent),
                 seed, boss.Betting, boss.Cheats, Math.Max(1, boss.MaliceMax - Math.Max(0, maliceShort)), guard, boss.BackfirePercent, sinner);
+            game.BarHealPercent = ChapterTuning.BarHealPercent;
+            return game;
+        }
 
         /// <summary>The demon is beaten (the bar is empty) or the soul burned: the table is over.</summary>
         public static bool IsOver(GamePhase phase) => phase == GamePhase.Absolved || phase == GamePhase.Damned;

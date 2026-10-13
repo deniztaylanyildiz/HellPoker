@@ -188,8 +188,8 @@ namespace HellPoker.Presentation
             _visible = true;
             _records.RunStarted();
             _archive?.SaveRecords(_records);
-            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, BossShares.Total(sinnerClass.Id), DateTime.Now);
-            Note($"phase 2 run: {sinnerClass.Id}, circle {circle}, {_run.Purse.Coins} coins, sentence {BossShares.Total(sinnerClass.Id)} years");
+            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, _journey.Sentence.Years, DateTime.Now);
+            Note($"phase 2 run: {sinnerClass.Id}, circle {circle}, {_run.Purse.Coins} coins, sentence {_journey.Sentence.Years} years");
             ShowMap();
             ShowChapterOpening();
         }
@@ -269,6 +269,7 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             var lines = new List<string>
             {
+                string.Format(UiText.MapSentenceFormat, _journey.Sentence.Years),
                 string.Format(UiText.MapTributeFormat, _run.Tribute)
             };
             if (_run.YearsOwed > 0) lines.Add(UiText.MapOwed);
@@ -763,6 +764,7 @@ namespace HellPoker.Presentation
             lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing)
                 : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
             if (_run.YearsOwed > 0) lines.Add(UiText.GateOwed);
+            lines.Add(string.Format(UiText.GateSentenceFormat, _journey.Sentence.Years + missing * rules.YearsPerMissingCoin));
             lines.Add(UiText.GateAfter);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle(rules.Number), string.Join("\n", lines),
                 new[] { new PanelOption(UiText.GatePay) }, bar: BarAt(after, after), barLabel: BarLabel()), new Action[] { SitWithTheDemon }, "gate");
@@ -778,7 +780,7 @@ namespace HellPoker.Presentation
                 _archive?.SaveRecords(_records);
             }
             Note($"chapter {_journey.Chapter} gate: tribute {_run.Tribute}, had {toll.CoinsBefore}, missing {toll.Missing} (+{toll.YearsForMissing} years)" +
-                 (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}");
+                 (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}, sentence {_journey.Sentence.Years}");
             _bossGame = _run.OpenBossTable(_bossTable);
             Note($"{_run.Rules.BossId}'s table: bar {_run.BossBarStart} years, soul line {_bossGame.Rules.SoulThreshold}");
             SitAtBoss();
@@ -805,7 +807,7 @@ namespace HellPoker.Presentation
             _tableView.SetVisible(false);
             if (game.Phase == GamePhase.Damned)
             {
-                Note($"{rules.BossId}: the soul burned after {game.RoundNumber} hands");
+                Note($"{rules.BossId}: the soul burned after {game.RoundNumber} hands (sentence {_journey.Sentence.Years})");
                 ShowMap();
                 Curtain();
                 FinishRun(JourneyEnd.Damned, house: rules.BossId);
@@ -814,7 +816,7 @@ namespace HellPoker.Presentation
             _run.LeaveBossTable(0);
             _records.BossBeaten(rules.BossId);
             _archive?.SaveRecords(_records);
-            Note($"{rules.BossId}: beaten in {game.RoundNumber} hands");
+            Note($"{rules.BossId}: beaten in {game.RoundNumber} hands (sentence {_journey.Sentence.Years})");
             if (_journey.Chapter >= ChapterRules.Chapters)
             {
                 Curtain();
@@ -935,7 +937,7 @@ namespace HellPoker.Presentation
             _tableView.SetVisible(false);
             JourneyEnd end = game.Phase == GamePhase.Absolved ? JourneyEnd.Freed
                 : game.Phase == GamePhase.Damned ? JourneyEnd.Damned : JourneyEnd.CastDown;
-            Note($"lucifer: {end} after {game.RoundNumber} hands (bar {game.Years})");
+            Note($"lucifer: {end} after {game.RoundNumber} hands (bar {game.Years}, sentence {_journey.Sentence.Years})");
             Curtain();
             FinishRun(end, house: DealerRoster.LuciferId);
         }
@@ -948,13 +950,13 @@ namespace HellPoker.Presentation
             int deepest = journey.Stage == JourneyStage.Lucifer ? 4 : journey.Chapter;
             journey.Finish(end);
             ChapterRecords before = ChapterRecords.Decode(_records.Encode());
-            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands, journey.Circle);
+            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands, journey.Circle, journey.Sentence.Years);
             IReadOnlyList<string> opened = ChapterUnlocks.Opened(before, _records);
             bool circleOpened = end == JourneyEnd.Freed && _records.CirclesOpen(journey.Sinner.Id) > before.CirclesOpen(journey.Sinner.Id);
             if (opened.Count > 0) Note("unlocked: " + string.Join(", ", opened));
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
-            _log?.End(end.ToString().ToUpperInvariant(), _run.Years, journey.TotalHands);
+            _log?.End(end.ToString().ToUpperInvariant(), journey.Sentence.Years, journey.TotalHands);
             CloseLog();
             _log = null;
             _ended = true;
@@ -980,7 +982,9 @@ namespace HellPoker.Presentation
                     break;
                 case JourneyEnd.Freed:
                     title = UiText.FreedTitle;
-                    text = UiText.FreedText;
+                    // What is left of the sentence is the run's score: none at all is a clean walk.
+                    text = UiText.FreedText + "\n" + (journey.Sentence.Years == 0 ? UiText.FreedClean
+                        : string.Format(UiText.FreedSentenceFormat, journey.Sentence.Years));
                     break;
                 default:
                     title = UiText.ChapterDamnedTitle;
@@ -1072,9 +1076,9 @@ namespace HellPoker.Presentation
             _bossGame = null;
             _nodeDone = save.NodeDone;
             _selected = PickDefault(_run.Choices);
-            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", journey.Sinner.Id, _run.Years, DateTime.Now,
+            _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", journey.Sinner.Id, journey.Sentence.Years, DateTime.Now,
                 Math.Max(1, journey.TotalHands));
-            Note($"resumed: chapter {journey.Chapter}{(journey.Stage == JourneyStage.Lucifer ? " (lucifer)" : "")}, purse {_run.Purse.Coins}");
+            Note($"resumed: chapter {journey.Chapter}{(journey.Stage == JourneyStage.Lucifer ? " (lucifer)" : "")}, purse {_run.Purse.Coins}, sentence {journey.Sentence.Years}");
             bool handLost = save.HandStake > 0;
 
             switch (save.Match)

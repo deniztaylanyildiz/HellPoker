@@ -301,7 +301,7 @@ namespace HellPoker.Core.Tests
             game.Bet(BetAction.Fold);
             int fold = new ScaledPayoutTable(DealerRoster.Mammon.Payouts, 175, 125).GetFoldPenalty(game.LastRound.Stake, false);
             Assert.AreEqual(26, game.HookYearsThisHand, "2% of 1300");
-            Assert.AreEqual(fold + 26, game.LastRound.YearsChange, "on top of the fold");
+            Assert.AreEqual((fold + 1) / 2 + 26, game.LastRound.YearsChange, "on top of the fold (half of it heals the bar)");
             Assert.IsTrue(hooks.Rule.StruckThisHand);
             Assert.AreEqual(1, hooks.Rule.Triggers);
         }

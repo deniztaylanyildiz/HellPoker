@@ -705,7 +705,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(777, scaled.GetYearsForgiven(HandCategory.DeadMansHand, 300, 100, 777), "the Dead Man's Hand still empties the bar");
             Assert.AreEqual(plain.GetMultiplier(HandCategory.Flush), scaled.GetMultiplier(HandCategory.Flush), "the table shows the demon's own multipliers");
             Assert.AreEqual(175, ChapterRules.For(1).BossWinPercent, "Mammon's table, tuned");
-            Assert.AreEqual(125, ChapterRules.For(1).BossLossPercent);
+            Assert.AreEqual(250, ChapterRules.For(1).BossLossPercent, "the sentence's: half of it heals the bar (Demo 2.1)");
             ChapterRules tuned = ChapterRules.For(1).WithBossPayouts(80, 120);
             Assert.AreEqual(80, tuned.BossWinPercent);
             Assert.AreEqual(120, tuned.With(ante: 5).BossLossPercent, "the knobs go along");

@@ -615,7 +615,7 @@ namespace HellPoker.Presentation
             int played = Math.Max(1, _game.RoundNumber + (_game.Phase == GamePhase.Betting ? 1 : 0));
             string label = UiText.Upper(string.Format(UiText.BarLabelFormat, UiText.GenitiveOf(_dealerText)));
             string hint = string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
-                fall ? UiText.BarMarkFall : UiText.BarMarkSoul);
+                fall ? UiText.BarMarkFall : UiText.BarMarkSoul) + "\n" + UiText.BarLeft(value, _seat.BarStart);
             return new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint);
         }
 

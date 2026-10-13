@@ -3140,3 +3140,18 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Kaza: sürüm düzeltmesinden önceki ilk build `HellPoker-Demo-2.0-win64.zip`'in üstüne yazdı; o dosya (yanlış etiketli 2.0.1) silindi. Asıl Demo
   2.0 zip'i gerekirse `v2.0-demo` etiketinden yeniden alınabilir.
 - Açık: Soytarı ve Büyücü dengesi oyun testinden sonra; kararsız RunJourneyTests.
+### Demo 2.1 — A: görünen ceza ve şeytanın barı (2026-10-13)
+- İstek (Desktop/yee.md, Demo 2.1 promptu, yedi iş): boss masasında yıl görünsün; yıl (ceza) ile şeytanın barı biraz bağımsız olsun.
+- Yapılanlar: `RunSentence` (koşu boyu ceza: sınıfın toplamı × dairenin bar yüzdesi; Köylü / Büyücü 6500, Kral 8000, Soytarı 5000, Çağırıcı
+  5800). `PunishmentLedger.Moved` + `HellPokerGame.YearsMoved`, `BarHealPercent` (Phase 2 boss masası 50, demo 100), `UnhealedYearsThisHand` /
+  `YearsUnhealed`: kayıp / çekilme / yarım el bara yarısı (yukarı), cezaya tamamı; kazanç ikisinden de aynı. `RunSentence.Follow` masayı izler
+  (Mammon'un faizi, İblis bedelleri gibi masa içi yıllar aynen). `ChapterRun.Sentence`: teklif borcu ve silinen yıllar cezaya hemen, haraç
+  eksiği kapıda (bara da). Kayıt `sentence` (eski kayıt: bu şeytanın payı + borç + ilerdeki paylar), rekor `sentence.<sınıf>.<daire>`
+  (kurtuluşta en az kalan ceza). Sunum: boss masasında sağ üstte sayaç geri geldi ("CEZA · YIL", rakamlı), bar rakamsız; sonuç iki satır
+  ("Şeytan: −%N", "Ceza: −X yıl"); bar hover'ı "Kalan: çok / yarı / az"; haritada ilk satır ceza, kapıda "Kapıdan sonra cezan", kat masasında
+  haraç satırının yanında ceza; son ekran "Kurtuldun. Ceza: N yıl" / TERTEMİZ; rekorlarda sınıf başına daire daire en az ceza.
+- Kayıp yüzdeleri ×2 (Mammon 250, Belial 220, Lilith 110, Lucifer 90): bar eskisi gibi dolar, ceza tam yazılır. Simülasyon (500 koşu, aynı
+  tohumlar; eski kural `HELLPOKER_BAR_HEAL=100 HELLPOKER_BOSS_LOSS=125,110,55,45`): kurtuluş eski 43.6 / 24.4 / 31.0 / 8.6 / 31.2, yeni
+  43.8 / 25.2 / 32.4 / 8.6 / 31.8 (fark ≤ 1.4); boss el sayıları ve lanet oranları aynı. Kurtulanların kalan cezası ort. 4251 yıl (Köylü 2886,
+  Kral 5309), TERTEMİZ %0 — puan bu (kararı kullanıcıya bırakıldı). Yeni düğmeler `HELLPOKER_BAR_HEAL`, `HELLPOKER_BOSS_LOSS`.
+- Testler: `SentenceTests` (9). EditMode 998 (994 geçti, 4 explicit).

@@ -110,6 +110,14 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
+        /// <summary>A class's fewest years left per circle it walked free in ("  · D0 420 yıl · D1 610 yıl"); empty for none.</summary>
+        private static string LowestSentences(ChapterRecords r, string classId)
+        {
+            var parts = Enumerable.Range(0, Circles.Deepest + 1).Where(c => r.LowestSentence(classId, c).HasValue)
+                .Select(c => string.Format(LowestSentenceFormat, c, r.LowestSentence(classId, c).Value)).ToList();
+            return parts.Count == 0 ? "" : "  · " + string.Join(" · ", parts);
+        }
+
         /// <summary>How many locked things the records list by name (the rest are counted).</summary>
         public const int LocksListed = 6;
 
@@ -118,8 +126,9 @@ namespace HellPoker.Presentation.Ui
         public static IReadOnlyList<string> ProgressRecordLines(ChapterRecords r)
         {
             r = r ?? new ChapterRecords();
-            var lines = new List<string> { L("Deepest circle freed:", "Kurtulunan en derin daire:") };
-            lines.AddRange(SinnerRoster.PhaseTwo.Select(c => "  " + SinnerName(c.Id) + ": " + (r.BestCircle(c.Id) >= 0 ? r.BestCircle(c.Id).ToString() : "—")));
+            var lines = new List<string> { L("Deepest circle freed (fewest years left):", "Kurtulunan en derin daire (en az kalan ceza):") };
+            lines.AddRange(SinnerRoster.PhaseTwo.Select(c => "  " + SinnerName(c.Id) + ": " + (r.BestCircle(c.Id) >= 0 ? r.BestCircle(c.Id).ToString() : "—") +
+                LowestSentences(r, c.Id)));
             lines.Add("");
             var locked = new List<string>();
             if (!ChapterUnlocks.IsClassOpen(Summoner.ClassId, r))

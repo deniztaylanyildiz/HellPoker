@@ -228,8 +228,8 @@ namespace HellPoker.Core.Tests
             int bar = years + 705 + owed;
             Assert.AreEqual(bar + bar / 10, run.Years, "the tribute's years on the bar — and the fire's whetted soul (the last answer) a tenth on");
             Assert.IsTrue(_chapters.IsAtTable);
-            Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number on the counter");
-            Assert.AreEqual("MAMMON'S BAR", _tableView.SentenceView.Label);
+            Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number under his portrait");
+            Assert.AreEqual(UiText.SentenceLabel, _tableView.SentenceView.Label, "the counter: the run's sentence");
             Assert.AreEqual(run.BossBarStart * 2, _table.Game.Rules.SoulThreshold, "Mammon's soul line: twice his bar");
             Assert.AreEqual(0, _table.Game.Rules.ForcedRaiseYears, "no final stretch on a bar");
             Assert.AreEqual(DealerRoster.MammonId, _tableView.DealerView.Dealer.Id);

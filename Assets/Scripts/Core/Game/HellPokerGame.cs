@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Betting;
@@ -252,8 +252,12 @@ namespace HellPoker.Core.Game
         }
 
         private static int Scaled(int years, int eventPercent, int relicPercent) => (int)((long)years * eventPercent / 100 * relicPercent / 100);
-        public int LeastYearsAdded => _payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake))
-            + AnteShare(AnteForOutlook, (CurrentStake > 0 ? Relic : Effects.CombinedRelics).LossAntePercent);
+        public int LeastYearsAdded => HealedOutlook(_payouts.GetLeastYearsAdded(StakeForOutlook, AnteForOutlook, LossSurcharge(CurrentStake > 0 ? IsSoulHand : IsSoulAtStake))
+            + AnteShare(AnteForOutlook, (CurrentStake > 0 ? Relic : Effects.CombinedRelics).LossAntePercent));
+
+        /// <summary>What a loss of <paramref name="years"/> would put on the table (<see cref="BarHealPercent"/>), told nowhere.</summary>
+        private int HealedOutlook(int years) =>
+            BarHealPercent >= 100 || years <= 0 ? years : (int)(((long)years * Math.Max(0, BarHealPercent) + 99) / 100);
 
         private int StakeForOutlook => CurrentStake > 0 ? CurrentStake : UpcomingAnte;
         private int AnteForOutlook => CurrentStake > 0 ? Ante : UpcomingAnte;
@@ -284,8 +288,38 @@ namespace HellPoker.Core.Game
             _payouts = payouts ?? throw new ArgumentNullException(nameof(payouts));
             _houseBetting = houseBetting;
             _ledger = new PunishmentLedger(rules.StartingYears);
+            _ledger.Moved += years => YearsMoved?.Invoke(years);
 
             Restart();
+        }
+
+        /// <summary>Years added (positive) or forgiven (negative) at the table — never by <see cref="Restart"/> or <see cref="TakeOver"/>.
+        /// Phase 2's run sentence follows it (<see cref="Chapters.RunSentence"/>).</summary>
+        public event Action<int> YearsMoved;
+
+        /// <summary>
+        /// Phase 2 (a demon's bar): a lost hand, a fold or a forfeit puts only this percent of its cost on the table's years (rounded up);
+        /// the rest is <see cref="UnhealedYearsThisHand"/> (<see cref="YearsUnhealed"/>), for the run's sentence alone. 100: the demo's
+        /// (all of it).
+        /// </summary>
+        public int BarHealPercent { get; set; } = 100;
+
+        /// <summary>The part of the last settled hand's loss the table did not take (see <see cref="BarHealPercent"/>); 0 for none.</summary>
+        public int UnhealedYearsThisHand { get; private set; }
+
+        /// <summary>A loss's unhealed years, as the hand is settled.</summary>
+        public event Action<int> YearsUnhealed;
+
+        /// <summary>What a loss of <paramref name="years"/> puts on the table; the rest is told as unhealed.</summary>
+        private int Healed(int years)
+        {
+            if (BarHealPercent >= 100 || years <= 0) return years;
+            int taken = (int)(((long)years * Math.Max(0, BarHealPercent) + 99) / 100);
+            int unhealed = years - taken;
+            if (unhealed <= 0) return years;
+            UnhealedYearsThisHand += unhealed;
+            YearsUnhealed?.Invoke(unhealed);
+            return taken;
         }
 
         public void Restart()
@@ -703,7 +737,8 @@ namespace HellPoker.Core.Game
                 _cheats.PlayerFled(Rules);
 
             int yearsBefore = _ledger.Years;
-            _ledger.Add(penalty);
+            UnhealedYearsThisHand = 0;
+            _ledger.Add(Healed(penalty));
             Phase = _ledger.Years >= DamnationYears ? GamePhase.Damned : GamePhase.Betting;
             LastRound = new RoundResult(hand.Stake, true, null, null, null, yearsBefore, _ledger.Years, Phase);
             // A hand left behind counts as the fold it was — or, sealed, as the loss.
@@ -1230,6 +1265,7 @@ namespace HellPoker.Core.Game
         private void Finish(ShowdownResult showdown, bool houseFolded = false)
         {
             int yearsBefore = _ledger.Years;
+            UnhealedYearsThisHand = 0;
 
             bool freeFold = false;
             if (houseFolded)
@@ -1243,7 +1279,7 @@ namespace HellPoker.Core.Game
                 // The Peasant's honest heart (his power, switched on): the fold costs nothing, and the gauge is spent now.
                 freeFold = Sinner != null && Sinner.PowerArmed && Sinner.Ability == SinnerAbility.FreeFold && Sinner.TryUse(SinnerAbility.FreeFold);
                 if (!freeFold)
-                    _ledger.Add(_payouts.GetFoldPenalty(CurrentStake - FreeStake, IsAfterDraw, LossSurcharge(IsSoulHand)));
+                    _ledger.Add(Healed(_payouts.GetFoldPenalty(CurrentStake - FreeStake, IsAfterDraw, LossSurcharge(IsSoulHand))));
             }
             else if (showdown.Outcome == ShowdownOutcome.PlayerWins)
             {
@@ -1258,10 +1294,10 @@ namespace HellPoker.Core.Game
                 _cheats.PlayerWon(Rules);
             }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,
+                _ledger.Add(Healed((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,
                                                   LossSurcharge(IsSoulHand)) *
                                               (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
-                            + AnteShare(Ante, Relic.LossAntePercent));        // the Rattle: half an ante more
+                            + AnteShare(Ante, Relic.LossAntePercent)));       // the Rattle: half an ante more
 
             // Phase 2: a demon's rule may put more on after the hand (Mammon's interest).
             HookYearsThisHand = Hooks == null || _ledger.IsServed ? 0
