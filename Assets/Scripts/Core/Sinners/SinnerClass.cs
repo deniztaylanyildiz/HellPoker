@@ -147,6 +147,27 @@ namespace HellPoker.Core.Sinners
         /// <summary>How many times the run's deck reached the jackpot.</summary>
         public int JokerJackpots { get; private set; }
 
+        /// <summary>
+        /// Phase 2 (Demo 2.1): at the jackpot the jokers stay and the count falls to this (10); 0: the demo's rule (they go, the count is the
+        /// start again).
+        /// </summary>
+        public int JackpotFallsTo { get; set; }
+
+        /// <summary>Phase 2: the jackpots after the first (the Rattle's) each give a reward — a common relic or coins; how many were taken.</summary>
+        public int JackpotRewardsTaken { get; private set; }
+
+        /// <summary>Jackpot rewards still to be chosen (Phase 2 only).</summary>
+        public int JackpotRewardsWaiting => JackpotFallsTo > 0 ? Math.Max(0, JokerJackpots - 1 - JackpotRewardsTaken) : 0;
+
+        public void TakeJackpotReward() => JackpotRewardsTaken++;
+
+        /// <summary>The jackpots of a saved run.</summary>
+        public void RestoreJackpots(int jackpots, int rewardsTaken)
+        {
+            JokerJackpots = Math.Max(0, jackpots);
+            JackpotRewardsTaken = Math.Max(0, Math.Min(rewardsTaken, Math.Max(0, JokerJackpots - 1)));
+        }
+
         /// <summary>How many times the power was used, and how many cheats were warded off (the whole run).</summary>
         public int PowersUsed { get; private set; }
         public int WardsUsed { get; private set; }
@@ -183,8 +204,9 @@ namespace HellPoker.Core.Sinners
                 Jokers++;
                 if (Class.JokerJackpot > 0 && Jokers >= Class.JokerJackpot)
                 {
-                    // Twenty jokers: the deck is cleared of them, the count starts again (the table hands out the Rattle).
-                    Jokers = Class.StartingJokers;
+                    // Twenty jokers: the deck is cleared of them, the count starts again (the table hands out the Rattle) — in Phase 2 the
+                    // count only falls back (Demo 2.1: to ten).
+                    Jokers = JackpotFallsTo > 0 ? Math.Max(Class.StartingJokers, JackpotFallsTo) : Class.StartingJokers;
                     HitJokerJackpot = true;
                     JokerJackpots++;
                 }

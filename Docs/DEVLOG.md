@@ -3225,3 +3225,11 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   Rehinci 618/796 (satış + rehin), Kemik 671/295, Simyacı 574/251, Kumarbaz 768/116, Terzi 672/128. Sınıf içi "alan / görüp geçen" farkı
   hepsinde eksi (−3..−25) — alım kesenin durumuyla karışık (rehin geride kalan koşularda), gerçek etki ölçüsü değil.
 - Testler: `MarketTests` (9); eski pazar testleri kaçakçıya sabitlendi. EditMode 1047 (1043 geçti, 4 explicit).
+### Demo 2.1 — F: Soytarı 20 joker → 10 (2026-10-13)
+- Sadece Phase 2: `Sinner.JackpotFallsTo` (= `Jester.PhaseTwoJackpotFallsTo` 10, `ChapterJourney` kurar); 20'yi bulunca jokerler silinmez, sayı
+  10'a iner (`JokerLossLine` 10 aynı). Demo (Boss Simülatörü) aynen: 2'ye döner. Çıngırak koşuda bir kez; sonraki her 20 bir ödül bekletir
+  (`JackpotRewardsWaiting`), haritada `Onward`'da panel: yaygın emanet ya da 30 coin (`ChapterRun.TakeJackpotRelic / TakeJackpotCoins`; kayıtta
+  `jokers.jackpots`, `jokers.rewards`, bekleyen panel "jackpot"). Metinler: sonuç satırı (`JokerJackpotRattleTenFormat`, `JokerJackpotAgainTen`),
+  rozet hover'ı (`JokerJackpotPhaseTwoFormat`), Phase 2 sınıf kartı (`ChapterSinnerAbility`).
+- Simülasyon (Soytarı, 500 koşu): kurtuluş %13.0 (E'de aynı tohumlarla %12.4, Demo 2.0.1 %8.6); koşu başına 0.5 kez yirmi joker.
+- Testler: `JesterJackpotTests` (2). EditMode 1049 (1045 geçti, 4 explicit).

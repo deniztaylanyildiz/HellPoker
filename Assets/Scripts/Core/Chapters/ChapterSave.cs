@@ -37,6 +37,10 @@ namespace HellPoker.Core.Chapters
         public int Charge;
         public bool Ward;
         public int Jokers;
+
+        /// <summary>Optional keys: the Jester's jackpots and the rewards taken for them (Demo 2.1).</summary>
+        public int Jackpots;
+        public int JackpotRewards;
         public List<string> Relics = new List<string>();
         public string Silenced;
         public string Amplified;
@@ -141,6 +145,8 @@ namespace HellPoker.Core.Chapters
                 "charge=" + Charge,
                 "ward=" + B(Ward),
                 "jokers=" + Jokers,
+                "jokers.jackpots=" + Jackpots,
+                "jokers.rewards=" + JackpotRewards,
                 "relics=" + string.Join(",", Relics),
                 "silenced=" + (Silenced ?? ""),
                 "amplified=" + (Amplified ?? ""),
@@ -243,6 +249,8 @@ namespace HellPoker.Core.Chapters
                     Charge = I("charge"),
                     Ward = Bool("ward"),
                     Jokers = I("jokers"),
+                    Jackpots = I("jokers.jackpots"),
+                    JackpotRewards = I("jokers.rewards"),
                     Relics = Ids("relics"),
                     Silenced = S("silenced"),
                     Amplified = S("amplified"),

@@ -234,6 +234,13 @@ namespace HellPoker.Core.Tests
 
             while (!run.AtGate)
             {
+                // The Jester's twenty jokers after the first: a relic while there is room, else the coins.
+                while (run.Sinner.JackpotRewardsWaiting > 0)
+                {
+                    if (!run.RelicsFull) run.TakeJackpotRelic();
+                    else run.TakeJackpotCoins();
+                    if (run.WardenRelicWaiting != null) run.TakeWardenCoins();
+                }
                 MapNode next = ChooseNext(run, random, wardenSeen);
                 run.MoveTo(next);
                 Bump(tally.Path, next.Kind);
@@ -480,7 +487,7 @@ namespace HellPoker.Core.Tests
 
         private sealed class RunTally
         {
-            public int Runs, ReachedLucifer, Freed, CastDown;
+            public int Runs, ReachedLucifer, Freed, CastDown, Jackpots;
 
             /// <summary>The years left of the sentence of every run that walked free (its score).</summary>
             public readonly List<int> FreedSentences = new List<int>();
@@ -616,6 +623,9 @@ namespace HellPoker.Core.Tests
                                   $"soul at Lucifer {Per100(t.BossDamned[3], t.Runs)};  freed {Per100(t.Freed, t.Runs)}");
             }
             report.AppendLine();
+            foreach (var (cls, t) in perClass.Where(p => p.Item1.StartingJokers > 0))
+                report.AppendLine($"{cls.Id}: twenty jokers {Avg(t.Jackpots, t.Runs)} times a run (Phase 2: the count falls to {Jester.PhaseTwoJackpotFallsTo}), " +
+                                  $"freed {Pct(t.Freed, t.Runs)}");
             report.AppendLine("jokers (the Jester's deck) at the end of ch1/ch2/ch3/Lucifer (avg), and hands lost to the player's two jokers / won by the house's " +
                               "two jokers, floors (all chapters) and each boss");
             foreach (var (cls, t) in perClass.Where(p => p.Item1.StartingJokers > 0))
@@ -726,6 +736,7 @@ namespace HellPoker.Core.Tests
             foreach (RunTally t in new[] { tally, all })
             {
                 t.AddKit(journey.Kit);
+                t.Jackpots += journey.Sinner.JokerJackpots;
                 foreach (string id in RunTaken.Distinct())
                 {
                     Bump(t.EventRuns, id);

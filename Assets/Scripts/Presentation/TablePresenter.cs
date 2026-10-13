@@ -1202,6 +1202,8 @@ namespace HellPoker.Presentation
             IReadOnlyList<string> upgrades = _kit?.Kit.Upgrades ?? (IReadOnlyList<string>)Array.Empty<string>();
             string ability = UiText.SinnerAbility(id);
             if (upgrades.Count > 0) ability += "\n" + string.Format(UiText.UpgradesLineFormat, string.Join(", ", upgrades.Select(UiText.UpgradeName)));
+            if (sinner.JackpotFallsTo > 0 && sinner.Class.JokerJackpot > 0)
+                ability += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, sinner.Class.JokerJackpot, sinner.JackpotFallsTo);
             _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), ability, sinner.Charge, sinner.Rules.Full, usable,
                 sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1, upgrades.Count));
             if (sinner.IsCharged && !_relabelling)
@@ -1286,13 +1288,15 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>The twenty jokers' line under the result: the Rattle given (its gift and curse), or the deck simply cleared.</summary>
-        private static string WithJackpot(string message, RoundResult round)
+        private string WithJackpot(string message, RoundResult round)
         {
             if (round == null || !round.JokerJackpot) return message;
+            // Phase 2 (Demo 2.1): the jokers stay and fall to ten; after the Rattle every twenty waits for a reward (a relic or coins).
+            bool phaseTwo = _sinner?.JackpotFallsTo > 0;
             string line = round.RattleGiven
-                ? string.Format(UiText.JokerJackpotRattleFormat, UiText.RelicName(RelicIds.JestersRattle), UiText.RelicGift(RelicIds.JestersRattle),
-                    UiText.RelicCurse(RelicIds.JestersRattle))
-                : UiText.JokerJackpotAgain;
+                ? string.Format(phaseTwo ? UiText.JokerJackpotRattleTenFormat : UiText.JokerJackpotRattleFormat, UiText.RelicName(RelicIds.JestersRattle),
+                    UiText.RelicGift(RelicIds.JestersRattle), UiText.RelicCurse(RelicIds.JestersRattle))
+                : phaseTwo ? UiText.JokerJackpotAgainTen : UiText.JokerJackpotAgain;
             return message + "\n" + line;
         }
 

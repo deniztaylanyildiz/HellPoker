@@ -179,6 +179,23 @@ namespace HellPoker.Presentation.Ui
             "Yirmi joker: deste temizlendi. {0} artık sende. {1} Ama: {2}");
         public static string JokerJackpotAgain => L("Twenty jokers again: the deck is cleared.", "Yine yirmi joker: deste temizlendi.");
 
+        /// <summary>Phase 2 (Demo 2.1): {0} the Rattle, {1} its gift, {2} its curse — the jokers fall to ten.</summary>
+        public static string JokerJackpotRattleTenFormat => L("Twenty jokers: the count falls to ten. {0} is yours. {1} But: {2}",
+            "Yirmi joker: sayı ona indi. {0} artık sende. {1} Ama: {2}");
+        public static string JokerJackpotAgainTen => L("Twenty jokers again: the count falls to ten — a reward waits on the map (a relic or coins).",
+            "Yine yirmi joker: sayı ona indi — haritada bir ödül bekliyor (bir emanet ya da coin).");
+
+        /// <summary>The badge's line in Phase 2: {0} the jackpot, {1} what the count falls to.</summary>
+        public static string JokerJackpotPhaseTwoFormat => L("At {0} jokers the count falls to {1}: the Rattle once, then a relic or coins each time.",
+            "{0} jokerde sayı {1} olur: önce bir kez Çıngırak, sonra her seferinde bir emanet ya da coin.");
+
+        public static string JackpotRewardTitle => L("TWENTY JOKERS", "YİRMİ JOKER");
+        public static string JackpotRewardText => L("The fools' deck laughs again. Take something for it.", "Soytarıların destesi yine gülüyor. Bunun için bir şey al.");
+        public static string JackpotRewardRelic => L("A COMMON RELIC", "YAYGIN BİR EMANET");
+
+        /// <summary>{0} the relic given.</summary>
+        public static string JackpotRewardGotFormat => L("The jokers leave you {0}.", "Jokerler sana {0} bıraktı.");
+
         /// <summary>Both sides held two jokers or more: the fewer wins, as many each is a push.</summary>
         public static string JokerDuelWin => L("Too many jokers on both sides: you held fewer, you win.", "İkinizde de joker fazla: daha az jokeri olan sen kazandın.");
         public static string JokerDuelLoss => L("Too many jokers on both sides: the demon held fewer, the demon wins.",

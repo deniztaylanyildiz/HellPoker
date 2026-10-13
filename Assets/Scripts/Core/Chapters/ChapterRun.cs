@@ -416,6 +416,31 @@ namespace HellPoker.Core.Chapters
             return PendingChase;
         }
 
+        /// <summary>A jackpot's reward (the Jester's twenty jokers after the first): coins instead of a relic.</summary>
+        public const int JackpotCoins = 30;
+
+        /// <summary>A jackpot's reward taken: a common relic (worn, else the bag, else it waits) — null when none is left: the coins then.</summary>
+        public string TakeJackpotRelic()
+        {
+            if (Sinner.JackpotRewardsWaiting <= 0) return null;
+            string relic = DrawRelic(RelicRarity.Common);
+            Sinner.TakeJackpotReward();
+            if (relic == null || !GiveRelic(relic))
+            {
+                Purse.Add(JackpotCoins);
+                return null;
+            }
+            return relic;
+        }
+
+        public bool TakeJackpotCoins()
+        {
+            if (Sinner.JackpotRewardsWaiting <= 0) return false;
+            Sinner.TakeJackpotReward();
+            Purse.Add(JackpotCoins);
+            return true;
+        }
+
         /// <summary>The chase: this many hands; caught, the thief gives back what he took and this much more.</summary>
         public const int ChaseHands = 3, ChaseBonus = 10;
 

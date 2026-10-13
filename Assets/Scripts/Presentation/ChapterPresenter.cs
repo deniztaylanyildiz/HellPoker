@@ -402,6 +402,12 @@ namespace HellPoker.Presentation
         {
             ClosePanel();
             _nodeDone = true;
+            // The Jester's twenty jokers after the first: a reward to choose before the way goes on.
+            if (_run.Sinner.JackpotRewardsWaiting > 0)
+            {
+                ShowJackpotReward();
+                return;
+            }
             if (_run.AtGate)
             {
                 GateArrival arrival = _run.ArriveAtGate();
@@ -413,6 +419,29 @@ namespace HellPoker.Presentation
             }
             ShowMap();
             Save();
+        }
+
+        /// <summary>The Jester's twenty jokers (after the Rattle's): a common relic, or the coins.</summary>
+        private void ShowJackpotReward()
+        {
+            ShowPanel(new PanelCard(null, UiText.SinnerName(_run.Sinner.Id), UiText.JackpotRewardTitle, UiText.JackpotRewardText,
+                    new[] { new PanelOption(UiText.JackpotRewardRelic), new PanelOption(string.Format(UiText.WardenCoinsFormat, ChapterRun.JackpotCoins)) }),
+                new Action[]
+                {
+                    () =>
+                    {
+                        string relic = _run.TakeJackpotRelic();
+                        Note($"twenty jokers: {(relic ?? "the coins")}");
+                        if (_run.WardenRelicWaiting != null) ShowWardenRelic();
+                        else Onward();
+                    },
+                    () =>
+                    {
+                        _run.TakeJackpotCoins();
+                        Note($"twenty jokers: +{ChapterRun.JackpotCoins} coins");
+                        Onward();
+                    }
+                }, "jackpot");
         }
 
         // ------------------------------------------------------------------ the panels
@@ -1708,6 +1737,7 @@ namespace HellPoker.Presentation
                 case "warden": ShowWardenRelic(); break;
                 case "loot": ShowLoot(); break;
                 case "lucifer": ShowLuciferCalls(); break;
+                case "jackpot": ShowJackpotReward(); break;
                 default: Onward(); break;   // a match's end, the fire's answer: already done
             }
         }

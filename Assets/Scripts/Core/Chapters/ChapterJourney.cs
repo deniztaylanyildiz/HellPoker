@@ -98,7 +98,8 @@ namespace HellPoker.Core.Chapters
         public static ChapterJourney Begin(SinnerClass sinnerClass, int seed, int circle = 0)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
-            var journey = new ChapterJourney(seed, new Sinner(sinnerClass), PhaseTwoEffects()) { Chapter = 1, Circle = Circles.Clamp(circle) };
+            var journey = new ChapterJourney(seed, new Sinner(sinnerClass) { JackpotFallsTo = Jester.PhaseTwoJackpotFallsTo }, PhaseTwoEffects())
+                { Chapter = 1, Circle = Circles.Clamp(circle) };
             journey.Sentence = new RunSentence(RunSentence.StartFor(sinnerClass.Id, journey.Circle));
             journey.Run = ChapterRun.Begin(journey.RulesFor(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1),
                 ChapterTuning.MapVersion > 0 ? ChapterTuning.MapVersion : ChapterMap.CurrentVersion);
@@ -226,7 +227,8 @@ namespace HellPoker.Core.Chapters
             if (save.Silenced != null) effects.SilenceCurse(save.Silenced);
             if (save.Amplified != null) effects.Amplify(save.Amplified);
             var sinner = new Sinner(sinnerClass, save.Charge, null, save.Ward,
-                sinnerClass.StartingJokers > 0 ? Math.Max(sinnerClass.StartingJokers, save.Jokers) : 0);
+                sinnerClass.StartingJokers > 0 ? Math.Max(sinnerClass.StartingJokers, save.Jokers) : 0) { JackpotFallsTo = Jester.PhaseTwoJackpotFallsTo };
+            sinner.RestoreJackpots(save.Jackpots, save.JackpotRewards);
             int chapter = Math.Max(1, Math.Min(ChapterRules.Chapters, save.Chapter));
             var journey = new ChapterJourney(save.Seed, sinner, effects)
             {
@@ -291,6 +293,8 @@ namespace HellPoker.Core.Chapters
                 Charge = Sinner.Charge,
                 Ward = Sinner.WardRaised,
                 Jokers = Sinner.Jokers,
+                Jackpots = Sinner.JokerJackpots,
+                JackpotRewards = Sinner.JackpotRewardsTaken,
                 Relics = Effects.Relics.ToList(),
                 Silenced = Effects.SilencedCurse,
                 Amplified = Effects.AmplifiedRelic,

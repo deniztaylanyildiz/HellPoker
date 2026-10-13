@@ -21,6 +21,8 @@ namespace HellPoker.Presentation.Ui
                     "Kazanç başına vergi: kart aç 1, bedava artır 2, müsadere 4. J Q K'sına hile işlemez.");
                 case Summoner.ClassId: return L("Imps: EYE a closed card 5, HAND a swap 15, WHISPER the next cheat 8. Power: all free.",
                     "İblisler: GÖZ kapalı kart 5, EL takas 15, FISILTI sıradaki hile 8. Güç: hepsi bedava.");
+                case Jester.ClassId: return L("Jokers in the deck: one is any card, two lose. A win adds one; at twenty they fall to ten.",
+                    "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir ekler; yirmide sayı ona iner.");
                 default: return SinnerAbility(id);
             }
         }

@@ -37,5 +37,8 @@ namespace HellPoker.Core.Sinners
         public override int StartingJokers => _startingJokers;
         public override int JokerLossLine => _lossLine;
         public override int JokerJackpot => _jackpot;
+
+        /// <summary>Phase 2 (Demo 2.1): at twenty the jokers fall to this many (the demo: back to the start).</summary>
+        public const int PhaseTwoJackpotFallsTo = 10;
     }
 }
