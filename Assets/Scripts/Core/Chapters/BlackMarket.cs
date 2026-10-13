@@ -113,7 +113,7 @@ namespace HellPoker.Core.Chapters
             RelicWeights weights = Vendor == MarketVendor.BoneMerchant ? new RelicWeights(10, 60, 30) : RelicWeights.Market;
             // Drawn by rarity, priced by it, the cheapest first.
             IReadOnlyList<string> picked = count == 0 ? Array.Empty<string>()
-                : ChapterRelics.Draw(_random, weights, count, _run.Effects.AllHeld.ToList(), _run.RelicAvailable);
+                : ChapterRelics.Draw(_random, weights, count, _run.Effects.AllHeld.ToList(), _run.RelicAvailable, _run.Sinner.Id);
             _relics = picked.Select(id => new RelicOffer(id, Price(_run.PriceOf(ChapterRelics.PriceOf(id)) *
                                                                (Vendor == MarketVendor.BoneMerchant ? BonePricePercent : 100) / 100)))
                 .OrderBy(o => o.Price).ToList();

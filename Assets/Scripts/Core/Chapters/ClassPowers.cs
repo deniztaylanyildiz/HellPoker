@@ -255,7 +255,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The charged power: up to <see cref="ClassKit.RearrangesPerUse"/> seen cards may now go to the bottom.</summary>
         public bool StartRearranging(HellPokerGame game)
         {
-            if (WhyNoRearrange(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
+            if (!Kit.CanSendToBottom || WhyNoRearrange(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
             RearrangesLeft = Kit.RearrangesPerCharge;
             return true;
         }
@@ -476,7 +476,8 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>What an imp costs here: coins on the floors, years on the bar at a demon's table (0 under the Legion).</summary>
         public int PriceOf(SummonAct act) =>
-            Legion ? 0 : AtDemonsTable ? Math.Max(1, _barStart * BarPercents[(int)act] / 100) : CoinPrices[(int)act];
+            Legion ? 0 : AtDemonsTable ? Math.Max(1, _barStart * (BarPercents[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpBarPrice)) / 100)
+            : CoinPrices[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpPrice);
 
         public override void HandDealt(HellPokerGame game)
         {
@@ -569,7 +570,7 @@ namespace HellPoker.Core.Chapters
             _done.Add(act);
             Summons++;
             Kit.Summons++;
-            if (Random.Next(100) < WildPercent) RunWild(game);
+            if (Random.Next(100) < WildPercent + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpWild)) RunWild(game);   // the Summoner's Leash: tamer
         }
 
         /// <summary>The imp runs wild: one of the Summoner's cards (not a joker, not a two) drops a rank — to a card still in the deck.</summary>

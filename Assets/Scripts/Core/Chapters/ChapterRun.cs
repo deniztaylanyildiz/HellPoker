@@ -247,6 +247,7 @@ namespace HellPoker.Core.Chapters
             Kit = kit ?? new ClassKit(sinner);
             if (kit == null) Kit.EnterChapter(rules.Number);
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
+            if (Kit.Relics == null) Kit.Relics = () => Effects.CombinedRelics;   // the class relics bend the kit
             if (years <= 0) throw new ArgumentOutOfRangeException(nameof(years));
             if (coins < 0) throw new ArgumentOutOfRangeException(nameof(coins));
             Years = years;
@@ -387,11 +388,12 @@ namespace HellPoker.Core.Chapters
         /// <summary>A relic of <paramref name="rarity"/> not carried (a locked one never); null when none is left.</summary>
         public string DrawRelic(RelicRarity rarity) =>
             ChapterRelics.Draw(_nodeRandom, rarity == RelicRarity.Common ? new RelicWeights(1, 0, 0) : rarity == RelicRarity.Rare ? new RelicWeights(0, 1, 0)
-                : new RelicWeights(0, 0, 1), 1, Effects.AllHeld.ToList(), RelicAvailable).FirstOrDefault();
+                : new RelicWeights(0, 0, 1), 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
 
         /// <summary>Whether <paramref name="count"/> relics of <paramref name="rarity"/> (null: any) could still be drawn.</summary>
         public bool CanDrawRelic(RelicRarity? rarity, int count = 1) =>
             ChapterRelics.All.Count(id => !Effects.Holds(id) && (RelicAvailable == null || RelicAvailable(id)) &&
+                                          (ChapterRelics.Find(id)?.ClassId == null || ChapterRelics.Find(id).ClassId == Sinner.Id) &&
                                           (rarity == null || ChapterRelics.RarityOf(id) == rarity.Value)) >= count;
 
         /// <summary>A helper's good turn, in percent, as the relics bend it (the Lost Soul's Letter more, the Liar's Tongue less).</summary>
@@ -495,7 +497,7 @@ namespace HellPoker.Core.Chapters
             }
             if (!table.MatchWon || !table.IsWarden) return;
 
-            string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable).FirstOrDefault();
+            string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
             else if (!Effects.Give(relic)) WardenRelicWaiting = relic;
         }
@@ -531,7 +533,7 @@ namespace HellPoker.Core.Chapters
             if (loot.Count < LootRelics)
             {
                 var exclude = Effects.AllHeld.Concat(loot).ToList();
-                loot.AddRange(ChapterRelics.Draw(_nodeRandom, new RelicWeights(0, 1, 0), LootRelics - loot.Count, exclude, RelicAvailable));
+                loot.AddRange(ChapterRelics.Draw(_nodeRandom, new RelicWeights(0, 1, 0), LootRelics - loot.Count, exclude, RelicAvailable, Sinner.Id));
             }
             _loot = loot;
             IReadOnlyList<string> upgrades = UpgradesOffered();
@@ -791,9 +793,11 @@ namespace HellPoker.Core.Chapters
             Dealers.Dealer boss = Rules.Boss;
             Effects.SitAt(boss.Id, fresh: true);
             BossBarStart = Years;
-            HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent, Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Rules.BossLossPercent,
+            HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent,
+                BossTable.WinWithRelics(Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Effects.CombinedRelics, Purse.Coins), Rules.BossLossPercent,
                 RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
             game.UseEffects(Effects);
+            BossTable.Arm(game, Effects);
             if (startBar && BossMaliceFull) game.RestoreMalice(game.MaliceMax, false);   // the confession: he knows
             BossMaliceFull = false;
             Sentence?.Follow(game);

@@ -13,7 +13,10 @@ ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary", "jesters
          "bloody_die", "lead_purse", "ash_ledger", "candle_stub", "rat_tooth",
          "iron_vow", "pilgrims_lantern", "raven_feather", "blood_ring", "old_map", "silver_bell", "salt_circle",
          "black_book", "hangmans_rope", "liliths_tear", "abyss_coin",
-         "mammons_seal", "mammons_scales", "belials_mask", "belials_tongue"]
+         "mammons_seal", "mammons_scales", "belials_mask", "belials_tongue",
+         "ash_purse", "ferrymans_lantern", "rusted_chain", "lead_seal",
+         "liars_tongue", "blood_pact", "lost_souls_letter", "twin_dice", "jesters_hat", "seers_spectacles", "peasants_scythe", "kings_signet",
+         "summoners_leash", "lucifers_feather", "mammons_gold_tooth"]
 
 
 def icon(relic_id):
@@ -245,9 +248,96 @@ def icon(relic_id):
         img.paint(img.m_line([(8, 6), (8, 10), (6, 13), (4, 14)], 1), C.CRIMSON)
         img.paint(img.m_line([(8, 10), (11, 13), (13, 14)], 1), C.CRIMSON)
         img.put(8, 8, C.RED)
+    elif relic_id == "ash_purse":
+        # A grey purse smudged with ash, a coin peeking out.
+        bag = img.m_ellipse(8, 10, 5, 4.5)
+        img.paint(bag, C.SILVER_DARK)
+        img.dither(bag, C.SILVER_DARK, C.BONE_SHADE, 0.4)
+        img.paint(img.m_rect(6, 4, 10, 6), C.BONE_SHADE)
+        img.paint(img.m_ellipse(11, 6, 2, 2), C.GOLD)
+    elif relic_id == "ferrymans_lantern":
+        # A small lantern with a pale green flame.
+        img.paint(img.m_rect(5, 4, 11, 13), C.GOLD_DARK)
+        img.paint(img.m_rect(6, 5, 10, 12), C.BLACK)
+        img.paint(img.m_ellipse(8, 9, 1.5, 2.5), C.GREEN_LIGHT)
+        img.paint(img.m_rect(7, 1, 9, 3), C.GOLD_DARK)
+    elif relic_id == "rusted_chain":
+        # Three rusted links.
+        for k, (x, y) in enumerate(((3, 4), (7, 8), (11, 12))):
+            link = img.m_ellipse(x + 0.5, y, 2.6, 2) & ~img.m_ellipse(x + 0.5, y, 1.2, 0.8)
+            img.paint(link, C.GOLD_DARK if k % 2 else C.BLOOD)
+    elif relic_id == "lead_seal":
+        # A heavy grey seal stamped with a skull.
+        img.paint(img.m_ellipse(8, 8, 6, 6), C.SILVER_DARK)
+        img.paint(img.m_ellipse(8, 8, 4.5, 4.5), C.BONE_SHADE)
+        img.paint(img.m_ellipse(8, 7, 2.2, 2), C.BONE_MID)
+        img.put(7, 7, C.BLACK)
+        img.put(9, 7, C.BLACK)
+        img.paint(img.m_rect(7, 9, 9, 10), C.BONE_MID)
+    elif relic_id == "liars_tongue":
+        # A silver tongue, split, on a black lip.
+        img.paint(img.m_rect(3, 5, 12, 6), C.BLACK)
+        img.paint(img.m_poly([(5, 6), (11, 6), (10, 12), (8, 10), (6, 12)]), C.SILVER)
+        img.put(8, 8, C.WHITE)
+    elif relic_id == "blood_pact":
+        # A scroll sealed with a drop of blood.
+        img.paint(img.m_rect(3, 3, 12, 12), C.BONE)
+        for y in (5, 7, 9):
+            img.paint(img.m_rect(4, y, 10, y), C.BONE_DARK)
+        img.paint(img.m_ellipse(11, 11, 2.2, 2.2), C.CRIMSON)
+        img.put(11, 14, C.CRIMSON)
+    elif relic_id == "lost_souls_letter":
+        # A pale envelope with a lilac seal.
+        img.paint(img.m_rect(2, 4, 13, 12), C.BONE)
+        img.paint(img.m_line([(2, 4), (8, 9), (13, 4)], 1), C.BONE_DARK)
+        img.paint(img.m_ellipse(8, 9, 1.6, 1.6), C.LILAC)
+    elif relic_id == "twin_dice":
+        # Two small red dice.
+        for x, y in ((2, 3), (8, 8)):
+            die = img.m_rect(x, y, x + 5, y + 5)
+            img.paint(die, C.CRIMSON)
+            img.put(x + 1, y + 1, C.BONE)
+            img.put(x + 4, y + 4, C.BONE)
+    elif relic_id == "jesters_hat":
+        # A two-pointed jester's cap, a bell on each point.
+        img.paint(img.m_poly([(3, 13), (2, 4), (8, 10)]), C.CRIMSON)
+        img.paint(img.m_poly([(13, 13), (14, 4), (8, 10)]), C.VIOLET)
+        img.paint(img.m_rect(3, 11, 13, 13), C.GOLD_MID)
+        img.put(2, 3, C.GOLD)
+        img.put(14, 3, C.GOLD)
+    elif relic_id == "seers_spectacles":
+        # Round spectacles, one lens glowing.
+        img.paint(img.m_ellipse(5, 8, 3, 3) & ~img.m_ellipse(5, 8, 2, 2), C.GOLD)
+        img.paint(img.m_ellipse(11, 8, 3, 3) & ~img.m_ellipse(11, 8, 2, 2), C.GOLD)
+        img.paint(img.m_ellipse(11, 8, 2, 2), C.LILAC_LIGHT)
+        img.paint(img.m_rect(7, 7, 9, 7), C.GOLD_DARK)
+    elif relic_id == "peasants_scythe":
+        # A scythe: a wooden haft and a curved blade.
+        img.paint(img.m_line([(4, 14), (10, 3)], 1), C.GOLD_DARK)
+        img.paint(img.m_poly([(10, 3), (15, 4), (12, 7), (10, 5)]), C.SILVER)
+    elif relic_id == "kings_signet":
+        # A gold ring with a red stone.
+        img.paint(img.m_ellipse(8, 10, 5, 4) & ~img.m_ellipse(8, 10, 3, 2.4), C.GOLD)
+        img.paint(img.m_ellipse(8, 5, 2.6, 2.4), C.CRIMSON)
+        img.put(7, 4, C.HELL)
+    elif relic_id == "summoners_leash":
+        # A collar with a chain leash.
+        img.paint(img.m_ellipse(6, 10, 4, 3) & ~img.m_ellipse(6, 10, 2.6, 1.8), C.BLOOD)
+        for k in range(4):
+            img.put(9 + k, 8 - k * 2, C.SILVER)
+            img.put(10 + k, 8 - k * 2, C.SILVER_DARK)
+    elif relic_id == "lucifers_feather":
+        # A black feather edged with ember.
+        img.paint(img.m_poly([(3, 14), (6, 7), (12, 2), (10, 9)]), C.NIGHT)
+        img.paint(img.m_line([(3, 14), (11, 3)], 1), C.EMBER)
+        img.put(12, 2, C.HELL)
+    elif relic_id == "mammons_gold_tooth":
+        # A gold molar with its roots.
+        img.paint(img.m_poly([(4, 3), (12, 3), (12, 9), (10, 14), (8, 10), (6, 14), (4, 9)]), C.GOLD)
+        img.paint(img.m_rect(5, 4, 7, 5), C.GOLD_LIGHT)
+        img.dither(img.m_rect(4, 8, 12, 14), C.GOLD, C.GOLD_DARK, 0.3)
     img.outline(C.BLACK)
     return img
-
 def write_all(art_dir):
     path = os.path.join(art_dir, "Ui", "relic_icons.png")
     sheet([icon(r) for r in ORDER]).save(path)

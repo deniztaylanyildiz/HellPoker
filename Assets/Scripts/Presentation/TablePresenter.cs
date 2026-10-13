@@ -891,6 +891,7 @@ namespace HellPoker.Presentation
             int bar = Math.Sign(round.YearsChange) * Shown(Math.Abs(round.YearsChange));
             int sentence = round.YearsChange + (KitGame?.UnhealedYearsThisHand ?? 0);
             string lines = "\n" + UiText.BarSentenceLines(bar, sentence);
+            if (KitGame?.SparedThisHand == true) lines += "\n" + UiText.LossSpared;   // a relic spared the loss: a push
             if (round.Folded) return round.FreeFold ? UiText.FreeFoldMessage : UiText.BarFold + lines;
             ShowdownResult s = round.Showdown;
             if (s == null) return UiText.BarFold + lines;   // (a demon never gives up his hand)

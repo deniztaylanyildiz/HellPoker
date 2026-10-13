@@ -99,6 +99,9 @@ namespace HellPoker.Core.Chapters
         public int Vendor = -1;
         public List<string> Cleansed = new List<string>();
 
+        /// <summary>Lucifer's Feather has spared its one hand (optional key).</summary>
+        public bool FeatherSpent;
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -190,6 +193,7 @@ namespace HellPoker.Core.Chapters
                 "vendors=" + string.Join(",", Vendors),
                 "vendor=" + Vendor,
                 "cleansed=" + string.Join(",", Cleansed),
+                "feather.spent=" + B(FeatherSpent),
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -294,6 +298,7 @@ namespace HellPoker.Core.Chapters
                     Vendors = Ints("vendors"),
                     Vendor = I("vendor", -1),
                     Cleansed = Ids("cleansed"),
+                    FeatherSpent = Bool("feather.spent"),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

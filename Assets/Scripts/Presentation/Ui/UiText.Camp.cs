@@ -63,6 +63,7 @@ namespace HellPoker.Presentation.Ui
         public static string BagPickFirst => L("Pick the relic to leave first.", "Önce bırakılacak emaneti seç.");
         public static string BagForgedMark => L("(forged)", "(dövülmüş)");
         public static string LeaveNewRelic => L("LEAVE THE NEW ONE", "YENİSİNİ BIRAK");
+        public static string LossSpared => L("A relic spares you: the hand counts as a push.", "Bir emanet seni korudu: el berabere sayıldı.");
 
         /// <summary>{0} the relic left behind.</summary>
         public static string BagDroppedFormat => L("{0} is left behind.", "{0} geride kaldı.");

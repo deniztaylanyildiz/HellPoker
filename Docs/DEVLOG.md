@@ -3233,3 +3233,19 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   rozet hover'ı (`JokerJackpotPhaseTwoFormat`), Phase 2 sınıf kartı (`ChapterSinnerAbility`).
 - Simülasyon (Soytarı, 500 koşu): kurtuluş %13.0 (E'de aynı tohumlarla %12.4, Demo 2.0.1 %8.6); koşu başına 0.5 kez yirmi joker.
 - Testler: `JesterJackpotTests` (2). EditMode 1049 (1045 geçti, 4 explicit).
+### Demo 2.1 — G: yeni emanetler (24 → 39) (2026-10-13)
+- 15 emanet (`ChapterRelics.New` sonuna; ikonlar `pixel_relics.py`, metinler `UiText.Relics`). Yaygın: Kül Kesesi (kat eli kazancı +2c / kat
+  masasında ilk ante +1), Kayıkçı'nın Feneri ("?" içleri görünür / pazar +%10), Paslı Zincir (DİNLEN +%50 / DÖVME yok), Kurşun Mühür (her şeytan
+  masasında ilk kaybedilen el berabere / o masada kazanç %90). Nadir: Yalancının Dili (tuzak ipucu açık / yardım iyiliği −%15), Kan Sözleşmesi
+  (kayıp barı yarı yarıya az iyileştirir — "hiç iyileşmez" simülasyonda +35 puandı — / el kayıpları cezaya +%25), Kayıp Ruhun Mektubu (yardım
+  +%20 / kabul edilen her teklif +20 yıl), Çift Zar (masa başına bir yeniden çekiş / kötülük her el +1), Soytarı'nın Şapkası, Kâhinin Gözlüğü,
+  Köylünün Tırpanı, Kralın Mühür Yüzüğü, Çağırıcının Tasması (sınıfa bağlı: yalnız kendi sınıfında ve orada 3 kat sık, `ChapterRelic.ClassId`,
+  `ChapterRelics.Draw(..., classId)`). Efsanevi: Lucifer'in Tüyü (koşuda bir kez kaybedilecek şeytan eli berabere / alındığı an ceza +%10),
+  Mammon'un Altın Dişi (kesedeki her 50c şeytana karşı kazanç +%3, en çok %15 / haraç +%25).
+- Kancalar `RelicExtras` işaretleriyle (`RelicEffects.Extras`): `ClassKit.Mark` (heybe, risk, vergi, müsadere, kehanet, dibe yollama),
+  `SummonPowers` (azma, bedel), `HellPokerGame.SparesLeft / LossSpared / SentenceLossPercent` ve jokerli el yüzdeleri, `BossTable.Arm /
+  WinWithRelics`, `FloorTable` (Kül Kesesi), `ChoiceEvent.Choose` (Mektup), `RunEffects.Joined` (Tüy; `FeatherSpent` kayıtta `feather.spent`).
+  Kilitli: Kan Sözleşmesi (5 koşu), Çift Zar (6 emanet al), Mektup (2. bölüm), Altın Diş (Belial'i yen), Tüy (Lucifer'e ulaş) — 39'un 24'ü açık.
+- Simülasyon (500 koşu): kurtuluş 32.1 (F'den sonra 28.4; Demo 2.0.1 tohumları 28.4 → +3.7). "!" (10 puanı geçen): Kan Sözleşmesi +21 (56
+  koşu), Kurşun Mühür +13, Çift Zar +10; sınıf emanetlerinin ve yükseltmelerin farkı sınıf karışımı (Köylü'nünkiler +, Büyücü / Soytarı'nınkiler −).
+- Testler: `NewRelicTests` (12); havuz ve kilit sayıları güncellendi. EditMode 1061 (1057 geçti, 4 explicit).

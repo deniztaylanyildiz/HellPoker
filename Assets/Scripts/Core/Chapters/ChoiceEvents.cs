@@ -106,7 +106,13 @@ namespace HellPoker.Core.Chapters
             int cost = Cost(run, choice);
             if (cost > 0) run.Purse.Add(-cost);
             var outcome = new EventOutcome { EventId = Id, Choice = choice, Result = choice };
-            if (choice != EventChoices.Pass) Resolve(run, choice, outcome);
+            if (choice != EventChoices.Pass)
+            {
+                Resolve(run, choice, outcome);
+                // The Lost Soul's Letter: every offer taken is years on the sentence.
+                int letter = run.Effects.CombinedRelics.Extra(RelicExtras.EventYears);
+                if (letter > 0 && !choice.StartsWith(EventChoices.TakePrefix, StringComparison.Ordinal)) YearsOn(run, letter, outcome);
+            }
             outcome.Coins = run.Purse.Coins - coins;
             return outcome;
         }
@@ -519,7 +525,7 @@ namespace HellPoker.Core.Chapters
             if (choice.StartsWith(EventChoices.GivePrefix, StringComparison.Ordinal))
             {
                 string given = choice.Substring(EventChoices.GivePrefix.Length);
-                var offers = ChapterRelics.Draw(run.NodeDice, RelicWeights.Market, Offered, run.Effects.AllHeld.Concat(new[] { given }).ToList(), run.RelicAvailable);
+                var offers = ChapterRelics.Draw(run.NodeDice, RelicWeights.Market, Offered, run.Effects.AllHeld.Concat(new[] { given }).ToList(), run.RelicAvailable, run.Sinner.Id);
                 run.Effects.Drop(given);
                 run.EventOffers.Clear();
                 run.EventOffers.AddRange(offers);

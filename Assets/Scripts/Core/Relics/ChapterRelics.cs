@@ -48,8 +48,10 @@ namespace HellPoker.Core.Relics
     /// <summary>A Phase 2 relic: a gift and a curse like the demo's, with its rarity (and, for a boss's own, the boss).</summary>
     public sealed class ChapterRelic : IRelic
     {
-        public ChapterRelic(string id, RelicRarity rarity, RelicEffects effects, RelicEffects boon, int expectedYears = 0, string bossId = null)
+        public ChapterRelic(string id, RelicRarity rarity, RelicEffects effects, RelicEffects boon, int expectedYears = 0, string bossId = null,
+            string classId = null)
         {
+            ClassId = classId;
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Rarity = rarity;
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
@@ -67,6 +69,9 @@ namespace HellPoker.Core.Relics
 
         /// <summary>The demon whose loot it is; null for the others.</summary>
         public string BossId { get; }
+
+        /// <summary>The class whose relic it is (its gift is that class's): drawn only for that class, three times as often (Demo 2.1).</summary>
+        public string ClassId { get; }
     }
 
     public static class ChapterRelicIds
@@ -94,6 +99,13 @@ namespace HellPoker.Core.Relics
         public const string MammonsScales = "mammons_scales";
         public const string BelialsMask = "belials_mask";
         public const string BelialsTongue = "belials_tongue";
+
+        // Demo 2.1: fifteen more, for the bag, the camps, the offers, the markets, the map and the classes.
+        public const string AshPurse = "ash_purse", FerrymansLantern = "ferrymans_lantern", RustedChain = "rusted_chain", LeadSeal = "lead_seal";
+        public const string LiarsTongue = "liars_tongue", BloodPact = "blood_pact", LostSoulsLetter = "lost_souls_letter", TwinDice = "twin_dice",
+            JestersHat = "jesters_hat", SeersSpectacles = "seers_spectacles", PeasantsScythe = "peasants_scythe", KingsSignet = "kings_signet",
+            SummonersLeash = "summoners_leash";
+        public const string LucifersFeather = "lucifers_feather", MammonsGoldTooth = "mammons_gold_tooth";
     }
 
     /// <summary>
@@ -113,8 +125,19 @@ namespace HellPoker.Core.Relics
         /// <summary>The market's first-chapter price by rarity.</summary>
         public const int CommonPrice = 45, RarePrice = 55, LegendaryPrice = 65;
 
-        private static ChapterRelic R(string id, RelicRarity rarity, RelicEffects effects, RelicEffects boon, int expected = 0, string boss = null) =>
-            new ChapterRelic(id, rarity, effects, boon, expected, boss);
+        private static ChapterRelic R(string id, RelicRarity rarity, RelicEffects effects, RelicEffects boon, int expected = 0, string boss = null,
+            string cls = null) => new ChapterRelic(id, rarity, effects, boon, expected, boss, cls);
+
+        /// <summary>A relic of Phase 2's marks alone (<see cref="RelicExtras"/>): <paramref name="gift"/> its boon, <paramref name="curse"/> the rest.</summary>
+        private static ChapterRelic M(string id, RelicRarity rarity, (string, int)[] gift, (string, int)[] curse, int expected, string cls = null,
+            RelicEffects giftEffects = null, RelicEffects curseEffects = null)
+        {
+            RelicEffects boon = new RelicEffects(extras: gift.Length == 0 ? null : RelicEffects.Marks(gift)).With(giftEffects);
+            RelicEffects all = boon.With(new RelicEffects(extras: curse.Length == 0 ? null : RelicEffects.Marks(curse))).With(curseEffects);
+            return new ChapterRelic(id, rarity, all, boon, expected, null, cls);
+        }
+
+        private static (string, int)[] Mk(params (string, int)[] marks) => marks;
 
         /// <summary>The chapters' own relics, in the icon strip's order (after the demo's).</summary>
         public static IReadOnlyList<ChapterRelic> New { get; } = new[]
@@ -146,6 +169,27 @@ namespace HellPoker.Core.Relics
                 15, Dealers.DealerRoster.BelialId),
             R(ChapterRelicIds.BelialsTongue, RelicRarity.Boss, new RelicEffects(redrawsPerTable: 1, bossBarPercent: 105), new RelicEffects(redrawsPerTable: 1),
                 15, Dealers.DealerRoster.BelialId),
+
+            // Demo 2.1 — common
+            M(ChapterRelicIds.AshPurse, RelicRarity.Common, Mk((RelicExtras.FloorWinCoins, 2)), Mk((RelicExtras.FloorFirstAnte, 1)), 5),
+            M(ChapterRelicIds.FerrymansLantern, RelicRarity.Common, Mk((RelicExtras.RevealUnknown, 1)), Mk(), 0, curseEffects: new RelicEffects(marketPercent: 110)),
+            M(ChapterRelicIds.RustedChain, RelicRarity.Common, Mk((RelicExtras.RestBonusPercent, 50)), Mk((RelicExtras.NoForge, 1)), 10),
+            M(ChapterRelicIds.LeadSeal, RelicRarity.Common, Mk((RelicExtras.BossSpare, 1)), Mk((RelicExtras.BossWinPoints, -10)), 5),
+            // rare
+            M(ChapterRelicIds.LiarsTongue, RelicRarity.Rare, Mk((RelicExtras.TrapHints, 1)), Mk((RelicExtras.HelpGoodPercent, -15)), 5),
+            // (The bar never healing at all: +35 points of freedom in the simulation — half its healing instead.)
+            M(ChapterRelicIds.BloodPact, RelicRarity.Rare, Mk((RelicExtras.BarNeverHeals, 25)), Mk((RelicExtras.SentenceLossPoints, 25)), 20),
+            M(ChapterRelicIds.LostSoulsLetter, RelicRarity.Rare, Mk((RelicExtras.HelpGoodPercent, 20)), Mk((RelicExtras.EventYears, 20)), 0),
+            R(ChapterRelicIds.TwinDice, RelicRarity.Rare, new RelicEffects(redrawsPerTable: 1, maliceExtraPerHand: 1), new RelicEffects(redrawsPerTable: 1), 15),
+            M(ChapterRelicIds.JestersHat, RelicRarity.Rare, Mk((RelicExtras.JokerWinPoints, 25)), Mk((RelicExtras.JokerBustPoints, 25)), 10, Sinners.Jester.ClassId),
+            M(ChapterRelicIds.SeersSpectacles, RelicRarity.Rare, Mk((RelicExtras.ProphecyCards, 1)), Mk((RelicExtras.ProphecyNoBottom, 1)), 10, Sinners.Warlock.ClassId),
+            M(ChapterRelicIds.PeasantsScythe, RelicRarity.Rare, Mk((RelicExtras.SatchelRoom, 1)), Mk((RelicExtras.SatchelRisk, 5)), 10, Sinners.Peasant.ClassId),
+            M(ChapterRelicIds.KingsSignet, RelicRarity.Rare, Mk((RelicExtras.TaxCap, 5)), Mk((RelicExtras.SeizePrice, 1)), 10, Sinners.King.ClassId),
+            M(ChapterRelicIds.SummonersLeash, RelicRarity.Rare, Mk((RelicExtras.ImpWild, -5)), Mk((RelicExtras.ImpPrice, 2), (RelicExtras.ImpBarPrice, 1)), 10,
+                Sinners.Summoner.ClassId),
+            // legendary
+            M(ChapterRelicIds.LucifersFeather, RelicRarity.Legendary, Mk((RelicExtras.FeatherSpare, 1)), Mk(), 15),
+            M(ChapterRelicIds.MammonsGoldTooth, RelicRarity.Legendary, Mk((RelicExtras.ToothPoints, 3)), Mk(), 20, curseEffects: new RelicEffects(tributePercent: 125)),
         };
 
         public static ChapterRelic Find(string id) => New.FirstOrDefault(r => r.Id == id);
@@ -167,6 +211,9 @@ namespace HellPoker.Core.Relics
         /// <summary>A beaten demon's own two relics (none for a demon without loot).</summary>
         public static IReadOnlyList<string> BossLoot(string bossId) => New.Where(r => r.BossId != null && r.BossId == bossId).Select(r => r.Id).ToArray();
 
+        /// <summary>A class's own relic is drawn this many times as often (for that class).</summary>
+        public const int ClassWeight = 3;
+
         /// <summary>The market's first-chapter price of a relic, by its rarity.</summary>
         public static int PriceOf(string id)
         {
@@ -182,9 +229,13 @@ namespace HellPoker.Core.Relics
         /// <paramref name="count"/> different relics drawn by <paramref name="weights"/>: a rarity first (among those with a relic left), then a
         /// relic of it. Never one in <paramref name="exclude"/> (those carried) or one <paramref name="available"/> refuses (locked).
         /// </summary>
+        /// <param name="classId">The run's class (Demo 2.1): another class's relic is never drawn, its own three times as often; null: none drawn.</param>
         public static IReadOnlyList<string> Draw(IRandomSource random, RelicWeights weights, int count, ICollection<string> exclude = null,
-            Func<string, bool> available = null)
+            Func<string, bool> available = null, string classId = null)
         {
+            Func<string, bool> classOk = id => Find(id)?.ClassId == null || Find(id).ClassId == classId;
+            Func<string, bool> unlocked = available;
+            available = id => classOk(id) && (unlocked == null || unlocked(id));
             if (random == null) throw new ArgumentNullException(nameof(random));
             var picked = new List<string>();
             var tiers = new[] { RelicRarity.Common, RelicRarity.Rare, RelicRarity.Legendary };
@@ -207,7 +258,9 @@ namespace HellPoker.Core.Relics
                         break;
                     }
                 }
-                picked.Add(left[tier][random.Next(left[tier].Count)]);
+                // The class's own relics three times as often within their rarity.
+                var pool = left[tier].SelectMany(id => Enumerable.Repeat(id, Find(id)?.ClassId != null ? ClassWeight : 1)).ToList();
+                picked.Add(pool[random.Next(pool.Count)]);
             }
             return picked;
         }

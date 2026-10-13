@@ -41,12 +41,12 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the pool
 
         [Test]
-        public void ThePool_TwentyFourRelics_ByRarity_AndTwoOfEachLootingDemonsOwn()
+        public void ThePool_ThirtyNineRelics_ByRarity_AndTwoOfEachLootingDemonsOwn()
         {
-            Assert.AreEqual(24, ChapterRelics.All.Count);
-            Assert.AreEqual(8, ChapterRelics.OfRarity(RelicRarity.Common).Count());
-            Assert.AreEqual(8, ChapterRelics.OfRarity(RelicRarity.Rare).Count());
-            Assert.AreEqual(4, ChapterRelics.OfRarity(RelicRarity.Legendary).Count());
+            Assert.AreEqual(39, ChapterRelics.All.Count, "Demo 2.1: fifteen more");
+            Assert.AreEqual(12, ChapterRelics.OfRarity(RelicRarity.Common).Count());
+            Assert.AreEqual(17, ChapterRelics.OfRarity(RelicRarity.Rare).Count());
+            Assert.AreEqual(6, ChapterRelics.OfRarity(RelicRarity.Legendary).Count());
             Assert.AreEqual(4, ChapterRelics.OfRarity(RelicRarity.Boss).Count());
             Assert.AreEqual(2, ChapterRelics.BossLoot(DealerRoster.MammonId).Count);
             Assert.AreEqual(2, ChapterRelics.BossLoot(DealerRoster.BelialId).Count);

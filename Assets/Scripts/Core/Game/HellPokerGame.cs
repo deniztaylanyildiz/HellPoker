@@ -310,17 +310,32 @@ namespace HellPoker.Core.Game
         /// <summary>A loss's unhealed years, as the hand is settled.</summary>
         public event Action<int> YearsUnhealed;
 
-        /// <summary>What a loss of <paramref name="years"/> puts on the table; the rest is told as unhealed.</summary>
+        /// <summary>Phase 2 (the Blood Pact): a loss goes on the sentence at this percent of itself (100: as it is).</summary>
+        public int SentenceLossPercent { get; set; } = 100;
+
+        /// <summary>What a loss of <paramref name="years"/> puts on the table; the rest (and the sentence's own share) is told as unhealed.</summary>
         private int Healed(int years)
         {
-            if (BarHealPercent >= 100 || years <= 0) return years;
-            int taken = (int)(((long)years * Math.Max(0, BarHealPercent) + 99) / 100);
-            int unhealed = years - taken;
-            if (unhealed <= 0) return years;
-            UnhealedYearsThisHand += unhealed;
-            YearsUnhealed?.Invoke(unhealed);
+            if ((BarHealPercent >= 100 && SentenceLossPercent == 100) || years <= 0) return years;
+            int taken = BarHealPercent >= 100 ? years : (int)(((long)years * Math.Max(0, BarHealPercent) + 99) / 100);
+            int sentence = (int)(((long)years * Math.Max(0, SentenceLossPercent) + 99) / 100);
+            int unhealed = sentence - taken;
+            if (unhealed > 0)
+            {
+                UnhealedYearsThisHand += unhealed;
+                YearsUnhealed?.Invoke(unhealed);
+            }
             return taken;
         }
+
+        /// <summary>Phase 2 (the Lead Seal, Lucifer's Feather): lost hands that are spared — counted as a push — still left at this table.</summary>
+        public int SparesLeft { get; set; }
+
+        /// <summary>The last settled hand was a loss spared as a push.</summary>
+        public bool SparedThisHand { get; private set; }
+
+        /// <summary>A lost hand was spared (the relic that spared it is told by the table that armed it).</summary>
+        public event Action LossSpared;
 
         public void Restart()
         {
@@ -1266,6 +1281,7 @@ namespace HellPoker.Core.Game
         {
             int yearsBefore = _ledger.Years;
             UnhealedYearsThisHand = 0;
+            SparedThisHand = false;
 
             bool freeFold = false;
             if (houseFolded)
@@ -1293,11 +1309,23 @@ namespace HellPoker.Core.Game
                 _ledger.Forgive(forgiven);
                 _cheats.PlayerWon(Rules);
             }
+            else if (showdown.Outcome == ShowdownOutcome.HouseWins && SparesLeft > 0)
+            {
+                // A relic spares the loss: it counts as a push.
+                SparesLeft--;
+                SparedThisHand = true;
+                LossSpared?.Invoke();
+            }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
-                _ledger.Add(Healed((int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,
-                                                  LossSurcharge(IsSoulHand)) *
-                                              (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
-                            + AnteShare(Ante, Relic.LossAntePercent)));       // the Rattle: half an ante more
+            {
+                int lost = (int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,
+                                                 LossSurcharge(IsSoulHand)) *
+                                             (ThisHand.LossPercent / 100.0))   // the lost soul doubles a loss
+                           + AnteShare(Ante, Relic.LossAntePercent);           // the Rattle: half an ante more
+                int bust = Relic.Extra(HellPoker.Core.Relics.RelicExtras.JokerBustPoints);   // the Jester's Hat: a hand lost to two jokers costs more
+                if (showdown.PlayerBust && bust > 0) lost += lost * bust / 100;
+                _ledger.Add(Healed(lost));
+            }
 
             // Phase 2: a demon's rule may put more on after the hand (Mammon's interest).
             HookYearsThisHand = Hooks == null || _ledger.IsServed ? 0
@@ -1343,6 +1371,10 @@ namespace HellPoker.Core.Game
                 if (ThisHand.WinSetsYears >= 0 && _ledger.Years > ThisHand.WinSetsYears)
                     forgiven = Math.Max(forgiven, _ledger.Years - ThisHand.WinSetsYears);
             }
+            // The Jester's Hat: a hand won with a joker in it forgives more.
+            int jokerWin = Relic.Extra(HellPoker.Core.Relics.RelicExtras.JokerWinPoints);
+            if (jokerWin > 0 && !_payouts.IsAbsolution(playerCategory) && PlayerHand != null && Enumerable.Range(0, Hand.Size).Any(i => PlayerHand[i].IsJoker))
+                forgiven = Math.Min(_ledger.Years, forgiven + forgiven * jokerWin / 100);
             if (Rules.KeepsTheLastYear && !_payouts.IsAbsolution(playerCategory))
                 forgiven = Math.Min(forgiven, _ledger.Years - 1);
             return forgiven;

@@ -139,6 +139,7 @@ namespace HellPoker.Core.Chapters
         private readonly int _purseCap;
         private readonly IRandomSource _markRandom;
         private int _freeHands;
+        private readonly int _winBonus;
         private bool _settled = true;
 
         public HellPokerGame Game { get; }
@@ -218,6 +219,7 @@ namespace HellPoker.Core.Chapters
             _tollPercent = tollPercent;
             _tollMax = tollMax;
             _markRandom = markRandom;
+            _winBonus = housePurse != null ? effects?.CombinedRelics.Extra(Relics.RelicExtras.FloorWinCoins) ?? 0 : 0;
             Marks = marks ?? TableMarks.None;
             _freeHands = Marks.FreeHands;
 
@@ -300,6 +302,12 @@ namespace HellPoker.Core.Chapters
             int? lossCap, bool warden, Sinner sinner, RunEffects effects, CoinPurse purse, int seed, IReadOnlyList<Card> deck, TableMarks marks)
         {
             marks = marks ?? TableMarks.None;
+            int firstAnte = effects?.CombinedRelics.Extra(Relics.RelicExtras.FloorFirstAnte) ?? 0;   // the Ash Purse
+            if (firstAnte != 0 && houseStart > 0)
+            {
+                Func<int, int> plain0 = anteAt;
+                anteAt = hand => hand == 1 ? plain0(hand) + firstAnte : plain0(hand);
+            }
             if (marks.AnteDelta != 0)
             {
                 Func<int, int> plain = anteAt;
@@ -439,6 +447,8 @@ namespace HellPoker.Core.Chapters
             if (coins > 0 && HousePurse != null) coins = Math.Min(coins, HousePurse.Coins);
             coins = _purse.Add(coins);
             AddToHouse(-coins);
+            // The Ash Purse: a won hand a few coins more, from nowhere.
+            if (won && _winBonus > 0) coins += _purse.Add(_winBonus);
             Coins += coins;
             int toll = won && _tollPercent > 0 && _purse.Coins > 0 ? Math.Min(_tollMax, _purse.Coins * _tollPercent / 100) : 0;
             _purse.Add(-toll);

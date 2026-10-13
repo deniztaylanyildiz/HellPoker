@@ -163,11 +163,20 @@ namespace HellPoker.Core.Events
         public bool Give(string id)
         {
             if (HellPoker.Core.Relics.RelicRoster.Find(id) == null || Holds(id)) return false;
-            if (AddRelic(id)) return true;
-            if (MaxBag <= 0 || BagFull || HellPoker.Core.Relics.RelicRoster.IsReward(id)) return false;
-            _bag.Add(id);
+            if (!AddRelic(id))
+            {
+                if (MaxBag <= 0 || BagFull || HellPoker.Core.Relics.RelicRoster.IsReward(id)) return false;
+                _bag.Add(id);
+            }
+            Joined?.Invoke(id);
             return true;
         }
+
+        /// <summary>A relic new to the run was given (<see cref="Give"/>; not a saved one coming back, not a swap).</summary>
+        public event Action<string> Joined;
+
+        /// <summary>Lucifer's Feather spared its one lost hand (once a run).</summary>
+        public bool FeatherSpent { get; set; }
 
         /// <summary>A worn relic goes into the bag (its curse silenced or desire lifted with it); false when the bag is full.</summary>
         public bool Unequip(string id)

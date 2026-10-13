@@ -155,6 +155,28 @@ namespace HellPoker.Core.Relics
 
         /// <summary>A camp's rest is this much (percent) more (the Rusted Chain); a camp may not forge while it is worn.</summary>
         public const string RestBonusPercent = "rest.bonus", NoForge = "forge.none";
+
+        /// <summary>The class relics (Demo 2.1): the satchel's room and risk, the prophecy's cards and the bottom forbidden, the treasury's
+        /// cap and the seizure's price, the imps' wildness (percent points) and their price (coins on a floor; a demon's table: percent).</summary>
+        public const string SatchelRoom = "satchel.room", SatchelRisk = "satchel.risk", ProphecyCards = "prophecy.cards", ProphecyNoBottom = "prophecy.nobottom",
+            TaxCap = "tax.cap", SeizePrice = "seize.price", ImpWild = "imp.wild", ImpPrice = "imp.price", ImpBarPrice = "imp.bar";
+
+        /// <summary>The floors (Demo 2.1's Ash Purse): coins more for a won floor hand; the first hand's ante more.</summary>
+        public const string FloorWinCoins = "floor.win", FloorFirstAnte = "floor.first.ante";
+
+        /// <summary>A demon's table: lost hands spared as pushes (the Lead Seal: the first at each), a win's percent points (the Lead Seal −10),
+        /// the bar never heals (the Blood Pact), the sentence's share of a loss in points (the Blood Pact +25), Lucifer's Feather (once a run).</summary>
+        public const string BossSpare = "boss.spare", BossWinPoints = "boss.win", BarNeverHeals = "bar.noheal", SentenceLossPoints = "sentence.loss",
+            FeatherSpare = "feather";
+
+        /// <summary>Years on the sentence for every offer taken (the Lost Soul's Letter).</summary>
+        public const string EventYears = "event.years";
+
+        /// <summary>A won hand with a joker in it, a hand lost to two jokers: percent points more (the Jester's Hat).</summary>
+        public const string JokerWinPoints = "joker.win", JokerBustPoints = "joker.bust";
+
+        /// <summary>Mammon's Gold Tooth: points on a demon's win for every 50 coins in the purse (at most 15).</summary>
+        public const string ToothPoints = "tooth";
     }
 
     /// <summary>

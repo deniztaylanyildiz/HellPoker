@@ -105,8 +105,18 @@ namespace HellPoker.Core.Chapters
                 ChapterTuning.MapVersion > 0 ? ChapterTuning.MapVersion : ChapterMap.CurrentVersion);
             journey.Run.Sentence = journey.Sentence;
             journey.Run.RunEventsSeen = journey._runEvents;
+            journey.WatchRelics();
             return journey;
         }
+
+        /// <summary>A relic new to the run: Lucifer's Feather puts a tenth on the sentence as it is taken.</summary>
+        private void WatchRelics() => Effects.Joined += id =>
+        {
+            if (id == ChapterRelicIds.LucifersFeather) Sentence.Add(Sentence.Years * FeatherSentencePercent / 100);
+        };
+
+        /// <summary>Lucifer's Feather: the sentence this much (percent) longer as it is taken.</summary>
+        public const int FeatherSentencePercent = 10;
 
         /// <summary>Demo 2.1's offers seen this run (each comes once a run): every chapter's run shares the set.</summary>
         private HashSet<string> _runEvents = new HashSet<string>();
@@ -184,9 +194,11 @@ namespace HellPoker.Core.Chapters
             LuciferBarStart = barStart > 0 ? barStart
                 : Math.Max(1, BossShares.For(Sinner.Id, Dealers.DealerRoster.LuciferId) * Circles.BarAt(Circle) / 100);
             Effects.SitAt(Dealers.DealerRoster.LuciferId, fresh: true);
-            HellPokerGame game = BossTable.Create(template, BossTable.Lucifer, LuciferBarStart, 101, Circles.WinPercentAt(Circle, ChapterRules.LuciferWinPercent),
+            HellPokerGame game = BossTable.Create(template, BossTable.Lucifer, LuciferBarStart, 101,
+                BossTable.WinWithRelics(Circles.WinPercentAt(Circle, ChapterRules.LuciferWinPercent), Effects.CombinedRelics, Run.Purse.Coins),
                 ChapterRules.LuciferLoss, RandomSeeds.Derive(Seed, LuciferStream), Sinner, Sinner, Circles.MaliceShortAt(Circle));
             game.UseEffects(Effects);
+            BossTable.Arm(game, Effects);
             Sentence.Follow(game);
             Kit.EnterLucifer();
             LuciferHooks = ChapterHooks.Attach(game, Kit, Dealers.DealerRoster.LuciferId, LuciferBarStart, RandomSeeds.Derive(Seed, LuciferStream),
@@ -252,6 +264,8 @@ namespace HellPoker.Core.Chapters
             journey._runEvents = new HashSet<string>(save.RunEvents ?? new List<string>());
             journey.Run.RestoreOffers(save.AnteCut, save.WardenPurse, save.Loan, save.LoanPays, save.Insured, save.BossMalice, save.Skip, save.Memo,
                 save.Offers, journey._runEvents, save.Revealed);
+            journey.WatchRelics();
+            effects.FeatherSpent = save.FeatherSpent;
             if (save.Lucifer)
             {
                 journey.Stage = JourneyStage.Lucifer;
@@ -331,6 +345,7 @@ namespace HellPoker.Core.Chapters
                 Vendors = run.VendorsSeen.Select(v => (int)v).ToList(),
                 Vendor = run.MarketHere.HasValue ? (int)run.MarketHere.Value : -1,
                 Cleansed = Effects.Cleansed.ToList(),
+                FeatherSpent = Effects.FeatherSpent,
                 Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,

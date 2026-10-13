@@ -161,6 +161,41 @@ namespace HellPoker.Core.Chapters
             return game;
         }
 
+        /// <summary>A demon's win percent with the worn relics (the Lead Seal's points off, Mammon's Gold Tooth's points on for every 50 coins).</summary>
+        public static int WinWithRelics(int winPercent, Relics.RelicEffects relics, int coins)
+        {
+            int points = relics.Extra(Relics.RelicExtras.BossWinPoints);
+            int tooth = relics.Extra(Relics.RelicExtras.ToothPoints);
+            if (tooth > 0) points += Math.Min(ToothMost, Math.Max(0, coins) / 50 * tooth);
+            return Math.Max(1, winPercent * (100 + points) / 100);
+        }
+
+        /// <summary>Mammon's Gold Tooth: at most this many points.</summary>
+        public const int ToothMost = 15;
+
+        /// <summary>
+        /// A demon's table takes the worn relics' marks (Demo 2.1): the Blood Pact (the bar never heals; a loss on the sentence a quarter more),
+        /// the Lead Seal (the first lost hand spared) and Lucifer's Feather (one lost hand spared, once a run: <see cref="Events.RunEffects.FeatherSpent"/>).
+        /// </summary>
+        public static void Arm(HellPokerGame game, Events.RunEffects effects)
+        {
+            if (game == null || effects == null) return;
+            Relics.RelicEffects relics = effects.CombinedRelics;
+            int cut = relics.Extra(Relics.RelicExtras.BarNeverHeals);   // the Blood Pact: the bar heals by less (points off its percent)
+            if (cut > 0) game.BarHealPercent = Math.Max(0, game.BarHealPercent - cut);
+            game.SentenceLossPercent = 100 + relics.Extra(Relics.RelicExtras.SentenceLossPoints);
+            int seal = relics.Extra(Relics.RelicExtras.BossSpare);
+            bool feather = relics.Extra(Relics.RelicExtras.FeatherSpare) > 0 && !effects.FeatherSpent;
+            game.SparesLeft = seal + (feather ? 1 : 0);
+            if (!feather) return;
+            int sealLeft = seal;
+            game.LossSpared += () =>
+            {
+                if (sealLeft > 0) sealLeft--;
+                else effects.FeatherSpent = true;
+            };
+        }
+
         /// <summary>The demon is beaten (the bar is empty) or the soul burned: the table is over.</summary>
         public static bool IsOver(GamePhase phase) => phase == GamePhase.Absolved || phase == GamePhase.Damned;
     }

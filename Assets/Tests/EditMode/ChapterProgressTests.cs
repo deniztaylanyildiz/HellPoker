@@ -233,8 +233,8 @@ namespace HellPoker.Core.Tests
         public void TheLocks_FourteenRelicsAndFourClassesOpen_TheMilestonesOpenTheRest()
         {
             var book = new ChapterRecords();
-            Assert.AreEqual(14, ChapterUnlocks.OpenRelics(book).Count());
-            Assert.AreEqual(10, ChapterUnlocks.Relics.Count);
+            Assert.AreEqual(24, ChapterUnlocks.OpenRelics(book).Count(), "Demo 2.1: 39 relics, 15 locked");
+            Assert.AreEqual(15, ChapterUnlocks.Relics.Count);
             Assert.IsFalse(ChapterUnlocks.IsClassOpen(Summoner.ClassId, book));
             Assert.IsTrue(SinnerRoster.All.All(c => ChapterUnlocks.IsClassOpen(c.Id, book)));
 

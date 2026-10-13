@@ -57,6 +57,12 @@ namespace HellPoker.Core.Chapters
             Kind = KindOf(sinner.Class);
         }
 
+        /// <summary>The worn relics' effects (the class relics bend the kit: Demo 2.1); null: none.</summary>
+        public Func<HellPoker.Core.Relics.RelicEffects> Relics { get; set; }
+
+        /// <summary>A mark of the worn relics (<see cref="Relics.RelicExtras"/>).</summary>
+        public int Mark(string key) => Relics?.Invoke()?.Extra(key) ?? 0;
+
         public static KitKind KindOf(SinnerClass sinnerClass)
         {
             switch (sinnerClass?.Id)
@@ -98,13 +104,13 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>The satchel holds this many (the Wide Satchel: one more).</summary>
-        public int SatchelCapacity => SatchelSize + (Has(UpgradeIds.WideSatchel) ? 1 : 0);
+        public int SatchelCapacity => SatchelSize + (Has(UpgradeIds.WideSatchel) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.SatchelRoom);
 
         /// <summary>Thrown cards that may go into the satchel after a draw (Abundance: two).</summary>
         public int KeepsPerHand => Has(UpgradeIds.Abundance) ? 2 : 1;
 
         /// <summary>How much more often the demon re-raises a hand drawn from the satchel (the Quiet Satchel: half).</summary>
-        public int SatchelRisk => Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent;
+        public int SatchelRisk => (Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent) + Mark(HellPoker.Core.Relics.RelicExtras.SatchelRisk);
 
         /// <summary>Seen cards the charged prophecy sends down (Thrice: three).</summary>
         public int RearrangesPerCharge => RearrangesPerUse + (Has(UpgradeIds.Thrice) ? 1 : 0);
@@ -113,13 +119,13 @@ namespace HellPoker.Core.Chapters
         public int DemonKnowsPercent => Has(UpgradeIds.BlindMirror) ? 50 : 100;
 
         /// <summary>The treasury holds this many taxes (the Overflowing Treasury: fifteen).</summary>
-        public int TaxCapacity => Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax;
+        public int TaxCapacity => (Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax) + Mark(HellPoker.Core.Relics.RelicExtras.TaxCap);
 
         /// <summary>The taxes an act of the treasury costs (the Cheap Seizure: 3; the Royal Decree: a free raise for 1).</summary>
         public int PriceOf(TaxAct act) =>
             act == TaxAct.Reveal ? RevealPrice
             : act == TaxAct.FreeRaise ? (Has(UpgradeIds.RoyalDecree) ? FreeRaisePrice - 1 : FreeRaisePrice)
-            : Has(UpgradeIds.CheapSeizure) ? SeizePrice - 1 : SeizePrice;
+            : (Has(UpgradeIds.CheapSeizure) ? SeizePrice - 1 : SeizePrice) + Mark(HellPoker.Core.Relics.RelicExtras.SeizePrice);
 
         /// <summary>The Seed: a chapter begins with a ten or better in the satchel (a card it does not hold yet).</summary>
         public Card? Sow(Randomness.IRandomSource random)
@@ -181,7 +187,11 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>How many cards of the deck's top the Warlock sees: one in the first chapter, one more for every demon beaten (Mammon,
         /// Belial), three at Lilith's and Lucifer's tables.</summary>
-        public int ProphecyCards => Kind != KitKind.Prophecy ? 0 : (AtLucifer ? ProphecyMost : Math.Min(ProphecyMost, Chapter)) + (Has(UpgradeIds.DeepProphecy) ? 1 : 0);
+        public int ProphecyCards => Kind != KitKind.Prophecy ? 0
+            : (AtLucifer ? ProphecyMost : Math.Min(ProphecyMost, Chapter)) + (Has(UpgradeIds.DeepProphecy) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.ProphecyCards);
+
+        /// <summary>The seen cards may go to the bottom (not with the Seer's Spectacles worn).</summary>
+        public bool CanSendToBottom => Mark(HellPoker.Core.Relics.RelicExtras.ProphecyNoBottom) == 0;
 
         // ------------------------------------------------------------------ Lucifer's mirror (his own copy of the class's mechanic)
 

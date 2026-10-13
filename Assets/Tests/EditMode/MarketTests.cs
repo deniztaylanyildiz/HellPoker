@@ -111,11 +111,12 @@ namespace HellPoker.Core.Tests
             string made = market.Transmute(commons[0], commons[1]);
             Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(made));
             Assert.IsFalse(run.Effects.Holds(commons[0]) || run.Effects.Holds(commons[1]));
+            int malice = run.Effects.CombinedRelics.MaliceExtraPerHand, win = run.Effects.CombinedRelics.WinPercent;
             Assert.IsTrue(market.Cleanse(RelicIds.RustyCrown));
-            Assert.AreEqual(0, run.Effects.CombinedRelics.MaliceExtraPerHand, "the crown's curse burned away");
-            Assert.AreEqual(105, run.Effects.CombinedRelics.WinPercent, "its gift stays");
+            Assert.AreEqual(malice - 1, run.Effects.CombinedRelics.MaliceExtraPerHand, "the crown's curse burned away");
+            Assert.AreEqual(win, run.Effects.CombinedRelics.WinPercent, "its gift stays");
             run.EndChapter();
-            Assert.AreEqual(0, run.Effects.CombinedRelics.MaliceExtraPerHand, "for good");
+            Assert.AreEqual(malice - 1, run.Effects.CombinedRelics.MaliceExtraPerHand, "for good");
         }
 
         [Test]

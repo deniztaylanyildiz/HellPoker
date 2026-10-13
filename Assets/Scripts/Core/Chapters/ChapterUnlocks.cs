@@ -51,6 +51,12 @@ namespace HellPoker.Core.Chapters
             new Milestone(ChapterRelicIds.HangmansRope, "lilith", 1, r => r.Beaten(DealerRoster.LilithId) >= 1),
             new Milestone(ChapterRelicIds.LilithsTear, "lucifer", 1, r => r.LuciferReached >= 1),
             new Milestone(ChapterRelicIds.AbyssCoin, "freed", 1, r => r.Freed >= 1),
+            // Demo 2.1: five of the fifteen new ones are locked too.
+            new Milestone(ChapterRelicIds.BloodPact, "runs", 5, r => r.Runs >= 5),
+            new Milestone(ChapterRelicIds.TwinDice, "bought", 6, r => r.RelicsBought >= 6),
+            new Milestone(ChapterRelicIds.LostSoulsLetter, "chapter2", 1, r => r.DeepestChapter >= 2),
+            new Milestone(ChapterRelicIds.MammonsGoldTooth, "belial", 1, r => r.Beaten(DealerRoster.BelialId) >= 1),
+            new Milestone(ChapterRelicIds.LucifersFeather, "lucifer", 1, r => r.LuciferReached >= 1),
         };
 
         public static readonly Milestone SummonerMilestone = new Milestone(Summoner.ClassId, "freed", 1, r => r.Freed >= 1);
