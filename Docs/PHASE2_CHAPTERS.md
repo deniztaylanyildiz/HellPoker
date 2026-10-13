@@ -571,6 +571,28 @@ Simülasyon (sınıf başına 500 koşu, ortalama kurtuluş; Köylü / Büyücü
 haraç +20 ve pazar küçük. Kullanıcıya seçenek (uygulanmadı, `ChapterTuning.CircleWinStepPercent` / `HELLPOKER_CIRCLE_WIN`): **her daire
 şeytanların kazancını %5 kırpsın** → 5. daire ort. %10.0 (26.6 / 5.0 / 9.8 / 3.8 / 5.0); %4 → %12.6, %8 → %2.9.
 
+## On ikinci tur: dairelerin kazanç kesintisi — Demo 2.0.1 (2026-10-13)
+
+Kullanıcı kararı: her daire şeytana karşı kazancı %5 kırpar (`Circles.WinStepPercent`, `ChapterTuning.CircleWinStepPercent` oyunda 5;
+`HELLPOKER_CIRCLE_WIN` düğmesi duruyor). Daire 3'ün kalın barıyla birlikte: kazanç yüzdesi × 100 / 115 × (100 − 5 × daire) / 100.
+
+Simülasyon (sınıf başına 500 koşu; daire 0 2000 koşu; Köylü / Büyücü / Kral / Soytarı / Çağırıcı):
+
+| Daire | Ort. | K / B / Kr / S / Ç |
+|---|---|---|
+| 0 | %25.4 | 40.9 / 21.4 / 31.8 / 8.2 / 26.8 |
+| 1 | %24.4 | 40.0 / 20.0 / 28.8 / 7.4 / 25.6 |
+| 2 | %22.5 | 40.0 / 17.8 / 25.4 / 6.2 / 23.0 |
+| 3 | %15.8 | 30.8 / 11.6 / 20.0 / 4.0 / 12.8 |
+| 4 | %14.2 | 31.2 / 9.2 / 16.8 / 4.8 / 9.2 |
+| 5 | %10.0 | 26.6 / 5.0 / 9.8 / 3.8 / 5.0 |
+
+Hedef tuttu: her daire bir öncekinden düşük, 5. daire %10.0 (hedef %5-15); %4 / %6 denenmedi.
+
+**Kullanıcı onayladı (değişiklik yok):** Çağırıcı kese 200 / ceza 5800; Kara Pazar en çok 2 emanete kadar satar; "barlar +%15" kalın bar
+yorumu ve 5. dairedeki "bir eksik kötülük" (gösterge bir kısa) yorumu; 24 emanetin dağılımı (8 + 8 + 4 + Mammon 2 + Belial 2).
+Soytarı ve Büyücü'nün dengesine oyun testinden sonra bakılacak.
+
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

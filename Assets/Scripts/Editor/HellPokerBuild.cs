@@ -71,31 +71,6 @@ namespace HellPoker.Editor
             }
         }
 
-        /// <summary>Phase 2's builds, kept apart from the demo's (its folder, its zip and its version stay untouched).</summary>
-        public const string Phase2Folder = "Builds/Phase2";
-        public const string Phase2Version = "1.3.0-phase2";
-
-        /// <summary>
-        /// A Phase 2 build in Builds/Phase2, packed as Builds/HellPoker-1.2.0-phase2-win64.zip. The build carries its own version
-        /// (the menu corner reads "v1.2.0-phase2"); the project's version (the demo's) is put back right after the build.
-        /// </summary>
-        [MenuItem("Hell Poker/Build Windows (Phase 2)")]
-        public static void WindowsPhase2()
-        {
-            if (!Build(Phase2Folder, BuildOptions.None, Phase2Version)) return;
-            string zip = $"Builds/HellPoker-{HellPoker.Core.Game.ReleaseVersion.FileName(Phase2Version)}-win64.zip";
-            try
-            {
-                Pack(Phase2Folder, zip, Phase2Version, "PHASE2_TEST.txt");
-                Debug.Log($"Hell Poker packed: {Path.GetFullPath(zip)} ({new FileInfo(zip).Length / (1024 * 1024)} MB).");
-            }
-            catch (IOException exception)
-            {
-                Debug.LogError($"Hell Poker: the zip could not be written: {exception.Message}");
-                if (Application.isBatchMode) EditorApplication.Exit(1);
-            }
-        }
-
         [MenuItem("Hell Poker/Build Windows (Development)")]
         public static void WindowsDevelopment() => Build(DevelopmentFolder, BuildOptions.Development);
 

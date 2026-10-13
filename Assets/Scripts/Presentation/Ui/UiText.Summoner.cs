@@ -66,7 +66,15 @@ namespace HellPoker.Presentation.Ui
         /// <summary>A circle's note on the class choice: its number and every rule down to it.</summary>
         public static string CircleNote(int circle) =>
             circle <= 0 ? CircleEffect(0)
-                : string.Format(CircleLabelFormat, circle) + ": " + string.Join(" ", Enumerable.Range(1, circle).Select(CircleEffect));
+                : string.Format(CircleLabelFormat, circle) + ": " + string.Join(" ", Enumerable.Range(1, circle).Select(CircleEffect)) + " " +
+                  string.Format(CircleWinNoteFormat, Circles.WinStepPercent * circle);
+
+        /// <summary>The circles' toll on every demon's table: {0} the percent a win is worth less there.</summary>
+        public static string CircleWinNoteFormat => L("Wins against a demon: −{0}%.", "Şeytana karşı kazanç: −%{0}.");
+
+        /// <summary>How to Play's line on the circles: {0} the percent each circle takes off a win against a demon.</summary>
+        public static string CircleWinRuleFormat => L("Every circle also makes a win against a demon take {0}% less off his bar.",
+            "Her daire, şeytana karşı kazancın barından sildiğini de %{0} azaltır.");
 
         /// <summary>{0} the deepest circle open for the class.</summary>
         public static string CirclesOpenFormat => L("Circles open: 0-{0}", "Açık daireler: 0-{0}");

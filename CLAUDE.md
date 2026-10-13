@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.0-win64.zip` (bundleVersion **2.0.0-demo**: menüde "Demo 2.0" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.0.1-win64.zip` (bundleVersion **2.0.1-demo**: menüde "Demo 2.0" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -32,11 +32,9 @@ el sayısı barın hover'ında), rakamsız; sonunda ruh çizgisi (leylak) ya da 
 çizgiye yaklaştıkça koyulaşır; kısalınca kaybedilen kısım parlayıp söner, uzayınca yeni kısım koyu kırmızı dolar; Mammon'un faizi ayrı bir
 adım (`TablePresenter.ShowBossBar`). Boss masasında sağ üstteki sayaç gizli (`TableView.SetCurrency(Bar)`; ruh lambası yine çıkar).
 Haritada (`ChapterMapState.Bar`) ve kapıda (`PanelCard.Bar`) küçük bar; yıl yazısı yok.
-**Phase 2 (oynanabilir, 1.3.0-phase2):** tasarım ve simülasyon tabloları `Docs/PHASE2_CHAPTERS.md`. Ana menüde **PHASE 2 TESTİ** /
-**PHASE 2: DEVAM** (yeni koşu eskisinin üstüne onayla, eskisi lanet sayılır): sınıf → Bölüm 1 Mammon'un Kasası (8 kat) → Bölüm 2
-Belial'in Sahnesi (10) → Bölüm 3 Lilith'in Gecesi (12) → Lucifer (KURTULUŞ / DÜŞTÜN: bar başlangıcın %125'ini geçerse). Demo (YENİ OYUN /
-DEVAM) dokunulmadan duruyor. Test build'i `HellPokerBuild.WindowsPhase2` (Komutlar'da); `-fpstour` Bölüm 1 → 2 geçişini de gezer
-(`ChapterPresenter.PrepareTour`; oyuncunun Phase 2 kaydının üstüne yazar).
+**Phase 2 (tek oyun):** tasarım ve simülasyon tabloları `Docs/PHASE2_CHAPTERS.md`. YENİ OYUN (koşu sürerken onayla, eskisi lanet sayılır):
+sınıf → Bölüm 1 Mammon'un Kasası (8 kat) → Bölüm 2 Belial'in Sahnesi (10) → Bölüm 3 Lilith'in Gecesi (12) → Lucifer (KURTULUŞ / DÜŞTÜN: bar
+başlangıcın %125'ini geçerse). `-fpstour` Bölüm 1 → 2 geçişini de gezer (`ChapterPresenter.PrepareTour`; oyuncunun Phase 2 kaydının üstüne yazar).
 Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), başlangıç kesesi (`ChapterRules.StartingCoinsFor`: Köylü 120,
 Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 180 / 270 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
 iblisin kesesi Masa 30 / 30 / 40, Bekçi 50 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
@@ -75,8 +73,9 @@ GÖZ / EL / FISILTI (katta 5 / 15 / 8 coin, boss'ta bar %2 / 5 / 3, el kapanınc
 bedava); Lucifer'in Aynası 3 elde bir Göz. **Daireler** (`Circles`, 0-5, birikimli; `ChapterRules.WithCircle`, `ChapterJourney.Circle`, kayıtta
 `circle`): 1 iblis kesesi +%25, 2 haraç +20, 3 kalın bar (+%15, kazanç %15 az), 4 pazar ×1.25 + ateş 2 seçenek (`ChapterRun.FireOffers`),
 5 kötülük göstergesi bir kısa + Lucifer iki mekanik (`LuciferMirror.Second`). Sınıf her kurtuluşta bir sonraki daireyi açar (`CirclesOpen`,
-`circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Dairelerin hedefi tutmadı (PHASE2_CHAPTERS on birinci tur; seçenek
-`HELLPOKER_CIRCLE_WIN`).
+`circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Ayrıca her daire şeytana karşı kazancı %5 kırpar (`Circles.WinStepPercent`,
+`Circles.WinPercentAt`; simülasyon `HELLPOKER_CIRCLE_WIN`): ortalama kurtuluş daire 0-5: 25.4 / 24.4 / 22.5 / 15.8 / 14.2 / 10.0
+(PHASE2_CHAPTERS on ikinci tur). Çağırıcı 200 / 5800, Kara Pazar 2 emanet, kalın bar ve kısa gösterge yorumları, 24 emanet: kullanıcı onayladı.
 Açık (kullanıcıda): sınıf farkı (Demo 2.0, 2000 koşu: kurtuluş Köylü %40.9, Kral %31.8, Çağırıcı %26.8, Büyücü %21.4, Soytarı %8.2);
 dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
 
@@ -569,7 +568,7 @@ Assets/Scripts/
     4'ten fazlaysa iki sütun; işaret edilenin açıklaması üstünde), Abstractions/IChapterViews (ChapterMapState, PanelCard, PanelOption),
     Currency (ITableView.SetCurrency: yıl / coin; ante metni). TablePresenter'da bölüm modu: SitAtFloor /
     SitAtBoss, ChapterTableFinished, CoinMode (sayaç = kese, metinler coin, KARIŞTIR / LEAVE yok, kayıt / rekor / Lucifer kapısı yok,
-    isim altında iblisin kesesi ve ante). Menü: PHASE 2 TESTİ (IMainMenuView.SetChapters, ChaptersPressed). Metinler: UiText.Chapters.cs
+    isim altında iblisin kesesi ve ante). Menü: YENİ OYUN / DEVAM ET (IMainMenuView.SetSimulator). Metinler: UiText.Chapters.cs
     (+ DealerText imp / collector). Çizim: Tools/ArtGen/pixel_floors.py (generate_art.py floors): iki portre (7 durum), iki salon,
     Ui/chapter_map, Ui/map_nodes (NodeKind sırası + kapı), Events/ altında 5 yabancı. Testler: ChapterPresenterTests, ChapterMenuTests,
     PlayMode ChapterJourneyTests (+ [Explicit] ChapterScreenshots, 70–83).
@@ -737,8 +736,6 @@ py Tools/ArtGen/preview.py        # Tools/ArtGen/preview/index.html: şeytan kar
 # DİKKAT: son player build'den sonra yeni bir script KLASÖRÜ eklendiyse build.log'da "error CS0234/CS0246" satırları çıkar: Bee eski
 # player DAG'ının dosya listesiyle ilk csc'yi dener, sonra listeyi yenileyip derler. Hüküm "Build Finished, Result: ..." satırı ve çıkış kodu.
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.Windows -logFile build.log
-# Phase 2 build (demodan ayrı): Builds/Phase2 + Builds/HellPoker-1.3.0-phase2-win64.zip, sürüm sadece build için 1.3.0-phase2 (`HellPokerBuild.Phase2Version`)
-& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -quit -projectPath . -executeMethod HellPoker.Editor.HellPokerBuild.WindowsPhase2 -logFile build.log
 # Player log (Company "Deniz", Product "Hell Poker"): %USERPROFILE%\AppData\LocalLow\Deniz\Hell Poker\Player.log
 # Duman testi (her build): HellPoker.exe -fpstour → menü, seçim, salonlar, Lucifer; log'da hata olmamalı.
 # FPS ölçümü: development build (Builds/WindowsDev, F3 açık), sonra her ekranı gezip log'a yazan tur:

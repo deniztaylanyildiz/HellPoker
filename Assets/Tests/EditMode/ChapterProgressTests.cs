@@ -184,6 +184,21 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void EveryCircle_TakesFivePercentOffAWinAgainstADemon()
+        {
+            Assert.AreEqual(5, Circles.WinStepPercent);
+            Assert.AreEqual(5, ChapterTuning.CircleWinStepPercent, "the game's value");
+            Assert.AreEqual(100, Circles.WinPercentAt(0, 100));
+            Assert.AreEqual(95, Circles.WinPercentAt(1, 100));
+            Assert.AreEqual(90, Circles.WinPercentAt(2, 100));
+            Assert.AreEqual(100 * 100 / 115 * 85 / 100, Circles.WinPercentAt(3, 100), "the thick bar and the circle's cut");
+            Assert.AreEqual(100 * 100 / 115 * 75 / 100, Circles.WinPercentAt(5, 100));
+            StringAssert.Contains("15%", Presentation.Ui.UiText.CircleNote(3), "the class choice says it");
+            StringAssert.Contains("5%", Presentation.Ui.UiText.GameRulesPage(), "How to Play says it");
+            StringAssert.DoesNotContain("{CIRCLES}", Presentation.Ui.UiText.GameRulesPage());
+        }
+
+        [Test]
         public void TheFifthCircle_LuciferCopiesTwoMechanics()
         {
             Assert.AreEqual(KitKind.Satchel, LuciferMirror.SecondFor(KitKind.Treasury));

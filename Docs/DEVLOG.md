@@ -3123,3 +3123,20 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Kullanıcıdan beklenen kararlar: Soytarı (%8.2) ve Büyücü (%21.4) hedefin altında, Köylü %40.9 sınırda; Kara Pazar'ın 2 emanete kadar
   satması; Çağırıcı kese 200 / ceza 5800; dairelerin hedefi tutmadı (seçenek: daire başına şeytan kazancı −%5 → 5. daire %10); "barlar +%15"
   ve "bir eksik kötülük" yorumları; Çift Kahkaha (+17 puan); 24 emanetin dağılımı (Lilith'ten sonra ganimet yok).
+### Demo 2.0.1: daireler ve temizlik (2026-10-13)
+- İstek (Desktop'taki prompt dosyası): Demo 2.0'ın açık kararlarını kapat. 1) her daire şeytan kazancını %5 kırpsın, sınıf seçimi ve How to
+  Play'de iki dilde yazsın, simülasyonda her daire düşsün, 5. daire %5-15; 2) Çağırıcı 200 / 5800, Kara Pazar 2 emanet, kalın bar ve bir eksik
+  kötülük yorumları, 24 emanet: kullanıcı onayladı; 3) eski Phase 2 build'ini kaldır; 4) kapanış (testler, 2.0.1-demo, CHANGELOG, PHASE2_CHAPTERS
+  on ikinci tur, build, duman turu, commit, etiket). Ek istek: güncel build ve demolar dışındaki Unity build'lerini sil.
+- Yapılanlar: `Circles.WinStepPercent` = 5 (`ChapterTuning.CircleWinStepPercent` oyunda 5, `HELLPOKER_CIRCLE_WIN` duruyor), `UiText.CircleNote`
+  "Şeytana karşı kazanç: −%N", How to Play'de `CircleWinRuleFormat`; `HellPokerBuild.WindowsPhase2` / `Phase2Version` / `Phase2Folder` / menü ve
+  `Docs/Release/PHASE2_TEST.txt` silindi; CLAUDE.md'den eski PHASE 2 TESTİ / DEVAM, "demo dokunulmadan" ve WindowsPhase2 komutu çıktı;
+  `ReleaseVersion.Display` yamayı gösterir ("2.0.1-demo" → "Demo 2.0.1"; yoksa zip "Demo-2.0" adıyla çıkıyordu). Builds'ten Phase2 klasörü,
+  1.1.0 / 1.2.0 / 1.3.0-phase2 ve 1.4.0 zip'leri silindi.
+- Daireler (500 koşu, ortalama kurtuluş): 0 %25.4 · 1 %24.4 · 2 %22.5 · 3 %15.8 · 4 %14.2 · 5 %10.0 (tablo: PHASE2_CHAPTERS on ikinci tur).
+- Testler: EditMode 989 (985 geçti, 4 explicit). PlayMode 17 / 3 / 8 / 5; grup 2'de `RunJourneyTests.NewGame_Hands_ChangeTable_Continue_Reopen_Continue`
+  bir kez düştü (Belial'e geçiş görülmedi), tekrar 3/3 geçti — kararsız, demonun testi; kullanıcıya söylendi, devam dendi.
+- Build `Builds/HellPoker-Demo-2.0.1-win64.zip`; kayıtlar yedeklendi, 3 duman turu (çıkış 0, hata yok), yedek geri yüklendi.
+- Kaza: sürüm düzeltmesinden önceki ilk build `HellPoker-Demo-2.0-win64.zip`'in üstüne yazdı; o dosya (yanlış etiketli 2.0.1) silindi. Asıl Demo
+  2.0 zip'i gerekirse `v2.0-demo` etiketinden yeniden alınabilir.
+- Açık: Soytarı ve Büyücü dengesi oyun testinden sonra; kararsız RunJourneyTests.

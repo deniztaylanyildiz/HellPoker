@@ -374,7 +374,7 @@ namespace HellPoker.Core.Tests
                 if (EnvInt("HELLPOKER_SUMMONER_TOTAL", 0) > 0) ChapterTuning.SentenceTotals[Summoner.ClassId] = EnvInt("HELLPOKER_SUMMONER_TOTAL", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE2", 0) > 0) ChapterTuning.TributeOverStart[2] = EnvInt("HELLPOKER_TRIBUTE2", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
-                ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", 0);
+                ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", Circles.WinStepPercent);
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
                 WholeRunReport();
             }

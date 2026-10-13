@@ -23,7 +23,9 @@ namespace HellPoker.Presentation.Ui
 
         public static string GameRulesButton => L("THE GAME", "OYUN");
 
-        public static string GameRulesPage() => L(
+        public static string GameRulesPage() => GameRulesBody().Replace("{CIRCLES}", string.Format(CircleWinRuleFormat, Core.Chapters.Circles.WinStepPercent));
+
+        private static string GameRulesBody() => L(
             "HELL POKER: Five Card Draw against the House, all the way down to Lucifer. Choose who you were (a class), then go down " +
             "three chapters: Mammon's Vault, Belial's Stage, Lilith's Night.\n" +
             "THE MAP: start at any table of the first floor, then follow the lit paths: tables (an imp, for coins), wardens (a relic), " +
@@ -34,7 +36,8 @@ namespace HellPoker.Presentation.Ui
             "THE DEMON'S BAR: your share of the sentence is his health bar, under his portrait. A win shortens it, a loss lengthens it. " +
             "Empty it and he is beaten (take his spoils); let it reach the mark at its end and your soul goes on the table.\n" +
             "LUCIFER waits after Lilith: empty his bar and you are FREE; let it climb past its mark and you fall.\n" +
-            "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell, chosen on its card.\n" +
+            "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell, chosen on its card. " +
+            "{CIRCLES}\n" +
             "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
             "Hand (the black aces and eights) beats everything.",
             "HELL POKER: kasaya karşı Beş Kart Poker, Lucifer'e kadar. Kim olduğunu seç (bir sınıf), sonra üç bölüm in: Mammon'un " +
@@ -47,7 +50,8 @@ namespace HellPoker.Presentation.Ui
             "ŞEYTANIN BARI: cezanın o şeytana düşen payı, portresinin altındaki can barıdır. Kazanç kısaltır, kayıp uzatır. " +
             "Boşaltırsan yenilir (ganimetini al); sonundaki işarete ulaşırsa ruhun masaya konur.\n" +
             "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN; işaretini geçerse düşersin.\n" +
-            "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ (kartında seçilir).\n" +
+            "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ (kartında seçilir). " +
+            "{CIRCLES}\n" +
             "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
             "(siyah aslar ve sekizler) her eli yener.");
 

@@ -16,6 +16,8 @@ namespace HellPoker.Core.Game
             if (!IsDemo(bundleVersion)) return "v" + bundleVersion;
             string number = bundleVersion.Substring(0, bundleVersion.Length - DemoSuffix.Length);
             string[] parts = number.Split('.');
+            // A patch shows when it is not zero: "1.0.0-demo" reads "Demo 1.0", "2.0.1-demo" reads "Demo 2.0.1".
+            if (parts.Length >= 3 && parts[2] != "0") return "Demo " + parts[0] + "." + parts[1] + "." + parts[2];
             return "Demo " + (parts.Length >= 2 ? parts[0] + "." + parts[1] : number);
         }
 

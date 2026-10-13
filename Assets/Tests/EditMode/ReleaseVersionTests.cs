@@ -11,6 +11,8 @@ namespace HellPoker.Core.Tests
         {
             Assert.AreEqual("Demo 1.0", ReleaseVersion.Display("1.0.0-demo"));
             Assert.AreEqual("Demo-1.0", ReleaseVersion.FileName("1.0.0-demo"));
+            Assert.AreEqual("Demo 2.0.1", ReleaseVersion.Display("2.0.1-demo"), "a patch shows");
+            Assert.AreEqual("Demo-2.0.1", ReleaseVersion.FileName("2.0.1-demo"));
             Assert.IsTrue(ReleaseVersion.IsDemo("1.0.0-demo"));
             Assert.AreEqual("v0.1.6", ReleaseVersion.Display("0.1.6"));
             Assert.AreEqual("0.1.6", ReleaseVersion.FileName("0.1.6"));

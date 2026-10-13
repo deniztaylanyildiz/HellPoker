@@ -1,5 +1,18 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.0.1 (2.0.1-demo) — 2026-10-13
+
+### Değişen
+- **Cehennem Daireleri:** her daire şeytana karşı kazancı %5 kırpar (5. dairede −%25). Daireler artık gerçekten sırayla zorlaşıyor
+  (simülasyonda ortalama kurtuluş 0. dairede %25, 5. dairede %10). Kural sınıf seçimindeki daire notunda ve How to Play'de yazıyor.
+
+### Temizlik
+- Eski ayrı Phase 2 test build'i kaldırıldı (artık tek oyun, tek build).
+
+### Onaylananlar (değişmedi)
+- Çağırıcı: kese 200, ceza 5800. Kara Pazar en çok 2 emanete kadar satar. "Barlar +%15" kalın bar olarak, 5. dairede kötülük
+  göstergesi bir kısa. 24 emanetin dağılımı.
+
 ## Demo 2.0 (2.0.0-demo) — 2026-10-13
 
 Phase 2'nin ilk oyun testi demosu: tek oyun (YENİ OYUN / DEVAM ET), üç bölüm ve Lucifer.
