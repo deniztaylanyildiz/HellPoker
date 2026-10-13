@@ -94,8 +94,8 @@ namespace HellPoker.Core.Tests
             int years = journey.Sentence.Years;
             EventOutcome relic = new FallenAngel().Choose(run, "relic");
             Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(relic.Relic));
-            Assert.AreEqual(years + 150, journey.Sentence.Years);
-            Assert.AreEqual(150, run.YearsOwed, "on the demon's bar at the gate");
+            Assert.AreEqual(years + FallenAngel.Years, journey.Sentence.Years);
+            Assert.AreEqual(FallenAngel.Years, run.YearsOwed, "on the demon's bar at the gate");
             EventOutcome upgrade = new FallenAngel().Choose(run, "upgrade");
             CollectionAssert.Contains(run.Kit.Upgrades, upgrade.Upgrade);
         }

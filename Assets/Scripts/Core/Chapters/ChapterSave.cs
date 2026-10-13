@@ -93,6 +93,9 @@ namespace HellPoker.Core.Chapters
         public List<string> Forged = new List<string>();
         public int? CampBar;
 
+        /// <summary>Optional: the purse as the run came to the gate (Mammon's Gold Tooth counts it; -1: none, or a save from before it).</summary>
+        public int GateCoins = -1;
+
         /// <summary>Optional keys of Demo 2.1's markets: the vendors met this chapter, the one of the market stood at (-1: none), the relics
         /// cleansed for good.</summary>
         public List<int> Vendors = new List<int>();
@@ -190,6 +193,7 @@ namespace HellPoker.Core.Chapters
                 "bag=" + string.Join(",", Bag),
                 "forged=" + string.Join(",", Forged),
                 "camp.bar=" + (CampBar.HasValue ? CampBar.Value.ToString(CultureInfo.InvariantCulture) : ""),
+                "gate.coins=" + GateCoins.ToString(CultureInfo.InvariantCulture),
                 "vendors=" + string.Join(",", Vendors),
                 "vendor=" + Vendor,
                 "cleansed=" + string.Join(",", Cleansed),
@@ -295,6 +299,7 @@ namespace HellPoker.Core.Chapters
                     Bag = Ids("bag"),
                     Forged = Ids("forged"),
                     CampBar = S("camp.bar") != null ? I("camp.bar") : (int?)null,
+                    GateCoins = I("gate.coins", -1),
                     Vendors = Ints("vendors"),
                     Vendor = I("vendor", -1),
                     Cleansed = Ids("cleansed"),

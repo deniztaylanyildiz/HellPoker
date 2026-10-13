@@ -633,6 +633,18 @@ Emanetlerde "!" (2. bölüme taşıyan koşular): Kan Sözleşmesi (`blood_pact`
 
 **Kullanıcıda:** ceza puanı ölçeği (kurtuluşta ort. ~4300 yıl, TERTEMİZ %1); Kan Sözleşmesi'nin gücü; Soytarı / Büyücü farkı; +5.3.
 
+### Kullanıcının kararı ve son ayar (2026-10-13)
+
+Kullanıcı: sınıflar farklı zorlukta olabilir; güçlü emanet dizilimleri (build) ve "kırık" şeyler oyunun parçası. Sınıf dengesine ve Kan
+Sözleşmesi'ne dokunulmadı; fiyat 55 / 65 / 75 ve DİNLEN (ceza −%5, bar −%3) kaldı; ceza puanının ölçeği aynı (golf skoru gibi: az olan iyi).
+Düzeltilen iki "tuzak gibi çalışan" şey:
+- **Mammon'un Altın Dişi:** lütuf haraçtan sonraki keseyi sayıyordu (haraç keseyi boşaltıyor: lütuf ~0, lanet tam). Artık kapıya getirilen
+  keseyi sayar (`ChapterRun.GateCoins`, kayıtta `gate.coins`), laneti haraç +%25 → +%15. Simülasyonda farkı −12.6 → −7.0 (örneklem küçük,
+  emanete para harcayan koşu karışık).
+- **Düşmüş Melek** (yardım olayı): 150 yıl (bara da biniyor) → 100. Alanlar −13.4 geride kalıyordu.
+
+Son simülasyon (1000 koşu): Köylü 50.1, Büyücü 24.6, Kral 38.4, Soytarı 15.0, Çağırıcı 32.4, **hepsi 32.1** (Demo 2.0.1'e göre +6.3;
+kullanıcının "kırık build olabilir" kararıyla kabul).
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

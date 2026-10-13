@@ -198,7 +198,7 @@ namespace HellPoker.Core.Chapters
     /// <summary>The Fallen Angel, a wing broken: years on the sentence for a rare relic or a class upgrade (the player's pick).</summary>
     public sealed class FallenAngel : ChoiceEvent
     {
-        public const int Years = 150;
+        public const int Years = 100;   // 150 at first (75: taken every time, no choice left): a help that worked as a trap (freed −13 when taken)
         public override string Id => ChoiceEventIds.FallenAngel;
         public override EventFamily Family => EventFamily.Help;
         public override IReadOnlyList<string> Choices(ChapterRun run) => Of("relic", "upgrade", EventChoices.Pass);

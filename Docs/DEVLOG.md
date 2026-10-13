@@ -3265,3 +3265,13 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Testler: EditMode 1061 (1057 geçti, 4 explicit); PlayMode 17/17, 3/3, 8/8, 5/5 (son değişiklikten sonra bölüm grubu yeniden 5/5).
 - Açık (kullanıcıda): ceza puanının ölçeği (kurtuluşta ort. ~4300 yıl, TERTEMİZ %1.2); Kan Sözleşmesi (+28), Kurşun Mühür, Çift Zar;
   `fallen_angel` / `soul_insurance` farkları; satıcı farkları (karışık ölçü); Soytarı / Büyücü dengesi; +5.3.
+
+### Demo 2.1 — kararlar kullanıcıdan Claude'a (2026-10-13)
+- İstek: "senden optimal bir oyun istiyorum bu kararları kendin al ve uygula"; ardından "classların hepsi farklı zorlukta olabilir oyunda
+  build mantığı var zaten kırık birşeyler olacak".
+- Kararlar: sınıf farkı ve Kan Sözleşmesi kalır (build); fiyat / DİNLEN kalır (etkisi gürültüde); ceza puanı ölçeği kalır; +6.3 kabul.
+  `soul_insurance` tasarım gereği dolandırıcılık (ipucu var): kalır.
+- Düzeltmeler: Altın Diş kapıya getirilen keseyi sayar (`GateCoins`, `gate.coins`; eski kayıtta -1 → kese), lanet haraç +%15; Düşmüş Melek
+  100 yıl (75'te simülasyon her seferinde aldı). Test: `MammonsGoldTooth_CountsThePurseBroughtToTheGate…`.
+- Simülasyon 1000 koşu: 50.1 / 24.6 / 38.4 / 15.0 / 32.4, hepsi 32.1. EditMode 1062 (1058, 4 explicit), PlayMode bölüm grubu 5/5.
+- `v2.1-demo` etiketi (push edilmemişti) bu commit'e taşındı; zip yeniden üretildi.

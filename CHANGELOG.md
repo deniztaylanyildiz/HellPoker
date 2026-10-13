@@ -19,6 +19,7 @@
 ### Değişen
 - Soytarı: 20 jokerde jokerler silinmez, sayı 10'a iner; Çıngırak'tan sonra her 20'de bir emanet ya da 30 coin.
 - Kara Pazar artık 2 emanetle sınırlı değil; emanet fiyatları 55 / 65 / 75.
+- Mammon'un Altın Dişi kapıya getirdiğin keseyi sayar (haraçtan önce); laneti haraç +%15. Düşmüş Melek'in bedeli 100 yıl.
 
 ## Demo 2.0.1 (2.0.1-demo) — 2026-10-13
 

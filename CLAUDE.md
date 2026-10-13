@@ -86,10 +86,11 @@ sürüm 1): 2-5 düğüm, kesişmeyen merdiven yollar, "?" (`NodeKind.Unknown`, 
 `IChoiceEvent` (`ChoiceEvents.cs`, 16: yardım / dolandırıcılık / cehennem; zar, ölçek ×1 / 1.25 / 1.5, koşuda bir kez, tuzak ipucu;
 Büyücü görür, Çağırıcı 5c). **Kamp ve çanta** — bir eylem (DİNLEN ceza −%5 bar −%3, BİLE, TÖREN, DÖV `RelicRoster.ForgePercent`),
 4. daireden ikisi; `RelicBagView` (5 takılı + 5 çanta). **Pazar** — `MarketVendor` (6 satıcı, bölümde bir kez; pazarlık, vitrin
-yenileme), emanet fiyatı 55 / 65 / 75. **Soytarı** — Phase 2'de 20 joker → 10 (`Sinner.JackpotFallsTo`), Çıngırak'tan sonra her 20 bir
+yenileme), emanet fiyatı 55 / 65 / 75; Mammon'un Altın Dişi kapıya getirilen keseyi sayar (ChapterRun.GateCoins, kayıtta gate.coins). **Soytarı** — Phase 2'de 20 joker → 10 (`Sinner.JackpotFallsTo`), Çıngırak'tan sonra her 20 bir
 ödül. **Emanetler** — 39 (15 yeni; `RelicExtras` işaretleri, sınıf emanetleri yalnız kendi sınıfında ×3, 15 kilitli). Düğmeler:
 `HELLPOKER_BAR_HEAL`, `HELLPOKER_BOSS_LOSS`, `HELLPOKER_MAP`, `HELLPOKER_VENDOR`, `HELLPOKER_REST_AT`.
-Açık (kullanıcıda): sınıf farkı (Demo 2.0, 2000 koşu: kurtuluş Köylü %40.9, Kral %31.8, Çağırıcı %26.8, Büyücü %21.4, Soytarı %8.2);
+**Kullanıcı kararı (Demo 2.1):** sınıflar farklı zorlukta olabilir, güçlü emanet dizilimleri (build) oyunun parçası — sınıfları eşitlemeye
+çalışma (Demo 2.1, 1000 koşu: Köylü %50.1, Kral %38.4, Çağırıcı %32.4, Büyücü %24.6, Soytarı %15.0; hepsi %32.1). Açık:
 dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
 
 ## Oyun

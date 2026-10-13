@@ -745,6 +745,7 @@ namespace HellPoker.Core.Chapters
         {
             ArriveAtGate();
             int before = Purse.Coins;
+            GateCoins = before;
             int tribute = Tribute;
             int paid = TributePaid(before);
             int missing = tribute - paid;
@@ -794,7 +795,7 @@ namespace HellPoker.Core.Chapters
             Effects.SitAt(boss.Id, fresh: true);
             BossBarStart = Years;
             HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent,
-                BossTable.WinWithRelics(Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Effects.CombinedRelics, Purse.Coins), Rules.BossLossPercent,
+                BossTable.WinWithRelics(Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Effects.CombinedRelics, GateCoins >= 0 ? GateCoins : Purse.Coins), Rules.BossLossPercent,
                 RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
             game.UseEffects(Effects);
             BossTable.Arm(game, Effects);
@@ -919,6 +920,11 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The camps' sum on the next demon's bar, as a save kept it (Demo 2.1).</summary>
         public void RestoreCampBar(int percent) => CampBarPercent = percent;
+
+        /// <summary>The purse as the run came to this chapter's gate, before the tribute (-1: not yet); Mammon's Gold Tooth counts it.</summary>
+        public int GateCoins { get; private set; } = -1;
+
+        public void RestoreGateCoins(int coins) => GateCoins = coins;
 
         /// <summary>What Demo 2.1's offers left behind, as a save kept it (the unknown nodes revealed as "floor:lane").</summary>
         public void RestoreOffers(int anteCut, int wardenPurse, int loan, bool loanPays, bool insured, bool bossMalice, bool skip, int memo,

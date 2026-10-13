@@ -190,7 +190,7 @@ namespace HellPoker.Core.Relics
                 Sinners.Summoner.ClassId),
             // legendary
             M(ChapterRelicIds.LucifersFeather, RelicRarity.Legendary, Mk((RelicExtras.FeatherSpare, 1)), Mk(), 15),
-            M(ChapterRelicIds.MammonsGoldTooth, RelicRarity.Legendary, Mk((RelicExtras.ToothPoints, 3)), Mk(), 20, curseEffects: new RelicEffects(tributePercent: 125)),
+            M(ChapterRelicIds.MammonsGoldTooth, RelicRarity.Legendary, Mk((RelicExtras.ToothPoints, 3)), Mk(), 20, curseEffects: new RelicEffects(tributePercent: 115)),
         };
 
         public static ChapterRelic Find(string id) => New.FirstOrDefault(r => r.Id == id);

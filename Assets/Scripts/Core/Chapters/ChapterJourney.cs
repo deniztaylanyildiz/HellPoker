@@ -258,6 +258,7 @@ namespace HellPoker.Core.Chapters
                 save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
             if (save.CampBar.HasValue) journey.Run.RestoreCampBar(save.CampBar.Value);
+            journey.Run.RestoreGateCoins(save.GateCoins);
             int vendors = Enum.GetValues(typeof(MarketVendor)).Length;
             journey.Run.RestoreVendors(save.Vendors.Where(v => v >= 0 && v < vendors).Select(v => (MarketVendor)v),
                 save.Vendor >= 0 && save.Vendor < vendors ? (MarketVendor)save.Vendor : (MarketVendor?)null);
@@ -342,6 +343,7 @@ namespace HellPoker.Core.Chapters
                 Bag = Effects.Bag.ToList(),
                 Forged = Effects.Forged.ToList(),
                 CampBar = run.CampBarPercent,
+                GateCoins = run.GateCoins,
                 Vendors = run.VendorsSeen.Select(v => (int)v).ToList(),
                 Vendor = run.MarketHere.HasValue ? (int)run.MarketHere.Value : -1,
                 Cleansed = Effects.Cleansed.ToList(),

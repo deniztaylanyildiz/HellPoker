@@ -205,12 +205,28 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void MammonsGoldTooth_ThreePointsForEveryFifty_TheTributeAQuarterMore()
+        public void MammonsGoldTooth_ThreePointsForEveryFifty_TheTributeFifteenPercentMore()
         {
             RelicEffects tooth = Of(ChapterRelicIds.MammonsGoldTooth);
             Assert.AreEqual(109, BossTable.WinWithRelics(100, tooth, 150));
             Assert.AreEqual(115, BossTable.WinWithRelics(100, tooth, 5000), "15 at most");
-            Assert.AreEqual(125, tooth.TributePercent);
+            Assert.AreEqual(115, tooth.TributePercent);
+        }
+
+        [Test]
+        public void MammonsGoldTooth_CountsThePurseBroughtToTheGate_NotWhatTheTributeLeft_Saved()
+        {
+            ChapterJourney journey = Journey();
+            ChapterRun run = journey.Run;
+            run.Effects.Give(ChapterRelicIds.MammonsGoldTooth);
+            Assert.AreEqual(-1, run.GateCoins, "not at the gate yet");
+            run.Purse.Add(run.Tribute + 250 - run.Purse.Coins);
+            run.PayTribute();
+            Assert.AreEqual(run.Tribute + 250, run.GateCoins);
+            Assert.Less(run.Purse.Coins, run.GateCoins);
+            Assert.IsTrue(ChapterSave.TryDecode(journey.Capture().Encode(), out ChapterSave read));
+            Assert.AreEqual(run.GateCoins, ChapterJourney.Restore(read).Run.GateCoins);
+            Assert.AreEqual(115, BossTable.WinWithRelics(100, run.Effects.CombinedRelics, run.GateCoins), "at least 250 brought: the most");
         }
 
         [Test]

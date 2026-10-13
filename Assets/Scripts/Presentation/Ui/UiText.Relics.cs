@@ -98,7 +98,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.KingsSignet: return L("The treasury holds five taxes more.", "Hazine beş vergi fazla tutar.");
                 case ChapterRelicIds.SummonersLeash: return L("An imp runs wild half as often.", "İblis yarı yarıya daha az azar.");
                 case ChapterRelicIds.LucifersFeather: return L("Once a run, a lost hand at a demon's table counts as a push.", "Koşuda bir kez, şeytan masasında kaybedilecek el berabere sayılır.");
-                case ChapterRelicIds.MammonsGoldTooth: return L("Every 50 coins in the purse: a demon's win +3% (15% at most).", "Kesedeki her 50 coin: şeytana karşı kazanç +%3 (en çok %15).");
+                case ChapterRelicIds.MammonsGoldTooth: return L("Every 50 coins you bring to the gate: a demon's win +3% (15% at most).", "Kapıya getirdiğin her 50 coin: şeytana karşı kazanç +%3 (en çok %15).");
                 default: return "";
             }
         }
@@ -146,7 +146,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.KingsSignet: return L("A seizure costs one tax more.", "MÜSADERE bir vergi fazla.");
                 case ChapterRelicIds.SummonersLeash: return L("Imps cost 2 coins more (a demon's table: 1% more).", "İblis bedeli 2 coin fazla (şeytan masasında %1).");
                 case ChapterRelicIds.LucifersFeather: return L("As you take it: your sentence 10% longer.", "Aldığın an: cezan %10 uzar.");
-                case ChapterRelicIds.MammonsGoldTooth: return L("The gate's tribute +25%.", "Kapıda haraç +%25.");
+                case ChapterRelicIds.MammonsGoldTooth: return L("The gate's tribute +15%.", "Kapıda haraç +%15.");
                 default: return "";
             }
         }

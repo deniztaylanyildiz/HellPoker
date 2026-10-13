@@ -175,7 +175,7 @@ namespace HellPoker.Core.Relics
         /// <summary>A won hand with a joker in it, a hand lost to two jokers: percent points more (the Jester's Hat).</summary>
         public const string JokerWinPoints = "joker.win", JokerBustPoints = "joker.bust";
 
-        /// <summary>Mammon's Gold Tooth: points on a demon's win for every 50 coins in the purse (at most 15).</summary>
+        /// <summary>Mammon's Gold Tooth: points on a demon's win for every 50 coins brought to the gate, before the tribute (at most 15).</summary>
         public const string ToothPoints = "tooth";
     }
 
