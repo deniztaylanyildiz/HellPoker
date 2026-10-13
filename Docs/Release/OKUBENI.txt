@@ -9,7 +9,8 @@ değişebilir.
 
 Bilinen sınırlamalar:
   - 2K gibi yüksek çözünürlüklü ekranlarda yazılar bulanık görünürse Ayarlar > GÖRÜNTÜ > PİKSEL ÖLÇEĞİ'nde TAM PİKSEL'i seç.
-  - Denge hâlâ test aşamasında: sınıflar arasında fark var (Soytarı çok zor), derin dairelerin zorluğu henüz ayarlanmadı.
+  - Denge hâlâ test aşamasında: sınıflar arasında fark var (Soytarı çok zor); yeni olayların, pazarların ve emanetlerin sayıları
+    ilk tahmin.
   - Hata / öneri butonu e-posta uygulamanı açar; açılmazsa rapor panoya kopyalanır, bir e-postaya yapıştırman yeter.
   - Şeytanın kuralı masa açılırken söylenir; ilk oynayışta ilk ipucu bu repliğin üstüne yazılabilir (kurallar How to Play'de de var).
 
@@ -30,29 +31,35 @@ YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Büyücü, Kral ya da Soyt
 Bir sınıfla kurtulursan o sınıf için cehennemin bir sonraki DAİRESİ açılır (sınıf kartındaki < DAİRE > oklarıyla seçilir; her daire
 biraz daha zor). Bazı emanetler kilitli başlar; ne zaman açılacakları REKORLAR'da yazar.
 
-HARİTA: her bölüm katlardan oluşan bir harita. İlk kattaki herhangi bir masadan başla, sonra yalnızca yanan yollardan in. Düğümün
-üstüne gelince ne olduğu yazar.
+HARİTA: her bölüm katlardan oluşan bir harita; katlarda 2-5 düğüm, yollar ayrılıp birleşir. İlk kattaki üç düğümden birinden
+başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne olduğu yazar.
   - Masa (kartlar): bir iblise karşı coin'le oynarsın. Masa bir kese boşalana kadar sürer. İblisinki boşalırsa geçersin; SENİNKİ
     boşalırsa koşu biter.
   - Bekçi (altın göz): daha zengin, hileci bir iblis; yenersen bir lanetli emanet verir.
-  - Yabancı (kukuletalı): bir teklif; kabul et ya da geç.
-  - Kara Pazar (terazi): lanetli emanetler ve hizmetler. Hazine: bedava coin. Araf Ateşi (son kat): şeytanın masası için bir lütuf
-    (ya da RUHUNU BİLE: sınıfına bir yükseltme, ama şeytanın barı uzun başlar).
+  - Yabancı (kukuletalı): yardım eder, dolandırır ya da cehennemin kendisidir; iki-üç seçenek, bazıları zara bağlı. Dolandırıcının
+    sözlerinde küçük bir ipucu vardır (Büyücü tuzağı açıkça görür, Çağırıcı 5 coin'e iblisine baktırır).
+  - Bilinmeyen (?): içinde ne olduğu girince belli olur.
+  - Kara Pazar (terazi): altı satıcıdan biri (kaçakçı, rehinci, kemik tüccarı, simyacı, kumarbaz, terzi), her birinin kendi malı.
+    Her pazarda bir kez pazarlık, bir kez vitrin yenileme. Hazine: bedava coin.
+  - Kamp (ateş; bölümün ortasında ve son katta): bir şey yap — DİNLEN (cezan düşer, şeytanın barı biraz kısalır), RUHUNU BİLE (sınıf
+    yükseltmesi, bar uzar), TÖREN (ilk hileyi boz ya da bir laneti sustur) ya da DÖV (bir emanetin lütfu artar).
 
-EMANETLER: en çok 3 tane taşırsın (Kara Pazar ikiye kadar satar; üçüncüsü bir bekçiden ya da şeytanın ganimetinden gelir). Her
-emanetin bir lütfu, bir laneti vardır; çerçevesinin rengi nadirliğidir (yaygın, nadir, efsanevi, şeytanın kendi emaneti).
+EMANETLER: en çok 5'i takılı (masada sadece onlar etki eder), 5'i de çantada bekler. Takılı ve çantadakileri kampta (EMANET DÜZENİ)
+değiştirirsin; haritadaki EMANETLER düğmesi hepsini gösterir. Her emanetin bir lütfu, bir laneti vardır; çerçevesinin rengi
+nadirliğidir. Bazı emanetler bir sınıfa aittir, yalnız o sınıfta çıkar.
 Şeytanı yenince ganimetinde onun iki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin). Yükseltmeler sınıfının gücünü kalıcı
 olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
 
 KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür, kazanç en çok ×3 öder. Bir bölüm başlarken kesen
 sınıfının başlangıç kesesinin altındaysa ona tamamlanır.
 
-KAPI ve CAN BARI: son katın altındaki kapıda şeytan coin'le haraç alır; eksik her coin onun barına yazılır. Sonra masası: cezanın
-o şeytana düşen payı, portresinin altındaki kırmızı CAN BARIDIR (rakam yok). Kazandığın elde bar kısalır, kaybettiğinde uzar.
-Bar biterse şeytan yenilir ve ganimetini alırsın; barın sonundaki işarete ulaşırsa ruhun masaya konur, ruhun biterse lanetlenirsin.
-Bu masada her şey barın yüzdesiyle yazılır.
+CEZA ve CAN BARI: cezan (yıl) senindir; haritada, kapıda ve şeytan masasında sağ üstte yazar. Son katın altındaki kapıda şeytan
+coin'le haraç alır; eksik her coin hem cezana hem onun barına yazılır. Sonra masası: portresinin altındaki kırmızı CAN BARI (rakam
+yok). Kazandığın el yıllarını hem bardan hem cezandan siler; kaybettiğin el yıllarını cezana tam, barına yarısını yazar. Bar biterse
+şeytan yenilir ve ganimetini alırsın; barın sonundaki işarete ulaşırsa ruhun masaya konur, ruhun biterse lanetlenirsin.
 
-LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN; barı sonundaki işareti geçerse düşersin (koşu biter).
+LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır (REKORLAR'da sınıf ve daire başına en
+düşüğü); barı sonundaki işareti geçerse düşersin (koşu biter).
 
 SINIF GÜÇLERİ (portrenin altındaki 5 pip: kazanç +1, kayıp +2, çekilme +1; dolunca K gücü kullanır). Masada diyalog kutusunun
 altındaki panelde:
@@ -64,7 +71,8 @@ altındaki panelde:
     şeytanın parasıyla), MÜSADERE (bir kartını ver, şeytanın en iyi açık kartını al). J, Q, K'na hiçbir hile dokunamaz. Şeytanın
     masasında kaybedilen el vergilerin yarısını götürür. K: bedava müsadere.
   - Soytarı: destede joker var (2 ile başlar, kazandıkça artar). Tek joker el sonunda istediğin karta döner; elinde 2 joker varsa
-    kaybedersin, fazlasını kart değiştirirken at. Şeytan da joker çekebilir.
+    kaybedersin, fazlasını kart değiştirirken at. Şeytan da joker çekebilir. 20 jokerde sayı 10'a iner: ilk seferde Soytarı'nın
+    Çıngırağı, sonrakilerde bir emanet ya da 30 coin.
   - Çağırıcı, İBLİSLER: kart değiştirmeden önce GÖZ (şeytanın kapalı bir kartını aç, 5 coin), EL (bir kartını onun açık bir kartıyla
     değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını
     düşürür. K: LEJYON, o elde üçü de bedava.

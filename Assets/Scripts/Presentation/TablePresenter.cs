@@ -2271,6 +2271,7 @@ namespace HellPoker.Presentation
                     // A floor speaks in coins (its numbers are the purse's, the Collector's toll included); the cheat's log has no years then.
                     string result = CoinMode ? CoinResultMessage(round, _seat.LastHand)
                         : BarMode && !soulHand ? BarResultMessage(round) : ResultMessage(round, soulHand);
+                    if (BarMode) _view.SetPot(0);   // the hand is over: its lines take the pot's place
                     _view.SetMessage(WithKitLines(WithSeatLine(WithJackpot(WithCheatLog(result, soulHand || CoinMode), round)), round),
                         playerWon || round.HouseFolded ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     if (IsHoldingTheLastYear)

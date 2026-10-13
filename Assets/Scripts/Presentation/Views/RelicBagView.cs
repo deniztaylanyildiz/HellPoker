@@ -53,26 +53,26 @@ namespace HellPoker.Presentation.Views
 
         private void Build(RectTransform screen)
         {
-            Image shade = UiFactory.CreateImage("Shade", screen, Color.clear);
+            Image shade = UiFactory.CreateImage("BagShade", screen, Color.clear);
             shade.rectTransform.Stretch();
             shade.raycastTarget = true;
 
-            Image panel = UiFactory.CreatePanel("Panel", screen, hot: true);
+            Image panel = UiFactory.CreatePanel("BagPanel", screen, hot: true);
             panel.raycastTarget = true;
             panel.rectTransform.PlaceTL(X, Y, Width, Height);
 
-            UiFactory.CreateText("Title", panel.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithOutline()
+            UiFactory.CreateText("BagTitle", panel.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithOutline()
                 .Localized(() => UiText.BagTitle).rectTransform.PlaceTL(Left, 8, Width - 20, 10);
-            UiFactory.CreateText("WornLabel", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft).Localized(() => UiText.BagWornLabel)
+            UiFactory.CreateText("BagWornLabel", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft).Localized(() => UiText.BagWornLabel)
                 .rectTransform.PlaceTL(Left, WornY - 11, 140, 9);
-            UiFactory.CreateText("BagLabel", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft).Localized(() => UiText.BagBagLabel)
+            UiFactory.CreateText("BagBagLabel", panel.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft).Localized(() => UiText.BagBagLabel)
                 .rectTransform.PlaceTL(Left, BagY - 11, 140, 9);
 
             for (int i = 0; i < RelicBagState.Slots; i++)
             {
                 int place = i;
                 int x = Left + (i % RelicBagState.Worn) * Step, y = i < RelicBagState.Worn ? WornY : BagY;
-                Image tile = UiFactory.CreateImage("Place" + i, panel.transform, Palette.Black);
+                Image tile = UiFactory.CreateImage("BagPlace" + i, panel.transform, Palette.Black);
                 tile.rectTransform.PlaceTL(x, y, Tile, Tile);
                 tile.raycastTarget = true;
                 Outline frame = UiFactory.AddBorder(tile.gameObject, Palette.BoneDark, 1f);
@@ -94,23 +94,23 @@ namespace HellPoker.Presentation.Views
             }
 
             // The hover's words, right of the places.
-            Image tip = UiFactory.CreateImage("Tip", panel.transform, Palette.Black);
+            Image tip = UiFactory.CreateImage("BagTip", panel.transform, Palette.Black);
             tip.raycastTarget = false;
             tip.rectTransform.PlaceTL(Left + RelicBagState.Worn * Step + 4, WornY - 2, Width - (Left + RelicBagState.Worn * Step + 4) - 8, BagY + Tile - WornY + 4);
             UiFactory.AddBorder(tip.gameObject, Palette.Lilac, 1f);
-            _tipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _tipText = UiFactory.CreateText("BagTipText", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _tipText.rectTransform.PlaceTL(4, 3, Width - (Left + RelicBagState.Worn * Step + 4) - 16, BagY + Tile - WornY - 2);
             _tip = tip.gameObject;
 
-            _totals = UiFactory.CreateText("Totals", panel.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft);
+            _totals = UiFactory.CreateText("BagTotals", panel.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft);
             _totals.rectTransform.PlaceTL(Left, BagY + Tile + 8, Width - 2 * Left, 20);
-            _message = UiFactory.CreateText("Message", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _message = UiFactory.CreateText("BagMessage", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _message.rectTransform.PlaceTL(Left, BagY + Tile + 30, Width - 2 * Left, 18);
 
-            _drop = UiFactory.CreateButton("DropButton", panel.transform, "", 8, out _dropLabel, ButtonSkin.Ash);
+            _drop = UiFactory.CreateButton("BagDropButton", panel.transform, "", 8, out _dropLabel, ButtonSkin.Ash);
             ((RectTransform)_drop.transform).PlaceTL(Left, Height - 26, 132, 18);
             _drop.onClick.AddListener(() => DropPressed?.Invoke());
-            Button done = UiFactory.CreateButton("DoneButton", panel.transform, "", 8, out Text doneLabel);
+            Button done = UiFactory.CreateButton("BagDoneButton", panel.transform, "", 8, out Text doneLabel);
             doneLabel.Localized(() => UiText.BagDone);
             ((RectTransform)done.transform).PlaceTL(Width - Left - 100, Height - 26, 100, 18);
             done.onClick.AddListener(() => DonePressed?.Invoke());

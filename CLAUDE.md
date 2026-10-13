@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.0.1-win64.zip` (bundleVersion **2.0.1-demo**: menüde "Demo 2.0" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.1-win64.zip` (bundleVersion **2.1.0-demo**: menüde "Demo 2.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -39,12 +39,12 @@ Katlarda **sikkesi biten kaybeder**: kese 0'ın altına inmez (`CoinPurse`), ba�
 Soytarı 130, Büyücü 150, Kral 200; 2. ve 3. bölüm başında kese buna tamamlanır: `ChapterJourney.PurseToppedUp`), haraç = başlangıç + 60 / 180 / 270 (`ChapterRun.Tribute`; kapı son sikkeyi almaz: `TributePaid`);
 iblisin kesesi Masa 30 / 30 / 40, Bekçi 50 / 60 / 80, 1. kattaki yarım (`ImpCoinsAt`), en çok 2 katı (fazlası kasaya), masa bir kese
 boşalana kadar, ante 4 / 5 / 6 ve her 3 elde +1 (`AnteAt`). Bekçiler: Tahsildar (pay), Sahte Peygamber (bir açık kart yalan, Büyücü görür),
-Gece Hemşiresi (bir çekilen kart kapalı). Ateş: ilk hileyi boz / laneti sustur / dinlen (bar %10 kısa) / ruhunu bile. Mammon / Belial yenilince
+Gece Hemşiresi (bir çekilen kart kapalı). Kamp (eski Araf Ateşi): aşağıdaki **Demo 2.1** paragrafı. Mammon / Belial yenilince
 Ganimet (şeytanın 2 emaneti, bir yükseltme ya da 30 coin). Kese, emanetler, şarj, jokerler bölümden bölüme taşınır; susturma ve Arzu biter; her bölüm taze deste.
 Bosslarda **can barı** (`Core/Chapters/BossBar.cs`): ceza sınıf × boss tablosuyla bölünür (`BossShares`, 20 / 30 / 34 / 16), boss masasında
 o pay şeytanın barıdır (`BossTable.Rules`: ruh çizgisi bar × `ChapterRules.SoulLinePercent` 200 / 175 / 150, son 250 ve el sınırı yok;
 bar 0 = yenildi). Ödeme yüzdesi `ScaledPayoutTable`: Mammon 175 / 125, Belial 130 / 110, Lilith 130 / 55, Lucifer 110 / 45 (bahsi bara
-oranlı, `BossTable.Lucifer`). Masada yıl yok: sayaç rakamsız, ante / pot / sonuç barın yüzdesi (`Currency.Bar`, `TablePresenter.BarMode`).
+oranlı, `BossTable.Lucifer`). Masada ante / pot barın yüzdesi (`Currency.Bar`, `TablePresenter.BarMode`); sağ üstteki sayaç koşunun cezası (Demo 2.1).
 Kayıt `ChapterArchive` (`phase2.save` `p2=1`: `ChapterSave`; `phase2.records` `p2r=1`: `ChapterRecords`); el ortasında kapatılan el kaybedilir.
 **Sınıf güçleri (sadece Phase 2)** ve **şeytan kuralları** (sadece boss masaları): `Core/Game/TableHooks` (+ `HookChain`) demo'nun
 oyununa varsayılan kapalı kanca (`HellPokerGame.UseHooks`, `Draw(discards, fromOutside)`, `FreeStake`, `HookYearsThisHand`,
@@ -59,11 +59,11 @@ eski kural, `HELLPOKER_FIRST_IMP`, `HELLPOKER_SLOTS`, `HELLPOKER_WHET=0`, `HELLP
 yükseltme tablosu basar (alınma sayısı; 2. bölüme onu taşıyarak başlayan koşuların kurtuluş farkı, 10 puanı geçen "!"). Sonuçlar ve
 kararlar: `PHASE2_CHAPTERS.md` sekizinci–onuncu tur.
 **Emanetler ve yükseltmeler (Phase 2):** 24 emanet (`Core/Relics/ChapterRelics.cs`: 8 yaygın, 8 nadir, 4 efsanevi, Mammon 2 + Belial 2
-ganimet; demonun 4 emaneti de havuzda), `RelicRarity` / `RelicWeights` (pazar nadir %25 / efsanevi %8, bekçi %40 / %15), fiyat 45 / 55 / 65.
-Koşu 3 emanet taşır (`RunEffects.MaxCarried`; demo 2), **Kara Pazar en çok 2'ye kadar satar** (`BlackMarket.SellsUpTo`). Phase 2 yüzdeleri
+ganimet; demonun 4 emaneti de havuzda), `RelicRarity` / `RelicWeights` (pazar nadir %25 / efsanevi %8, bekçi %40 / %15), fiyat 55 / 65 / 75 (Demo 2.1).
+Koşu 5 emanet takar + 5 çanta (Demo 2.1; `RunEffects.MaxCarried / MaxBag`; demo 2); Kara Pazar'ın "2'ye kadar" kuralı Demo 2.1'de kalktı. Phase 2 yüzdeleri
 `RelicEffects`'te (hazine, pazar, haraç, iblis kesesi, boss barı; demo okumaz). Sınıf başına 4 yükseltme (`ClassUpgrades`, `ClassKit.Upgrades`;
 etkiler `ClassKit` kapasitelerinde, `ClassPowers`'ta, Soytarı'nınkiler `UpgradeHooks`'ta), ganimet = şeytanın 2 emaneti + 1 yükseltme ya da
-30 coin, Araf Ateşi 4. seçenek "Ruhunu bile" (`FireChoice.WhetSoul`: yükseltme, bar %10 uzun; `ChapterRun.BarAfterGate`). Kayıt:
+30 coin, kampta RUHUNU BİLE (`FireChoice.WhetSoul`: yükseltme, bar %10 uzun; `ChapterRun.CampBarPercent`, `BarAfterGate`). Kayıt:
 `kit.upgrades`, `loot.upgrade`, `whet`. İkonlar `relic_icons.png` (`RelicRoster.IconOrder`), masada nadirlik çerçevesi (3. yuva ikincinin
 solunda), sınıf rozetinin üstünde yükseltme pipleri, metinler `UiText.Upgrades.cs`.
 **Kilitler, Çağırıcı, Daireler (Phase 2):** `ChapterUnlocks` (14 emanet açık, 10'u kilometre taşıyla; ilk kurtuluş Çağırıcı'yı açar;
@@ -75,7 +75,20 @@ bedava); Lucifer'in Aynası 3 elde bir Göz. **Daireler** (`Circles`, 0-5, birik
 5 kötülük göstergesi bir kısa + Lucifer iki mekanik (`LuciferMirror.Second`). Sınıf her kurtuluşta bir sonraki daireyi açar (`CirclesOpen`,
 `circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Ayrıca her daire şeytana karşı kazancı %5 kırpar (`Circles.WinStepPercent`,
 `Circles.WinPercentAt`; simülasyon `HELLPOKER_CIRCLE_WIN`): ortalama kurtuluş daire 0-5: 25.4 / 24.4 / 22.5 / 15.8 / 14.2 / 10.0
-(PHASE2_CHAPTERS on ikinci tur). Çağırıcı 200 / 5800, Kara Pazar 2 emanet, kalın bar ve kısa gösterge yorumları, 24 emanet: kullanıcı onayladı.
+(PHASE2_CHAPTERS on ikinci tur). Çağırıcı 200 / 5800, kalın bar ve kısa gösterge yorumları: kullanıcı onayladı (Kara Pazar'ın 2 emanet ve 24
+emanet kararlarını Demo 2.1 değiştirdi).
+**Demo 2.1** (tasarım ve tablolar PHASE2_CHAPTERS on üçüncü tur; DEVLOG A–G): **Ceza ve bar** — `RunSentence` (sınıf toplamı × dairenin
+bar yüzdesi; haritada, kapıda, boss masasında sağ üstte "CEZA · YIL", kat masasında haraç satırında; kayıtta `sentence`), şeytan masasında
+kazanç bardan ve cezadan aynı, kayıp cezaya tam / bara `BossTable.BarHealPercent` %50 (`HellPokerGame.BarHealPercent`, `YearsUnhealed`;
+demo 100), teklif borcu cezaya hemen, bara kapıda; boss kayıp yüzdeleri ×2 (250 / 220 / 110 / 90); sonuçta "Şeytan · Ceza" satırı, bar
+hover'ı kaba; kurtuluşta kalan ceza puan (rekor `sentence.<sınıf>.<daire>`). **Harita** — `MapMaker` (sürüm 2; kayıt `map`, eski kayıt
+sürüm 1): 2-5 düğüm, kesişmeyen merdiven yollar, "?" (`NodeKind.Unknown`, `MapNode.Hidden`), orta kamp, 1-2 hazine. **Olaylar** —
+`IChoiceEvent` (`ChoiceEvents.cs`, 16: yardım / dolandırıcılık / cehennem; zar, ölçek ×1 / 1.25 / 1.5, koşuda bir kez, tuzak ipucu;
+Büyücü görür, Çağırıcı 5c). **Kamp ve çanta** — bir eylem (DİNLEN ceza −%5 bar −%3, BİLE, TÖREN, DÖV `RelicRoster.ForgePercent`),
+4. daireden ikisi; `RelicBagView` (5 takılı + 5 çanta). **Pazar** — `MarketVendor` (6 satıcı, bölümde bir kez; pazarlık, vitrin
+yenileme), emanet fiyatı 55 / 65 / 75. **Soytarı** — Phase 2'de 20 joker → 10 (`Sinner.JackpotFallsTo`), Çıngırak'tan sonra her 20 bir
+ödül. **Emanetler** — 39 (15 yeni; `RelicExtras` işaretleri, sınıf emanetleri yalnız kendi sınıfında ×3, 15 kilitli). Düğmeler:
+`HELLPOKER_BAR_HEAL`, `HELLPOKER_BOSS_LOSS`, `HELLPOKER_MAP`, `HELLPOKER_VENDOR`, `HELLPOKER_REST_AT`.
 Açık (kullanıcıda): sınıf farkı (Demo 2.0, 2000 koşu: kurtuluş Köylü %40.9, Kral %31.8, Çağırıcı %26.8, Büyücü %21.4, Soytarı %8.2);
 dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
 

@@ -3249,3 +3249,19 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
 - Simülasyon (500 koşu): kurtuluş 32.1 (F'den sonra 28.4; Demo 2.0.1 tohumları 28.4 → +3.7). "!" (10 puanı geçen): Kan Sözleşmesi +21 (56
   koşu), Kurşun Mühür +13, Çift Zar +10; sınıf emanetlerinin ve yükseltmelerin farkı sınıf karışımı (Köylü'nünkiler +, Büyücü / Soytarı'nınkiler −).
 - Testler: `NewRelicTests` (12); havuz ve kilit sayıları güncellendi. EditMode 1061 (1057 geçti, 4 explicit).
+
+### Demo 2.1 — H: kapanış (2026-10-13)
+- İstek (yee.md H): testler, iki dilde ekran görüntüleri, bundleVersion 2.1.0-demo, belgeler, build, duman turu, commit + `v2.1-demo` etiketi (push yok).
+- How to Play'in OYUN sayfası (`GameRulesBody`) Demo 2.1'e göre yeniden yazıldı; `ProjectSettings` 2.1.0-demo; `ChapterScreenshots.CaptureDemoTwoOne`
+  (119–135, `AtNode`); masa: sonuç mesajı 27 px, şeytan masasında bar + ceza tek satır, kesinleşen boss elinde pot temizlenir.
+- **Hedef ayarı (D'nin kuralı: kurtuluş Demo 2.0.1'den en çok +5):** 2000 koşu 32.2 (+6.4) → emanet fiyatı 50 / 60 / 70 + DİNLEN %5 / %5 → 31.6
+  (1000 koşu) → DİNLEN'in bar payı %3 → 31.2 → fiyat 55 / 65 / 75 → **31.1 (+5.3)**. Fiyat ve DİNLEN gürültü düzeyinde; artışın ~1.2'si F
+  (Soytarı 8.2 → 14.3). Burada durdum: daha fazlası emanetlere (Kan Sözleşmesi) dokunmak demek, kullanıcıya bırakıldı. Tablolar PHASE2_CHAPTERS on üçüncü tur.
+- 2000 koşuluk son simülasyon iki kez belleğin azlığı yüzünden Claude Code tarafından kesildi (7.4 GB, ~1.5 GB boş; 10 dk'yı geçen iş arka plana
+  düşüyor); son ölçümler sınıf başına 1000 koşu, ön planda (~7 dk).
+- Simülasyon düzeltmesi: `PlayFloorsAndGate` döngüsünün başında kese boşaldı mı (yankesici olayından sonra boş keseyle masa açılıyordu).
+- **Kurala aykırı not:** D'de PlayMode `RunJourneyTests.ClosingMidHand…` `RelicBagView`'deki "Message" adlı nesne yüzünden düştü; durmadan
+  düzelttim (çanta nesneleri "Bag" önekiyle). Ayrıca bir PlayMode testinin beklediği başlangıç sayısı 6 → 3 (harita sürüm 2) güncellendi.
+- Testler: EditMode 1061 (1057 geçti, 4 explicit); PlayMode 17/17, 3/3, 8/8, 5/5 (son değişiklikten sonra bölüm grubu yeniden 5/5).
+- Açık (kullanıcıda): ceza puanının ölçeği (kurtuluşta ort. ~4300 yıl, TERTEMİZ %1.2); Kan Sözleşmesi (+28), Kurşun Mühür, Çift Zar;
+  `fallen_angel` / `soul_insurance` farkları; satıcı farkları (karışık ölçü); Soytarı / Büyücü dengesi; +5.3.

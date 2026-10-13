@@ -533,7 +533,7 @@ namespace HellPoker.Core.Tests
             foreach (RelicOffer offer in market.Relics)
                 Assert.AreEqual(ChapterRelics.PriceOf(offer.RelicId), offer.Price, offer.RelicId);
             CollectionAssert.IsOrdered(market.Relics.Select(o => o.Price));
-            CollectionAssert.AreEqual(new[] { 45, 55, 65 }, BlackMarket.RelicPrices, "common, rare, legendary");
+            CollectionAssert.AreEqual(new[] { 55, 65, 75 }, BlackMarket.RelicPrices, "common, rare, legendary (Demo 2.1)");
             Assert.IsFalse(market.Relics.Any(o => ChapterRelics.RarityOf(o.RelicId) == RelicRarity.Boss), "a demon's own is only his loot");
         }
 
@@ -608,8 +608,8 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(run.TendFire(FireChoice.RestByTheFire));
             Assert.IsTrue(run.RestedByTheFire);
             HellPokerGame game = run.OpenBossTable(GameRules.Default);
-            Assert.AreEqual(950, game.Years, "a camp's rest: the bar starts five percent shorter (1000 → 950)");
-            Assert.AreEqual(950, run.BossBarStart);
+            Assert.AreEqual(970, game.Years, "a camp's rest: the bar starts three percent shorter (1000 → 970)");
+            Assert.AreEqual(970, run.BossBarStart);
             Assert.IsFalse(run.RestedByTheFire, "once");
         }
 

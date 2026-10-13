@@ -93,7 +93,7 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>Resting at a camp: the next demon's bar starts this much (percent of itself) shorter, and the sentence this much of the
         /// class's whole sentence shorter.</summary>
-        public const int RestBarPercent = 5, RestSentencePercent = 6;
+        public const int RestBarPercent = 3, RestSentencePercent = 5;   // (6% / 6%, then 5 / 5 at first: freedom past Demo 2.0.1 + 5)
 
         /// <summary>Whetting the soul at a camp: the next demon's bar starts this much (percent of itself) longer.</summary>
         public const int WhetBarPercent = 10;

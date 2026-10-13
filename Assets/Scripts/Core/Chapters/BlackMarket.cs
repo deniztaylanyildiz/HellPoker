@@ -44,7 +44,7 @@ namespace HellPoker.Core.Chapters
 
     /// <summary>
     /// The black market (a floor node), kept by one of six vendors (<see cref="MarketVendor"/>, rolled as the player steps in, never the same
-    /// twice in a chapter). Relics are drawn and priced by rarity (45 / 55 / 65 coins in the first chapter, growing with the chapter); every
+    /// twice in a chapter). Relics are drawn and priced by rarity (55 / 65 / 75 coins in the first chapter, growing with the chapter); every
     /// market haggles once (half the time every price a fifth less, else a fifth more) and turns its stall over once for coins. Nothing takes
     /// the purse's last coin.
     /// </summary>

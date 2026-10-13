@@ -123,7 +123,8 @@ namespace HellPoker.Core.Relics
         public const int BagSlots = 5;
 
         /// <summary>The market's first-chapter price by rarity.</summary>
-        public const int CommonPrice = 45, RarePrice = 55, LegendaryPrice = 65;
+        /// (Demo 2.1: 45 / 55 / 65 → 50 / 60 / 70 → 55 / 65 / 75 — five worn relics and fifteen new ones lifted freedom 6.4 points over Demo 2.0.1.)
+        public const int CommonPrice = 55, RarePrice = 65, LegendaryPrice = 75;
 
         private static ChapterRelic R(string id, RelicRarity rarity, RelicEffects effects, RelicEffects boon, int expected = 0, string boss = null,
             string cls = null) => new ChapterRelic(id, rarity, effects, boon, expected, boss, cls);

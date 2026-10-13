@@ -109,9 +109,10 @@ namespace HellPoker.PlayMode.Tests
             HellPokerScreenshots.Press("PanelOption0");   // DESCEND
             yield return null;
             Assert.IsFalse(panel.IsOpen);
-            Assert.AreEqual(6, map.State.Choices.Count, "six ways to start");
+            Assert.AreEqual(3, map.State.Choices.Count, "three ways to start (Demo 2.1's map)");
 
-            Button node = HellPokerScreenshots.Find<Button>("Node0_2");
+            MapNode start = map.State.Choices.First(n => n.Kind == NodeKind.Table);   // a table among the starts, always
+            Button node = HellPokerScreenshots.Find<Button>($"Node0_{start.Lane}");
             node.onClick.Invoke();
             yield return WaitForChapterTable();
             Assert.IsTrue(Chapters.IsAtTable);
@@ -444,6 +445,122 @@ namespace HellPoker.PlayMode.Tests
             yield return ChapterJourneyTests.LoadWithSave(fire);
             yield return new WaitForSeconds(0.3f);
             yield return HellPokerScreenshots.Shot("118_fire_circle4");
+        }
+        /// <summary>A save standing on a node of <paramref name="kind"/> of the first chapter's map (a path walked to it), its panel pending.</summary>
+        private static ChapterSave AtNode(Core.Sinners.SinnerClass cls, int seed, NodeKind kind, string pending)
+        {
+            ChapterJourney journey = ChapterJourney.Begin(cls, seed);
+            ChapterMap map = journey.Run.Map;
+            var paths = map.Floors[0].Select(n => new List<MapNode> { n }).ToList();
+            List<MapNode> found = null;
+            while (paths.Count > 0 && found == null)
+            {
+                found = paths.FirstOrDefault(p => p.Last().Kind == kind);
+                if (found != null) break;
+                paths = paths.SelectMany(p => map.NextFrom(p.Last()).Select(n => new List<MapNode>(p) { n })).ToList();
+            }
+            ChapterSave save = ChapterPresenter.PlacedSave(cls, seed, 1, pending);
+            save.Trail = found?.Select(n => n.Lane).ToList() ?? new List<int>();
+            save.NodeDone = false;
+            save.Coins = 300;
+            return save;
+        }
+
+        /// <summary>Demo 2.1's screens (120–145): the sentence and the bar at a demon's table and a hand's two lines, two maps and an unknown
+        /// node, a helper, a swindler (the Warlock reads him), an offer's result, the camp and the bag (five worn), the six vendors, five
+        /// relics at a table.</summary>
+        [UnityTest, Timeout(900000)]
+        public IEnumerator CaptureDemoTwoOne()
+        {
+            HellPokerBootstrap.BatchStore.Clear();
+            if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
+                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
+            HellPokerBootstrap.ForceSimulator = false;
+            string[] five = { Core.Relics.RelicIds.FerrymansCoin, Core.Relics.ChapterRelicIds.IronVow, Core.Relics.ChapterRelicIds.BlackBook,
+                Core.Relics.ChapterRelicIds.LeadSeal, Core.Relics.ChapterRelicIds.AshPurse };
+
+            // How to Play's first page: the game's rules (the sentence and the bar, the unknown, the offers, the camp and the bag, the markets).
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            HellPokerScreenshots.Press("HowToPlayButton");
+            yield return new WaitForSeconds(0.6f);
+            yield return HellPokerScreenshots.Shot("119_how_to_play_game");
+
+            // A demon's table: the sentence in the corner, the bar under the portrait, five relics; then a hand folded: its two lines.
+            ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 11, 1, "");
+            boss.Relics = five.ToList();
+            boss.NodeDone = false;
+            boss.Match = "boss";
+            boss.BossBarStart = boss.BossBar = 1300;
+            yield return ChapterJourneyTests.LoadWithSave(boss);
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            yield return new WaitForSeconds(0.5f);
+            yield return HellPokerScreenshots.Shot("120_boss_sentence_bar_five_relics");
+            ChapterJourneyTests.Chapters.Table.Bet(Core.Game.BetAction.Fold);
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            yield return new WaitForSeconds(0.8f);
+            yield return HellPokerScreenshots.Shot("121_boss_result_lines");
+
+            // Two maps of other seeds; the hover of an unknown node.
+            for (int k = 0; k < 2; k++)
+            {
+                ChapterSave map = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31 + k * 17, 1, "");
+                map.NodeDone = true;
+                yield return ChapterJourneyTests.LoadWithSave(map);
+                yield return new WaitForSeconds(0.4f);
+                yield return HellPokerScreenshots.Shot($"12{2 + k}_map_{k + 1}");
+            }
+            MapNode unknown = ChapterJourneyTests.Chapters.Run.Map.Floors.SelectMany(f => f).FirstOrDefault(n => n.Kind == NodeKind.Unknown);
+            if (unknown != null)
+            {
+                var hover = HellPokerScreenshots.Find<Button>($"Node{unknown.Floor}_{unknown.Lane}").GetComponent<UnityEngine.EventSystems.EventTrigger>();
+                hover.triggers[0].callback.Invoke(null);
+                yield return null;
+                yield return HellPokerScreenshots.Shot("124_unknown_node");
+            }
+
+            // A helper; a swindler as the Warlock reads him; an offer's result on its own panel.
+            yield return ChapterJourneyTests.LoadWithSave(AtNode(Core.Sinners.SinnerRoster.Peasant, 11, NodeKind.Event, "event:" + ChoiceEventIds.ChainedSoul));
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("125_offer_help");
+            yield return ChapterJourneyTests.LoadWithSave(AtNode(Core.Sinners.SinnerRoster.Find(Core.Sinners.Warlock.ClassId), 11, NodeKind.Event,
+                "event:" + ChoiceEventIds.ThreeCups));
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("126_offer_swindle_prophecy");
+            yield return ChapterJourneyTests.LoadWithSave(AtNode(Core.Sinners.SinnerRoster.Peasant, 11, NodeKind.Event, "event:" + ChoiceEventIds.HellLottery));
+            yield return new WaitForSeconds(0.3f);
+            HellPokerScreenshots.Press("PanelOption0");
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("127_offer_result");
+
+            // The camp: its four actions, then the relics' bag (five worn, three in the bag, one forged).
+            ChapterSave camp = AtNode(Core.Sinners.SinnerRoster.Peasant, 11, NodeKind.PurgatoryFire, "fire");
+            camp.Relics = five.ToList();
+            camp.Bag = new List<string> { Core.Relics.ChapterRelicIds.RustedChain, Core.Relics.ChapterRelicIds.LiarsTongue, Core.Relics.RelicIds.RustyCrown };
+            camp.Forged = new List<string> { Core.Relics.ChapterRelicIds.BlackBook };
+            yield return ChapterJourneyTests.LoadWithSave(camp);
+            yield return new WaitForSeconds(0.3f);
+            yield return HellPokerScreenshots.Shot("128_camp");
+            HellPokerScreenshots.Press("PanelOption4");
+            yield return new WaitForSeconds(0.3f);
+            HellPokerScreenshots.Press("BagPlace1");
+            yield return null;
+            yield return HellPokerScreenshots.Shot("129_camp_bag");
+            HellPokerScreenshots.Press("BagDoneButton");
+            yield return null;
+
+            // The six vendors.
+            int shot = 130;
+            foreach (MarketVendor vendor in Enum.GetValues(typeof(MarketVendor)))
+            {
+                ChapterSave market = AtNode(Core.Sinners.SinnerRoster.Find(Core.Sinners.Jester.ClassId), 11, NodeKind.BlackMarket, "market");
+                market.Vendor = (int)vendor;
+                market.Relics = new List<string> { Core.Relics.ChapterRelicIds.AshPurse, Core.Relics.RelicIds.RustyCrown, Core.Relics.ChapterRelicIds.CandleStub };
+                yield return ChapterJourneyTests.LoadWithSave(market);
+                yield return new WaitForSeconds(0.3f);
+                yield return HellPokerScreenshots.Shot($"{shot++}_market_{vendor.ToString().ToLowerInvariant()}");
+            }
         }
 
         private static string Slug(string title) =>

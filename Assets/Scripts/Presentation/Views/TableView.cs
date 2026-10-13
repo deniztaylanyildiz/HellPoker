@@ -243,7 +243,7 @@ namespace HellPoker.Presentation.Views
             Player = HandView.Create(screen, "PlayerHand", handX, 140, CardSpacing, 192, _sequencer);
 
             _message = UiFactory.CreateText("Message", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
-            _message.rectTransform.PlaceTL(Middle, 91, MiddleWidth, 18);
+            _message.rectTransform.PlaceTL(Middle, 91, MiddleWidth, 27);   // three lines at most (a demon's table: the hand, the bar and the sentence, a rule); the pot under it is empty then
             _pot = UiFactory.CreateText("Pot", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
             _pot.rectTransform.PlaceTL(Middle, 111, MiddleWidth, 8);
             _stakeInfo = UiFactory.CreateText("StakeInfo", screen, "", 8, Palette.BoneMid).WithOutline();

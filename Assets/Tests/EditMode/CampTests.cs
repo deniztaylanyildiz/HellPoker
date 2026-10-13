@@ -83,15 +83,15 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void Rest_TheSentenceSixPercentShorter_TheNextBarFive()
+        public void Rest_TheSentenceFivePercentShorter_TheNextBarThree()
         {
             var (journey, run) = AtCamp();
             int sentence = journey.Sentence.Years;
             Assert.IsTrue(run.TendFire(FireChoice.RestByTheFire));
-            Assert.AreEqual(390, run.RestYears, "the Peasant: 6% of 6500");
-            Assert.AreEqual(sentence - 390, journey.Sentence.Years);
-            Assert.AreEqual(-5, run.CampBarPercent);
-            Assert.AreEqual(run.Years * 95 / 100 + 0, run.BarAfterGate(10000), "the bar five percent shorter (the tribute paid)");
+            Assert.AreEqual(325, run.RestYears, "the Peasant: 5% of 6500");
+            Assert.AreEqual(sentence - 325, journey.Sentence.Years);
+            Assert.AreEqual(-3, run.CampBarPercent);
+            Assert.AreEqual(run.Years * 97 / 100 + 0, run.BarAfterGate(10000), "the bar three percent shorter (the tribute paid)");
         }
 
         [Test]
@@ -102,11 +102,11 @@ namespace HellPoker.Core.Tests
             Assert.IsNotNull(run.FireUpgrade);
             Assert.AreEqual(10, run.CampBarPercent);
             Assert.IsTrue(run.TendFire(FireChoice.RestByTheFire), "a second camp");
-            Assert.AreEqual(5, run.CampBarPercent);
+            Assert.AreEqual(7, run.CampBarPercent);
             run.PayTribute();
             int years = run.Years;
             run.OpenBossTable(GameRules.Default);
-            Assert.AreEqual(years * 105 / 100, run.BossBarStart);
+            Assert.AreEqual(years * 107 / 100, run.BossBarStart);
             Assert.AreEqual(0, run.CampBarPercent, "set back as the table opens");
         }
 
@@ -159,7 +159,7 @@ namespace HellPoker.Core.Tests
             CollectionAssert.AreEqual(run.Effects.Relics, back.Effects.Relics);
             CollectionAssert.AreEqual(run.Effects.Bag, back.Effects.Bag);
             CollectionAssert.Contains(back.Effects.Forged, ids[0]);
-            Assert.AreEqual(-5, back.Run.CampBarPercent);
+            Assert.AreEqual(-3, back.Run.CampBarPercent);
 
             string old = string.Join("\n", journey.Capture().Encode().Split('\n')
                 .Where(l => !l.StartsWith("bag=", StringComparison.Ordinal) && !l.StartsWith("camp.bar=", StringComparison.Ordinal)));

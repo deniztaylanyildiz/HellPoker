@@ -1,5 +1,25 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.1 (2.1.0-demo) — 2026-10-13
+
+### Yeni
+- **Ceza ve şeytanın barı ayrıldı:** cezan (yıl) koşu boyunca senin; haritada, kapıda ve şeytan masasında sağ üstte yazar. Şeytan masasında
+  kazanç yıllarını hem bardan hem cezadan siler; kayıp cezana tam, şeytanın barına yarısı kadar yazılır. Sonuç satırında ikisi ayrı ayrı.
+  Kurtulduğunda kalan cezan puanındır ("Kurtuldun. Ceza: 420 yıl", hiç kalmadıysa TERTEMİZ); rekorlarda sınıf ve daire başına en düşüğü.
+- **Daha rastgele harita:** katlarda 2-5 düğüm, ayrılıp birleşen yollar, bölümün ortasında bir kamp, 1-2 hazine ve yeni **BİLİNMEYEN (?)**
+  düğüm (içinde ne olduğu girince belli olur).
+- **16 yeni olay:** yardım, dolandırıcılık (sözlerinde küçük bir ipucu; Büyücü tuzağı görür, Çağırıcı 5 coin'e iblisine baktırır) ve
+  cehennemin kendisi; iki-üç seçenek, bazıları zara bağlı, sonuç kendi panelinde.
+- **Araf Kampı ve emanet çantası:** 5 emanet takılı, 5'i çantada; kampta bir eylem (DİNLEN, RUHUNU BİLE, TÖREN, DÖV) ve istediğin kadar
+  emanet düzeni. Haritada EMANETLER düğmesi.
+- **Kara Pazar'ın altı satıcısı:** kaçakçı, Mammon'un rehincisi, kemik tüccarı, gezgin simyacı, kumarbaz tezgâhı, şeytanın terzisi;
+  her pazarda bir kez pazarlık ve vitrin yenileme.
+- **15 yeni emanet** (toplam 39), bir kısmı sınıfına özel, beşi kilitli.
+
+### Değişen
+- Soytarı: 20 jokerde jokerler silinmez, sayı 10'a iner; Çıngırak'tan sonra her 20'de bir emanet ya da 30 coin.
+- Kara Pazar artık 2 emanetle sınırlı değil; emanet fiyatları 55 / 65 / 75.
+
 ## Demo 2.0.1 (2.0.1-demo) — 2026-10-13
 
 ### Değişen

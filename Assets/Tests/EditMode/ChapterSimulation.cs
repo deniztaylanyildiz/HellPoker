@@ -234,6 +234,14 @@ namespace HellPoker.Core.Tests
 
             while (!run.AtGate)
             {
+                // A side table of an offer (the pickpocket's chase, the gambler's hand) may have emptied the purse: the run is over.
+                if (run.PurseEmptied)
+                {
+                    tally.Broke++;
+                    tally.BrokeAtImp++;
+                    tally.BrokeFloors += (run.Current?.Floor ?? 0) + 1;
+                    return false;
+                }
                 // The Jester's twenty jokers after the first: a relic while there is room, else the coins.
                 while (run.Sinner.JackpotRewardsWaiting > 0)
                 {

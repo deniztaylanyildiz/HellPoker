@@ -593,6 +593,46 @@ Hedef tuttu: her daire bir öncekinden düşük, 5. daire %10.0 (hedef %5-15); %
 yorumu ve 5. dairedeki "bir eksik kötülük" (gösterge bir kısa) yorumu; 24 emanetin dağılımı (8 + 8 + 4 + Mammon 2 + Belial 2).
 Soytarı ve Büyücü'nün dengesine oyun testinden sonra bakılacak.
 
+## On üçüncü tur: Demo 2.1 — ceza, harita, olaylar, kamp, pazarlar, emanetler (2026-10-13)
+
+Ayrıntı ve iş başına kararlar DEVLOG'da (A–H). Özet:
+
+- **Ceza ve bar ayrı** (`RunSentence`): şeytan masasında kazanç ikisinden aynı, kayıp cezaya tam, bara %50 (`BossTable.BarHealPercent`);
+  boss kayıp yüzdeleri ×2 (Mammon 250, Belial 220, Lilith 110, Lucifer 90). Kurtuluşta kalan ceza puan.
+- **Harita sürüm 2** (`MapMaker`): katta 2-5 düğüm, kesişmeyen yollar, "?" düğüm, orta kamp, 1-2 hazine. Ağırlıklar erken Masa 55 / Olay 25 /
+  ? 10 / Pazar 15, geç 25 / 25 / 25 / 30.
+- **16 seçimli olay** (`ChoiceEvents.cs`), **kamp** (DİNLEN / BİLE / TÖREN / DÖV) ve **çanta** (5 takılı + 5), **6 satıcı**, Soytarı 20 → 10,
+  **39 emanet**.
+
+### Simülasyon (daire 0, sınıf başına 1000 koşu; Demo 2.0.1: 2000 koşu)
+
+| Sınıf | Demo 2.0.1 | Demo 2.1 | Kurtuluşta kalan ceza ort. (p10 / p50 / p90) | TERTEMİZ |
+|---|---|---|---|---|
+| Köylü | 40.9 | 49.5 | 2838 (517 / 2285 / 5826) | %2.4 |
+| Büyücü | 21.4 | 23.5 | 5553 (1616 / 4513 / 10713) | %0 |
+| Kral | 31.8 | 38.0 | 5281 (1554 / 4410 / 9701) | %0.5 |
+| Soytarı | 8.2 | 14.3 | 2879 (493 / 2104 / 6388) | %2.8 |
+| Çağırıcı | 26.8 | 30.3 | 5015 (1724 / 4038 / 9879) | %0 |
+| Hepsi | 25.8 | **31.1** | 4273 (898 / 3358 / 8599) | %1.2 |
+
+İş başına (500 koşu, aynı tohumlar; Demo 2.0.1 28.4): A 28.4, B 27.7, C 27.3, D 28.6, E 28.4, G 32.1 (F: Soytarı 13.0). Artışın kaynağı
+yeni emanetler (G) ve F'nin Soytarı kuralı (+6 Soytarı'da, ortalamaya ~+1.2).
+
+**Hedef (+5 puan) ayarı:** 2000 koşuda 32.2 (+6.4) → emanet fiyatı 45 / 55 / 65 → 50 / 60 / 70 ve DİNLEN %6 → %5 (ceza ve bar): 31.6 →
+DİNLEN'in bar payı %3: 31.2 → fiyat 55 / 65 / 75: **31.1 (+5.3)**. Fiyat ve DİNLEN etkisi gürültü düzeyinde; F'nin payı (~1.2) çıkınca +4.1.
+Daha fazla kısmak emanetlerin kendisine dokunmayı ister (aşağıda, kullanıcıda).
+
+Yol başına ortalama düğüm (bölüm 1 / 2 / 3): Masa 2.7 / 3.6 / 4.5, Olay 0.8 / 1.3 / 1.8, Pazar 0.5 / 0.6 / 0.8, Bekçi 1.2 / 1.1 / 1.1,
+Hazine 0.7 / 0.7 / 0.7, Kamp 1.3 / 1.2 / 1.2, ? 0.4 / 0.8 / 1.1.
+Kamp seçimleri: DİNLEN %62.2, DÖV %28.4, TÖREN (lanet) %5.5, BİLE %3.9; kampta ort. 2.5 takılı, 0.1 çantada.
+Satıcılar (ziyaret / alınan): Kaçakçı 1361 / 626, Rehinci 1239 / 1605, Kemik 1322 / 546, Simyacı 1262 / 546, Kumarbaz 1407 / 204,
+Terzi 1298 / 219 (alan / almayan farkları sınıf içinde bile karışık: alım parası olan koşu zaten farklı).
+Olaylarda "!" : `fallen_angel` (emanet) −13.4, `soul_insurance` −16.6, `fake_pardon` +5.5 (seçim kendi kendini seçen örneklem).
+Emanetlerde "!" (2. bölüme taşıyan koşular): Kan Sözleşmesi (`blood_pact`) +27.6 (her sınıfta +11..+39), Kurşun Mühür Köylü / Kral +11 / +12, Çift Zar +6.4;
+`mammons_gold_tooth` −12.6 (haraç +%25).
+
+**Kullanıcıda:** ceza puanı ölçeği (kurtuluşta ort. ~4300 yıl, TERTEMİZ %1); Kan Sözleşmesi'nin gücü; Soytarı / Büyücü farkı; +5.3.
+
 ## Sonraki adım (eski plan)
 
 Önce sadece Bölüm 1'in kat ekonomisi (Mammon'a kadar):

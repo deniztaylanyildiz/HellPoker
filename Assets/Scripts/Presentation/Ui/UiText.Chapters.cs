@@ -29,30 +29,34 @@ namespace HellPoker.Presentation.Ui
         private static string GameRulesBody() => L(
             "HELL POKER: Five Card Draw against the House, all the way down to Lucifer. Choose who you were (a class), then go down " +
             "three chapters: Mammon's Vault, Belial's Stage, Lilith's Night.\n" +
-            "THE MAP: start at any table of the first floor, then follow the lit paths: tables (an imp, for coins), wardens (a relic), " +
-            "strangers' offers, the black market, a treasure, and the purgatory fire on the last floor.\n" +
-            "THE PURSE: on the floors you play for coins. A table goes on until one purse is empty; if it is yours, the run is over. " +
-            "The ante grows every 3 hands, a win pays at most x3.\n" +
-            "THE GATE: the demon takes a tribute in coins; every coin you lack goes on his bar.\n" +
-            "THE DEMON'S BAR: your share of the sentence is his health bar, under his portrait. A win shortens it, a loss lengthens it. " +
-            "Empty it and he is beaten (take his spoils); let it reach the mark at its end and your soul goes on the table.\n" +
-            "LUCIFER waits after Lilith: empty his bar and you are FREE; let it climb past its mark and you fall.\n" +
-            "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell, chosen on its card. " +
-            "{CIRCLES}\n" +
+            "THE MAP: start on the first floor, then follow the lit paths (they split and join): tables (an imp, for coins), wardens (a " +
+            "relic), strangers, the black market, treasures, camps — and UNKNOWN nodes (?): what waits there shows when you step in.\n" +
+            "THE PURSE: on the floors you play for coins. A table goes on until one purse is empty; if it is yours, the run is over.\n" +
+            "STRANGERS help, swindle (a careful reader sees the hint) or are Hell itself; some choices roll dice. MARKETS: six vendors, " +
+            "each with his own wares; haggle once, turn the stall over once.\n" +
+            "CAMP AND BAG: at a camp do one thing — rest (sentence down), whet the soul (an upgrade), a rite, or forge a relic. Five relics " +
+            "worn act at the tables; five more wait in the bag; arrange them at a camp.\n" +
+            "SENTENCE AND BAR: your sentence (years) is your own, shown on the map and the tables. At a demon's table a win takes its years " +
+            "off his bar and your sentence; a loss puts its years on your sentence but only half of them on his bar. The gate's missing " +
+            "coins go on both. Empty his bar and he is beaten; let it reach the mark at its end and your soul goes on the table.\n" +
+            "LUCIFER waits after Lilith: empty his bar and you are FREE — what is left of your sentence is your score.\n" +
+            "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell. {CIRCLES}\n" +
             "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
             "Hand (the black aces and eights) beats everything.",
             "HELL POKER: kasaya karşı Beş Kart Poker, Lucifer'e kadar. Kim olduğunu seç (bir sınıf), sonra üç bölüm in: Mammon'un " +
             "Kasası, Belial'in Sahnesi, Lilith'in Gecesi.\n" +
-            "HARİTA: ilk kattaki herhangi bir masadan başla, sonra yanan yolları izle: masalar (coin'le bir iblis), bekçiler (bir " +
-            "emanet), yabancıların teklifleri, Kara Pazar, bir hazine ve son katta Araf Ateşi.\n" +
-            "KESE: katlarda coin'le oynarsın. Masa bir kese boşalana kadar sürer; boşalan seninkiyse koşu biter. Ante her 3 elde " +
-            "büyür, kazanç en çok x3 öder.\n" +
-            "KAPI: şeytan coin'le haraç alır; eksik her coin onun barına yazılır.\n" +
-            "ŞEYTANIN BARI: cezanın o şeytana düşen payı, portresinin altındaki can barıdır. Kazanç kısaltır, kayıp uzatır. " +
-            "Boşaltırsan yenilir (ganimetini al); sonundaki işarete ulaşırsa ruhun masaya konur.\n" +
-            "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN; işaretini geçerse düşersin.\n" +
-            "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ (kartında seçilir). " +
-            "{CIRCLES}\n" +
+            "HARİTA: ilk kattan başla, yanan yolları izle (ayrılır, birleşir): masalar (coin'le bir iblis), bekçiler (bir emanet), " +
+            "yabancılar, Kara Pazar, hazineler, kamplar — ve BİLİNMEYEN düğümler (?): içinde ne olduğu girince belli olur.\n" +
+            "KESE: katlarda coin'le oynarsın. Masa bir kese boşalana kadar sürer; boşalan seninkiyse koşu biter.\n" +
+            "YABANCILAR yardım eder, dolandırır (dikkatli okuyan ipucunu görür) ya da cehennemin kendisidir; bazı seçimler zara bağlı. " +
+            "PAZARLAR: altı satıcı, her birinin kendi malı; bir kez pazarlık, bir kez vitrin yenileme.\n" +
+            "KAMP VE ÇANTA: kampta bir şey yap — dinlen (ceza düşer), ruhunu bile (yükseltme), tören ya da bir emanet döv. Takılı beş " +
+            "emanet masada etki eder; beşi daha çantada bekler; kampta düzenlersin.\n" +
+            "CEZA VE BAR: cezan (yıl) senindir, haritada ve masalarda yazar. Şeytanın masasında kazanç yıllarını hem onun barından hem " +
+            "cezandan siler; kayıp yıllarını cezana yazar ama barına yalnız yarısını. Kapıdaki eksik coin ikisine de yazılır. Barı " +
+            "boşaltırsan yenilir; sonundaki işarete ulaşırsa ruhun masaya konur.\n" +
+            "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır.\n" +
+            "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ. {CIRCLES}\n" +
             "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
             "(siyah aslar ve sekizler) her eli yener.");
 
@@ -509,7 +513,7 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>A demon's hand's two lines: what it did to his bar (a percent of the bar the table began with) and to the run's sentence.</summary>
         public static string BarSentenceLines(int barPercent, int sentenceYears) =>
-            string.Format(BarChangeFormat, SignedPercent(barPercent)) + "\n" + string.Format(SentenceChangeFormat, SignedYears(sentenceYears));
+            string.Format(BarChangeFormat, SignedPercent(barPercent)) + "   ·   " + string.Format(SentenceChangeFormat, SignedYears(sentenceYears));
 
         /// <summary>The bar's hover, roughly (never a number): much / half / little of it left against the bar the table began with.</summary>
         public static string BarLeft(int value, int start)
