@@ -52,6 +52,9 @@ namespace HellPoker.Core.Tests
             /// <summary>At the camps: the relics worn and in the bag (summed), and the camps.</summary>
             public int Worn, Bagged, Camps;
 
+            /// <summary>The black market's vendors: visits and things bought.</summary>
+            public readonly Dictionary<string, int> VendorVisits = new Dictionary<string, int>(), VendorBuys = new Dictionary<string, int>();
+
             /// <summary>What the unknown nodes stepped on held.</summary>
             public readonly Dictionary<NodeKind, int> Unknowns = new Dictionary<NodeKind, int>();
 
@@ -86,6 +89,8 @@ namespace HellPoker.Core.Tests
                 foreach (var p in o.Unknowns) Bump(Unknowns, p.Key, p.Value);
                 Worn += o.Worn; Bagged += o.Bagged; Camps += o.Camps;
                 foreach (var p in o.Choices) Bump(Choices, p.Key, p.Value);
+                foreach (var p in o.VendorVisits) Bump(VendorVisits, p.Key, p.Value);
+                foreach (var p in o.VendorBuys) Bump(VendorBuys, p.Key, p.Value);
                 foreach (var p in o.EventCoins) Bump(EventCoins, p.Key, p.Value);
                 foreach (var p in o.EventYears) Bump(EventYears, p.Key, p.Value);
             }
@@ -287,7 +292,11 @@ namespace HellPoker.Core.Tests
                         }
                         if (market.CanBuyImpsEye && run.Purse.Coins - market.EyePrice >= run.Tribute && market.BuyImpsEye())
                             tally.EyesBought++;
+                        ShopVendor(run, market);
                         if (market.Purchases > 0) tally.MarketShopped++;
+                        Bump(tally.VendorVisits, market.Vendor.ToString());
+                        Bump(tally.VendorBuys, market.Vendor.ToString(), market.Purchases);
+                        RunVendors.Add((market.Vendor.ToString(), market.Purchases > 0));
                         break;
 
                     case NodeKind.Event:
@@ -386,6 +395,40 @@ namespace HellPoker.Core.Tests
                 RunTaken.Add(offer.Id);
             }
         }
+
+        /// <summary>
+        /// A vendor's own wares as the simulation's player takes them, never below the gate's tribute: the pawnshop pawns the soul when the
+        /// purse is behind the tribute; the alchemist burns the worst curse; the gambler's box is bought and opened; the tailor's best
+        /// upgrade is bought. No haggling, no new stall (both are even bets).
+        /// </summary>
+        private static void ShopVendor(ChapterRun run, BlackMarket market)
+        {
+            int keep = Math.Max(Reserve, run.Tribute);
+            switch (market.Vendor)
+            {
+                case MarketVendor.Pawnshop:
+                    if (run.Purse.Coins < run.Tribute) market.Pawn();
+                    break;
+                case MarketVendor.Alchemist:
+                    string worst = run.Effects.AllHeld.Where(market.CanCleanse).OrderBy(id => RelicRoster.Find(id)?.ExpectedYears ?? 0).FirstOrDefault();
+                    if (worst != null && run.Purse.Coins - market.CleanseCost >= keep) market.Cleanse(worst);
+                    break;
+                case MarketVendor.GamblersStall:
+                    if (market.CanBuyBox && run.Purse.Coins - market.BoxCost >= keep && market.BuyBox())
+                    {
+                        market.OpenBox();
+                        if (run.WardenRelicWaiting != null) run.TakeWardenCoins();
+                    }
+                    break;
+                case MarketVendor.Tailor:
+                    string upgrade = market.Upgrades.FirstOrDefault();
+                    if (upgrade != null && run.Purse.Coins - market.UpgradeCost >= keep) market.BuyUpgrade(upgrade);
+                    break;
+            }
+        }
+
+        /// <summary>The vendors met in the whole run being played, and whether anything was bought of them.</summary>
+        private static readonly List<(string vendor, bool bought)> RunVendors = new List<(string, bool)>();
 
         /// <summary>Demo 2.1's offers seen in the whole run being played.</summary>
         private static readonly List<string> RunSeen = new List<string>();
@@ -645,6 +688,25 @@ namespace HellPoker.Core.Tests
                                   $" / passed {Pct(freedPassed, passed),6} ({(gap >= 0 ? "+" : "")}{gap:0.0}){mark}");
             }
 
+            report.AppendLine();
+            report.AppendLine("the black market's vendors (all classes): visits, things bought, freed when something was bought vs met and left (within classes; ! past 5)");
+            foreach (string v in Enum.GetNames(typeof(MarketVendor)))
+            {
+                int visits = everyChapter.VendorVisits.TryGetValue(v, out int vv) ? vv : 0, buys = everyChapter.VendorBuys.TryGetValue(v, out int vb) ? vb : 0;
+                double gapSum = 0, weightSum = 0;
+                foreach (var (_, ct) in perClass)
+                {
+                    string key = "vendor:" + v;
+                    int cw = ct.EventRuns.TryGetValue(key, out int a) ? a : 0, cp = ct.EventPassedRuns.TryGetValue(key, out int b) ? b : 0;
+                    if (cw < 10 || cp < 10) continue;
+                    double g = 100.0 * (ct.EventFreed.TryGetValue(key, out int fa) ? fa : 0) / cw - 100.0 * (ct.EventPassedFreed.TryGetValue(key, out int fb) ? fb : 0) / cp;
+                    gapSum += g * Math.Min(cw, cp);
+                    weightSum += Math.Min(cw, cp);
+                }
+                double gap = weightSum == 0 ? 0 : gapSum / weightSum;
+                report.AppendLine($"  {v,-14} visits {visits,5}  bought {buys,5}  gap {(gap >= 0 ? "+" : "")}{gap:0.0}{(weightSum >= 30 && Math.Abs(gap) > 5 ? " !" : "")}");
+            }
+
             TestContext.WriteLine(report.ToString());
             Assert.Pass(report.ToString());
         }
@@ -656,6 +718,7 @@ namespace HellPoker.Core.Tests
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
             RunTaken.Clear();
             RunSeen.Clear();
+            RunVendors.Clear();
             RunFreed = false;
             ChapterJourney journey = ChapterJourney.Begin(cls, seed, EnvInt("HELLPOKER_CIRCLE", 0));   // a knob: the circle of Hell
             if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
@@ -672,6 +735,17 @@ namespace HellPoker.Core.Tests
                 {
                     Bump(t.EventPassedRuns, id);
                     if (RunFreed) Bump(t.EventPassedFreed, id);
+                }
+                // The vendors go in the same books, "vendor:" before their names: bought of, or met and left.
+                foreach (string v in RunVendors.Where(x => x.bought).Select(x => x.vendor).Distinct())
+                {
+                    Bump(t.EventRuns, "vendor:" + v);
+                    if (RunFreed) Bump(t.EventFreed, "vendor:" + v);
+                }
+                foreach (string v in RunVendors.Select(x => x.vendor).Distinct().Except(RunVendors.Where(x => x.bought).Select(x => x.vendor)))
+                {
+                    Bump(t.EventPassedRuns, "vendor:" + v);
+                    if (RunFreed) Bump(t.EventPassedFreed, "vendor:" + v);
                 }
             }
         }

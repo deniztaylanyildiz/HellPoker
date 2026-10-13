@@ -360,6 +360,14 @@ namespace HellPoker.Core.Tests
         private static ChapterRun Run(int coins = 0, ChapterRules rules = null, int years = 1000) =>
             new ChapterRun(rules ?? ChapterRules.For(1), NewPeasant(), new RunEffects(), years, coins, 7);
 
+        /// <summary>Demo 2.0's market (the smuggler's): three relics, a relic thrown away, the eye, the jokers.</summary>
+        private static BlackMarket Smuggler(ChapterRun run)
+        {
+            ChapterTuning.MarketVendor = MarketVendor.Smuggler;
+            try { return run.OpenMarket(); }
+            finally { ChapterTuning.Reset(); }
+        }
+
         private static MapNode FirstOf(ChapterRun run, NodeKind kind) => run.Map.Floors.SelectMany(f => f).FirstOrDefault(n => n.Kind == kind);
 
         /// <summary>Puts the run at <paramref name="node"/> (walking there lane by lane, as far as the map allows).</summary>
@@ -520,7 +528,7 @@ namespace HellPoker.Core.Tests
         {
             ChapterRun run = Run(100);
             Stand(run, FirstOf(run, NodeKind.BlackMarket) ?? new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
-            BlackMarket market = run.OpenMarket();
+            BlackMarket market = Smuggler(run);
             Assert.AreEqual(3, market.Relics.Count);
             foreach (RelicOffer offer in market.Relics)
                 Assert.AreEqual(ChapterRelics.PriceOf(offer.RelicId), offer.Price, offer.RelicId);
@@ -543,7 +551,7 @@ namespace HellPoker.Core.Tests
         {
             ChapterRun run = Run(45);
             Stand(run, new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
-            BlackMarket market = run.OpenMarket();
+            BlackMarket market = Smuggler(run);
             string cheapest = market.Relics[0].RelicId;
             int price = market.Relics[0].Price;
             run.Purse.Add(price - run.Purse.Coins);
@@ -570,7 +578,7 @@ namespace HellPoker.Core.Tests
             var jester = new Sinner(SinnerRoster.Find(Jester.ClassId));
             var run = new ChapterRun(ChapterRules.For(1), jester, new RunEffects(), 750, 100, 7);
             Stand(run, new MapNode(2, 0, NodeKind.BlackMarket, new[] { 0 }));
-            BlackMarket market = run.OpenMarket();
+            BlackMarket market = Smuggler(run);
             Assert.IsFalse(market.ChangeJokers(-1), "never below the start");
             Assert.IsTrue(market.ChangeJokers(1));
             Assert.AreEqual(3, jester.Jokers);

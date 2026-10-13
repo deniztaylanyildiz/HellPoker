@@ -301,6 +301,7 @@ namespace HellPoker.Core.Chapters
             Current = node;
             _trail.Add(node);
             Arrival = null;
+            MarketHere = null;
         }
 
         private readonly HashSet<MapNode> _skipped = new HashSet<MapNode>();
@@ -532,8 +533,36 @@ namespace HellPoker.Core.Chapters
         public BlackMarket OpenMarket()
         {
             if (CurrentKind != NodeKind.BlackMarket) throw new InvalidOperationException("There is no market here.");
-            return new BlackMarket(this, _nodeRandom);
+            if (MarketHere == null)
+            {
+                // Who keeps it is rolled as the player steps in: never one met already this chapter (all six met: any).
+                var vendors = ((MarketVendor[])Enum.GetValues(typeof(MarketVendor))).Where(v => !_vendorsSeen.Contains(v)).ToList();
+                if (vendors.Count == 0) vendors = ((MarketVendor[])Enum.GetValues(typeof(MarketVendor))).ToList();
+                MarketHere = ChapterTuning.MarketVendor ?? vendors[_nodeRandom.Next(vendors.Count)];
+                _vendorsSeen.Add(MarketHere.Value);
+            }
+            return new BlackMarket(this, _nodeRandom, MarketHere.Value);
         }
+
+        private readonly HashSet<MarketVendor> _vendorsSeen = new HashSet<MarketVendor>();
+
+        /// <summary>The vendors met this chapter (each comes once).</summary>
+        public IReadOnlyCollection<MarketVendor> VendorsSeen => _vendorsSeen;
+
+        /// <summary>The vendor of the market the player stands at (kept for the save); null elsewhere.</summary>
+        public MarketVendor? MarketHere { get; private set; }
+
+        /// <summary>The vendors of a saved chapter.</summary>
+        public void RestoreVendors(IEnumerable<MarketVendor> seen, MarketVendor? here)
+        {
+            _vendorsSeen.Clear();
+            foreach (MarketVendor v in seen ?? Enumerable.Empty<MarketVendor>()) _vendorsSeen.Add(v);
+            MarketHere = here;
+        }
+
+        /// <summary>Up to <paramref name="count"/> class upgrades not yet had (the tailor's), at random.</summary>
+        public IReadOnlyList<string> UpgradesForSale(int count, IRandomSource random) =>
+            UpgradesOffered().OrderBy(_ => random.Next(1000)).Take(count).ToArray();
 
         /// <summary>The offer at the current event node: one not seen this chapter if any can appear; null when none can.</summary>
         public IFloorEvent DrawEvent(IReadOnlyList<IFloorEvent> deck = null)

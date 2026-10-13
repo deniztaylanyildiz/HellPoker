@@ -89,6 +89,12 @@ namespace HellPoker.Core.Chapters
         public List<string> Forged = new List<string>();
         public int? CampBar;
 
+        /// <summary>Optional keys of Demo 2.1's markets: the vendors met this chapter, the one of the market stood at (-1: none), the relics
+        /// cleansed for good.</summary>
+        public List<int> Vendors = new List<int>();
+        public int Vendor = -1;
+        public List<string> Cleansed = new List<string>();
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -175,6 +181,9 @@ namespace HellPoker.Core.Chapters
                 "bag=" + string.Join(",", Bag),
                 "forged=" + string.Join(",", Forged),
                 "camp.bar=" + (CampBar.HasValue ? CampBar.Value.ToString(CultureInfo.InvariantCulture) : ""),
+                "vendors=" + string.Join(",", Vendors),
+                "vendor=" + Vendor,
+                "cleansed=" + string.Join(",", Cleansed),
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -274,6 +283,9 @@ namespace HellPoker.Core.Chapters
                     Bag = Ids("bag"),
                     Forged = Ids("forged"),
                     CampBar = S("camp.bar") != null ? I("camp.bar") : (int?)null,
+                    Vendors = Ints("vendors"),
+                    Vendor = I("vendor", -1),
+                    Cleansed = Ids("cleansed"),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

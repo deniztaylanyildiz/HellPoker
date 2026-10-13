@@ -323,6 +323,109 @@ STRANGERS = {
 }
 
 
+
+# ------------------------------------------------------------------ the black market's vendors (Demo 2.1), each on his own colour
+
+def market_smuggler():
+    """A hooded smuggler with a scarf over his face, crates behind him, a lantern."""
+    img = Img(48, 48)
+    backdrop(img, C.BLOOD_DARK)
+    for x, y in ((3, 32), (36, 34)):
+        crate = img.m_rect(x, y, x + 9, y + 9)
+        img.shade(crate, RAMP_RUST, light=(-1, -1))
+        img.paint(img.m_line([(x, y), (x + 9, y + 9)], 1), C.BLOOD_DARK)
+    robe(img, RAMP_NIGHT, top=24, wide=12)
+    hood(img, RAMP_NIGHT[1:] + [C.VIOLET], C.EMBER, cy=17)
+    img.paint(img.m_rect(19, 21, 29, 23), C.BLOOD)
+    return finish(img)
+
+
+def market_pawnshop():
+    """Mammon's pawnbroker: a fat green-coated clerk behind a grille, coins and a pawned crown."""
+    img = Img(48, 48)
+    backdrop(img, C.GREEN_DARK)
+    robe(img, RAMP_GREEN[:3], top=24, wide=15)
+    face(img, RAMP_BONE, cy=16, eyes=C.GOLD, mouth=C.BLOOD)
+    img.paint(img.m_rect(16, 7, 32, 9), C.GOLD_MID)
+    for x in range(6, 44, 6):
+        img.paint(img.m_rect(x, 26, x, 47), C.GOLD_DARK)
+    img.paint(img.m_rect(4, 26, 43, 26), C.GOLD_DARK)
+    for x, y in ((10, 41), (14, 43), (36, 42)):
+        coin(img, x, y)
+    return finish(img)
+
+
+def market_bonemerchant():
+    """The bone merchant: a skull-faced trader in a coat of ribs, holding up a femur like a price tag."""
+    img = Img(48, 48)
+    backdrop(img, C.SILVER_DARK)
+    robe(img, RAMP_ASH, top=24, wide=13)
+    for y in range(28, 46, 4):
+        img.paint(img.m_rect(17, y, 31, y), C.BONE_MID)
+    skull = img.m_ellipse(24, 16, 6, 7)
+    img.shade(skull, RAMP_BONE, light=(-1, -1))
+    img.paint(img.m_ellipse(21.5, 15, 1.6, 1.8), C.BLACK)
+    img.paint(img.m_ellipse(26.5, 15, 1.6, 1.8), C.BLACK)
+    img.put(21, 15, C.EMBER)
+    img.paint(img.m_rect(21, 20, 27, 21), C.BONE_SHADE)
+    img.paint(img.m_line([(35, 18), (42, 34)], 2), C.BONE)
+    return finish(img)
+
+
+def market_alchemist():
+    """A wandering alchemist with a pointed hat, a bubbling flask in one hand."""
+    img = Img(48, 48)
+    backdrop(img, C.VIOLET)
+    robe(img, RAMP_LILAC[:3], top=24, wide=12)
+    face(img, RAMP_BONE, cy=18, eyes=C.BLACK, mouth=C.BONE_SHADE)
+    img.paint(img.m_poly([(15, 13), (24, 0), (33, 13)]), C.VIOLET)
+    img.paint(img.m_rect(14, 12, 34, 13), C.MAUVE)
+    flask = img.m_ellipse(37, 37, 5, 5) | img.m_rect(36, 28, 38, 33)
+    img.paint(flask, C.SILVER_DARK)
+    img.paint(img.m_ellipse(37, 38, 3.6, 3.4), C.GREEN_LIGHT)
+    img.put(36, 25, C.GREEN_LIGHT)
+    img.put(38, 23, C.GREEN)
+    return finish(img)
+
+
+def market_gamblersstall():
+    """A grinning stallkeeper in a striped vest behind a stack of closed boxes."""
+    img = Img(48, 48)
+    backdrop(img, C.PLUM)
+    robe(img, RAMP_RED[:4], top=22, wide=12)
+    for x in range(16, 33, 4):
+        img.paint(img.m_rect(x, 26, x + 1, 36), C.GOLD_MID)
+    face(img, RAMP_BONE, cy=15, eyes=C.BLACK, mouth=C.CRIMSON)
+    img.paint(img.m_rect(20, 18, 28, 18), C.CRIMSON)
+    for x, y, c in ((6, 36, C.GOLD_DARK), (16, 38, C.BLOOD), (28, 37, C.VIOLET), (36, 39, C.GOLD_DARK)):
+        box = img.m_rect(x, y, x + 8, y + 8)
+        img.paint(box, c)
+        img.paint(img.m_rect(x + 3, y, x + 5, y + 8), C.GOLD)
+    return finish(img)
+
+
+def market_tailor():
+    """The devil's tailor: horned, a tape round his neck, scissors and a needle of fire."""
+    img = Img(48, 48)
+    backdrop(img, C.BLOOD)
+    robe(img, RAMP_NIGHT, top=24, wide=12)
+    face(img, [C.BLOOD_DARK, C.BLOOD, C.CRIMSON], cy=17, eyes=C.AMBER, mouth=C.BLACK)
+    for side in (-1, 1):
+        img.paint(img.m_poly([(24 + side * 4, 11), (24 + side * 8, 3), (24 + side * 6, 12)]), C.BONE_DARK)
+    img.paint(img.m_line([(16, 25), (24, 30), (32, 25)], 1), C.GOLD)
+    for k in range(3):
+        img.put(18 + k * 6, 27, C.BLACK)
+    img.paint(img.m_line([(33, 30), (41, 40)], 1), C.SILVER)
+    img.paint(img.m_line([(41, 30), (33, 40)], 1), C.SILVER)
+    img.paint(img.m_line([(8, 30), (8, 42)], 1), C.EMBER)
+    return finish(img)
+
+
+STRANGERS.update({
+    "market_smuggler": market_smuggler, "market_pawnshop": market_pawnshop, "market_bonemerchant": market_bonemerchant,
+    "market_alchemist": market_alchemist, "market_gamblersstall": market_gamblersstall, "market_tailor": market_tailor,
+})
+
 def write_all(art_dir):
     events = os.path.join(art_dir, "Events")
     os.makedirs(events, exist_ok=True)

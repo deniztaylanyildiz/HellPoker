@@ -71,7 +71,10 @@ namespace HellPoker.Core.Tests
             foreach (string id in Relics(4)) run.Effects.Give(id);
             run.Purse.Add(500);
             typeof(ChapterRun).GetProperty(nameof(ChapterRun.Current)).SetValue(run, new MapNode(3, 0, NodeKind.BlackMarket, new[] { 0 }));
-            BlackMarket market = run.OpenMarket();
+            ChapterTuning.MarketVendor = MarketVendor.Smuggler;   // Demo 2.0's market: three relics
+            BlackMarket market;
+            try { market = run.OpenMarket(); }
+            finally { ChapterTuning.Reset(); }
             Assert.IsFalse(market.SellsNoMore);
             Assert.IsTrue(market.BuyRelic(market.Relics[0].RelicId));
             Assert.AreEqual(5, run.Effects.Relics.Count);

@@ -206,6 +206,18 @@ namespace HellPoker.Core.Events
             return RemoveRelic(id) || _bag.Remove(id);
         }
 
+        private readonly HashSet<string> _cleansed = new HashSet<string>();
+
+        /// <summary>The relics whose curse the alchemist burned away for good (their gift alone, worn or bagged).</summary>
+        public IReadOnlyCollection<string> Cleansed => _cleansed;
+
+        public bool Cleanse(string id)
+        {
+            if (!Holds(id)) return false;
+            _cleansed.Add(id);
+            return true;
+        }
+
         private readonly HashSet<string> _forged = new HashSet<string>();
 
         /// <summary>The relics forged at a camp: their gift half again (once each; the mark stays in the bag too).</summary>
@@ -220,8 +232,11 @@ namespace HellPoker.Core.Events
         }
 
         /// <summary>The bag and the forged marks of a saved run.</summary>
-        public void RestoreBag(IEnumerable<string> bag, IEnumerable<string> forged)
+        public void RestoreBag(IEnumerable<string> bag, IEnumerable<string> forged, IEnumerable<string> cleansed = null)
         {
+            _cleansed.Clear();
+            foreach (string id in cleansed ?? Enumerable.Empty<string>())
+                if (HellPoker.Core.Relics.RelicRoster.Find(id) != null) _cleansed.Add(id);
             _bag.Clear();
             foreach (string id in bag ?? Enumerable.Empty<string>())
                 if (HellPoker.Core.Relics.RelicRoster.Find(id) != null && !Holds(id) && !HellPoker.Core.Relics.RelicRoster.IsReward(id) && _bag.Count < MaxBag)
@@ -259,7 +274,7 @@ namespace HellPoker.Core.Events
 
         /// <summary>What the relics carried do to a hand, a silenced curse left out (a desired relic twice).</summary>
         public HellPoker.Core.Relics.RelicEffects CombinedRelics =>
-            HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse, AmplifiedRelic, _forged);
+            HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse, AmplifiedRelic, _forged, _cleansed);
 
         private readonly Game.TableCharges _redraws;
 

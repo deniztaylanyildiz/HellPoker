@@ -222,7 +222,7 @@ namespace HellPoker.Core.Chapters
             SinnerClass sinnerClass = SinnerRoster.Find(save.ClassId) ?? throw new ArgumentException("Unknown class.", nameof(save));
             var effects = PhaseTwoEffects();
             effects.Restore(HandModifier.None, 0, 0, 0, save.Relics, save.RedrawsLeft, save.RedrawTables);
-            effects.RestoreBag(save.Bag, save.Forged);
+            effects.RestoreBag(save.Bag, save.Forged, save.Cleansed);
             if (save.Silenced != null) effects.SilenceCurse(save.Silenced);
             if (save.Amplified != null) effects.Amplify(save.Amplified);
             var sinner = new Sinner(sinnerClass, save.Charge, null, save.Ward,
@@ -244,6 +244,9 @@ namespace HellPoker.Core.Chapters
                 save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
             if (save.CampBar.HasValue) journey.Run.RestoreCampBar(save.CampBar.Value);
+            int vendors = Enum.GetValues(typeof(MarketVendor)).Length;
+            journey.Run.RestoreVendors(save.Vendors.Where(v => v >= 0 && v < vendors).Select(v => (MarketVendor)v),
+                save.Vendor >= 0 && save.Vendor < vendors ? (MarketVendor)save.Vendor : (MarketVendor?)null);
             journey._runEvents = new HashSet<string>(save.RunEvents ?? new List<string>());
             journey.Run.RestoreOffers(save.AnteCut, save.WardenPurse, save.Loan, save.LoanPays, save.Insured, save.BossMalice, save.Skip, save.Memo,
                 save.Offers, journey._runEvents, save.Revealed);
@@ -321,6 +324,9 @@ namespace HellPoker.Core.Chapters
                 Bag = Effects.Bag.ToList(),
                 Forged = Effects.Forged.ToList(),
                 CampBar = run.CampBarPercent,
+                Vendors = run.VendorsSeen.Select(v => (int)v).ToList(),
+                Vendor = run.MarketHere.HasValue ? (int)run.MarketHere.Value : -1,
+                Cleansed = Effects.Cleansed.ToList(),
                 Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,

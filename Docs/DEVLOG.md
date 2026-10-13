@@ -3210,3 +3210,18 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   düşüyordu). Kurtuluş 28.6 (Demo 2.0.1 tohumları 28.4); kamp: DİNLEN %60, DÖV %35, BİLE %2, TÖREN %3; kampta ort. 2.6 takılı, 0.1 çantada.
   Düğme `HELLPOKER_REST_AT`.
 - Testler: `CampTests` (9), eski ateş / 3 yuva testleri güncellendi. EditMode 1038 (1034 geçti, 4 explicit).
+### Demo 2.1 — E: Kara Pazar çeşitleri (2026-10-13)
+- `MarketVendor` (6): Kaçakçı (eski pazar: 3 emanet, bırakma, iblis gözü, joker; + sıradaki bekçinin kesesi), Mammon'un Rehinci Dükkânı (emanet sat
+  = fiyatının yarısı, RUHUNU REHİN BIRAK +40c ve +80 yıl kapıda, 2 emanet), Kemik Tüccarı (3 emanet, nadir / efsanevi ağırlıklı 10/60/30, %30
+  ucuz, her alım cezaya +40 yıl), Gezgin Simyacı (aynı nadirlikten 2 → bir üst nadirlikten 1; 35c'ye bir lanet kalıcı silinir
+  `RunEffects.Cleanse`; 1 emanet), Kumarbaz Tezgâhı (kapalı kutu 30c, nadirlik 60/32/8; ÇİFT YA DA HİÇ %50 iki emanet), Şeytanın Terzisi (sınıf
+  yükseltmesi 80c, 3'ten seç, ziyaret başına bir; joker; iblis gözü). Satıcı pazara girerken zarlanır, bir bölümde ikinci kez gelmez
+  (`ChapterRun.OpenMarket`, `VendorsSeen`, `MarketHere`; kayıtta `vendors`, `vendor`, `cleansed`). Her pazarda bir kez PAZARLIK (%50 fiyatlar
+  −%20, %50 +%20) ve bir kez VİTRİNİ YENİLE (10c; kumarbazda yok). Rakamlar bölümle büyür. Portreler `pixel_strangers.py` (`market_*`), metinler
+  `UiText.Market.cs`, panel `ChapterPresenter.ShowMarket` (+ simyacının potası ve lanet seçimi alt panelleri). Düğme `HELLPOKER_VENDOR`
+  (testlerde `ChapterTuning.MarketVendor`).
+- Simülasyon (500 koşu): kurtuluş 28.4. Oyuncu: rehini yalnız kese haracın gerisindeyken bırakır, simyacıda en kötü laneti siler, kutuyu açar
+  (çifte girmez), terziden ilk yükseltmeyi alır, hepsi haraç cepte kalırsa; pazarlık ve yenileme yok. Ziyaret / alım: Kaçakçı 672/352,
+  Rehinci 618/796 (satış + rehin), Kemik 671/295, Simyacı 574/251, Kumarbaz 768/116, Terzi 672/128. Sınıf içi "alan / görüp geçen" farkı
+  hepsinde eksi (−3..−25) — alım kesenin durumuyla karışık (rehin geride kalan koşularda), gerçek etki ölçüsü değil.
+- Testler: `MarketTests` (9); eski pazar testleri kaçakçıya sabitlendi. EditMode 1047 (1043 geçti, 4 explicit).

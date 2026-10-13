@@ -472,65 +472,224 @@ namespace HellPoker.Presentation
             if (bought != null) _audio.PlaySfx(SfxIds.MarketBuy);
             var options = new List<PanelOption>();
             var answers = new List<Action>();
+            MarketVendor vendor = market.Vendor;
             bool full = market.SellsNoMore;
+            void Add(PanelOption option, Action answer)
+            {
+                options.Add(option);
+                answers.Add(answer);
+            }
+
+            // The relics on the stall (the bone merchant's cost years too).
             foreach (RelicOffer offer in market.Relics)
             {
                 string id = offer.RelicId;
                 bool can = market.CanBuyRelic(id);
-                string why = can ? "" : "\n" + (!full ? UiText.MarketNoCoins : UiText.MarketFull);
-                options.Add(new PanelOption(string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price),
-                    UiText.RelicPanelDetail(id) + why, can));
-                answers.Add(() =>
+                string detail = UiText.RelicPanelDetail(id) + (vendor == MarketVendor.BoneMerchant
+                    ? "\n" + string.Format(UiText.MarketBoneDetailFormat, _run.Scaled(BlackMarket.BoneYears)) : "") +
+                    (can ? "" : "\n" + (!full ? UiText.MarketNoCoins : UiText.MarketFull));
+                Add(new PanelOption(string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price), detail, can), () =>
                 {
-                    if (market.BuyRelic(id))
+                    if (!market.BuyRelic(id)) return;
+                    Note($"black market ({vendor}): bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
+                    _records.RelicBought();
+                    _archive?.SaveRecords(_records);
+                    ShowMarket(market, UiText.RelicName(id));
+                });
+            }
+            var held = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray();
+            switch (vendor)
+            {
+                case MarketVendor.Smuggler:
+                    foreach (string id in held)
                     {
-                        Note($"black market: bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
-                        _records.RelicBought();
-                        _archive?.SaveRecords(_records);
-                        ShowMarket(market, UiText.RelicName(id));
+                        string relic = id;
+                        bool can = market.CanDropRelic(relic);
+                        Add(new PanelOption(string.Format(UiText.MarketDropFormat, UiText.RelicName(relic), market.DropPrice),
+                            UiText.MarketDropDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                        {
+                            if (market.DropRelic(relic)) ShowMarket(market, null);
+                        });
                     }
-                });
+                    break;
+                case MarketVendor.Pawnshop:
+                    foreach (string id in held)
+                    {
+                        string relic = id;
+                        Add(new PanelOption(string.Format(UiText.MarketSellFormat, UiText.RelicName(relic), market.SellPrice(relic)), UiText.MarketSellDetail), () =>
+                        {
+                            int price = market.SellPrice(relic);
+                            if (!market.SellRelic(relic)) return;
+                            Note($"pawnshop: sold {relic} for {price} (purse {_run.Purse.Coins})");
+                            ShowMarket(market, null);
+                        });
+                    }
+                    if (market.CanPawn)
+                        Add(new PanelOption(string.Format(UiText.MarketPawnFormat, market.PawnCoinsNow), string.Format(UiText.MarketPawnDetailFormat, market.PawnYearsNow)), () =>
+                        {
+                            if (!market.Pawn()) return;
+                            Note($"pawnshop: the soul pawned, +{market.PawnCoinsNow} coins, +{market.PawnYearsNow} years (sentence {_journey.Sentence.Years})");
+                            ShowMarket(market, null);
+                        });
+                    break;
+                case MarketVendor.Alchemist:
+                    foreach (RelicRarity rarity in market.Transmutable)
+                    {
+                        RelicRarity r = rarity;
+                        Add(new PanelOption(string.Format(UiText.MarketTransmuteFormat, UiText.Upper(UiText.RarityName(r)),
+                            UiText.Upper(UiText.RarityName(r == RelicRarity.Common ? RelicRarity.Rare : RelicRarity.Legendary))), UiText.MarketTransmuteDetail),
+                            () => ShowTransmute(market, r, null));
+                    }
+                    bool cleanse = held.Any(market.CanCleanse);
+                    Add(new PanelOption(string.Format(UiText.MarketCleanseFormat, market.CleanseCost), UiText.MarketCleanseDetail +
+                        (cleanse ? "" : "\n" + UiText.MarketNoCoins), cleanse), () =>
+                    {
+                        if (cleanse) ShowCleanse(market);
+                    });
+                    break;
+                case MarketVendor.GamblersStall:
+                    if (market.Box == null)
+                    {
+                        bool box = market.CanBuyBox;
+                        Add(new PanelOption(string.Format(UiText.MarketBoxFormat, market.BoxCost), UiText.MarketBoxDetail +
+                            (box ? "" : "\n" + (full ? UiText.MarketFull : UiText.MarketNoCoins)), box), () =>
+                        {
+                            if (!market.BuyBox()) return;
+                            Note($"gambler's stall: a box ({market.Box})");
+                            ShowMarket(market, null);
+                        });
+                    }
+                    else
+                    {
+                        Add(new PanelOption(UiText.MarketBoxOpen, UiText.MarketBoxDetail), () =>
+                        {
+                            string relic = market.OpenBox();
+                            Note($"gambler's stall: the box held {relic ?? "nothing"}");
+                            if (_run.WardenRelicWaiting != null) { ShowWardenRelic(); return; }
+                            ShowMarket(market, relic != null ? UiText.RelicName(relic) : null);
+                        });
+                        Add(new PanelOption(UiText.MarketBoxDouble, UiText.MarketBoxDoubleDetail), () =>
+                        {
+                            IReadOnlyList<string> won = market.DoubleOrNothing();
+                            Note($"gambler's stall: double or nothing -> {(won.Count == 0 ? "lost" : string.Join(", ", won))}");
+                            if (_run.WardenRelicWaiting != null) { ShowWardenRelic(); return; }
+                            ShowMarket(market, won.Count == 0 ? null : string.Join(", ", won.Select(UiText.RelicName)), won.Count == 0 ? UiText.MarketBoxLost : null);
+                        });
+                    }
+                    break;
+                case MarketVendor.Tailor:
+                    foreach (string upgrade in market.Upgrades)
+                    {
+                        string u = upgrade;
+                        bool can = market.CanBuyUpgrade(u);
+                        Add(new PanelOption(string.Format(UiText.MarketUpgradeFormat, UiText.UpgradeName(u), market.UpgradeCost),
+                            UiText.UpgradeText(u) + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                        {
+                            if (!market.BuyUpgrade(u)) return;
+                            Note($"tailor: upgrade {u} (purse {_run.Purse.Coins})");
+                            ShowMarket(market, UiText.UpgradeName(u));
+                        });
+                    }
+                    break;
             }
-            foreach (string id in _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray())
+            if (market.OffersEye)
             {
-                string relic = id;
-                bool can = market.CanDropRelic(relic);
-                options.Add(new PanelOption(string.Format(UiText.MarketDropFormat, UiText.RelicName(relic), market.DropPrice),
-                    UiText.MarketDropDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can));
-                answers.Add(() =>
+                bool eye = market.CanBuyImpsEye;
+                Add(new PanelOption(string.Format(UiText.MarketEyeFormat, market.EyePrice),
+                    UiText.MarketEyeDetail + (eye ? "" : "\n" + (_run.ImpsEyeNext ? UiText.MarketEyeWaits : UiText.MarketNoCoins)), eye), () =>
                 {
-                    if (market.DropRelic(relic)) ShowMarket(market, null);
+                    if (market.BuyImpsEye()) ShowMarket(market, UiText.MarketEyeName);
                 });
             }
-            bool eye = market.CanBuyImpsEye;
-            options.Add(new PanelOption(string.Format(UiText.MarketEyeFormat, market.EyePrice),
-                UiText.MarketEyeDetail + (eye ? "" : "\n" + (_run.ImpsEyeNext ? UiText.MarketEyeWaits : UiText.MarketNoCoins)), eye));
-            answers.Add(() =>
-            {
-                if (market.BuyImpsEye()) ShowMarket(market, UiText.MarketEyeName);
-            });
-            if (_run.Sinner.Class.StartingJokers > 0)
+            if (market.OffersJokers)
             {
                 string jokers = string.Format(UiText.MarketJokerDetailFormat, _run.Sinner.Jokers);
-                options.Add(new PanelOption(string.Format(UiText.MarketJokerInFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(1)));
-                answers.Add(() =>
+                Add(new PanelOption(string.Format(UiText.MarketJokerInFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(1)), () =>
                 {
                     if (market.ChangeJokers(1)) ShowMarket(market, null);
                 });
-                options.Add(new PanelOption(string.Format(UiText.MarketJokerOutFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(-1)));
-                answers.Add(() =>
+                Add(new PanelOption(string.Format(UiText.MarketJokerOutFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(-1)), () =>
                 {
                     if (market.ChangeJokers(-1)) ShowMarket(market, null);
                 });
             }
-            options.Add(new PanelOption(UiText.PanelLeave, UiText.MarketLeaveDetail, isLeave: true));
-            answers.Add(Onward);
+            // Every market: the haggle, once; the stall turned over, once.
+            if (!market.Haggled)
+                Add(new PanelOption(UiText.MarketHaggle, UiText.MarketHaggleDetail), () =>
+                {
+                    bool won = market.Haggle();
+                    Note($"black market ({vendor}): haggled, prices {market.PricePercent}%");
+                    ShowMarket(market, null, won ? UiText.VendorHaggleWon(vendor) : UiText.VendorHaggleLost(vendor));
+                });
+            if (!market.Rerolled && vendor != MarketVendor.GamblersStall)
+            {
+                bool can = market.CanReroll;
+                Add(new PanelOption(string.Format(UiText.MarketRerollFormat, market.RerollCost), UiText.MarketRerollDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                {
+                    if (market.Reroll()) ShowMarket(market, null, UiText.MarketRerolled);
+                });
+            }
+            Add(new PanelOption(UiText.PanelLeave, UiText.MarketLeaveDetail, isLeave: true), Onward);
 
-            string text = string.Format(UiText.MarketTextFormat, _run.Purse.Coins);
+            string text = string.Format(UiText.VendorGreetingFormat(vendor), _run.Purse.Coins);
+            if (vendor == MarketVendor.Smuggler) text += "\n" + string.Format(UiText.MarketWardenTipFormat, market.NextWardenPurse);
+            if (vendor == MarketVendor.GamblersStall && market.Box != null)
+                text += "\n" + string.Format(UiText.MarketBoxBoughtFormat, UiText.RarityName(market.Box.Value));
+            if (_marketLine != null) text += "\n" + _marketLine;
             if (bought != null) text += "\n" + string.Format(UiText.MarketBoughtFormat, bought);
-            int selected = _card != null && _card.Title == UiText.MarketTitle ? Math.Min(_card.Selected, options.Count - 1) : options.Count - 1;
-            ShowPanel(new PanelCard("Events/black_market", UiText.MarketOwner, UiText.MarketTitle, text, options, selected), answers, "market");
+            string title = UiText.VendorTitle(vendor);
+            int selected = _card != null && _card.Title == title ? Math.Min(_card.Selected, options.Count - 1) : options.Count - 1;
+            ShowPanel(new PanelCard("Events/market_" + vendor.ToString().ToLowerInvariant(), UiText.VendorOwner(vendor), title, text, options, selected),
+                answers, "market");
+            _marketLine = null;
             if (!_atTable) _map.Show(MapState());   // the purse and the relics on the side change with every purchase
+        }
+
+        /// <summary>A line the market says once (the haggle's answer, a box lost).</summary>
+        private string _marketLine;
+
+        private void ShowMarket(BlackMarket market, string bought, string line)
+        {
+            _marketLine = line;
+            ShowMarket(market, bought);
+        }
+
+        /// <summary>The alchemist's crucible: two relics of <paramref name="rarity"/>, picked one after the other.</summary>
+        private void ShowTransmute(BlackMarket market, RelicRarity rarity, string first)
+        {
+            var candidates = market.HeldOf(rarity).Where(id => id != first).ToArray();
+            var options = candidates.Select(id => new PanelOption(UiText.RelicName(id), UiText.RelicPanelDetail(id))).ToList();
+            var answers = candidates.Select(id => (Action)(() =>
+            {
+                if (first == null)
+                {
+                    ShowTransmute(market, rarity, id);
+                    return;
+                }
+                string made = market.Transmute(first, id);
+                Note($"alchemist: {first} + {id} -> {made}");
+                ShowMarket(market, null, made != null ? string.Format(UiText.MarketTransmutedFormat, UiText.RelicName(made)) : null);
+            })).ToList();
+            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
+            answers.Add(() => ShowMarket(market, null));
+            ShowPanel(new PanelCard("Events/market_alchemist", UiText.VendorOwner(MarketVendor.Alchemist), UiText.VendorTitle(MarketVendor.Alchemist),
+                first == null ? UiText.MarketTransmuteWhich : string.Format(UiText.MarketTransmuteSecondFormat, UiText.RelicName(first)), options), answers, "market");
+        }
+
+        private void ShowCleanse(BlackMarket market)
+        {
+            var candidates = _run.Effects.AllHeld.Where(market.CanCleanse).ToArray();
+            var options = candidates.Select(id => new PanelOption(UiText.RelicName(id), "− " + UiText.RelicCurse(id))).ToList();
+            var answers = candidates.Select(id => (Action)(() =>
+            {
+                if (!market.Cleanse(id)) return;
+                Note($"alchemist: {id}'s curse burned away");
+                ShowMarket(market, null, string.Format(UiText.MarketCleansedFormat, UiText.RelicName(id)));
+            })).ToList();
+            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
+            answers.Add(() => ShowMarket(market, null));
+            ShowPanel(new PanelCard("Events/market_alchemist", UiText.VendorOwner(MarketVendor.Alchemist), UiText.VendorTitle(MarketVendor.Alchemist),
+                UiText.MarketCleanseWhich, options), answers, "market");
         }
 
         // ------------------------------------------------------------------ an offer

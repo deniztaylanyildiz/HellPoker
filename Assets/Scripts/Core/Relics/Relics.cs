@@ -267,14 +267,16 @@ namespace HellPoker.Core.Relics
         /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone, the one
         /// named <paramref name="amplified"/> counts twice (Phase 2's Desire: its gift and its curse doubled).</summary>
         /// <param name="forged">Relics forged at a camp (Demo 2.1): their gift half again.</param>
-        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null, string amplified = null, ICollection<string> forged = null)
+        /// <param name="cleansed">Relics whose curse the alchemist burned away (Demo 2.1): their gift alone, for good.</param>
+        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null, string amplified = null, ICollection<string> forged = null,
+            ICollection<string> cleansed = null)
         {
             RelicEffects all = RelicEffects.None;
             foreach (string id in ids ?? Enumerable.Empty<string>())
             {
                 IRelic relic = Find(id);
                 if (relic == null) continue;
-                RelicEffects effects = id == silenced ? relic.Boon : relic.Effects;
+                RelicEffects effects = id == silenced || (cleansed != null && cleansed.Contains(id)) ? relic.Boon : relic.Effects;
                 all = all.With(effects);
                 if (id == amplified) all = all.With(effects);
                 if (forged != null && forged.Contains(id)) all = all.With(relic.Boon.Partial(ForgePercent));
