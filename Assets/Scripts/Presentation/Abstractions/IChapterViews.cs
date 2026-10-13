@@ -77,9 +77,68 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The map's MENU button.</summary>
         event Action MenuPressed;
 
+        /// <summary>The map's RELICS button (the worn relics and the bag, to look at).</summary>
+        event Action RelicsPressed;
+
         bool IsVisible { get; }
 
         void Show(ChapterMapState state);
+
+        void Hide();
+    }
+
+    /// <summary>
+    /// The relics of a Phase 2 run (Demo 2.1): five worn (only they act at a table) and five in the bag. At a camp they change places
+    /// freely — pick one, pick where it goes — and one may be left behind (asked twice); elsewhere they are only looked at.
+    /// </summary>
+    public sealed class RelicBagState
+    {
+        public const int Worn = 5, Bagged = 5, Slots = Worn + Bagged;
+
+        /// <summary>The ten places: 0-4 worn, 5-9 the bag; null for an empty one.</summary>
+        public IReadOnlyList<RelicBadge> Places { get; }
+
+        /// <summary>The place picked to move (−1: none) and the keyboard's place.</summary>
+        public int Picked { get; }
+        public int Cursor { get; }
+
+        /// <summary>A camp: places may change and a relic may be left behind; false: a look only.</summary>
+        public bool Editable { get; }
+
+        /// <summary>The worn relics' sum in words ("Win +12%, ante −10%, malice +1 a hand").</summary>
+        public string Totals { get; }
+
+        /// <summary>A line of what just happened or what to do.</summary>
+        public string Message { get; }
+
+        /// <summary>LEAVE IT BEHIND was pressed once: the next press leaves the picked relic for good.</summary>
+        public bool ConfirmingDrop { get; }
+
+        public RelicBagState(IReadOnlyList<RelicBadge> places, int picked, int cursor, bool editable, string totals, string message, bool confirmingDrop)
+        {
+            Places = places ?? throw new ArgumentNullException(nameof(places));
+            if (places.Count != Slots) throw new ArgumentException("Ten places.", nameof(places));
+            Picked = picked;
+            Cursor = cursor;
+            Editable = editable;
+            Totals = totals ?? "";
+            Message = message ?? "";
+            ConfirmingDrop = confirmingDrop;
+        }
+    }
+
+    public interface IRelicBagView
+    {
+        /// <summary>A place clicked (0-4 worn, 5-9 the bag).</summary>
+        event Action<int> PlacePressed;
+
+        /// <summary>DONE (or Esc), and LEAVE IT BEHIND.</summary>
+        event Action DonePressed;
+        event Action DropPressed;
+
+        bool IsOpen { get; }
+
+        void Show(RelicBagState state);
 
         void Hide();
     }

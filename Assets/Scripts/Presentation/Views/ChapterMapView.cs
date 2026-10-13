@@ -72,6 +72,7 @@ namespace HellPoker.Presentation.Views
 
         public event Action<int, int> NodePressed;
         public event Action MenuPressed;
+        public event Action RelicsPressed;
 
         public bool IsVisible => _canvas.enabled;
 
@@ -131,11 +132,17 @@ namespace HellPoker.Presentation.Views
             _bar = BossBarWidget.Create(side.transform, "MapBossBar", 8, 91, SideWidth - 20, 6);
 
             _lines = UiFactory.CreateText("Lines", side.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).WithOutline();
-            _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, 106);
+            _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, 88);
             _lines.lineSpacing = 1f;
 
             UiFactory.CreateText("Keys", side.transform, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).WithOutline().Localized(() => UiText.MapKeysHint)
-                .rectTransform.PlaceTL(8, 210, SideWidth - 16, 30);
+                .rectTransform.PlaceTL(8, 192, SideWidth - 16, 20);
+
+            // RELICS: the worn ones and the bag, to look at (they change places at a camp).
+            Button relics = UiFactory.CreateButton("MapRelicsButton", side.transform, "", 8, out Text relicsLabel, ButtonSkin.Ash);
+            relicsLabel.Localized(() => UiText.MapRelicsButton);
+            ((RectTransform)relics.transform).PlaceTL(8, PixelScreen.Height - 8 - 48, SideWidth - 16, 18);
+            relics.onClick.AddListener(() => RelicsPressed?.Invoke());
 
             Button menu = UiFactory.CreateButton("MapMenuButton", side.transform, "", 8, out Text menuLabel, ButtonSkin.Ash);
             menuLabel.Localized(() => UiText.Menu);

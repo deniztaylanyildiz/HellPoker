@@ -37,7 +37,7 @@ namespace HellPoker.Core.Game
         /// <summary>How many House cards turn before the last decision: the table's rule, or more for a class that sees through
         /// a demon's concealment (the Warlock at Belial's table).</summary>
         public int HouseCardsShown => ThisHand.HouseCardsShown >= 0 ? ThisHand.HouseCardsShown
-            : Math.Max(0, (Sinner?.Class.HouseCardsShownAt(Rules) ?? Rules.HouseCardsShown) + Relic.HouseCardsDelta);
+            : Math.Max(0, Math.Min(Hand.Size - 1, (Sinner?.Class.HouseCardsShownAt(Rules) ?? Rules.HouseCardsShown) + Relic.HouseCardsDelta));   // never all five before the showdown (Demo 2.1: five relics may stack)
 
         /// <summary>The relics' combined effects on this hand (fixed at the deal).</summary>
         public RelicEffects Relic { get; private set; } = RelicEffects.None;

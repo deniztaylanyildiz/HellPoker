@@ -113,6 +113,7 @@ namespace HellPoker.Presentation
             // Its table is built when a chapter first starts, so the demo's screens stay the only ones until then.
             ChapterMapView chapterMap = ChapterMapView.Create(transform);
             ChapterPanelView chapterPanel = ChapterPanelView.Create(transform, UiArt.Dealers);
+            RelicBagView relicBag = RelicBagView.Create(transform);
             _chapterPresenter = new ChapterPresenter(chapterMap, chapterPanel, () =>
                 {
                     UiArt.Salons.Preload(Core.Chapters.ChapterCast.All);
@@ -123,7 +124,7 @@ namespace HellPoker.Presentation
                     var presenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), chapterTableView,
                         settings, audio: audio);
                     return (presenter, chapterTableView);
-                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs);
+                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs, relicBag);
 
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter,

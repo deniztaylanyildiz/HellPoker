@@ -49,6 +49,9 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<FireChoice, int> Fire = new Dictionary<FireChoice, int>();
             public readonly Dictionary<NodeKind, int> Path = new Dictionary<NodeKind, int>();
 
+            /// <summary>At the camps: the relics worn and in the bag (summed), and the camps.</summary>
+            public int Worn, Bagged, Camps;
+
             /// <summary>What the unknown nodes stepped on held.</summary>
             public readonly Dictionary<NodeKind, int> Unknowns = new Dictionary<NodeKind, int>();
 
@@ -81,6 +84,7 @@ namespace HellPoker.Core.Tests
                 foreach (var p in o.Fire) Bump(Fire, p.Key, p.Value);
                 foreach (var p in o.Path) Bump(Path, p.Key, p.Value);
                 foreach (var p in o.Unknowns) Bump(Unknowns, p.Key, p.Value);
+                Worn += o.Worn; Bagged += o.Bagged; Camps += o.Camps;
                 foreach (var p in o.Choices) Bump(Choices, p.Key, p.Value);
                 foreach (var p in o.EventCoins) Bump(EventCoins, p.Key, p.Value);
                 foreach (var p in o.EventYears) Bump(EventYears, p.Key, p.Value);
@@ -270,7 +274,10 @@ namespace HellPoker.Core.Tests
                     case NodeKind.BlackMarket:
                         tally.MarketVisits++;
                         BlackMarket market = run.OpenMarket();
-                        RelicOffer? best = market.Relics.Where(o => market.CanBuyRelic(o.RelicId) && run.Purse.Coins - o.Price >= Reserve)
+                        // Two relics freely (Demo 2.0's market sold no more); past them only with the gate's tribute still in the purse.
+                        int held = effects.CarriedOffered + effects.Bag.Count;
+                        int keep = held < 2 ? Reserve : Math.Max(Reserve, run.Tribute);
+                        RelicOffer? best = market.Relics.Where(o => market.CanBuyRelic(o.RelicId) && run.Purse.Coins - o.Price >= keep)
                             .OrderByDescending(o => o.Price).Select(o => (RelicOffer?)o).FirstOrDefault();
                         if (best.HasValue && market.BuyRelic(best.Value.RelicId))
                         {
@@ -310,13 +317,16 @@ namespace HellPoker.Core.Tests
                         break;
 
                     case NodeKind.PurgatoryFire:
-                        // A curse to silence first; else, before Lilith, a class upgrade for a longer bar (HELLPOKER_WHET=0: never); else a rest.
-                        FireChoice choice = run.CanTend(FireChoice.SilenceCurse) ? FireChoice.SilenceCurse
-                            : run.Rules.Number < 3 && EnvInt("HELLPOKER_WHET", 1) != 0 && run.CanTend(FireChoice.WhetSoul) ? FireChoice.WhetSoul
-                            : FireChoice.RestByTheFire;
-                        run.TendFire(choice, choice == FireChoice.SilenceCurse ? effects.Relics[0] : null);
+                        ArrangeRelics(effects);
+                        FireChoice choice = CampChoice(run);
+                        string target = choice == FireChoice.SilenceCurse ? effects.Relics.OrderBy(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).First()
+                            : choice == FireChoice.Forge ? run.Forgeable.OrderByDescending(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).First() : null;
+                        run.TendFire(choice, target);
                         if (choice == FireChoice.WhetSoul && run.FireUpgrade != null) Bump(tally.UpgradePicks, run.FireUpgrade);
                         Bump(tally.Fire, choice);
+                        tally.Worn += effects.CarriedOffered;
+                        tally.Bagged += effects.Bag.Count;
+                        tally.Camps++;
                         break;
                 }
             }
@@ -386,6 +396,42 @@ namespace HellPoker.Core.Tests
 
         /// <summary>The Summoner's eye on a swindler (the presentation's price).</summary>
         private const int ChapterPresenterEyePrice = 5;
+
+        /// <summary>A camp's action as the simulation's player takes it: a rest while the sentence is high (at least nine tenths of its
+        /// start; HELLPOKER_REST_AT), else a forge for a good worn relic, else (before Lilith) a whetted soul, else a rite (a curse silenced
+        /// when a relic is worn, else the first cheat broken), else a rest.</summary>
+        private static FireChoice CampChoice(ChapterRun run)
+        {
+            int start = RunSentence.StartFor(run.Sinner.Id, run.Rules.Circle);
+            int restAt = EnvInt("HELLPOKER_REST_AT", 90);
+            if (run.Sentence != null && run.Sentence.Years * 100L >= start * (long)restAt && run.CanTend(FireChoice.RestByTheFire)) return FireChoice.RestByTheFire;
+            if (run.CanTend(FireChoice.Forge) && run.Forgeable.Any(r => (RelicRoster.Find(r)?.ExpectedYears ?? 0) > 0)) return FireChoice.Forge;
+            if (run.Rules.Number < 3 && EnvInt("HELLPOKER_WHET", 1) != 0 && run.CanTend(FireChoice.WhetSoul)) return FireChoice.WhetSoul;
+            if (run.CanTend(FireChoice.SilenceCurse)) return FireChoice.SilenceCurse;
+            if (run.CanTend(FireChoice.BreakFirstCheat)) return FireChoice.BreakFirstCheat;
+            foreach (FireChoice c in run.FireOffers)
+                if (run.CanTend(c) && c != FireChoice.SilenceCurse && c != FireChoice.Forge) return c;
+            return FireChoice.RestByTheFire;
+        }
+
+        /// <summary>At a camp the player wears the five best relics held (by what they are worth on average).</summary>
+        private static void ArrangeRelics(RunEffects effects)
+        {
+            int Worth(string id) => RelicRoster.Find(id)?.ExpectedYears ?? 0;
+            for (int guard = 0; guard < 10; guard++)
+            {
+                string best = effects.Bag.OrderByDescending(Worth).FirstOrDefault();
+                if (best == null) return;
+                if (!effects.RelicSlotsFull)
+                {
+                    effects.Equip(best);
+                    continue;
+                }
+                string worst = effects.Relics.Where(r => !RelicRoster.IsReward(r)).OrderBy(Worth).FirstOrDefault();
+                if (worst == null || Worth(worst) >= Worth(best)) return;
+                effects.Swap(worst, best);
+            }
+        }
 
         // ------------------------------------------------------------------ a whole run: the three chapters, then Lucifer
 
@@ -503,6 +549,10 @@ namespace HellPoker.Core.Tests
                 report.AppendLine($"  ch{ch + 1}: " + string.Join("  ", c.Path.OrderBy(p => p.Key).Select(p => $"{p.Key} {Avg(p.Value, c.Runs)}")) +
                                   "   ? -> " + string.Join(" ", c.Unknowns.OrderBy(p => p.Key).Select(p => $"{p.Key} {Avg(p.Value, c.Runs)}")));
             }
+            report.AppendLine("the camps, all chapters: " + string.Join("  ", Enumerable.Range(0, 3).SelectMany(ch => all.Chapters[ch].Fire)
+                .GroupBy(p => p.Key).Select(g => (g.Key, n: g.Sum(p => p.Value))).OrderBy(p => p.Key)
+                .Select(p => $"{p.Key} {Pct(p.n, all.Chapters.Sum(c => c.Camps))}")) +
+                $";  at a camp worn {Avg(all.Chapters.Sum(c => c.Worn), all.Chapters.Sum(c => c.Camps))}, bag {Avg(all.Chapters.Sum(c => c.Bagged), all.Chapters.Sum(c => c.Camps))}");
             report.AppendLine();
             report.AppendLine($"class     reached Lucifer   freed   sentence left when freed: avg (p10/p50/p90), spotless   (bar heal {ChapterTuning.BarHealPercent}%)");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
@@ -658,7 +708,7 @@ namespace HellPoker.Core.Tests
                 string upgrade = journey.Run.LootUpgrade;
                 if (upgrade != null && EnvInt("HELLPOKER_LOOT_UPGRADE", 1) != 0 && journey.Run.TakeLootUpgrade())
                     foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].UpgradePicks, upgrade);
-                else if (relic != null && !journey.Run.Effects.RelicSlotsFull && journey.Run.TakeLoot(relic))
+                else if (relic != null && !journey.Run.RelicsFull && journey.Run.TakeLoot(relic))
                     foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].RelicPicks, relic);
                 else journey.Run.TakeLootCoins();
                 // The rule tops every chapter's purse up to the class's start; HELLPOKER_REFILL=0 carries only what is left (the old rule).
@@ -724,7 +774,7 @@ namespace HellPoker.Core.Tests
         private static MapNode ChooseNext(ChapterRun run, IRandomSource random, bool wardenSeen)
         {
             int cheapest = run.PriceOf(BlackMarket.RelicPrices[0]);
-            bool canShop = run.Purse.Coins - cheapest >= Reserve && run.Effects.CarriedOffered < Math.Min(run.Effects.MaxCarried, BlackMarket.SellsUpTo);
+            bool canShop = run.Purse.Coins - cheapest >= (run.Effects.CarriedOffered + run.Effects.Bag.Count < 2 ? Reserve : Math.Max(Reserve, run.Tribute)) && !run.RelicsFull;
             int Score(MapNode node)
             {
                 switch (node.Kind)

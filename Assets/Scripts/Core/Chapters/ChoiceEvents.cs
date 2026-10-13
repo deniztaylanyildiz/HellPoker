@@ -507,7 +507,7 @@ namespace HellPoker.Core.Chapters
 
         public override bool CanAppear(ChapterRun run) => Givable(run).Any() && run.CanDrawRelic(null, Offered);
 
-        private static IEnumerable<string> Givable(ChapterRun run) => run.Effects.Relics.Where(r => !RelicRoster.IsReward(r));
+        private static IEnumerable<string> Givable(ChapterRun run) => run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r));
 
         public override IReadOnlyList<string> Choices(ChapterRun run) =>
             run.EventOffers.Count > 0
@@ -519,8 +519,8 @@ namespace HellPoker.Core.Chapters
             if (choice.StartsWith(EventChoices.GivePrefix, StringComparison.Ordinal))
             {
                 string given = choice.Substring(EventChoices.GivePrefix.Length);
-                var offers = ChapterRelics.Draw(run.NodeDice, RelicWeights.Market, Offered, run.Effects.Relics.Concat(new[] { given }).ToList(), run.RelicAvailable);
-                run.Effects.RemoveRelic(given);
+                var offers = ChapterRelics.Draw(run.NodeDice, RelicWeights.Market, Offered, run.Effects.AllHeld.Concat(new[] { given }).ToList(), run.RelicAvailable);
+                run.Effects.Drop(given);
                 run.EventOffers.Clear();
                 run.EventOffers.AddRange(offers);
                 outcome.Result = "give";

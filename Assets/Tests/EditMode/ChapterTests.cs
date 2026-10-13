@@ -600,8 +600,8 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(run.TendFire(FireChoice.RestByTheFire));
             Assert.IsTrue(run.RestedByTheFire);
             HellPokerGame game = run.OpenBossTable(GameRules.Default);
-            Assert.AreEqual(900, game.Years, "the bar starts a tenth shorter (1000 → 900)");
-            Assert.AreEqual(900, run.BossBarStart);
+            Assert.AreEqual(950, game.Years, "a camp's rest: the bar starts five percent shorter (1000 → 950)");
+            Assert.AreEqual(950, run.BossBarStart);
             Assert.IsFalse(run.RestedByTheFire, "once");
         }
 

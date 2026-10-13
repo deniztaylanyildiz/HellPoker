@@ -18,9 +18,25 @@ namespace HellPoker.Presentation.Views
     public sealed class RelicBarView : MonoBehaviour
     {
         private const int Tile = 20;
-        /// <summary>The offered relics down the edge (two in the demo, three in Phase 2), the earned one apart (the last slot).</summary>
-        private const int Slots = 4;
-        private const int RewardSlot = 3;
+        /// <summary>The offered relics on the box's edge (two in the demo, five in Phase 2: two columns of three rows), the earned one
+        /// apart (the last slot, left of the first).</summary>
+        private const int Slots = 6;
+        private const int RewardSlot = 5;
+        private const int RowStep = Tile + 1;
+
+        /// <summary>Where a slot's tile sits from the bar's corner: the right column 0, 1, 3; the left column (the reward), 2, 4.</summary>
+        private static Vector2Int Place(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return new Vector2Int(0, 0);
+                case 1: return new Vector2Int(0, RowStep);
+                case 2: return new Vector2Int(-(Tile + 2), RowStep);
+                case 3: return new Vector2Int(0, 2 * RowStep);
+                case 4: return new Vector2Int(-(Tile + 2), 2 * RowStep);
+                default: return new Vector2Int(-(Tile + 2), 0);
+            }
+        }
         private const float NewFlashSeconds = 1.6f;
         private readonly RelicBadge[] _bySlot = new RelicBadge[Slots];
         private readonly float[] _flash = new float[Slots];
@@ -29,6 +45,7 @@ namespace HellPoker.Presentation.Views
         private Action<string> _pressed;
         private readonly List<(GameObject tile, Image icon, Text uses)> _tiles = new List<(GameObject, Image, Text)>();
         private readonly List<Outline> _frames = new List<Outline>();
+        private readonly List<Image> _forged = new List<Image>();
         private GameObject _tooltip;
         private Text _tooltipText;
         private IReadOnlyList<RelicBadge> _relics = new RelicBadge[0];
@@ -65,12 +82,7 @@ namespace HellPoker.Presentation.Views
             {
                 int slot = i;
                 Image tile = UiFactory.CreateImage("Relic" + i, root, Palette.Black);
-                if (i == RewardSlot)
-                    tile.rectTransform.PlaceTL(-(Tile + 4), 0, Tile, Tile);   // apart: left of the first tile
-                else if (i == 2)
-                    tile.rectTransform.PlaceTL(-(Tile + 4), Tile + 2, Tile, Tile);   // Phase 2's third: left of the second (the class badge is below)
-                else
-                    tile.rectTransform.PlaceTL(0, i * (Tile + 2), Tile, Tile);
+                tile.rectTransform.PlaceTL(Place(i).x, Place(i).y, Tile, Tile);
                 _frames.Add(UiFactory.AddBorder(tile.gameObject, i == RewardSlot ? Palette.GoldLight : Palette.Lilac, 1f));
                 tile.raycastTarget = true;
                 var button = tile.gameObject.AddComponent<Button>();
@@ -87,6 +99,11 @@ namespace HellPoker.Presentation.Views
                 Text uses = UiFactory.CreateText("Uses", tile.transform, "", 8, Palette.GoldLight, TextAnchor.LowerRight, FontStyle.Bold).WithOutline();
                 uses.rectTransform.PlaceTL(10, 10, 10, 9);
                 uses.horizontalOverflow = HorizontalWrapMode.Overflow;
+                Image forged = UiFactory.CreateImage("Forged", tile.transform, Palette.Ember);   // a camp's forge: an ember mark
+                forged.raycastTarget = false;
+                forged.rectTransform.PlaceTL(Tile - 5, 1, 4, 4);
+                forged.enabled = false;
+                _forged.Add(forged);
 
                 var hover = tile.gameObject.AddComponent<EventTrigger>();
                 AddTrigger(hover, EventTriggerType.PointerEnter, () => ShowTip(slot));
@@ -103,7 +120,7 @@ namespace HellPoker.Presentation.Views
             // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, slot == RewardSlot ? 0 : slot == 2 ? Tile + 2 : slot * (Tile + 2), 196, textHeight + 4);
+            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, Place(slot).y, 196, textHeight + 4);
             _tooltip.SetActive(true);
         }
 
@@ -139,6 +156,7 @@ namespace HellPoker.Presentation.Views
                 _tiles[i].icon.sprite = UiArt.RelicIcon(relic.Id);
                 _tiles[i].icon.enabled = _tiles[i].icon.sprite != null;
                 _tiles[i].uses.text = relic.Uses >= 0 ? relic.Uses.ToString() : "";
+                _forged[i].enabled = relic.Forged;
                 if (_frames[i] != null) _frames[i].effectColor = i == RewardSlot ? Palette.GoldLight : FrameOf(relic.Rarity);
             }
             if (relics.Count == 0) _tooltip.SetActive(false);

@@ -83,6 +83,12 @@ namespace HellPoker.Core.Chapters
         public List<string> RunEvents = new List<string>();
         public List<string> Revealed = new List<string>();
 
+        /// <summary>Optional keys of Demo 2.1's bag and camps: the relics in the bag, the forged ones, the camps' sum on the next demon's
+        /// bar (null: a save from before it — the old rest / whet flags stand).</summary>
+        public List<string> Bag = new List<string>();
+        public List<string> Forged = new List<string>();
+        public int? CampBar;
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -166,6 +172,9 @@ namespace HellPoker.Core.Chapters
                 "ev.offers=" + string.Join(",", Offers),
                 "events.run=" + string.Join(",", RunEvents),
                 "revealed=" + string.Join(",", Revealed),
+                "bag=" + string.Join(",", Bag),
+                "forged=" + string.Join(",", Forged),
+                "camp.bar=" + (CampBar.HasValue ? CampBar.Value.ToString(CultureInfo.InvariantCulture) : ""),
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -262,6 +271,9 @@ namespace HellPoker.Core.Chapters
                     Offers = Ids("ev.offers"),
                     RunEvents = Ids("events.run"),
                     Revealed = Ids("revealed"),
+                    Bag = Ids("bag"),
+                    Forged = Ids("forged"),
+                    CampBar = S("camp.bar") != null ? I("camp.bar") : (int?)null,
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

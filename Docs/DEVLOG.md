@@ -3193,3 +3193,20 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   Sahte Af'ı (tuzağı görmeyen) satın alır; Zincirli Ruh, Aç Kumarbaz, Kayıp Ruh, Kayıkçı, Kâhin'i geçer (değeri ≤ 0). Rapor sınıf içinde "alan /
   görüp geçen" kurtuluş farkını basar (sınıf karışımı sahte fark üretiyordu).
 - Testler: `OfferTests` (22). EditMode 1029 (1025 geçti, 4 explicit).
+### Demo 2.1 — D: kamp ve emanet çantası (2026-10-13)
+- Takılı en çok 5 (`ChapterRelics.Slots`), çanta 5 (`BagSlots`, `RunEffects.MaxBag / Bag / Give / Equip / Unequip / Swap / Drop / AllHeld`);
+  masada sadece takılılar etki eder (`RelicBarView` 5 yuva: iki sütun üç sıra, ödül ayrı). Yeni emanet: takılı yer → çanta → ikisi de doluysa
+  bekler (`ChapterRun.GiveRelic`, `RelicsFull`; panel: birini geride bırak ya da yenisini bırak / bekçide coin). Kara Pazar'ın "2'ye kadar"
+  kuralı kalktı (`SellsNoMore` = hepsi dolu), pazar bırakma çantadakini de alır.
+- Kamp (ekranda "ARAF KAMPI"): bir eylem — DİNLEN (ceza − sınıf toplamının %6'sı, Köylü 390; sıradaki şeytanın barı −%5), RUHUNU BİLE
+  (yükseltme, bar +%10), TÖREN (ilk hileyi boz / bir lanetin bu bölüm sustur), DÖV (takılı emanetin lütfü +%50, emanet başına bir kez;
+  `RelicEffects.Partial`, `RelicRoster.ForgePercent`, ikonda kor işareti). 4. daireden itibaren rastgele iki eylem (`CampOffers`, kamp başına
+  sabit). Kamplar bara toplanır (`CampBarPercent`, kayıtta `camp.bar`; eski kayıtta rested −10 / whet +10). EMANET DÜZENİ eylem sayılmaz:
+  `RelicBagView` (üstte 5 takılı, altta 5 çanta; tıkla-seç-tıkla, oklar + Enter, hover'da lütuf / lanet, canlı toplam `UiText.RelicTotals`,
+  onaylı GERİDE BIRAK); haritada EMANETLER düğmesi aynı ekranı yalnız bakmak için açar. Kayıt `bag`, `forged`; eski kayıttaki emanetler takılı.
+- Kasa en çok 4 kart gösterir (beş takılı "kasa bir kart fazla" lütfu üst üste binip simülasyonu çökertiyordu).
+- Simülasyon (500 koşu): oyuncu kampta en iyi 5'i takar, ceza başlangıcın %90'ından fazlaysa dinlenir, yoksa iyi bir emanet döver, Lilith'ten
+  önce biler; pazarda 2 emanetten sonra yalnız haraç cebindeyken alır (sınırsız alınca kurtuluş 25.6'ya, Köylü 2. bölüm tam haraç %25'e
+  düşüyordu). Kurtuluş 28.6 (Demo 2.0.1 tohumları 28.4); kamp: DİNLEN %60, DÖV %35, BİLE %2, TÖREN %3; kampta ort. 2.6 takılı, 0.1 çantada.
+  Düğme `HELLPOKER_REST_AT`.
+- Testler: `CampTests` (9), eski ateş / 3 yuva testleri güncellendi. EditMode 1038 (1034 geçti, 4 explicit).

@@ -32,6 +32,28 @@ namespace HellPoker.Core.Tests
         public void Hide() => IsVisible = false;
         public void Press(MapNode node) => NodePressed?.Invoke(node.Floor, node.Lane);
         public void PressMenu() => MenuPressed?.Invoke();
+        public event Action RelicsPressed;
+        public void PressRelics() => RelicsPressed?.Invoke();
+    }
+
+    internal sealed class FakeRelicBagView : IRelicBagView
+    {
+        public event Action<int> PlacePressed;
+        public event Action DonePressed;
+        public event Action DropPressed;
+        public bool IsOpen { get; private set; }
+        public RelicBagState State { get; private set; }
+
+        public void Show(RelicBagState state)
+        {
+            State = state;
+            IsOpen = true;
+        }
+
+        public void Hide() => IsOpen = false;
+        public void Press(int place) => PlacePressed?.Invoke(place);
+        public void PressDone() => DonePressed?.Invoke();
+        public void PressDrop() => DropPressed?.Invoke();
     }
 
     internal sealed class FakeChapterPanelView : IChapterPanelView
@@ -189,7 +211,7 @@ namespace HellPoker.Core.Tests
                     PanelCard card = _panel.Card;
                     if (card.Title == UiText.LootTitle || card.Title == UiText.ChapterDamnedTitle) break;
                     if (card.Title == UiText.GateTitle(1)) sawGate = true;
-                    _panel.Press(card.Options.Count - 1);   // the way out: leave, pass, on (the fire's rest)
+                    PressOn();   // the way out: leave, pass, on (a camp's rest)
                 }
                 else if (_chapters.IsAtTable)
                 {
@@ -208,6 +230,24 @@ namespace HellPoker.Core.Tests
             else Assert.IsTrue(_chapters.Run.BossBeaten, "the spoils of a beaten demon");
         }
 
+        /// <summary>The panel's way on: at a camp, a rest; elsewhere the last answer that can be taken (leave, pass, on).</summary>
+        private void PressOn()
+        {
+            PanelCard card = _panel.Card;
+            if (card.Title == UiText.CampTitle && card.Options.Count > 0 && card.Options[0].Label == UiText.CampRest)
+            {
+                _panel.Press(0);
+                return;
+            }
+            for (int i = card.Options.Count - 1; i >= 0; i--)
+                if (card.Options[i].Enabled)
+                {
+                    _panel.Press(i);
+                    return;
+                }
+            _panel.Press(card.Options.Count - 1);
+        }
+
         [Test]
         public void TheGateWritesTheMissingCoinsOnTheSentence()
         {
@@ -217,16 +257,17 @@ namespace HellPoker.Core.Tests
             int guard = 0;
             while (!(_panel.IsOpen && _panel.Card.Title == UiText.GateTitle(1)) && guard++ < 3000)
             {
-                if (_panel.IsOpen) _panel.Press(_panel.Card.Options.Count - 1);
+                if (_panel.IsOpen) PressOn();
                 else if (_chapters.IsAtTable) Act();
                 else _map.Press(_map.State.Choices.First());
             }
             run.Purse.Add(40 - run.Purse.Coins);   // short of the Peasant's 180 (120 + 60)
-            int coins = run.Purse.Coins, years = run.Years, owed = run.YearsOwed;
+            int coins = run.Purse.Coins, years = run.Years, owed = run.YearsOwed, camps = run.CampBarPercent;
+            Assert.Less(camps, 0, "the camps' rests");
             Assert.AreEqual(705, run.TributeYears(coins), "40 coins pay 39 (the last coin stays): 141 missing");
             _panel.Press(0);   // PAY AND SIT
             int bar = years + 705 + owed;
-            Assert.AreEqual(bar + bar / 10, run.Years, "the tribute's years on the bar — and the fire's whetted soul (the last answer) a tenth on");
+            Assert.AreEqual(bar * (100 + camps) / 100, run.Years, "the tribute's years on the bar — and the camps' rests a little off");
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.AreEqual(Currency.Bar, _tableView.Currency, "the demon's bar: no number under his portrait");
             Assert.AreEqual(UiText.SentenceLabel, _tableView.SentenceView.Label, "the counter: the run's sentence");
@@ -645,9 +686,9 @@ namespace HellPoker.Core.Tests
             ChapterRun run = _chapters.Run;
             run.Purse.Add(5000);
             int guard = 0;
-            while (!(_panel.IsOpen && _panel.Card.Title == UiText.FireTitle) && guard++ < 3000)
+            while (!(_panel.IsOpen && _panel.Card.Title == UiText.CampTitle && _panel.Card.Options.Count >= 4) && guard++ < 3000)
             {
-                if (_panel.IsOpen) _panel.Press(_panel.Card.Options.Count - 1);
+                if (_panel.IsOpen) PressOn();
                 else if (_chapters.IsAtTable) Act();
                 else
                 {
@@ -655,10 +696,10 @@ namespace HellPoker.Core.Tests
                     _map.Press(fire ?? run.Choices.First());
                 }
             }
-            Assert.AreEqual(UiText.FireTitle, _panel.Card.Title);
-            Assert.AreEqual(4, _panel.Card.Options.Count);
-            Assert.AreEqual(UiText.FireWhet, _panel.Card.Options[3].Label);
-            _panel.Press(3);
+            Assert.AreEqual(UiText.CampTitle, _panel.Card.Title);
+            CollectionAssert.AreEqual(new[] { UiText.CampRest, UiText.CampWhet, UiText.CampRite, UiText.CampForge },
+                _panel.Card.Options.Take(4).Select(o => o.Label), "the camp's four actions");
+            _panel.Press(1);
             Assert.AreEqual(1, run.Kit.Upgrades.Count);
             StringAssert.Contains(UiText.UpgradeName(run.Kit.Upgrades[0]), _panel.Card.Text, "the fire says what it gave");
         }

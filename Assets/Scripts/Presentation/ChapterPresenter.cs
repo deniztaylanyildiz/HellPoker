@@ -71,8 +71,15 @@ namespace HellPoker.Presentation
         /// <param name="logSink">Where the run's diary is written; null: none.</param>
         public ChapterPresenter(IChapterMapView map, IChapterPanelView panel, Func<(TablePresenter presenter, ITableView view)> buildTable,
             IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, ChapterArchive archive = null,
-            IRunLogSink logSink = null)
+            IRunLogSink logSink = null, IRelicBagView bag = null)
         {
+            _bag = bag;
+            if (_bag != null)
+            {
+                _bag.PlacePressed += BagPlacePressed;
+                _bag.DropPressed += BagDropPressed;
+                _bag.DonePressed += BagDonePressed;
+            }
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
             _buildTable = buildTable ?? throw new ArgumentNullException(nameof(buildTable));
@@ -86,6 +93,7 @@ namespace HellPoker.Presentation
 
             _map.NodePressed += PressNode;
             _map.MenuPressed += RequestMenu;
+            _map.RelicsPressed += ShowRelicsFromMap;
             _panel.OptionPressed += Answer;
             Lang.Changed += OnLanguageChanged;
         }
@@ -104,7 +112,14 @@ namespace HellPoker.Presentation
             CloseLog();
             _map.NodePressed -= PressNode;
             _map.MenuPressed -= RequestMenu;
+            _map.RelicsPressed -= ShowRelicsFromMap;
             _panel.OptionPressed -= Answer;
+            if (_bag != null)
+            {
+                _bag.PlacePressed -= BagPlacePressed;
+                _bag.DropPressed -= BagDropPressed;
+                _bag.DonePressed -= BagDonePressed;
+            }
             Lang.Changed -= OnLanguageChanged;
             if (_table == null) return;
             _table.ChapterTableFinished -= TableFinished;
@@ -274,7 +289,8 @@ namespace HellPoker.Presentation
             };
             if (_run.YearsOwed > 0) lines.Add(UiText.MapOwed);
             lines.Add("");
-            lines.Add(UiText.MapRelicsLabel);
+            lines.Add(UiText.MapRelicsLabel + " " + string.Format(UiText.MapRelicsCountFormat, _run.Effects.CarriedOffered, _run.Effects.MaxCarried,
+                _run.Effects.Bag.Count, _run.Effects.MaxBag));
             if (_run.Effects.Relics.Count == 0) lines.Add("  " + UiText.MapNoRelics);
             foreach (string id in _run.Effects.Relics)
             {
@@ -461,7 +477,7 @@ namespace HellPoker.Presentation
             {
                 string id = offer.RelicId;
                 bool can = market.CanBuyRelic(id);
-                string why = can ? "" : "\n" + (!full ? UiText.MarketNoCoins : _run.Effects.RelicSlotsFull ? UiText.MarketFull : UiText.MarketSellsTwo);
+                string why = can ? "" : "\n" + (!full ? UiText.MarketNoCoins : UiText.MarketFull);
                 options.Add(new PanelOption(string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price),
                     UiText.RelicPanelDetail(id) + why, can));
                 answers.Add(() =>
@@ -475,7 +491,7 @@ namespace HellPoker.Presentation
                     }
                 });
             }
-            foreach (string id in _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray())
+            foreach (string id in _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray())
             {
                 string relic = id;
                 bool can = market.CanDropRelic(relic);
@@ -693,67 +709,252 @@ namespace HellPoker.Presentation
         private void ShowFire()
         {
             _audio.PlaySfx(SfxIds.Fire);
-            string boss = UiText.NameInSentence(UiText.Dealer(_run.Rules.BossId));
-            bool silence = _run.CanTend(FireChoice.SilenceCurse);
-            bool whet = _run.CanTend(FireChoice.WhetSoul);
-            string genitive = UiText.GenitiveInSentence(UiText.Dealer(_run.Rules.BossId));
+            ShowCamp(done: null);
+        }
+
+        /// <summary>
+        /// The Purgatory Camp: one action (rest, whet the soul, a rite, the forge) — from the fourth circle on, two of them are offered —
+        /// and, before or after it, the relics arranged as often as the player likes (not an action). <paramref name="done"/>: the words
+        /// of the action taken; null while none is.
+        /// </summary>
+        private void ShowCamp(string done)
+        {
+            ChapterRules rules = _run.Rules;
+            string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
+            string genitive = UiText.GenitiveInSentence(UiText.Dealer(rules.BossId));
             var options = new List<PanelOption>();
             var answers = new List<Action>();
-            // From the fourth circle on the fire offers two of its four boons.
-            foreach (FireChoice choice in _run.FireOffers)
+            if (done == null)
             {
-                switch (choice)
+                foreach (CampAction action in _run.CampOffers)
                 {
-                    case FireChoice.BreakFirstCheat:
-                        options.Add(new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)));
-                        answers.Add(() => Tend(FireChoice.BreakFirstCheat, null, UiText.FireDoneBreak));
-                        break;
-                    case FireChoice.SilenceCurse:
-                        options.Add(new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence));
-                        answers.Add(() =>
-                        {
-                            if (!silence) return;
-                            var relics = _run.Effects.Relics.ToArray();
-                            if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
-                            else ShowSilenceChoice(relics);
-                        });
-                        break;
-                    case FireChoice.RestByTheFire:
-                        options.Add(new PanelOption(UiText.FireRest, string.Format(UiText.FireRestDetailFormat, genitive, ChapterRun.RestBarPercent)));
-                        answers.Add(() => Tend(FireChoice.RestByTheFire, null, UiText.FireDoneRest));
-                        break;
-                    default:
-                        options.Add(new PanelOption(UiText.FireWhet, string.Format(UiText.FireWhetDetailFormat, genitive, ChapterRun.WhetBarPercent) +
-                            (whet ? "" : "\n" + UiText.FireWhetNone), whet));
-                        answers.Add(() =>
-                        {
-                            if (whet) Tend(FireChoice.WhetSoul, null, null);
-                        });
-                        break;
+                    switch (action)
+                    {
+                        case CampAction.Rest:
+                            options.Add(new PanelOption(UiText.CampRest, string.Format(UiText.CampRestDetailFormat, _run.RestYears, genitive, _run.RestBar)));
+                            answers.Add(() => Tend(FireChoice.RestByTheFire, null, string.Format(UiText.CampRestedFormat, _run.RestYears)));
+                            break;
+                        case CampAction.Whet:
+                            bool whet = _run.CanTend(FireChoice.WhetSoul);
+                            options.Add(new PanelOption(UiText.CampWhet, string.Format(UiText.CampWhetDetailFormat, genitive, ChapterRun.WhetBarPercent) +
+                                (whet ? "" : "\n" + UiText.FireWhetNone), whet));
+                            answers.Add(() =>
+                            {
+                                if (whet) Tend(FireChoice.WhetSoul, null, null);
+                            });
+                            break;
+                        case CampAction.Rite:
+                            options.Add(new PanelOption(UiText.CampRite, UiText.CampRiteDetail));
+                            answers.Add(ShowRite);
+                            break;
+                        default:
+                            bool forge = _run.CanTend(FireChoice.Forge);
+                            options.Add(new PanelOption(UiText.CampForge, UiText.CampForgeDetail + (forge ? "" : "\n" + UiText.CampForgeNone), forge));
+                            answers.Add(() =>
+                            {
+                                if (forge) ShowForge();
+                            });
+                            break;
+                    }
                 }
             }
-            string text = string.Format(UiText.FireTextFormat, boss);
-            if (_run.FireOffers.Count < 4) text += "\n" + UiText.FireCircleNote;
-            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, text, options), answers, "fire");
+            if (_bag != null && _run.Effects.AllHeld.Any(r => !RelicRoster.IsReward(r)))
+            {
+                options.Add(new PanelOption(UiText.CampArrange, UiText.CampArrangeDetail));
+                answers.Add(() => OpenBag(editable: true, () => ShowCamp(done)));
+            }
+            if (done != null)
+            {
+                options.Add(new PanelOption(UiText.PanelOn));
+                answers.Add(Onward);
+            }
+            string text = done ?? string.Format(UiText.CampTextFormat, boss) + (_run.CampOffers.Count < 4 ? "\n" + UiText.CampTwoNote : "");
+            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.CampTitle, text, options), answers, done == null ? "fire" : "fire.done");
         }
+
+        private void ShowRite()
+        {
+            string boss = UiText.NameInSentence(UiText.Dealer(_run.Rules.BossId));
+            bool silence = _run.CanTend(FireChoice.SilenceCurse);
+            var options = new List<PanelOption>
+            {
+                new PanelOption(UiText.FireBreak, string.Format(UiText.FireBreakDetailFormat, boss)),
+                new PanelOption(UiText.FireSilence, UiText.FireSilenceDetail + (silence ? "" : "\n" + UiText.FireSilenceNone), silence),
+                new PanelOption(UiText.Back, null, isLeave: true)
+            };
+            var answers = new List<Action>
+            {
+                () => Tend(FireChoice.BreakFirstCheat, null, UiText.FireDoneBreak),
+                () =>
+                {
+                    if (!silence) return;
+                    var relics = _run.Effects.Relics.ToArray();
+                    if (relics.Length == 1) Tend(FireChoice.SilenceCurse, relics[0], string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(relics[0])));
+                    else ShowSilenceChoice(relics);
+                },
+                () => ShowCamp(null)
+            };
+            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.CampRiteWhich, UiText.CampRiteText, options), answers, "fire");
+        }
+
+        private void ShowForge()
+        {
+            var relics = _run.Forgeable.ToArray();
+            var options = relics.Select(id => new PanelOption(UiText.RelicName(id), "+ " + UiText.RelicGift(id))).ToList();
+            var answers = relics.Select(id => (Action)(() => Tend(FireChoice.Forge, id, string.Format(UiText.CampForgedFormat, UiText.RelicName(id))))).ToList();
+            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
+            answers.Add(() => ShowCamp(null));
+            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.CampForgeWhich, UiText.CampForgeText, options), answers, "fire");
+        }
+
         private void ShowSilenceChoice(IReadOnlyList<string> relics)
         {
             var options = relics.Select(id => new PanelOption(UiText.RelicName(id), "− " + UiText.RelicCurse(id))).ToList();
             var answers = relics.Select(id => (Action)(() => Tend(FireChoice.SilenceCurse, id,
                 string.Format(UiText.FireDoneSilenceFormat, UiText.RelicName(id))))).ToList();
             options.Add(new PanelOption(UiText.Back, null, isLeave: true));
-            answers.Add(ShowFire);
+            answers.Add(ShowRite);
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireSilenceWhich, UiText.FireSilenceWhichText, options), answers, "fire");
         }
 
         private void Tend(FireChoice choice, string relicId, string done)
         {
-            _run.TendFire(choice, relicId);
+            if (!_run.TendFire(choice, relicId)) return;
             if (choice == FireChoice.WhetSoul && _run.FireUpgrade != null)
                 done = string.Format(UiText.FireDoneWhetFormat, UiText.UpgradeName(_run.FireUpgrade), UiText.UpgradeText(_run.FireUpgrade));
-            Note($"purgatory fire: {choice}{(relicId != null ? " " + relicId : "")}{(choice == FireChoice.WhetSoul ? " " + _run.FireUpgrade : "")}");
-            ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.FireTitle, done, new[] { new PanelOption(UiText.PanelOn) }),
-                new Action[] { Onward }, "fire.done");
+            Note($"camp (floor {(_run.Current?.Floor ?? 0) + 1}): {choice}{(relicId != null ? " " + relicId : "")}{(choice == FireChoice.WhetSoul ? " " + _run.FireUpgrade : "")}" +
+                 $" (sentence {_journey.Sentence.Years}, next bar {(_run.CampBarPercent >= 0 ? "+" : "")}{_run.CampBarPercent}%)");
+            ShowCamp(done);
+        }
+
+        // ------------------------------------------------------------------ the relics: worn and in the bag (Demo 2.1)
+
+        private readonly IRelicBagView _bag;
+        private bool _bagEditable;
+        private int _bagPicked = -1, _bagCursor;
+        private bool _bagConfirm;
+        private string _bagMessage;
+        private Action _bagClosed;
+
+        /// <summary>The relics' view is open (the keys go to it).</summary>
+        public bool IsBagOpen => _bag != null && _bag.IsOpen;
+
+        /// <summary>The worn relics (an earned one apart) and the bag, as the ten places.</summary>
+        private string[] BagPlaces()
+        {
+            var places = new string[RelicBagState.Slots];
+            var worn = _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToList();
+            for (int i = 0; i < RelicBagState.Worn && i < worn.Count; i++) places[i] = worn[i];
+            for (int i = 0; i < RelicBagState.Bagged && i < _run.Effects.Bag.Count; i++) places[RelicBagState.Worn + i] = _run.Effects.Bag[i];
+            return places;
+        }
+
+        private void OpenBag(bool editable, Action closed)
+        {
+            if (_bag == null) return;
+            _bagEditable = editable;
+            _bagPicked = -1;
+            _bagCursor = 0;
+            _bagConfirm = false;
+            _bagMessage = editable ? UiText.BagHint : UiText.BagLookOnly;
+            _bagClosed = closed;
+            ShowBag();
+        }
+
+        private void ShowBag()
+        {
+            string[] places = BagPlaces();
+            var badges = places.Select(id => id == null ? null : new RelicBadge(id, UiText.RelicName(id),
+                UiText.RarityName(ChapterRelics.RarityOf(id)) + "\n" + string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id)),
+                rarity: ChapterRelics.RarityOf(id), forged: _run.Effects.Forged.Contains(id))).ToList();
+            _bag.Show(new RelicBagState(badges, _bagPicked, _bagCursor, _bagEditable, UiText.RelicTotals(_run.Effects.CombinedRelics), _bagMessage, _bagConfirm));
+        }
+
+        private void BagPlacePressed(int place)
+        {
+            if (!IsBagOpen || place < 0 || place >= RelicBagState.Slots) return;
+            _bagCursor = place;
+            _bagConfirm = false;
+            string[] places = BagPlaces();
+            if (!_bagEditable)
+            {
+                ShowBag();
+                return;
+            }
+            if (_bagPicked < 0)
+            {
+                if (places[place] != null) _bagPicked = place;
+                ShowBag();
+                return;
+            }
+            if (_bagPicked == place)
+            {
+                _bagPicked = -1;
+                ShowBag();
+                return;
+            }
+            string from = places[_bagPicked], to = places[place];
+            bool fromWorn = _bagPicked < RelicBagState.Worn, toWorn = place < RelicBagState.Worn;
+            if (fromWorn != toWorn)
+            {
+                string worn = fromWorn ? from : to, bagged = fromWorn ? to : from;
+                bool moved = worn != null && bagged != null ? _run.Effects.Swap(worn, bagged)
+                    : worn != null ? _run.Effects.Unequip(worn) : _run.Effects.Equip(bagged);
+                if (moved)
+                {
+                    Note($"relics: {(worn != null ? worn + " to the bag" : "")}{(worn != null && bagged != null ? ", " : "")}{(bagged != null ? bagged + " worn" : "")}");
+                    _bagMessage = bagged != null ? string.Format(UiText.BagMovedFormat, UiText.RelicName(bagged)) : UiText.BagHint;
+                }
+            }
+            _bagPicked = -1;
+            ShowBag();
+            if (!_atTable) _map.Show(MapState());
+        }
+
+        private void BagDropPressed()
+        {
+            if (!IsBagOpen || !_bagEditable) return;
+            string[] places = BagPlaces();
+            if (_bagPicked < 0 || places[_bagPicked] == null)
+            {
+                _bagMessage = UiText.BagPickFirst;
+                ShowBag();
+                return;
+            }
+            if (!_bagConfirm)
+            {
+                _bagConfirm = true;
+                ShowBag();
+                return;
+            }
+            string id = places[_bagPicked];
+            if (_run.Effects.Drop(id))
+            {
+                Note($"relics: {id} left behind");
+                _bagMessage = string.Format(UiText.BagDroppedFormat, UiText.RelicName(id));
+            }
+            _bagPicked = -1;
+            _bagConfirm = false;
+            _bagCursor = Math.Min(_bagCursor, RelicBagState.Slots - 1);
+            ShowBag();
+            if (!_atTable) _map.Show(MapState());
+        }
+
+        private void BagDonePressed()
+        {
+            if (!IsBagOpen) return;
+            _bag.Hide();
+            Action closed = _bagClosed;
+            _bagClosed = null;
+            closed?.Invoke();
+            Save();
+        }
+
+        /// <summary>The map's RELICS: a look at what is worn and what is in the bag.</summary>
+        private void ShowRelicsFromMap()
+        {
+            if (!IsMapOpen || _panel.IsOpen || IsBagOpen || _journey == null || _ended) return;
+            OpenBag(editable: false, null);
         }
 
         // ------------------------------------------------------------------ the floors' matches
@@ -862,9 +1063,15 @@ namespace HellPoker.Presentation
         {
             string id = _run.WardenRelicWaiting;
             string warden = ChapterCast.WardenOf(_run.Rules);
-            var options = new List<PanelOption> { new PanelOption(string.Format(UiText.WardenCoinsFormat, _run.Rules.WardenRelicCoins)) };
-            var answers = new List<Action> { () => { _run.TakeWardenCoins(); Onward(); } };
-            foreach (string carried in _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray())
+            // Every slot worn and the bag full: one held relic is left behind for it — or the warden's coins (an offer's: it is left).
+            bool fromWarden = _run.CurrentKind == NodeKind.Warden;
+            var options = new List<PanelOption>
+            {
+                fromWarden ? new PanelOption(string.Format(UiText.WardenCoinsFormat, _run.Rules.WardenRelicCoins))
+                    : new PanelOption(UiText.LeaveNewRelic, null, isLeave: true)
+            };
+            var answers = new List<Action> { () => { if (fromWarden) _run.TakeWardenCoins(); else _run.LeaveWaitingRelic(); Onward(); } };
+            foreach (string carried in _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray())
             {
                 string swap = carried;
                 options.Add(new PanelOption(string.Format(UiText.WardenSwapFormat, UiText.RelicName(swap)),
@@ -970,7 +1177,7 @@ namespace HellPoker.Presentation
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
             var options = new List<PanelOption>();
             var answers = new List<Action>();
-            bool full = _run.Effects.RelicSlotsFull;
+            bool full = _run.RelicsFull;
             foreach (string id in _run.LootOffers)
             {
                 string relic = id;
@@ -1001,7 +1208,7 @@ namespace HellPoker.Presentation
 
         private void ShowLootSwap(string relic)
         {
-            var carried = _run.Effects.Relics.Where(r => !RelicRoster.IsReward(r)).ToArray();
+            var carried = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray();
             var options = carried.Select(id => new PanelOption(string.Format(UiText.WardenSwapFormat, UiText.RelicName(id)),
                 string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(id)))).ToList();
             var answers = carried.Select(id => (Action)(() =>
@@ -1391,6 +1598,16 @@ namespace HellPoker.Presentation
         public void Step(int dx, int dy)
         {
             if (!IsMapOpen) return;
+            if (IsBagOpen)
+            {
+                // The places: five worn over five in the bag; left / right along a row, up / down between the two.
+                int row = _bagCursor / RelicBagState.Worn, col = _bagCursor % RelicBagState.Worn;
+                if (dy != 0) row = Math.Max(0, Math.Min(1, row + dy));
+                if (dx != 0) col = (col + dx + RelicBagState.Worn) % RelicBagState.Worn;
+                _bagCursor = row * RelicBagState.Worn + col;
+                ShowBag();
+                return;
+            }
             if (_panel.IsOpen && _card != null)
             {
                 int count = _card.Options.Count;
@@ -1412,6 +1629,11 @@ namespace HellPoker.Presentation
         public void Confirm()
         {
             if (!IsMapOpen) return;
+            if (IsBagOpen)
+            {
+                BagPlacePressed(_bagCursor);
+                return;
+            }
             if (_panel.IsOpen && _card != null)
             {
                 Answer(_card.Selected);
@@ -1423,6 +1645,11 @@ namespace HellPoker.Presentation
         public bool Back()
         {
             if (!IsMapOpen) return false;
+            if (IsBagOpen)
+            {
+                BagDonePressed();
+                return true;
+            }
             // A panel waits for its answer; Esc takes its way out when it has one (the market, an offer: leave / pass).
             if (_panel.IsOpen && _card != null)
             {

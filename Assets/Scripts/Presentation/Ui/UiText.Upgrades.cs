@@ -70,8 +70,6 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The upgrades on the class's hover: {0} the list.</summary>
         public static string UpgradesLineFormat => L("Upgrades: {0}", "Yükseltmeler: {0}");
 
-        public static string MarketSellsTwo => L("The market sells to those with fewer than two relics. A third comes from a warden or a demon.",
-            "Pazar ikiden az emaneti olana satar. Üçüncüsü bir bekçiden ya da bir şeytandan gelir.");
 
         public static string MapUpgradesLabel => L("UPGRADES", "YÜKSELTMELER");
 

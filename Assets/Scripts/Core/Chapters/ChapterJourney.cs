@@ -86,7 +86,7 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>A Phase 2 run's effects: three relic slots.</summary>
-        private static RunEffects PhaseTwoEffects() => new RunEffects { MaxCarried = ChapterRelics.Slots };
+        private static RunEffects PhaseTwoEffects() => new RunEffects { MaxCarried = ChapterRelics.Slots, MaxBag = ChapterRelics.BagSlots };
 
         /// <summary>The dice of the Seed (a Peasant's upgrade) at a chapter's start.</summary>
         public const int SeedStream = 22;
@@ -222,6 +222,7 @@ namespace HellPoker.Core.Chapters
             SinnerClass sinnerClass = SinnerRoster.Find(save.ClassId) ?? throw new ArgumentException("Unknown class.", nameof(save));
             var effects = PhaseTwoEffects();
             effects.Restore(HandModifier.None, 0, 0, 0, save.Relics, save.RedrawsLeft, save.RedrawTables);
+            effects.RestoreBag(save.Bag, save.Forged);
             if (save.Silenced != null) effects.SilenceCurse(save.Silenced);
             if (save.Amplified != null) effects.Amplify(save.Amplified);
             var sinner = new Sinner(sinnerClass, save.Charge, null, save.Ward,
@@ -242,6 +243,7 @@ namespace HellPoker.Core.Chapters
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
                 save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
+            if (save.CampBar.HasValue) journey.Run.RestoreCampBar(save.CampBar.Value);
             journey._runEvents = new HashSet<string>(save.RunEvents ?? new List<string>());
             journey.Run.RestoreOffers(save.AnteCut, save.WardenPurse, save.Loan, save.LoanPays, save.Insured, save.BossMalice, save.Skip, save.Memo,
                 save.Offers, journey._runEvents, save.Revealed);
@@ -316,6 +318,9 @@ namespace HellPoker.Core.Chapters
                 Offers = run.EventOffers.ToList(),
                 RunEvents = _runEvents.ToList(),
                 Revealed = run.Revealed.Select(n => n.Floor + ":" + n.Lane).ToList(),
+                Bag = Effects.Bag.ToList(),
+                Forged = Effects.Forged.ToList(),
+                CampBar = run.CampBarPercent,
                 Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,

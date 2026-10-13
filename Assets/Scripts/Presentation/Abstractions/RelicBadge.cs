@@ -21,9 +21,13 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A Phase 2 relic's rarity: its frame's colour (the demo's relics keep the plain frame: <see cref="RelicRarity.Common"/>).</summary>
         public HellPoker.Core.Relics.RelicRarity Rarity { get; }
 
+        /// <summary>Forged at a camp (Demo 2.1): an ember mark on its icon.</summary>
+        public bool Forged { get; }
+
         public RelicBadge(string id, string name, string description, int uses = -1, bool selecting = false, bool isReward = false,
-            HellPoker.Core.Relics.RelicRarity rarity = HellPoker.Core.Relics.RelicRarity.Common)
+            HellPoker.Core.Relics.RelicRarity rarity = HellPoker.Core.Relics.RelicRarity.Common, bool forged = false)
         {
+            Forged = forged;
             Rarity = rarity;
             IsReward = isReward;
             Selecting = selecting;

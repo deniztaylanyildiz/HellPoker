@@ -35,12 +35,8 @@ namespace HellPoker.Core.Chapters
         public const int JokerPrice = 20;
         public const int RelicsOnTable = 3;
 
-        /// <summary>The market sells to a run carrying fewer relics than this: the third slot is a warden's or a demon's to fill (bought, it
-        /// emptied the purses before Belial's gate: tribute paid in full 37% instead of 49% for the Peasant).</summary>
-        public const int SellsUpTo = 2;
-
-        /// <summary>The run carries as many relics as the market sells to.</summary>
-        public bool SellsNoMore => _run.Effects.CarriedOffered >= Math.Min(_run.Effects.MaxCarried, SellsUpTo);
+        /// <summary>The run holds all it may (five worn, the bag full; Demo 2.1: the market's old limit of two is gone).</summary>
+        public bool SellsNoMore => _run.RelicsFull;
 
         private readonly ChapterRun _run;
         private readonly List<RelicOffer> _relics;
@@ -57,7 +53,7 @@ namespace HellPoker.Core.Chapters
             _run = run ?? throw new ArgumentNullException(nameof(run));
             if (random == null) throw new ArgumentNullException(nameof(random));
             // Drawn by rarity (rare 25%, legendary 8%), priced by it, the cheapest first.
-            IReadOnlyList<string> picked = ChapterRelics.Draw(random, RelicWeights.Market, RelicsOnTable, run.Effects.Relics.ToList(), run.RelicAvailable);
+            IReadOnlyList<string> picked = ChapterRelics.Draw(random, RelicWeights.Market, RelicsOnTable, run.Effects.AllHeld.ToList(), run.RelicAvailable);
             _relics = picked.Select(id => new RelicOffer(id, run.PriceOf(ChapterRelics.PriceOf(id)))).OrderBy(o => o.Price).ToList();
         }
 
@@ -81,19 +77,19 @@ namespace HellPoker.Core.Chapters
             if (!CanBuyRelic(id)) return false;
             RelicOffer offer = _relics.First(o => o.RelicId == id);
             if (!_run.Purse.TrySpend(offer.Price)) return false;
-            _run.Effects.AddRelic(id);
+            _run.Effects.Give(id);   // worn, else in the bag
             _relics.Remove(offer);
             Purchases++;
             RelicsBought++;
             return true;
         }
 
-        public bool CanDropRelic(string id) => _run.Effects.Relics.Contains(id) && !RelicRoster.IsReward(id) && CanPay(DropPrice);
+        public bool CanDropRelic(string id) => _run.Effects.Holds(id) && !RelicRoster.IsReward(id) && CanPay(DropPrice);
 
         public bool DropRelic(string id)
         {
             if (!CanDropRelic(id) || !_run.Purse.TrySpend(DropPrice)) return false;
-            _run.Effects.RemoveRelic(id);
+            _run.Effects.Drop(id);
             Purchases++;
             return true;
         }

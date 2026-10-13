@@ -105,7 +105,10 @@ namespace HellPoker.Core.Relics
     public static class ChapterRelics
     {
         /// <summary>A Phase 2 run carries this many relics (the demo: <see cref="RelicRoster.MaxCarried"/>).</summary>
-        public const int Slots = 3;
+        public const int Slots = 5;
+
+        /// <summary>A Phase 2 run's bag: relics held but not worn (Demo 2.1; worn and bagged are changed at a camp).</summary>
+        public const int BagSlots = 5;
 
         /// <summary>The market's first-chapter price by rarity.</summary>
         public const int CommonPrice = 45, RarePrice = 55, LegendaryPrice = 65;

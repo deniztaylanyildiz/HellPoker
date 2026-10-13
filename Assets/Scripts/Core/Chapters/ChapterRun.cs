@@ -11,20 +11,33 @@ using HellPoker.Core.Sinners;
 
 namespace HellPoker.Core.Chapters
 {
-    /// <summary>The purgatory fire's boons (one of three). The fire is the last floor: every boon is for the demon's table.</summary>
+    /// <summary>What a camp's one action does (Demo 2.1's Purgatory Camp; the rite is either of its two).</summary>
     public enum FireChoice
     {
-        /// <summary>The first minor cheat the demon would really strike at their table is broken (<see cref="FirstCheatBreaker"/>).</summary>
+        /// <summary>The rite: the first minor cheat the demon would really strike at their table is broken (<see cref="FirstCheatBreaker"/>).</summary>
         BreakFirstCheat,
 
-        /// <summary>A carried relic's curse silenced until the chapter ends, the demon's table included (its gift stays).</summary>
+        /// <summary>The rite: a worn relic's curse silenced until the chapter ends, the demon's table included (its gift stays).</summary>
         SilenceCurse,
 
-        /// <summary>Rest by the fire: the demon's bar starts shorter by <see cref="ChapterRun.RestBarPercent"/> of itself.</summary>
+        /// <summary>Rest: the sentence <see cref="ChapterRun.RestSentencePercent"/> of the class's whole one shorter, the next demon's bar
+        /// <see cref="ChapterRun.RestBarPercent"/> shorter.</summary>
         RestByTheFire,
 
-        /// <summary>Whet the soul: a class upgrade at once — but the demon's bar starts longer by <see cref="ChapterRun.WhetBarPercent"/>.</summary>
-        WhetSoul
+        /// <summary>Whet the soul: a class upgrade at once — but the next demon's bar <see cref="ChapterRun.WhetBarPercent"/> longer.</summary>
+        WhetSoul,
+
+        /// <summary>Forge: a worn relic's gift half again (<see cref="Relics.RelicRoster.ForgePercent"/>), once a relic; its curse stays.</summary>
+        Forge
+    }
+
+    /// <summary>A camp's actions: one is chosen (from the fourth circle on, two are offered).</summary>
+    public enum CampAction
+    {
+        Rest,
+        Whet,
+        Rite,
+        Forge
     }
 
     /// <summary>What the gate took: the tribute paid, the coins missing and the years they cost (with what the floors' offers left owing).</summary>
@@ -78,11 +91,15 @@ namespace HellPoker.Core.Chapters
         /// <summary>The dice streams of a chapter under its seed: the map, the nodes' own dice (market, events, relics), the matches.</summary>
         public const int MapStream = 10, NodeStream = 11, MatchStream = 12;
 
-        /// <summary>Resting by the fire: the demon's bar starts this much (percent of itself) shorter.</summary>
-        public const int RestBarPercent = 10;
+        /// <summary>Resting at a camp: the next demon's bar starts this much (percent of itself) shorter, and the sentence this much of the
+        /// class's whole sentence shorter.</summary>
+        public const int RestBarPercent = 5, RestSentencePercent = 6;
 
-        /// <summary>Whetting the soul by the fire: the demon's bar starts this much (percent of itself) longer.</summary>
+        /// <summary>Whetting the soul at a camp: the next demon's bar starts this much (percent of itself) longer.</summary>
         public const int WhetBarPercent = 10;
+
+        /// <summary>The camps' sum on the next demon's bar, in percent points (a rest −5, a whetted soul +10); set back as his table opens.</summary>
+        public int CampBarPercent { get; private set; }
 
         /// <summary>A beaten demon's loot: this many relics to choose from (his own two), a class upgrade, or these coins.</summary>
         public const int LootRelics = 2, LootCoins = 30;
@@ -195,8 +212,7 @@ namespace HellPoker.Core.Chapters
         public int BarAfterGate(int coins)
         {
             int bar = Years + TributeYears(coins) + YearsOwed;
-            if (RestedByTheFire) bar = Math.Max(1, bar - bar * RestBarPercent / 100);
-            if (WhettedSoul) bar += bar * WhetBarPercent / 100;
+            if (CampBarPercent != 0) bar = Math.Max(1, (int)((long)bar * (100 + CampBarPercent) / 100));
             int percent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
             return percent == 100 ? bar : Math.Max(1, bar * percent / 100);
         }
@@ -363,18 +379,18 @@ namespace HellPoker.Core.Chapters
         public bool GiveRelic(string id)
         {
             if (id == null) return false;
-            if (!Effects.AddRelic(id)) WardenRelicWaiting = id;
+            if (!Effects.Give(id)) WardenRelicWaiting = id;   // worn, else in the bag, else it waits for one to be left behind
             return true;
         }
 
         /// <summary>A relic of <paramref name="rarity"/> not carried (a locked one never); null when none is left.</summary>
         public string DrawRelic(RelicRarity rarity) =>
             ChapterRelics.Draw(_nodeRandom, rarity == RelicRarity.Common ? new RelicWeights(1, 0, 0) : rarity == RelicRarity.Rare ? new RelicWeights(0, 1, 0)
-                : new RelicWeights(0, 0, 1), 1, Effects.Relics.ToList(), RelicAvailable).FirstOrDefault();
+                : new RelicWeights(0, 0, 1), 1, Effects.AllHeld.ToList(), RelicAvailable).FirstOrDefault();
 
         /// <summary>Whether <paramref name="count"/> relics of <paramref name="rarity"/> (null: any) could still be drawn.</summary>
         public bool CanDrawRelic(RelicRarity? rarity, int count = 1) =>
-            ChapterRelics.All.Count(id => !Effects.Relics.Contains(id) && (RelicAvailable == null || RelicAvailable(id)) &&
+            ChapterRelics.All.Count(id => !Effects.Holds(id) && (RelicAvailable == null || RelicAvailable(id)) &&
                                           (rarity == null || ChapterRelics.RarityOf(id) == rarity.Value)) >= count;
 
         /// <summary>A helper's good turn, in percent, as the relics bend it (the Lost Soul's Letter more, the Liar's Tongue less).</summary>
@@ -453,19 +469,26 @@ namespace HellPoker.Core.Chapters
             }
             if (!table.MatchWon || !table.IsWarden) return;
 
-            string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.Relics.ToList(), RelicAvailable).FirstOrDefault();
+            string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable).FirstOrDefault();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
-            else if (!Effects.AddRelic(relic)) WardenRelicWaiting = relic;
+            else if (!Effects.Give(relic)) WardenRelicWaiting = relic;
         }
 
-        /// <summary>The warden's relic in place of <paramref name="swapOut"/> (no coins then).</summary>
+        /// <summary>The waiting relic (a warden's, an offer's) in place of <paramref name="swapOut"/>, worn or bagged, left behind for good
+        /// (no coins then).</summary>
         public bool SwapForWardenRelic(string swapOut)
         {
-            if (WardenRelicWaiting == null || RelicRoster.IsReward(swapOut) || !Effects.RemoveRelic(swapOut)) return false;
-            Effects.AddRelic(WardenRelicWaiting);
+            if (WardenRelicWaiting == null || !Effects.Drop(swapOut)) return false;
+            Effects.Give(WardenRelicWaiting);
             WardenRelicWaiting = null;
             return true;
         }
+
+        /// <summary>The waiting relic is left behind (an offer's: nothing in its place).</summary>
+        public void LeaveWaitingRelic() => WardenRelicWaiting = null;
+
+        /// <summary>The run holds all the relics it may: every slot worn, the bag full.</summary>
+        public bool RelicsFull => Effects.RelicSlotsFull && (Effects.MaxBag <= 0 || Effects.BagFull);
 
         /// <summary>The coins instead of the warden's relic.</summary>
         public void TakeWardenCoins()
@@ -478,10 +501,10 @@ namespace HellPoker.Core.Chapters
         /// <summary>A beaten demon's loot: his own two relics (one carried already: a rare in its place), and a class upgrade not yet had.</summary>
         private void DrawLoot()
         {
-            var loot = ChapterRelics.BossLoot(Rules.BossId).Where(id => !Effects.Relics.Contains(id)).ToList();
+            var loot = ChapterRelics.BossLoot(Rules.BossId).Where(id => !Effects.Holds(id)).ToList();
             if (loot.Count < LootRelics)
             {
-                var exclude = Effects.Relics.Concat(loot).ToList();
+                var exclude = Effects.AllHeld.Concat(loot).ToList();
                 loot.AddRange(ChapterRelics.Draw(_nodeRandom, new RelicWeights(0, 1, 0), LootRelics - loot.Count, exclude, RelicAvailable));
             }
             _loot = loot;
@@ -556,22 +579,35 @@ namespace HellPoker.Core.Chapters
             return PendingGamble;
         }
 
-        public bool CanTend(FireChoice choice) => FireOffers.Contains(choice) &&
-            (choice == FireChoice.SilenceCurse ? Effects.Relics.Count > 0 : choice != FireChoice.WhetSoul || UpgradesOffered().Count > 0);
+        public bool CanTend(FireChoice choice)
+        {
+            if (!FireOffers.Contains(choice)) return false;
+            switch (choice)
+            {
+                case FireChoice.SilenceCurse: return Effects.Relics.Count > 0;
+                case FireChoice.WhetSoul: return UpgradesOffered().Count > 0;
+                case FireChoice.Forge: return Forgeable.Any();
+                default: return true;
+            }
+        }
 
-        /// <summary>The dice of the fire's offer (the fourth circle: two boons of four, the same every time the fire is shown).</summary>
+        /// <summary>The worn relics a camp may forge (not forged yet; never with the Rusted Chain worn).</summary>
+        public IEnumerable<string> Forgeable =>
+            Effects.CombinedRelics.Extra(RelicExtras.NoForge) > 0 ? Enumerable.Empty<string>() : Effects.Relics.Where(r => !Effects.Forged.Contains(r));
+
+        /// <summary>The dice of a camp's offer (the fourth circle: two actions of four, the same every time that camp is shown).</summary>
         public const int FireStream = 14;
 
-        /// <summary>The boons this chapter's fire offers: all four — or, from the fourth circle on, two of them.</summary>
-        public IReadOnlyList<FireChoice> FireOffers
+        /// <summary>The actions the camp where the player stands offers: all four — or, from the fourth circle on, two of them.</summary>
+        public IReadOnlyList<CampAction> CampOffers
         {
             get
             {
-                var all = ((FireChoice[])Enum.GetValues(typeof(FireChoice))).ToList();
+                var all = ((CampAction[])Enum.GetValues(typeof(CampAction))).ToList();
                 int count = Circles.FireOffersAt(Rules.Circle);
                 if (count >= all.Count) return all;
-                var dice = new SystemRandomSource(RandomSeeds.Derive(_seed, FireStream));
-                var offered = new List<FireChoice>();
+                var dice = new SystemRandomSource(RandomSeeds.Derive(RandomSeeds.Derive(_seed, FireStream), Current?.Floor ?? 0));
+                var offered = new List<CampAction>();
                 while (offered.Count < count)
                 {
                     int i = dice.Next(all.Count);
@@ -582,17 +618,42 @@ namespace HellPoker.Core.Chapters
             }
         }
 
+        /// <summary>What the camp's actions allow: the rite is either of its two.</summary>
+        public IReadOnlyList<FireChoice> FireOffers
+        {
+            get
+            {
+                var choices = new List<FireChoice>();
+                foreach (CampAction action in CampOffers)
+                    switch (action)
+                    {
+                        case CampAction.Rite: choices.Add(FireChoice.BreakFirstCheat); choices.Add(FireChoice.SilenceCurse); break;
+                        case CampAction.Rest: choices.Add(FireChoice.RestByTheFire); break;
+                        case CampAction.Whet: choices.Add(FireChoice.WhetSoul); break;
+                        default: choices.Add(FireChoice.Forge); break;
+                    }
+                return choices.OrderBy(c => c).ToList();
+            }
+        }
+
+        /// <summary>A rest's years off the sentence: <see cref="RestSentencePercent"/> of the class's whole sentence (the Rusted Chain half again).</summary>
+        public int RestYears => RunSentence.StartFor(Sinner.Id, Rules.Circle) * RestSentencePercent / 100 *
+                                (100 + Effects.CombinedRelics.Extra(RelicExtras.RestBonusPercent)) / 100;
+
+        /// <summary>A rest's percent off the next demon's bar (the Rusted Chain half again).</summary>
+        public int RestBar => RestBarPercent * (100 + Effects.CombinedRelics.Extra(RelicExtras.RestBonusPercent)) / 100;
+
         /// <summary>The soul was whetted by the fire: the demon's bar starts longer (<see cref="WhetBarPercent"/>).</summary>
         public bool WhettedSoul { get; private set; }
 
         /// <summary>The upgrade the fire gave (when the soul was whetted); null otherwise.</summary>
         public string FireUpgrade { get; private set; }
 
-        /// <summary>The purgatory fire's boon. <paramref name="relicId"/>: the relic whose curse is silenced.</summary>
+        /// <summary>The camp's one action. <paramref name="relicId"/>: the relic whose curse is silenced, or the one forged.</summary>
         public bool TendFire(FireChoice choice, string relicId = null)
         {
             if (CurrentKind != NodeKind.PurgatoryFire) throw new InvalidOperationException("There is no fire here.");
-            if (!FireOffers.Contains(choice)) return false;
+            if (!CanTend(choice)) return false;
             switch (choice)
             {
                 case FireChoice.BreakFirstCheat:
@@ -600,6 +661,8 @@ namespace HellPoker.Core.Chapters
                     return true;
                 case FireChoice.SilenceCurse:
                     return relicId != null && Effects.SilenceCurse(relicId);
+                case FireChoice.Forge:
+                    return relicId != null && Forgeable.Contains(relicId) && Effects.Forge(relicId);
                 case FireChoice.WhetSoul:
                 {
                     IReadOnlyList<string> upgrades = UpgradesOffered();
@@ -607,10 +670,13 @@ namespace HellPoker.Core.Chapters
                     FireUpgrade = upgrades[_nodeRandom.Next(upgrades.Count)];
                     Kit.AddUpgrade(FireUpgrade);
                     WhettedSoul = true;
+                    CampBarPercent += WhetBarPercent;
                     return true;
                 }
                 default:
                     RestedByTheFire = true;
+                    Sentence?.Strike(RestYears);
+                    CampBarPercent -= RestBar;
                     return true;
             }
         }
@@ -662,21 +728,10 @@ namespace HellPoker.Core.Chapters
         private HellPokerGame OpenBossTable(GameRules table, bool startBar)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            if (!startBar)
-            {
-                RestedByTheFire = false;
-                WhettedSoul = false;
-            }
-            if (RestedByTheFire)
-            {
-                Years = Math.Max(1, Years - Years * RestBarPercent / 100);
-                RestedByTheFire = false;
-            }
-            if (WhettedSoul)
-            {
-                Years += Years * WhetBarPercent / 100;
-                WhettedSoul = false;
-            }
+            if (startBar && CampBarPercent != 0) Years = Math.Max(1, (int)((long)Years * (100 + CampBarPercent) / 100));
+            CampBarPercent = 0;
+            RestedByTheFire = false;
+            WhettedSoul = false;
             int barPercent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
             if (startBar && barPercent != 100) Years = Math.Max(1, Years * barPercent / 100);
             Dealers.Dealer boss = Rules.Boss;
@@ -735,11 +790,11 @@ namespace HellPoker.Core.Chapters
         public bool TakeLoot(string relicId, string swapOut = null)
         {
             if (LootTaken || !BossBeaten || relicId == null || !LootOffers.Contains(relicId)) return false;
-            if (Effects.RelicSlotsFull)
+            if (RelicsFull)
             {
-                if (swapOut == null || RelicRoster.IsReward(swapOut) || !Effects.RemoveRelic(swapOut)) return false;
+                if (swapOut == null || !Effects.Drop(swapOut)) return false;
             }
-            if (!Effects.AddRelic(relicId)) return false;
+            if (!Effects.Give(relicId)) return false;
             LootTaken = true;
             return true;
         }
@@ -800,7 +855,12 @@ namespace HellPoker.Core.Chapters
             LootUpgrade = bossBeaten && ClassUpgrades.For(Sinner.Id).Contains(lootUpgrade) ? lootUpgrade : null;
             LootTaken = lootTaken;
             WhettedSoul = whetted;
+            // A save from before the camps' sum: Demo 2.0's rest took a tenth off, a whetted soul put a tenth on.
+            CampBarPercent = (rested ? -10 : 0) + (whetted ? WhetBarPercent : 0);
         }
+
+        /// <summary>The camps' sum on the next demon's bar, as a save kept it (Demo 2.1).</summary>
+        public void RestoreCampBar(int percent) => CampBarPercent = percent;
 
         /// <summary>What Demo 2.1's offers left behind, as a save kept it (the unknown nodes revealed as "floor:lane").</summary>
         public void RestoreOffers(int anteCut, int wardenPurse, int loan, bool loanPays, bool insured, bool bossMalice, bool skip, int memo,

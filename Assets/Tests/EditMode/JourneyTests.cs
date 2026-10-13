@@ -101,18 +101,24 @@ namespace HellPoker.Core.Tests
         {
             ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Peasant, 5);
             Assert.IsFalse(journey.Run.TakeLootCoins(), "nothing before the demon is beaten");
-            Assert.AreEqual(3, journey.Effects.MaxCarried, "a Phase 2 run carries three");
-            journey.Effects.AddRelic(RelicIds.BoneDie);
-            journey.Effects.AddRelic(RelicIds.RustyCrown);
-            journey.Effects.AddRelic(ChapterRelicIds.MammonsSeal);
+            Assert.AreEqual(5, journey.Effects.MaxCarried, "a Phase 2 run wears five");
+            Assert.AreEqual(5, journey.Effects.MaxBag, "and five in the bag");
+            journey.Effects.Give(RelicIds.BoneDie);
+            journey.Effects.Give(RelicIds.RustyCrown);
+            journey.Effects.Give(ChapterRelicIds.MammonsSeal);
+            foreach (string id in ChapterRelics.All.Where(id => !journey.Effects.Holds(id) && id != ChapterRelicIds.MammonsScales &&
+                                                                 ChapterRelics.RarityOf(id) != RelicRarity.Boss).Take(7))
+                journey.Effects.Give(id);
+            Assert.IsTrue(journey.Run.RelicsFull);
             BeatTheDemon(journey);
             IReadOnlyList<string> offers = journey.Run.LootOffers;
             Assert.AreEqual(2, offers.Count);
             Assert.AreEqual(ChapterRelicIds.MammonsScales, offers[0], "his own, the one not carried");
             Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(offers[1]), "a rare in place of the one carried");
-            Assert.IsFalse(journey.Run.TakeLoot(offers[0]), "three carried: one must go");
+            Assert.IsFalse(journey.Run.TakeLoot(offers[0]), "every slot and the bag full: one must go");
             Assert.IsTrue(journey.Run.TakeLoot(offers[0], RelicIds.RustyCrown));
-            CollectionAssert.AreEquivalent(new[] { RelicIds.BoneDie, ChapterRelicIds.MammonsSeal, offers[0] }, journey.Effects.Relics);
+            Assert.IsTrue(journey.Effects.Holds(offers[0]));
+            Assert.IsFalse(journey.Effects.Holds(RelicIds.RustyCrown));
             Assert.IsFalse(journey.Run.TakeLootCoins(), "once");
             Assert.IsFalse(journey.Run.TakeLootUpgrade(), "once");
         }

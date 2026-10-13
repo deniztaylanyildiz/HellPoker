@@ -118,6 +118,25 @@ namespace HellPoker.Core.Relics
             return sum;
         }
 
+        /// <summary>
+        /// This much (percent) of the effects' own pull away from nothing (Demo 2.1's forge adds half a gift: <c>Boon.Partial(50)</c>): every
+        /// percent's distance from 100 and every count scaled, rounded away from zero (a single redraw stays one).
+        /// </summary>
+        public RelicEffects Partial(int percent)
+        {
+            int P(int value) => 100 + Away((value - 100) * percent);
+            int N(int value) => Away(value * percent);
+            int soul = SoulLossPercent < 0 ? -1 : Math.Max(0, Game.GameRules.Default.SoulLossPercent + Away((SoulLossPercent - Game.GameRules.Default.SoulLossPercent) * percent));
+            var extras = Extras.Count == 0 ? null : Extras.ToDictionary(p => p.Key, p => N(p.Value));
+            return new RelicEffects(Math.Max(1, P(AntePercent)), Math.Max(0, P(WinPercent)), N(HouseCardsDelta), Math.Max(0, N(ReRaiseExtraUnits)),
+                Math.Max(0, N(MaliceExtraPerHand)), Math.Max(0, N(RedrawsPerTable)), soul, Math.Max(0, N(WinAntePercent)), Math.Max(0, N(LossAntePercent)),
+                Math.Max(0, P(TreasurePercent)), Math.Max(1, P(MarketPercent)), Math.Max(0, P(TributePercent)), Math.Max(1, P(ImpPursePercent)),
+                Math.Max(1, P(BossBarPercent)), extras);
+        }
+
+        /// <summary>n / 100, rounded away from zero.</summary>
+        private static int Away(int hundredths) => hundredths >= 0 ? (hundredths + 99) / 100 : -((-hundredths + 99) / 100);
+
         /// <summary>Phase 2's marks as a relic's own (key, amount) pairs.</summary>
         public static IReadOnlyDictionary<string, int> Marks(params (string key, int amount)[] marks) =>
             marks.ToDictionary(m => m.key, m => m.amount);
@@ -133,6 +152,9 @@ namespace HellPoker.Core.Relics
 
         /// <summary>Points on a helper's good turn, in percent (the Lost Soul's Letter +20, the Liar's Tongue −15).</summary>
         public const string HelpGoodPercent = "help.good";
+
+        /// <summary>A camp's rest is this much (percent) more (the Rusted Chain); a camp may not forge while it is worn.</summary>
+        public const string RestBonusPercent = "rest.bonus", NoForge = "forge.none";
     }
 
     /// <summary>
@@ -244,7 +266,8 @@ namespace HellPoker.Core.Relics
 
         /// <summary>The combined effects of the relics carried; the one named <paramref name="silenced"/> brings its gift alone, the one
         /// named <paramref name="amplified"/> counts twice (Phase 2's Desire: its gift and its curse doubled).</summary>
-        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null, string amplified = null)
+        /// <param name="forged">Relics forged at a camp (Demo 2.1): their gift half again.</param>
+        public static RelicEffects Combined(IEnumerable<string> ids, string silenced = null, string amplified = null, ICollection<string> forged = null)
         {
             RelicEffects all = RelicEffects.None;
             foreach (string id in ids ?? Enumerable.Empty<string>())
@@ -254,8 +277,12 @@ namespace HellPoker.Core.Relics
                 RelicEffects effects = id == silenced ? relic.Boon : relic.Effects;
                 all = all.With(effects);
                 if (id == amplified) all = all.With(effects);
+                if (forged != null && forged.Contains(id)) all = all.With(relic.Boon.Partial(ForgePercent));
             }
             return all;
         }
+
+        /// <summary>A forged relic's gift counts this much (percent) more.</summary>
+        public const int ForgePercent = 50;
     }
 }

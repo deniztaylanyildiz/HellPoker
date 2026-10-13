@@ -141,6 +141,96 @@ namespace HellPoker.Core.Events
             return true;
         }
 
+        // ---- Phase 2 (Demo 2.1): the bag — relics carried but not worn; only the worn ones act at a table.
+
+        private readonly List<string> _bag = new List<string>();
+
+        /// <summary>The relics in the bag (not worn: they do nothing at a table), in the order put in.</summary>
+        public IReadOnlyList<string> Bag => _bag;
+
+        /// <summary>How many the bag holds (0: no bag — the demo's run).</summary>
+        public int MaxBag { get; set; }
+
+        public bool BagFull => _bag.Count >= MaxBag;
+
+        /// <summary>The relic is worn or in the bag.</summary>
+        public bool Holds(string id) => _relics.Contains(id) || _bag.Contains(id);
+
+        /// <summary>Every relic the run holds: worn, then the bag.</summary>
+        public IEnumerable<string> AllHeld => _relics.Concat(_bag);
+
+        /// <summary>A relic joins the run: worn while a slot is free, else in the bag; false when it is held already, unknown, or both are full.</summary>
+        public bool Give(string id)
+        {
+            if (HellPoker.Core.Relics.RelicRoster.Find(id) == null || Holds(id)) return false;
+            if (AddRelic(id)) return true;
+            if (MaxBag <= 0 || BagFull || HellPoker.Core.Relics.RelicRoster.IsReward(id)) return false;
+            _bag.Add(id);
+            return true;
+        }
+
+        /// <summary>A worn relic goes into the bag (its curse silenced or desire lifted with it); false when the bag is full.</summary>
+        public bool Unequip(string id)
+        {
+            if (!_relics.Contains(id) || BagFull || HellPoker.Core.Relics.RelicRoster.IsReward(id)) return false;
+            RemoveRelic(id);
+            _bag.Add(id);
+            return true;
+        }
+
+        /// <summary>A relic of the bag is worn; false when every slot is taken.</summary>
+        public bool Equip(string id)
+        {
+            if (!_bag.Contains(id) || RelicSlotsFull) return false;
+            _bag.Remove(id);
+            if (AddRelic(id)) return true;
+            _bag.Add(id);
+            return false;
+        }
+
+        /// <summary>A worn relic and one of the bag change places.</summary>
+        public bool Swap(string worn, string bagged)
+        {
+            if (!_relics.Contains(worn) || !_bag.Contains(bagged) || HellPoker.Core.Relics.RelicRoster.IsReward(worn)) return false;
+            int at = _bag.IndexOf(bagged);
+            RemoveRelic(worn);
+            _bag[at] = worn;
+            AddRelic(bagged);
+            return true;
+        }
+
+        /// <summary>A relic is left behind for good (worn or bagged); false when the run does not hold it (an earned reward stays).</summary>
+        public bool Drop(string id)
+        {
+            if (HellPoker.Core.Relics.RelicRoster.IsReward(id)) return false;
+            return RemoveRelic(id) || _bag.Remove(id);
+        }
+
+        private readonly HashSet<string> _forged = new HashSet<string>();
+
+        /// <summary>The relics forged at a camp: their gift half again (once each; the mark stays in the bag too).</summary>
+        public IReadOnlyCollection<string> Forged => _forged;
+
+        /// <summary>A worn relic is forged; false when it is not worn or forged already.</summary>
+        public bool Forge(string id)
+        {
+            if (!_relics.Contains(id) || _forged.Contains(id)) return false;
+            _forged.Add(id);
+            return true;
+        }
+
+        /// <summary>The bag and the forged marks of a saved run.</summary>
+        public void RestoreBag(IEnumerable<string> bag, IEnumerable<string> forged)
+        {
+            _bag.Clear();
+            foreach (string id in bag ?? Enumerable.Empty<string>())
+                if (HellPoker.Core.Relics.RelicRoster.Find(id) != null && !Holds(id) && !HellPoker.Core.Relics.RelicRoster.IsReward(id) && _bag.Count < MaxBag)
+                    _bag.Add(id);
+            _forged.Clear();
+            foreach (string id in forged ?? Enumerable.Empty<string>())
+                if (HellPoker.Core.Relics.RelicRoster.Find(id) != null) _forged.Add(id);
+        }
+
         /// <summary>The relic whose curse is silenced for now (a floor's purgatory fire, until the chapter ends); null for none.</summary>
         public string SilencedCurse { get; private set; }
 
@@ -169,7 +259,7 @@ namespace HellPoker.Core.Events
 
         /// <summary>What the relics carried do to a hand, a silenced curse left out (a desired relic twice).</summary>
         public HellPoker.Core.Relics.RelicEffects CombinedRelics =>
-            HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse, AmplifiedRelic);
+            HellPoker.Core.Relics.RelicRoster.Combined(_relics, SilencedCurse, AmplifiedRelic, _forged);
 
         private readonly Game.TableCharges _redraws;
 

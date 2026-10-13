@@ -1223,7 +1223,7 @@ namespace HellPoker.Presentation
                 string description = string.Format(UiText.RelicDescriptionFormat, UiText.RelicGift(id), UiText.RelicCurse(id));
                 if (AtChapterTable) description = UiText.RarityName(rarity) + "\n" + description;
                 badges.Add(new RelicBadge(id, UiText.RelicName(id), description, uses, selecting: perTable > 0 && _redrawing && id == _redrawRelic,
-                    isReward: relic.IsReward, rarity: rarity));
+                    isReward: relic.IsReward, rarity: rarity, forged: _effects.Forged.Contains(id)));
             }
             _view.SetRelics(badges);
         }

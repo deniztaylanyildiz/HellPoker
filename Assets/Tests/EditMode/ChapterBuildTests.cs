@@ -140,13 +140,15 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void APhaseTwoRun_CarriesThreeRelics()
+        public void APhaseTwoRun_WearsFiveRelics()
         {
             ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.King, 3);
             Assert.IsTrue(journey.Effects.AddRelic(RelicIds.BoneDie));
             Assert.IsTrue(journey.Effects.AddRelic(ChapterRelicIds.BlackBook));
             Assert.IsTrue(journey.Effects.AddRelic(ChapterRelicIds.IronVow));
-            Assert.IsFalse(journey.Effects.AddRelic(ChapterRelicIds.OldMap), "three at most");
+            Assert.IsTrue(journey.Effects.AddRelic(RelicIds.RustyCrown));
+            Assert.IsTrue(journey.Effects.AddRelic(RelicIds.FerrymansCoin));
+            Assert.IsFalse(journey.Effects.AddRelic(ChapterRelicIds.OldMap), "five worn at most (Demo 2.1; the rest goes in the bag)");
             Assert.IsTrue(journey.Effects.RelicSlotsFull);
             Assert.IsTrue(journey.Effects.AddRelic(RelicIds.JestersRattle), "an earned one is beyond the limit");
         }
