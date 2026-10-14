@@ -158,6 +158,8 @@ namespace HellPoker.Core.Chapters
             HellPokerGame game = HellPokerGameFactory.Create(Rules(template, boss, bar, soulLinePercent), new ScaledPayoutTable(boss.Payouts, winPercent, lossPercent),
                 seed, boss.Betting, boss.Cheats, Math.Max(1, boss.MaliceMax - Math.Max(0, maliceShort)), guard, boss.BackfirePercent, sinner);
             game.BarHealPercent = ChapterTuning.BarHealPercent;
+            // 2.1.1: the bets are a share of the bar as the table began, not of what is left (the last tenth no longer drags on).
+            if (ChapterTuning.FixedBossStakes) game.FixedStakeYears = bar;
             return game;
         }
 

@@ -27,6 +27,14 @@ namespace HellPoker.Presentation.Abstractions
 
         public bool IsHidden => Limit <= 0;
 
+        /// <summary>The next win ends the demon (2.1.1, "THE LAST BLOW"): the bar's fill glows.</summary>
+        public bool LastBlow { get; }
+
+        public BossBarDisplay(int value, int start, int limit, BarLine line, string hint, bool lastBlow) : this(value, start, limit, line, hint)
+        {
+            LastBlow = lastBlow;
+        }
+
         /// <summary>The share of the whole bar (to its line) the value fills, 0 to 1.</summary>
         public float Fill => Limit <= 0 ? 0f : Clamp01(Value / (float)Limit);
 

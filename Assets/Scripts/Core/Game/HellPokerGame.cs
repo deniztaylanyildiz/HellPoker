@@ -123,8 +123,19 @@ namespace HellPoker.Core.Game
 
         public int WagerLeft => Math.Max(0, Purse - CurrentStake);
 
-        /// <summary>Bets are measured against the soul's worth once it is on the table, against the sentence otherwise.</summary>
-        private int StakeBase => IsSoulAtStake ? SoulWorth : _ledger.Years;
+        /// <summary>Bets are measured against the soul's worth once it is on the table, against the sentence otherwise (a demon's table in
+        /// Phase 2: against the bar as the table began, <see cref="FixedStakeYears"/>).</summary>
+        private int StakeBase => IsSoulAtStake ? SoulWorth : FixedStakeYears ?? _ledger.Years;
+
+        /// <summary>
+        /// Phase 2's demons' tables (2.1.1): the bets are measured against these years — the bar as the table began — and not the years
+        /// left, so the unit and the cap stay the same as the bar shrinks; with less left than a unit the ante is all of it (all in) and
+        /// one win ends the demon. Null at every demo table (the bets follow the sentence).
+        /// </summary>
+        public int? FixedStakeYears { get; set; }
+
+        /// <summary>The next win (the weakest hand, the next hand's ante) takes every year left: the demon's last blow.</summary>
+        public bool NextWinEndsIt => Phase == GamePhase.Betting && _ledger.Years > 0 && LeastYearsForgiven >= _ledger.Years;
 
         private int AvailableForNextHand => Math.Min(IsSoulAtStake ? SoulRemaining : _ledger.Years, StakeLimit ?? int.MaxValue);
 
@@ -214,8 +225,8 @@ namespace HellPoker.Core.Game
         /// <summary>Years the hooks put on after the last hand was judged (a demon's interest); 0 for none.</summary>
         public int HookYearsThisHand { get; private set; }
 
-        /// <summary>A hand is being played (dealt, not settled) — for the hooks.</summary>
-        internal bool HandInPlay => InPlay;
+        /// <summary>A hand is being played (dealt, not settled) — for the hooks and a chapter's table.</summary>
+        public bool HandInPlay => InPlay;
 
         /// <summary>The next hand's ante, with the marks it will be dealt under (an event's, the relics').</summary>
         public int UpcomingAnte => Math.Min(AnteUnder(StakeBase, Effects.NextHand ?? HandModifier.None, Effects.CombinedRelics),

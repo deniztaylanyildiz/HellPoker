@@ -1,5 +1,30 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.1.1 (2.1.1-demo) — 2026-10-14 — oyun testi düzeltmeleri
+
+### Yeni
+- **El sonucu belirgin:** her el bitince masanın ortasında büyük bant (KAZANDIN / KAYBETTİN / BERABERE / ÇEKİLDİN ve miktar), ekran
+  kenarı kısa parlar, kese / bar değişimi yukarı süzülen rakamla görünür; sayacın çubuğunun yanında son 5 elin pipleri (üzerine gel: el
+  ve miktar).
+- **Dört renkli deste** (Ayarlar ▸ OYUN, varsayılan açık): maça siyah, kupa kırmızı, sinek yeşil, karo mavi. Küçük kartlarda değerin
+  yanında sembol ve renkli kenar; 5×5 maça ve sinek yeniden çizildi.
+- **Şeytanın Pusulası** (nadir emanet, "bir bölümde 3 bekçi yen" ile açılır): haritada bulunduğun kattaki başka bir düğüme geç
+  (bölümde iki kez, her geçiş cezaya +40 yıl).
+- Boss masasında **SON DARBE**: bar bir kazançla bitecek kadar azaldığında yazı çıkar, bar parlar.
+
+### Değişen
+- **Sınıf güçleri her elde bir kez** (şarj göstergesi Phase 2'de yok; Boss Simülatörü aynı). Rozette HAZIR / BU ELDE KULLANILDI;
+  kullanılamazsa nedeni yazar. Denge için: Büyücü dibe 1 kart yollar (bar %1 ya da 2 coin), Kral'ın K müsaderesi yarı vergiye (2),
+  LEJYON elin ilk iblisini bedava yapar.
+- **Kehanet** sadece dağıtımdan sonra, draw'dan önce açık (eller arasında destenin üstü değişiyordu).
+- **Boss masasında bahis** barın başlangıcına göre sabit: son %5-10 artık uzamıyor, az kalınca tek kazanç bitirir.
+- Masa düzeni: DESTE sayacı başlığın soluna taşındı, pot satırı mesajın altına indi, mesaj en çok 3 satır (fazlası birleşir ya da
+  üzerine gelince görünür), boss ante'si kısaldı ("%6 BAR"), oyuncu başlığı kartlardan bir piksel uzak.
+
+### Düzeltilen
+- Hile vurduğu kartı artık kartın kendisiyle izliyor: aynı anda başka bir kural kart oynatsa da masada yanlış kart dönmüyor.
+- Günah Takası'nda karşılık çıkmazsa verilen emanet artık gitmiyor. Emanet bırakma / satma / takasında mesaj ve günlük satırı.
+
 ## Demo 2.1 (2.1.0-demo) — 2026-10-13
 
 ### Yeni

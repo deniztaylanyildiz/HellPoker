@@ -42,6 +42,9 @@ namespace HellPoker.Core.Tests
             public int MarketVisits, MarketShopped, RelicsBought, EyesBought;
             public int EventsSeen, Treasures;
 
+            /// <summary>The Devil's Compass's steps (2.1.1).</summary>
+            public int CompassSteps;
+
             /// <summary>Floor hands lost to the player's two jokers, won by the house's.</summary>
             public int PlayerBustHands, HouseBustHands;
             public readonly List<int> Gate = new List<int>(), TableLengths = new List<int>(), WardenLengths = new List<int>();
@@ -77,7 +80,7 @@ namespace HellPoker.Core.Tests
                 WardenHands += o.WardenHands; WardenWins += o.WardenWins; WardenToll += o.WardenToll;
                 TablesPlayed += o.TablesPlayed; TablesWon += o.TablesWon; WardensPlayed += o.WardensPlayed; WardensWon += o.WardensWon;
                 MarketVisits += o.MarketVisits; MarketShopped += o.MarketShopped; RelicsBought += o.RelicsBought; EyesBought += o.EyesBought;
-                EventsSeen += o.EventsSeen; Treasures += o.Treasures;
+                EventsSeen += o.EventsSeen; Treasures += o.Treasures; CompassSteps += o.CompassSteps;
                 PlayerBustHands += o.PlayerBustHands; HouseBustHands += o.HouseBustHands;
                 Gate.AddRange(o.Gate);
                 TableLengths.AddRange(o.TableLengths);
@@ -249,6 +252,7 @@ namespace HellPoker.Core.Tests
                     else run.TakeJackpotCoins();
                     if (run.WardenRelicWaiting != null) run.TakeWardenCoins();
                 }
+                UseCompass(run, wardenSeen, tally);
                 MapNode next = ChooseNext(run, random, wardenSeen);
                 run.MoveTo(next);
                 Bump(tally.Path, next.Kind);
@@ -523,13 +527,13 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<string, int> HeldAtCh2 = new Dictionary<string, int>(), FreedHeldAtCh2 = new Dictionary<string, int>();
 
             /// <summary>The class mechanics used, over all runs.</summary>
-            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost, Summons, WildImps;
+            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost, Summons, WildImps, PowerUses;
 
             public void AddKit(ClassKit kit)
             {
                 Kept += kit.Kept; Taken += kit.TakenFromSatchel; Harvests += kit.Harvests; Rearranges += kit.Rearranges; Reveals += kit.Reveals;
                 FreeRaises += kit.FreeRaises; Seizures += kit.Seizures; TaxesEarned += kit.TaxesEarned; TaxesLost += kit.TaxesLost;
-                Summons += kit.Summons; WildImps += kit.WildImps;
+                Summons += kit.Summons; WildImps += kit.WildImps; PowerUses += kit.PowerUses;
             }
         }
 
@@ -560,6 +564,9 @@ namespace HellPoker.Core.Tests
                 int[] losses = EnvInts("HELLPOKER_BOSS_LOSS");   // "250,220,110,90": Mammon, Belial, Lilith, Lucifer
                 for (int i = 0; losses != null && i < losses.Length && i < 4; i++) ChapterTuning.BossLossPercent[i + 1] = losses[i];
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
+                // 2.1.1: the demons' fixed stakes (0: measured against the bar left) and the K powers once a hand (0: the full gauge).
+                ChapterTuning.FixedBossStakes = EnvInt("HELLPOKER_FIXED_STAKES", 1) != 0;
+                ChapterTuning.PowersEveryHand = EnvInt("HELLPOKER_POWER_HAND", 1) != 0;
                 WholeRunReport();
             }
             finally
@@ -651,7 +658,8 @@ namespace HellPoker.Core.Tests
                 report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)} / {Avg((int)t.Harvests, t.Runs)};  " +
                                   $"{Avg((int)t.Rearranges, t.Runs)};  {Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
                                   $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)};  imps {Avg((int)t.Summons, t.Runs)} " +
-                                  $"(wild {Avg((int)t.WildImps, t.Runs)})");
+                                  $"(wild {Avg((int)t.WildImps, t.Runs)});  K used {Avg((int)t.PowerUses, t.Runs)} hands;  " +
+                                  $"compass steps {Avg(t.Chapters.Sum(c => c.CompassSteps), t.Runs)}");
 
             report.AppendLine();
             report.AppendLine("relics and upgrades: taken (market + wardens + spoils; the fire's upgrades), and freedom of the runs that began chapter 2 " +
@@ -863,11 +871,31 @@ namespace HellPoker.Core.Tests
         /// <summary>The coins the player keeps after a purchase (an empty purse loses the run at the next table).</summary>
         private static readonly int Reserve = EnvInt("HELLPOKER_RESERVE", 30);
 
+        /// <summary>The player could buy a relic at a market now (and keep what the next table and the gate need).</summary>
+        private static bool CanShop(ChapterRun run)
+        {
+            int cheapest = run.PriceOf(BlackMarket.RelicPrices[0]);
+            return run.Purse.Coins - cheapest >= (run.Effects.CarriedOffered + run.Effects.Bag.Count < 2 ? Reserve : Math.Max(Reserve, run.Tribute)) && !run.RelicsFull;
+        }
+
+        /// <summary>
+        /// The Devil's Compass (2.1.1): a step across the floor when no way from here leads straight to what the player wants next — a warden
+        /// (until one is met) or a market it could buy at — and another node of the floor does.
+        /// </summary>
+        private static void UseCompass(ChapterRun run, bool wardenSeen, Tally tally)
+        {
+            if (run.CompassStepsLeft <= 0 || run.Current == null) return;
+            bool canShop = CanShop(run);
+            bool Wants(MapNode n) => (!wardenSeen && n.Kind == NodeKind.Warden) || (canShop && n.Kind == NodeKind.BlackMarket);
+            if (run.Choices.Any(Wants)) return;
+            MapNode step = run.CompassTargets.FirstOrDefault(t => run.Map.NextFrom(t).Any(Wants));
+            if (step != null && run.StepWithCompass(step)) tally.CompassSteps++;
+        }
+
         /// <summary>A warden first (once), then a table, a market it can buy at, an event, any market; ties at random.</summary>
         private static MapNode ChooseNext(ChapterRun run, IRandomSource random, bool wardenSeen)
         {
-            int cheapest = run.PriceOf(BlackMarket.RelicPrices[0]);
-            bool canShop = run.Purse.Coins - cheapest >= (run.Effects.CarriedOffered + run.Effects.Bag.Count < 2 ? Reserve : Math.Max(Reserve, run.Tribute)) && !run.RelicsFull;
+            bool canShop = CanShop(run);
             int Score(MapNode node)
             {
                 switch (node.Kind)

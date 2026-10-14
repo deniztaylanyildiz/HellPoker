@@ -57,6 +57,8 @@ namespace HellPoker.Core.Chapters
             new Milestone(ChapterRelicIds.LostSoulsLetter, "chapter2", 1, r => r.DeepestChapter >= 2),
             new Milestone(ChapterRelicIds.MammonsGoldTooth, "belial", 1, r => r.Beaten(DealerRoster.BelialId) >= 1),
             new Milestone(ChapterRelicIds.LucifersFeather, "lucifer", 1, r => r.LuciferReached >= 1),
+            // 2.1.1
+            new Milestone(ChapterRelicIds.DevilsCompass, "wardens3", 3, r => r.MostWardensInAChapter >= 3),
         };
 
         public static readonly Milestone SummonerMilestone = new Milestone(Summoner.ClassId, "freed", 1, r => r.Freed >= 1);

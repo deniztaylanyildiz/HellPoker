@@ -34,6 +34,10 @@ namespace HellPoker.Core.Tests
         public void PressMenu() => MenuPressed?.Invoke();
         public event Action RelicsPressed;
         public void PressRelics() => RelicsPressed?.Invoke();
+        public event Action CompassPressed;
+        public void PressCompass() => CompassPressed?.Invoke();
+        public List<(MapNode from, MapNode to)> Steps { get; } = new List<(MapNode, MapNode)>();
+        public void PlayStep(MapNode from, MapNode to) => Steps.Add((from, to));
     }
 
     internal sealed class FakeRelicBagView : IRelicBagView
@@ -460,6 +464,8 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.IsInstanceOf<BelialRoleSwap>(_table.Kit.Rule);
             Assert.AreEqual(UiText.DemonRuleLine(_table.Kit.Rule), _tableView.DealerView.LastLine, "the rule, said as the table opens");
+            Assert.AreEqual(UiText.KitProphecyShutTitle, _tableView.Kit.Title, "2.1.1: shut until the deal");
+            _table.PerformAction();   // the deal
             Assert.AreEqual(UiText.KitProphecyTitle, _tableView.Kit.Title);
             Assert.AreEqual(2, _tableView.Kit.Cards.Count, "two cards of the top after Mammon");
         }

@@ -46,10 +46,19 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The icon a node shows: its kind — an unknown node's "?" until it is walked or revealed.</summary>
         public Func<MapNode, NodeKind> Shown { get; }
 
+        /// <summary>The Devil's Compass's button ("COMPASS 2"); null: no compass worn (no button).</summary>
+        public string CompassLabel { get; }
+
+        /// <summary>While the compass picks: the nodes of the floor it may step to (they glow apart from the ways); empty otherwise.</summary>
+        public IReadOnlyCollection<MapNode> CompassTargets { get; }
+
         public ChapterMapState(ChapterMap map, MapNode current, IReadOnlyCollection<MapNode> choices, MapNode selected, IReadOnlyList<MapNode> trail,
             string title, string prompt, int coins, IReadOnlyList<string> lines, Func<MapNode, string> describe, string gateLabel = null, int chapter = 1,
-            BossBarDisplay bar = null, string barLabel = null, Func<MapNode, NodeKind> shown = null)
+            BossBarDisplay bar = null, string barLabel = null, Func<MapNode, NodeKind> shown = null, string compassLabel = null,
+            IReadOnlyCollection<MapNode> compassTargets = null)
         {
+            CompassLabel = compassLabel;
+            CompassTargets = compassTargets ?? Array.Empty<MapNode>();
             Shown = shown ?? (n => n.Kind);
             Bar = bar ?? BossBarDisplay.Hidden;
             BarLabel = barLabel ?? "";
@@ -80,9 +89,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The map's RELICS button (the worn relics and the bag, to look at).</summary>
         event Action RelicsPressed;
 
+        /// <summary>The Devil's Compass's button (shown only while one is worn).</summary>
+        event Action CompassPressed;
+
         bool IsVisible { get; }
 
         void Show(ChapterMapState state);
+
+        /// <summary>The compass carried the player across the floor: a short flicker from one node to the other.</summary>
+        void PlayStep(MapNode from, MapNode to);
 
         void Hide();
     }

@@ -23,7 +23,8 @@ namespace HellPoker.Core.Tests
             int give = WorstCard(game, i => treasury.CanGive(game, i));
             if (give >= 0 && treasury.WhyNot(game, TaxAct.Seize) == KitRefusal.None) treasury.Seize(game, give);
             else if (give >= 0 && treasury.WhyNot(game, TaxAct.Seize, charged: true) == KitRefusal.None) treasury.Seize(game, give, charged: true);
-            else if (treasury.WhyNot(game, TaxAct.Reveal) == KitRefusal.None) treasury.Reveal(game);
+            // A card turned for a tax only with taxes to spare: the rest wait for the K seizure (2.1.1: half price every hand).
+            else if (kit.Kit.Taxes > treasury.PowerSeizePrice && treasury.WhyNot(game, TaxAct.Reveal) == KitRefusal.None) treasury.Reveal(game);
         }
 
         /// <summary>The draw, with the class's help; <paramref name="discards"/> are what the player throws.</summary>
@@ -75,11 +76,14 @@ namespace HellPoker.Core.Tests
             return fill;
         }
 
+        /// <summary>The harvest is worth its unseen draw: the satchel alone makes two pair or better of the hand (2.1.1: it comes every hand,
+        /// so a small gain is not spent on it — the satchel's cards wait for a better one).</summary>
         private static bool Betters(HellPokerGame game, IReadOnlyDictionary<int, Card> fill)
         {
             Hand hand = game.PlayerHand;
             foreach (var pair in fill) hand = hand.With(pair.Key, pair.Value);
-            return game.Evaluator.Evaluate(hand).Category > game.Evaluator.Evaluate(game.PlayerHand).Category;
+            HandCategory after = game.Evaluator.Evaluate(hand).Category;
+            return after > game.Evaluator.Evaluate(game.PlayerHand).Category && after >= HandCategory.TwoPair;
         }
 
         /// <summary>What the kept cards make (the thrown places not counted: the hand's cards that stay).</summary>
@@ -116,10 +120,12 @@ namespace HellPoker.Core.Tests
         private static void Summon(HellPokerGame game, SummonPowers summon)
         {
             if (summon.WhyNoLegion(game) == KitRefusal.None) summon.CallLegion(game);
-            if (summon.Legion)
+            // 2.1.1: the Legion frees the hand's first imp — the Hand when it betters the hand (below), else the Eye.
+            bool handHelps = HandHelps(game, summon);
+            if (summon.LegionFreeLeft > 0 && !handHelps)
             {
                 if (summon.WhyNot(game, SummonAct.Eye) == KitRefusal.None) summon.Eye(game);
-                if (summon.WhyNot(game, SummonAct.Whisper) == KitRefusal.None) summon.Whisper(game);
+                if (summon.LegionFreeLeft > 0 && summon.WhyNot(game, SummonAct.Whisper) == KitRefusal.None) summon.Whisper(game);
             }
             if (summon.WhyNot(game, SummonAct.Hand) != KitRefusal.None) return;
             int give = WorstCard(game, i => summon.CanGive(game, i));
@@ -128,8 +134,19 @@ namespace HellPoker.Core.Tests
             HandCategory best = Enumerable.Range(0, game.HouseCardsRevealed).Where(h => !game.IsHouseCardFalse(h) && !game.HouseHand[h].IsJoker)
                 .Select(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])).Category).DefaultIfEmpty(now).Max();
             if (best <= now) return;
-            bool worth = summon.Legion || (best >= HandCategory.TwoPair && (summon.AtDemonsTable || summon.Purse != null && summon.Purse.Coins - summon.PriceOf(SummonAct.Hand) >= 40));
+            bool worth = summon.LegionFreeLeft > 0 || (best >= HandCategory.TwoPair && (summon.AtDemonsTable || summon.Purse != null && summon.Purse.Coins - summon.PriceOf(SummonAct.Hand) >= 40));
             if (worth) summon.Swap(game, give);
+        }
+
+        /// <summary>A demon's open card would better the hand through the Hand.</summary>
+        private static bool HandHelps(HellPokerGame game, SummonPowers summon)
+        {
+            if (summon.WhyNot(game, SummonAct.Hand) != KitRefusal.None) return false;
+            int give = WorstCard(game, i => summon.CanGive(game, i));
+            if (give < 0) return false;
+            HandCategory now = game.Evaluator.Evaluate(game.PlayerHand).Category;
+            return Enumerable.Range(0, game.HouseCardsRevealed).Where(h => !game.IsHouseCardFalse(h) && !game.HouseHand[h].IsJoker)
+                .Any(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])).Category > now);
         }
 
         /// <summary>The lowest card that makes nothing (a card in no pair); -1 when none may be given.</summary>

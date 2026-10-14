@@ -34,8 +34,18 @@ namespace HellPoker.Core.Chapters
         /// <summary>A demon's loss percent in place of the chapter's (1-3; 4: Lucifer) (HELLPOKER_BOSS_LOSS).</summary>
         public static readonly Dictionary<int, int> BossLossPercent = new Dictionary<int, int>();
 
+        /// <summary>A demon's table measures its bets against the bar as it began (2.1.1, the game's); false: against the bar left, as
+        /// before (HELLPOKER_FIXED_STAKES=0).</summary>
+        public static bool FixedBossStakes = true;
+
+        /// <summary>The classes' K powers once a hand, no gauge (2.1.1, the game's); false: the full gauge pays for them, as before
+        /// (HELLPOKER_POWER_HAND=0).</summary>
+        public static bool PowersEveryHand = true;
+
         public static void Reset()
         {
+            FixedBossStakes = true;
+            PowersEveryHand = true;
             StartingCoins.Clear();
             SentenceTotals.Clear();
             TributeOverStart.Clear();

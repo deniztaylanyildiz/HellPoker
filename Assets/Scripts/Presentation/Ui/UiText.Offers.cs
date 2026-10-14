@@ -234,6 +234,8 @@ namespace HellPoker.Presentation.Ui
                 case ChoiceEventIds.FireRain + "/years": return L("It burns.", "Yakıyor.");
                 case ChoiceEventIds.SinSwap + "/give": return L("He weighs your sin and shows you two of his.", "Günahını tarttı ve sana iki tanesini gösterdi.");
                 case ChoiceEventIds.SinSwap + "/take": return L("A fair trade, he says.", "Adil bir takas, diyor.");
+                case ChoiceEventIds.SinSwap + "/none": return L("He has nothing to show you for it. Your sin stays yours.",
+                    "Karşılığında gösterecek bir şeyi yok. Günahın sende kalıyor.");
                 case ChoiceEventIds.BlindSeer + "/long": return L("\"His bar is long.\"", "\"Barı uzun.\"");
                 case ChoiceEventIds.BlindSeer + "/medium": return L("\"His bar is neither long nor short.\"", "\"Barı ne uzun ne kısa.\"");
                 case ChoiceEventIds.BlindSeer + "/short": return L("\"His bar is short.\"", "\"Barı kısa.\"");

@@ -526,12 +526,18 @@ namespace HellPoker.Core.Chapters
             {
                 string given = choice.Substring(EventChoices.GivePrefix.Length);
                 var offers = ChapterRelics.Draw(run.NodeDice, RelicWeights.Market, Offered, run.Effects.AllHeld.Concat(new[] { given }).ToList(), run.RelicAvailable, run.Sinner.Id);
-                run.Effects.Drop(given);
                 run.EventOffers.Clear();
+                outcome.Relic = given;
+                // Nothing to take for it (the pool ran dry): the relic stays — a relic leaves only for what the player chose.
+                if (offers.Count == 0)
+                {
+                    outcome.Result = "none";
+                    return;
+                }
+                run.Effects.Drop(given);
                 run.EventOffers.AddRange(offers);
                 outcome.Result = "give";
-                outcome.Relic = given;
-                outcome.Waits = offers.Count > 0;
+                outcome.Waits = true;
                 return;
             }
             string taken = choice.Substring(EventChoices.TakePrefix.Length);

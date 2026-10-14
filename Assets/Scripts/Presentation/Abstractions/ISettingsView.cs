@@ -25,6 +25,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The language's own name ("TÜRKÇE").</summary>
         public string Language { get; set; }
 
+        /// <summary>The four-colour deck (green clubs, blue diamonds) is on.</summary>
+        public bool FourColor { get; set; }
+
         // The display tab.
         public bool Fullscreen { get; set; }
         public string WindowMode { get; set; }
@@ -56,6 +59,9 @@ namespace HellPoker.Presentation.Abstractions
         event Action SpeedPressed;
         event Action HandGuidePressed;
         event Action ResetTipsPressed;
+
+        /// <summary>The four-colour deck's row.</summary>
+        event Action FourColorPressed;
 
         /// <summary>The display mode row (full screen / window).</summary>
         event Action FullscreenPressed;

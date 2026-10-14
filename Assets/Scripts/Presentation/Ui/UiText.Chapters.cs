@@ -35,10 +35,12 @@ namespace HellPoker.Presentation.Ui
             "STRANGERS help, swindle (a careful reader sees the hint) or are Hell itself; some choices roll dice. MARKETS: six vendors, " +
             "each with his own wares; haggle once, turn the stall over once.\n" +
             "CAMP AND BAG: at a camp do one thing — rest (sentence down), whet the soul (an upgrade), a rite, or forge a relic. Five relics " +
-            "worn act at the tables; five more wait in the bag; arrange them at a camp.\n" +
+            "worn act at the tables; five more wait in the bag; arrange them at a camp. The DEVIL'S COMPASS steps across a floor (twice a " +
+            "chapter, +40 years each).\n" +
             "SENTENCE AND BAR: your sentence (years) is your own, shown on the map and the tables. At a demon's table a win takes its years " +
             "off his bar and your sentence; a loss puts its years on your sentence but only half of them on his bar. The gate's missing " +
-            "coins go on both. Empty his bar and he is beaten; let it reach the mark at its end and your soul goes on the table.\n" +
+            "coins go on both. The bets stay a share of the bar as it began: at its end one win is THE LAST BLOW. Empty his bar and he is " +
+            "beaten; let it reach the mark at its end and your soul goes on the table.\n" +
             "LUCIFER waits after Lilith: empty his bar and you are FREE — what is left of your sentence is your score.\n" +
             "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell. {CIRCLES}\n" +
             "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
@@ -51,10 +53,12 @@ namespace HellPoker.Presentation.Ui
             "YABANCILAR yardım eder, dolandırır (dikkatli okuyan ipucunu görür) ya da cehennemin kendisidir; bazı seçimler zara bağlı. " +
             "PAZARLAR: altı satıcı, her birinin kendi malı; bir kez pazarlık, bir kez vitrin yenileme.\n" +
             "KAMP VE ÇANTA: kampta bir şey yap — dinlen (ceza düşer), ruhunu bile (yükseltme), tören ya da bir emanet döv. Takılı beş " +
-            "emanet masada etki eder; beşi daha çantada bekler; kampta düzenlersin.\n" +
+            "emanet masada etki eder; beşi daha çantada bekler; kampta düzenlersin. ŞEYTANIN PUSULASI katta yan düğüme geçirir (bölümde " +
+            "iki kez, her biri +40 yıl).\n" +
             "CEZA VE BAR: cezan (yıl) senindir, haritada ve masalarda yazar. Şeytanın masasında kazanç yıllarını hem onun barından hem " +
-            "cezandan siler; kayıp yıllarını cezana yazar ama barına yalnız yarısını. Kapıdaki eksik coin ikisine de yazılır. Barı " +
-            "boşaltırsan yenilir; sonundaki işarete ulaşırsa ruhun masaya konur.\n" +
+            "cezandan siler; kayıp yıllarını cezana yazar ama barına yalnız yarısını. Kapıdaki eksik coin ikisine de yazılır. Bahisler " +
+            "barın başlangıcının payı kalır: sonunda tek kazanç SON DARBE'dir. Barı boşaltırsan yenilir; sonundaki işarete ulaşırsa ruhun " +
+            "masaya konur.\n" +
             "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır.\n" +
             "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ. {CIRCLES}\n" +
             "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
@@ -480,7 +484,8 @@ namespace HellPoker.Presentation.Ui
         public static string BarCastDownLine => L("Past it, you fall", "Geçersen düşersin");
 
         // A demon's table counts in shares of the bar ({0}: percent of the bar the table began with), never in years.
-        public static string BarAnteFormat => L("{0}% OF THE BAR", "BARIN %{0} KADARI");
+        // 2.1.1: short, so "ANTE" and the coin before it and the DEAL button after it all fit on the row (it ran under the button).
+        public static string BarAnteFormat => L("{0}% BAR", "BAR %{0}");
         public static string BarPotFormat => L("ON THE TABLE: {0}% OF THE BAR", "MASADA: BARIN %{0} KADARI");
         public static string BarPromptBetFormat => L("The bet: {0}% of the bar. Deal when you dare.", "Bahis: barın %{0} kadarı. Cesaretin varsa dağıt.");
         public static string BarPromptReRaiseFormat => L("A raise of {0}% of the bar! Call — or fold?", "Barın %{0} kadarı artırdı! Gör — ya da çekil?");
@@ -510,6 +515,31 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Years with their sign: "−240" / "+120".</summary>
         public static string SignedYears(int years) => (years < 0 ? "−" : "+") + Math.Abs(years);
+
+        // ------------------------------------------------------------------ a hand's result, plainly (2.1.1)
+
+        /// <summary>The result band's big word.</summary>
+        public static string BandTitle(Presentation.Abstractions.HandOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case Presentation.Abstractions.HandOutcome.Win: return L("YOU WIN", "KAZANDIN");
+                case Presentation.Abstractions.HandOutcome.Loss: return L("YOU LOSE", "KAYBETTİN");
+                case Presentation.Abstractions.HandOutcome.Fold: return L("FOLDED", "ÇEKİLDİN");
+                default: return L("PUSH", "BERABERE");
+            }
+        }
+
+        /// <summary>{0}: the coins, signed ("+12" / "−8").</summary>
+        public static string BandCoinsFormat => L("{0} coins", "{0} coin");
+        public static string BandCoinsStay => L("The purse stands", "Kese aynı");
+        public static string BandBarStays => L("The bar stands", "Bar aynı");
+
+        /// <summary>A pip's hover: {0} the hand (or FOLDED), {1} what it did.</summary>
+        public static string RecentHandFormat => L("{0} · {1}", "{0} · {1}");
+
+        /// <summary>{0}: the demon (in a sentence). The next win ends him (the fixed stakes' last unit).</summary>
+        public static string LastBlowFormat => L("THE LAST BLOW: one more win and {0} falls.", "SON DARBE: bir kazanç daha ve {0} düşer.");
 
         /// <summary>A demon's hand's two lines: what it did to his bar (a percent of the bar the table began with) and to the run's sentence.</summary>
         public static string BarSentenceLines(int barPercent, int sentenceYears) =>

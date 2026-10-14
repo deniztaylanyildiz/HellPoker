@@ -122,6 +122,7 @@ namespace HellPoker.Core.Chapters
         {
             Hooks = ChapterHooks.Attach(table.Game, Kit, null, 0, RandomSeeds.Derive(_seed, MatchStream + 100 + _matches));
             if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;   // the Summoner's imps cost coins on the floors
+            if (Hooks.Prophecy != null) Hooks.Prophecy.Purse = Purse;   // and the Warlock's sending down (2.1.1)
             return table;
         }
 
@@ -310,6 +311,60 @@ namespace HellPoker.Core.Chapters
         /// <summary>A node of the trail the ferry carried the player over (nothing was done there).</summary>
         public bool WasSkipped(MapNode node) => _skipped.Contains(node);
 
+        // ------------------------------------------------------------------ the Devil's Compass (2.1.1)
+
+        private readonly HashSet<int> _jumps = new HashSet<int>();
+
+        /// <summary>The floors the compass carried the player across (the trail's node there was stepped to, not walked to).</summary>
+        public IReadOnlyCollection<int> CompassJumps => _jumps;
+
+        /// <summary>The compass's steps taken this chapter.</summary>
+        public int CompassStepsUsed { get; private set; }
+
+        /// <summary>The worn compass's steps left this chapter (0 without it).</summary>
+        public int CompassStepsLeft => Math.Max(0, Effects.CombinedRelics.Extra(RelicExtras.CompassSteps) - CompassStepsUsed);
+
+        /// <summary>The years a step of the compass puts on the sentence (its curse).</summary>
+        public int CompassYears => Math.Max(0, Effects.CombinedRelics.Extra(RelicExtras.CompassYears));
+
+        /// <summary>The nodes the compass may step to: the others of the floor the player stands on (the node there is done, nothing waits
+        /// for a choice). Empty before the first floor, without steps left, or on a floor of one node.</summary>
+        public IEnumerable<MapNode> CompassTargets =>
+            Current == null || CompassStepsLeft <= 0 || WardenRelicWaiting != null || PurseEmptied || PendingSideTable != null
+                ? Enumerable.Empty<MapNode>()
+                : Map.Floors[Current.Floor].Where(n => n != Current);
+
+        /// <summary>
+        /// The compass: the player stands at <paramref name="node"/> (on the same floor) instead — nothing there happens, the way goes on from
+        /// it — and the sentence takes the curse's years (a run without a sentence owes them at the gate). False when it cannot step there.
+        /// </summary>
+        public bool StepWithCompass(MapNode node)
+        {
+            if (node == null || !CompassTargets.Contains(node)) return false;
+            int years = CompassYears;
+            Current = node;
+            if (_trail.Count > 0) _trail[_trail.Count - 1] = node;
+            else _trail.Add(node);
+            _jumps.Add(node.Floor);
+            CompassStepsUsed++;
+            Arrival = null;
+            MarketHere = null;
+            if (years > 0)
+            {
+                if (Sentence != null) Sentence.Add(years);
+                else YearsOwed += years;
+            }
+            return true;
+        }
+
+        /// <summary>A saved chapter's compass: the steps taken.</summary>
+        public void RestoreCompass(int stepsUsed) => CompassStepsUsed = Math.Max(0, stepsUsed);
+
+        /// <summary>Wardens beaten in this chapter (the records' "three in a chapter").</summary>
+        public int WardensBeatenHere { get; private set; }
+
+        public void RestoreWardensBeaten(int count) => WardensBeatenHere = Math.Max(0, count);
+
         private int NextMatchSeed() => RandomSeeds.Derive(RandomSeeds.Derive(_seed, MatchStream), ++_matches);
 
         /// <summary>The match at the current node (a table's imp or a warden), under the marks that waited for it.</summary>
@@ -496,6 +551,7 @@ namespace HellPoker.Core.Chapters
                 return;
             }
             if (!table.MatchWon || !table.IsWarden) return;
+            WardensBeatenHere++;
 
             string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
@@ -883,16 +939,19 @@ namespace HellPoker.Core.Chapters
         /// </summary>
         public void Restore(IEnumerable<int> trailLanes, int years, int owed, TableMarks marks, bool breaksFirstCheat, bool rested,
             IEnumerable<string> eventsSeen, IReadOnlyList<Card> deck, int matches, string wardenRelicWaiting, int bossBarStart,
-            bool bossBeaten, IEnumerable<string> loot, bool lootTaken, string lootUpgrade = null, bool whetted = false)
+            bool bossBeaten, IEnumerable<string> loot, bool lootTaken, string lootUpgrade = null, bool whetted = false, IEnumerable<int> compassJumps = null)
         {
             _trail.Clear();
+            _jumps.Clear();
+            foreach (int f in compassJumps ?? Enumerable.Empty<int>()) _jumps.Add(f);
             Current = null;
             int floor = 0;
             foreach (int lane in trailLanes ?? Enumerable.Empty<int>())
             {
                 MapNode node = Map.Find(floor, lane);
                 if (node == null) break;
-                if (Current != null && !Map.NextFrom(Current).Contains(node)) break;
+                // A node the compass stepped to need not be on a way from the one before it.
+                if (Current != null && !Map.NextFrom(Current).Contains(node) && !_jumps.Contains(floor)) break;
                 Current = node;
                 _trail.Add(node);
                 floor++;

@@ -136,7 +136,8 @@ namespace HellPoker.Core.Cheats
             else
             {
                 Hand before = state.PlayerHand;
-                result = cheat.Apply(state);
+                // The touched cards are kept as cards, not only positions: whatever moves later, the table finds them again.
+                result = cheat.Apply(state).Hitting(state.PlayerHand);
                 // A cheat that left the player stronger turned on its demon: everyone sees it.
                 if (result.Outcome == CheatOutcome.Played && state.Evaluator.Evaluate(state.PlayerHand).CompareTo(state.Evaluator.Evaluate(before)) > 0)
                     result = result.AsBackfire();

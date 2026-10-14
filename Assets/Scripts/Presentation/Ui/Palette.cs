@@ -39,6 +39,22 @@ namespace HellPoker.Presentation.Ui
         public static readonly Color BlackSuit = Black;
         public static readonly Color RedSuit = Crimson;
 
+        /// <summary>The four-colour deck's clubs (the palette's green) and diamonds (its one blue).</summary>
+        public static readonly Color Green = Hex(0x5a6a22);
+        public static readonly Color Blue = Hex(0x2a4aa0);
+
+        /// <summary>A suit's ink: spades black, hearts red; clubs green and diamonds blue in the four-colour deck, else black and red.</summary>
+        public static Color SuitInk(HellPoker.Core.Cards.Suit suit, bool fourColor)
+        {
+            switch (suit)
+            {
+                case HellPoker.Core.Cards.Suit.Clubs: return fourColor ? Green : BlackSuit;
+                case HellPoker.Core.Cards.Suit.Diamonds: return fourColor ? Blue : RedSuit;
+                case HellPoker.Core.Cards.Suit.Hearts: return RedSuit;
+                default: return BlackSuit;
+            }
+        }
+
         public static Color For(Tone tone)
         {
             switch (tone)

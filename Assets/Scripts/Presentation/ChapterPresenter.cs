@@ -94,6 +94,7 @@ namespace HellPoker.Presentation
             _map.NodePressed += PressNode;
             _map.MenuPressed += RequestMenu;
             _map.RelicsPressed += ShowRelicsFromMap;
+            _map.CompassPressed += PressCompass;
             _panel.OptionPressed += Answer;
             Lang.Changed += OnLanguageChanged;
         }
@@ -113,6 +114,7 @@ namespace HellPoker.Presentation
             _map.NodePressed -= PressNode;
             _map.MenuPressed -= RequestMenu;
             _map.RelicsPressed -= ShowRelicsFromMap;
+            _map.CompassPressed -= PressCompass;
             _panel.OptionPressed -= Answer;
             if (_bag != null)
             {
@@ -307,11 +309,70 @@ namespace HellPoker.Presentation
             if (_run.NextTableMarks.FreeHands > 0) lines.Add(UiText.MapInsomniaReady);
 
             string title = string.Format(UiText.ChapterTitleFormat, rules.Number, UiText.ChapterName(rules.Number));
-            string prompt = _run.Current == null ? UiText.MapPromptStart : UiText.MapPrompt;
-            MapNode[] choices = _atTable || _panel.IsOpen || !_nodeDone ? Array.Empty<MapNode>() : _run.Choices.ToArray();
-            return new ChapterMapState(_run.Map, _run.Current, choices, _selected, _run.Trail.ToArray(), title, prompt, _run.Purse.Coins, lines, Describe,
-                UiText.GateTitle(rules.Number), rules.Number, BarAt(_run.Years + _run.YearsOwed, BossShares.For(_journey.Sinner.Id, rules.BossId)),
-                BarLabel(), _run.ShownKind);
+            string prompt = _compassPicking ? UiText.CompassPrompt : _mapNotice ?? (_run.Current == null ? UiText.MapPromptStart : UiText.MapPrompt);
+            bool calm = !_atTable && !_panel.IsOpen && _nodeDone;
+            MapNode[] choices = !calm || _compassPicking ? Array.Empty<MapNode>() : _run.Choices.ToArray();
+            MapNode[] targets = calm && _compassPicking ? _run.CompassTargets.ToArray() : Array.Empty<MapNode>();
+            bool compass = _run.Effects.CombinedRelics.Extra(RelicExtras.CompassSteps) > 0;
+            return new ChapterMapState(_run.Map, _run.Current, choices, _compassPicking ? _compassSelected : _selected, _run.Trail.ToArray(), title, prompt,
+                _run.Purse.Coins, lines, Describe, UiText.GateTitle(rules.Number), rules.Number,
+                BarAt(_run.Years + _run.YearsOwed, BossShares.For(_journey.Sinner.Id, rules.BossId)), BarLabel(), _run.ShownKind,
+                compass ? string.Format(UiText.CompassButtonFormat, _run.CompassStepsLeft) : null, targets);
+        }
+
+        // ------------------------------------------------------------------ the Devil's Compass (2.1.1)
+
+        /// <summary>The compass is out: the next node clicked (of the floor the player stands on) is where it steps to.</summary>
+        private bool _compassPicking;
+        private MapNode _compassSelected;
+
+        /// <summary>The map's COMPASS: out (the floor's other nodes glow) or put away; said why when it cannot be used.</summary>
+        private void PressCompass()
+        {
+            if (!IsMapOpen || IsBagOpen || _journey == null || _ended) return;
+            if (_compassPicking)
+            {
+                PutCompassAway();
+                return;
+            }
+            // Never over a panel or at a node not done yet (a table, an offer waiting).
+            if (_panel.IsOpen || !_nodeDone) return;
+            string why = _run.CompassStepsLeft <= 0 ? UiText.CompassNone : _run.Current == null ? UiText.CompassNotYet
+                : !_run.CompassTargets.Any() ? UiText.CompassNowhere : null;
+            if (why != null)
+            {
+                _mapNotice = why;
+                _map.Show(MapState());
+                return;
+            }
+            _compassPicking = true;
+            _compassSelected = _run.CompassTargets.OrderBy(n => n.Lane).First();
+            _map.Show(MapState());
+        }
+
+        private void PutCompassAway()
+        {
+            _compassPicking = false;
+            _compassSelected = null;
+            _map.Show(MapState());
+        }
+
+        /// <summary>The compass steps to <paramref name="node"/>: the curse's years on the sentence, a flicker across the floor, the way on.</summary>
+        private void StepWithCompass(MapNode node)
+        {
+            MapNode from = _run.Current;
+            int years = _run.CompassYears;
+            if (!_run.StepWithCompass(node)) return;
+            _compassPicking = false;
+            _compassSelected = null;
+            Note($"chapter {_journey.Chapter} floor {node.Floor + 1}: the compass, lane {from.Lane} -> {node.Lane} (+{years} years, sentence {_journey.Sentence.Years}, " +
+                 $"{_run.CompassStepsLeft} steps left)");
+            _audio.PlaySfx(SfxIds.Transition);
+            _map.PlayStep(from, node);
+            _selected = PickDefault(_run.Choices);
+            _mapNotice = string.Format(UiText.CompassDoneFormat, years);
+            _map.Show(MapState());
+            Save();
         }
 
         /// <summary>The chapter demon's bar, small and without a number (the map's, the gate's): <paramref name="value"/> toward the soul
@@ -358,6 +419,12 @@ namespace HellPoker.Presentation
         private void PressNode(int floor, int lane)
         {
             if (!IsMapOpen || _panel.IsOpen || _journey == null || _ended || !_nodeDone) return;
+            if (_compassPicking)
+            {
+                MapNode target = _run.CompassTargets.FirstOrDefault(n => n.Floor == floor && n.Lane == lane);
+                if (target != null) StepWithCompass(target);
+                return;
+            }
             MapNode node = _run.Choices.FirstOrDefault(n => n.Floor == floor && n.Lane == lane);
             if (node == null) return;
             Go(node);
@@ -365,6 +432,7 @@ namespace HellPoker.Presentation
 
         private void Go(MapNode node)
         {
+            _mapNotice = null;
             _audio.PlaySfx(SfxIds.NodeSelect);
             _run.MoveTo(node);
             _nodeDone = false;
@@ -448,6 +516,7 @@ namespace HellPoker.Presentation
 
         private void ShowPanel(PanelCard card, IReadOnlyList<Action> answers, string pending = null)
         {
+            _compassPicking = false;
             _answers.Clear();
             _answers.AddRange(answers);
             _card = card;
@@ -537,7 +606,9 @@ namespace HellPoker.Presentation
                         Add(new PanelOption(string.Format(UiText.MarketDropFormat, UiText.RelicName(relic), market.DropPrice),
                             UiText.MarketDropDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
                         {
-                            if (market.DropRelic(relic)) ShowMarket(market, null);
+                            if (!market.DropRelic(relic)) return;
+                            Note($"relics: {relic} left behind (the smuggler's, {market.DropPrice} coins; purse {_run.Purse.Coins})");
+                            ShowMarket(market, null, string.Format(UiText.RelicLeftFormat, UiText.RelicName(relic)));
                         });
                     }
                     break;
@@ -550,7 +621,7 @@ namespace HellPoker.Presentation
                             int price = market.SellPrice(relic);
                             if (!market.SellRelic(relic)) return;
                             Note($"pawnshop: sold {relic} for {price} (purse {_run.Purse.Coins})");
-                            ShowMarket(market, null);
+                            ShowMarket(market, null, string.Format(UiText.RelicSoldFormat, UiText.RelicName(relic), price));
                         });
                     }
                     if (market.CanPawn)
@@ -780,6 +851,11 @@ namespace HellPoker.Presentation
         private void ShowChoiceOffer(IChoiceEvent offer, bool eyeOpen)
         {
             string text = string.Format(UiText.OfferText(offer.Id), UiText.OfferArgs(offer, _run));
+            if (_offerLine != null)
+            {
+                text += "\n" + _offerLine;
+                _offerLine = null;
+            }
             if (offer.Family == EventFamily.Scam)
             {
                 string hint = UiText.OfferHint(offer.Id), trap = UiText.OfferTrap(offer.Id);
@@ -826,6 +902,20 @@ namespace HellPoker.Presentation
         /// <summary>The Summoner's eye on a swindler: these coins.</summary>
         public const int SummonerEyePrice = 5;
 
+        /// <summary>A line the next offer panel says once (the relic given in a sin swap).</summary>
+        private string _offerLine;
+
+        /// <summary>A line the map says once, in place of its prompt (a relic left behind for a warden's or a demon's); null: none.</summary>
+        private string _mapNotice;
+
+        /// <summary>A relic left the run by the player's choice: the log and the map say so.</summary>
+        private void RelicLeft(string id, string why)
+        {
+            if (id == null) return;
+            Note($"relics: {id} left behind ({why})");
+            _mapNotice = string.Format(UiText.RelicLeftFormat, UiText.RelicName(id));
+        }
+
         private void ChooseOffer(IChoiceEvent offer, string choice)
         {
             EventOutcome outcome = offer.Choose(_run, choice);
@@ -834,7 +924,13 @@ namespace HellPoker.Presentation
                  (outcome.Upgrade != null ? $", upgrade {outcome.Upgrade}" : "") + $" (purse {_run.Purse.Coins}, sentence {_journey.Sentence.Years})");
             if (outcome.Waits)
             {
-                ShowChoiceOffer(offer, eyeOpen: false);   // the swap's two offers
+                // The swap's two offers — the relic given is gone, and the panel says so.
+                if (outcome.Result == "give" && outcome.Relic != null)
+                {
+                    Note($"relics: {outcome.Relic} left behind (given to the sin trader)");
+                    _offerLine = string.Format(UiText.RelicLeftFormat, UiText.RelicName(outcome.Relic));
+                }
+                ShowChoiceOffer(offer, eyeOpen: false);
                 return;
             }
             if (outcome.OpensTable && _run.PendingChase != null)
@@ -860,7 +956,7 @@ namespace HellPoker.Presentation
             }
             if (o.Coins != 0) lines.Add(string.Format(UiText.OfferCoinsFormat, Signed(o.Coins)));
             if (o.Years != 0) lines.Add(string.Format(UiText.OfferYearsFormat, Signed(o.Years)));
-            if (o.Relic != null && o.Result != "give")
+            if (o.Relic != null && o.Result != "give" && o.Result != "none")
                 lines.Add(string.Format(UiText.OfferRelicFormat, UiText.RelicName(o.Relic), UiText.RelicGift(o.Relic), UiText.RelicCurse(o.Relic)));
             if (o.Upgrade != null) lines.Add(string.Format(UiText.OfferUpgradeFormat, UiText.UpgradeName(o.Upgrade), UiText.UpgradeText(o.Upgrade)));
             ShowPanel(new PanelCard("Events/" + offer.Id, UiText.OfferOwner(offer.Id), UiText.OfferTitle(offer.Id), string.Join("\n", lines),
@@ -1118,7 +1214,7 @@ namespace HellPoker.Presentation
             string id = places[_bagPicked];
             if (_run.Effects.Drop(id))
             {
-                Note($"relics: {id} left behind");
+                Note($"relics: {id} left behind (the bag)");
                 _bagMessage = string.Format(UiText.BagDroppedFormat, UiText.RelicName(id));
             }
             _bagPicked = -1;
@@ -1189,7 +1285,7 @@ namespace HellPoker.Presentation
             _journey.FloorHands += match.HandsPlayed;
             if (match.IsWarden && match.MatchWon && !gamble)
             {
-                _records.WardenBeaten();
+                _records.WardenBeaten(_run.WardensBeatenHere);
                 _archive?.SaveRecords(_records);
             }
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
@@ -1264,7 +1360,11 @@ namespace HellPoker.Presentation
                 string swap = carried;
                 options.Add(new PanelOption(string.Format(UiText.WardenSwapFormat, UiText.RelicName(swap)),
                     string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(swap))));
-                answers.Add(() => { _run.SwapForWardenRelic(swap); Onward(); });
+                answers.Add(() =>
+                {
+                    if (_run.SwapForWardenRelic(swap)) RelicLeft(swap, "for " + id);
+                    Onward();
+                });
             }
             ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.WardenRelicTitle,
                 UiText.RarityName(ChapterRelics.RarityOf(id)) + " · " +
@@ -1401,7 +1501,9 @@ namespace HellPoker.Presentation
                 string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(id)))).ToList();
             var answers = carried.Select(id => (Action)(() =>
             {
-                if (_run.TakeLoot(relic, id)) LootTaken(relic);
+                if (!_run.TakeLoot(relic, id)) return;
+                RelicLeft(id, "for " + relic);
+                LootTaken(relic);
             })).ToList();
             options.Add(new PanelOption(UiText.Back, null, isLeave: true));
             answers.Add(ShowLoot);
@@ -1807,6 +1909,15 @@ namespace HellPoker.Presentation
                 _panel.Show(_card);
                 return;
             }
+            if (_compassPicking)
+            {
+                var targets = _run.CompassTargets.OrderBy(n => n.Lane).ToList();
+                if (targets.Count == 0) return;
+                int t = _compassSelected == null ? -1 : targets.IndexOf(_compassSelected);
+                _compassSelected = targets[t < 0 ? 0 : Math.Max(0, Math.Min(targets.Count - 1, t + (dx != 0 ? dx : dy)))];
+                _map.Show(MapState());
+                return;
+            }
             var choices = _run.Choices.OrderBy(n => n.Lane).ToList();
             if (choices.Count == 0) return;
             int at = _selected == null ? -1 : choices.IndexOf(_selected);
@@ -1826,6 +1937,11 @@ namespace HellPoker.Presentation
             if (_panel.IsOpen && _card != null)
             {
                 Answer(_card.Selected);
+                return;
+            }
+            if (_compassPicking)
+            {
+                if (_compassSelected != null) StepWithCompass(_compassSelected);
                 return;
             }
             if (_selected != null && _nodeDone && !_ended && _run.Choices.Contains(_selected)) Go(_selected);
@@ -1850,8 +1966,19 @@ namespace HellPoker.Presentation
                 }
                 return false;   // nothing to leave by: Esc goes to the menu, the panel waits for the way back
             }
+            if (_compassPicking)
+            {
+                PutCompassAway();   // Esc: the compass goes back in the pocket
+                return true;
+            }
             return false;
         }
+
+        /// <summary>The compass is out, picking where it steps (for tests).</summary>
+        public bool IsCompassOut => _compassPicking;
+
+        /// <summary>The map's COMPASS (for tests and the keys).</summary>
+        public void UseCompass() => PressCompass();
 
         // ------------------------------------------------------------------ language
 

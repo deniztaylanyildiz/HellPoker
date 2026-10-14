@@ -26,6 +26,8 @@ PALETTE_HEX = [
     "#7a8494", "#b8c0cc",
     # pure highlight
     "#ffffff",
+    # deep blue (the four-colour deck's diamonds)
+    "#2a4aa0",
 ]
 assert len(PALETTE_HEX) <= 32, "The palette is limited to 32 entries."
 
@@ -43,6 +45,7 @@ class C:
     LILAC, LILAC_LIGHT = 26, 27
     SILVER_DARK, SILVER = 28, 29
     WHITE = 30
+    BLUE = 31
 
 
 # Ramps from dark to light, used by band shading.

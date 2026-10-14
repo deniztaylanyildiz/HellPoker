@@ -17,8 +17,8 @@ namespace HellPoker.Presentation.Views
         private const int TabsTop = 44;
         private const int TabWidth = 96;
         private const int TabGap = 8;
-        private const int RowsTop = 74;
-        private const int RowHeight = 32;
+        private const int RowsTop = 66;
+        private const int RowHeight = 30;   // five rows on the game tab (2.1.1: the four-colour deck)
         private const int LabelX = 64;
         private const int ValueX = 288;
         private const int ValueWidth = 128;
@@ -31,6 +31,7 @@ namespace HellPoker.Presentation.Views
         private Text _handGuide;
         private Text _tips;
         private Text _language;
+        private Text _fourColor;
         private ButtonFeel _tipsFeel;
         private Text _windowMode;
         private Text _windowScale;
@@ -46,6 +47,7 @@ namespace HellPoker.Presentation.Views
         public event Action SpeedPressed;
         public event Action HandGuidePressed;
         public event Action ResetTipsPressed;
+        public event Action FourColorPressed;
         public event Action LanguagePressed;
         public event Action FullscreenPressed;
         public event Action WindowScalePressed;
@@ -91,6 +93,8 @@ namespace HellPoker.Presentation.Views
             _tipsFeel = tips.GetComponent<ButtonFeel>();
             _language = Row(game, 3, () => UiText.SettingLanguage, () => UiText.SettingLanguageHint, "SettingsLanguageButton",
                 () => LanguagePressed?.Invoke(), out _);
+            _fourColor = Row(game, 4, () => UiText.SettingFourColor, () => UiText.SettingFourColorHint, "FourColorButton",
+                () => FourColorPressed?.Invoke(), out _);
 
             Transform display = Page(screen, SettingsTab.Display);
             _windowMode = Row(display, 0, () => UiText.SettingWindowMode, () => UiText.SettingFullscreenHint, "FullscreenButton",
@@ -109,11 +113,11 @@ namespace HellPoker.Presentation.Views
             _sfx = Row(sound, 2, () => UiText.SettingSfx, () => UiText.SettingSfxHint, "SfxButton", () => SfxPressed?.Invoke(), out _);
 
             UiFactory.CreateText("SettingsTabsHint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleCenter).Localized(() => UiText.SettingsTabsHint)
-                .rectTransform.PlaceTL(32, RowsTop + 4 * RowHeight + 2, PixelScreen.Width - 64, 8);
+                .rectTransform.PlaceTL(32, RowsTop + 5 * RowHeight + 2, PixelScreen.Width - 64, 8);
 
             Button back = UiFactory.CreateButton("SettingsBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Blood);
             backLabel.Localized(() => UiText.Back);
-            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 44, 80, 20);
+            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 80) / 2, PixelScreen.Height - 40, 80, 20);
             back.onClick.AddListener(() => BackPressed?.Invoke());
 
             ShowPage(SettingsTab.Game);
@@ -165,6 +169,7 @@ namespace HellPoker.Presentation.Views
             _tips.text = screen.TipsLeft ? UiText.ResetTips : UiText.TipsFresh;
             _tipsFeel.Locked = !screen.TipsLeft;
             _language.text = screen.Language;
+            _fourColor.text = screen.FourColor ? UiText.On : UiText.Off;
             _windowMode.text = screen.WindowMode;
             _windowScale.text = screen.WindowScale;
             _windowScaleFeel.Locked = screen.WindowScaleLocked;

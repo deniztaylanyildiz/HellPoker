@@ -53,9 +53,17 @@ namespace HellPoker.Core.Cheats
         /// </summary>
         public bool Backfired { get; }
 
+        /// <summary>
+        /// The player's cards the cheat touched, as they lay the moment it struck (one for each of <see cref="PlayerCards"/>). Positions can
+        /// go stale — a demon's rule or a class's act may move cards afterwards in the same command — the cards themselves cannot: the
+        /// table finds each one again where it lies now (<see cref="PlayerCardsIn"/>).
+        /// </summary>
+        public IReadOnlyList<Card> PlayerCardsHit { get; }
+
         public CheatResult(string cheatId, CheatOutcome outcome, IReadOnlyList<int> playerCards = null, IReadOnlyList<int> houseCards = null,
-            Card? lost = null, Card? gained = null, int years = 0, string shownId = null, bool backfired = false)
+            Card? lost = null, Card? gained = null, int years = 0, string shownId = null, bool backfired = false, IReadOnlyList<Card> playerCardsHit = null)
         {
+            PlayerCardsHit = playerCardsHit ?? Array.Empty<Card>();
             Backfired = backfired;
             if (string.IsNullOrEmpty(cheatId)) throw new ArgumentException("A cheat id is needed.", nameof(cheatId));
             CheatId = cheatId;
@@ -72,10 +80,34 @@ namespace HellPoker.Core.Cheats
 
         /// <summary>The same result, told as announced under <paramref name="shownId"/>.</summary>
         public CheatResult AnnouncedAs(string shownId) =>
-            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, shownId, Backfired);
+            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, shownId, Backfired, PlayerCardsHit);
 
         /// <summary>The same result, marked as having helped the player.</summary>
         public CheatResult AsBackfire() =>
-            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, ShownId, backfired: true);
+            new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, ShownId, backfired: true, PlayerCardsHit);
+
+        /// <summary>The same result, with the touched cards read off the player's hand as the cheat left it.</summary>
+        public CheatResult Hitting(Hand playerHand)
+        {
+            if (playerHand == null || PlayerCards.Count == 0) return this;
+            var hit = new List<Card>();
+            foreach (int i in PlayerCards)
+                if (i >= 0 && i < Hand.Size) hit.Add(playerHand[i]);
+            return new CheatResult(CheatId, Outcome, PlayerCards, HouseCards, Lost, Gained, Years, ShownId, Backfired, hit);
+        }
+
+        /// <summary>Where the touched cards lie in <paramref name="playerHand"/> now (a card no longer in it is left out).</summary>
+        public IReadOnlyList<int> PlayerCardsIn(Hand playerHand)
+        {
+            if (playerHand == null) return Array.Empty<int>();
+            if (PlayerCardsHit.Count == 0) return PlayerCards;
+            var at = new List<int>();
+            foreach (Card card in PlayerCardsHit)
+            {
+                int i = playerHand.IndexOf(card);
+                if (i >= 0 && !at.Contains(i)) at.Add(i);
+            }
+            return at;
+        }
     }
 }

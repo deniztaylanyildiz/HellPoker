@@ -146,7 +146,7 @@ namespace HellPoker.Presentation.Ui
         public static string PromptChoice => L("  Raise, pass — or fold?", "  Artır, pas — ya da çekil?");
         public static string PromptForcedChoice => L("  No passing now: raise or fold.", "  Artık pas yok: artır ya da çekil.");
         public static string PromptDrawFormat => L("Pick up to {0} cards to throw back into the fire.", "Ateşe atmak için en fazla {0} kart seç.");
-        public static string HouseDrewFormat => L("{0} — drew {1}", "{0} — {1} değişti");
+        public static string HouseDrewFormat => L("{0} · drew {1}", "{0} · {1} çekti");   // 2.1.1: shorter (it ran into the deck counter)
         public static string WinFormat => L("{0} beats {1}.  {2} years forgiven.", "{0}, {1} elini yendi.  {2} yıl silindi.");
         public static string LossFormat => L("{0} beats your {1}.  +{2} years.", "{0}, senin {1} elini yendi.  +{2} yıl.");
         public static string PushFormat => L("Push — {0} against {1}. The sentence stands.", "Berabere — {0}, {1} karşısında. Ceza aynı.");
@@ -331,6 +331,8 @@ namespace HellPoker.Presentation.Ui
         public static string SettingTipsHint => L("The dealers explain each new moment once.", "Şeytanlar her yeni anı bir kez anlatır.");
         public static string SettingLanguage => L("LANGUAGE / DİL", "DİL / LANGUAGE");
         public static string SettingLanguageHint => L("On the title menu, L switches it too.", "Ana menüde L tuşu da değiştirir.");
+        public static string SettingFourColor => L("FOUR-COLOUR DECK", "DÖRT RENKLİ DESTE");
+        public static string SettingFourColorHint => L("Spades black, hearts red, clubs green, diamonds blue.", "Maça siyah, kupa kırmızı, sinek yeşil, karo mavi.");
         public static string SettingMusic => L("MUSIC", "MÜZİK");
         public static string SettingMusicHint => L("Every demon plays a tune of their own.", "Her şeytanın kendi ezgisi var.");
         public static string SettingSfx => L("EFFECTS", "EFEKTLER");

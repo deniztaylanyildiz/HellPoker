@@ -141,7 +141,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(HandCategory.ThreeOfAKind, Evaluator.Evaluate(game.PlayerHand).Category, "the two aces from the satchel");
             CollectionAssert.AreEqual(new[] { C("3D") }, kit.Satchel);
             Assert.IsFalse(hooks.Satchel.SeenThisHand, "the harvest is unseen");
-            Assert.AreEqual(0, kit.Sinner.Charge);
+            Assert.IsTrue(hooks.Satchel.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
+            Assert.AreEqual(5, kit.Sinner.Charge, "the gauge is not spent");
             Assert.AreEqual(PowerRefusal.NoPower, game.WhyNoPower(), "the demo's free fold is gone");
         }
 
@@ -175,12 +176,11 @@ namespace HellPoker.Core.Tests
 
             Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0), "not without the charged power");
             Assert.IsTrue(hooks.Prophecy.StartRearranging(game));
-            Assert.AreEqual(0, kit.Sinner.Charge);
+            Assert.IsTrue(hooks.Prophecy.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
             Assert.IsTrue(hooks.Prophecy.SendToBottom(game, 0));
             CollectionAssert.AreEqual(new[] { C("10C"), C("JH") }, hooks.Prophecy.TopCards(game));
             Assert.AreEqual(C("6H"), game.Deck.Remaining[0], "at the bottom");
-            Assert.IsTrue(hooks.Prophecy.SendToBottom(game, 1));
-            Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0), "two a use");
+            Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0), "one a use (2.1.1: once every hand)");
             game.CheckToDraw();
             game.Draw(new[] { 4 });
             Assert.AreEqual(C("10C"), game.PlayerHand[4], "the draw takes the card the Warlock left on top");
@@ -267,13 +267,16 @@ namespace HellPoker.Core.Tests
         public void TheSeizure_ForTheChargedGauge_CostsNoTax_AndOpensACardWhenNoneIsOpen()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.King, charge: 5));
+            kit.Restore(null, 2, null, 0);   // 2.1.1: the K seizure costs half its price
             HellPokerGame game = Stacked("AD KD 7C 4S 2D  AH 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();
             Assert.AreEqual(KitRefusal.NoTaxes, hooks.Treasury.WhyNot(game, TaxAct.Seize));
+            Assert.AreEqual(2, hooks.Treasury.PowerSeizePrice);
             Assert.AreEqual(C("AH"), hooks.Treasury.Seize(game, 2, charged: true));
             Assert.AreEqual(1, game.HouseCardsRevealed, "the face-down card turned to be taken");
-            Assert.AreEqual(0, kit.Sinner.Charge);
+            Assert.IsTrue(hooks.Treasury.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
+            Assert.AreEqual(0, kit.Taxes, "half the seizure's price");
         }
 
         [Test]

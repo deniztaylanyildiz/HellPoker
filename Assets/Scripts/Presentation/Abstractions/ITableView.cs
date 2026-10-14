@@ -149,5 +149,16 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>What the counter and the ante count: years (every demon's table) or coins (a floor's table).</summary>
         void SetCurrency(Currency currency);
+
+        // ------------------------------------------------------------------ a hand's result, plainly (Phase 2's tables, 2.1.1)
+
+        /// <summary>The result band across the middle of the table (after everything queued before it); null takes it down.</summary>
+        void SetResultBand(ResultBand band);
+
+        /// <summary>An amount floats up from the counter (<paramref name="overBar"/>: from the demon's bar) and is gone.</summary>
+        void FloatAmount(string text, Tone tone, bool overBar);
+
+        /// <summary>The last hands as pips beside the counter's bar, the oldest first (empty: none shown).</summary>
+        void SetRecentHands(System.Collections.Generic.IReadOnlyList<HandPip> hands);
     }
 }

@@ -810,6 +810,7 @@ namespace HellPoker.Presentation
             _seatTitleShown = SeatTitle();
             _audio.SetSoulLayer(false);
             SeatKit(game);
+            ClearResults();
 
             _view.SetCurrency(CoinMode ? Currency.Coins : Currency.Bar);
             _view.Dealer.SetDealer(SeatCard());
@@ -1138,12 +1139,14 @@ namespace HellPoker.Presentation
                 }
 
                 int faceUp = _game.Phase == GamePhase.RoundOver || _game.IsGameOver ? Hand.Size : _game.PlayerCardsRevealed;
-                int at = result.PlayerCards.Count > 0 ? result.PlayerCards[0] : -1;
+                // The touched cards found again where they lie now (a demon's rule or a class's act may have moved cards since).
+                IReadOnlyList<int> hit = result.PlayerCardsIn(_game.PlayerHand);
+                int at = hit.Count > 0 ? hit[0] : -1;
                 if (result.Lost.HasValue && at >= 0 && _game.PlayerHand != null)
                     _view.Player.Show(PlayerSlots(faceUp, at, result.Lost.Value, keepHidden: true));
 
                 _view.PlaySfx(SfxIds.Cheat);
-                _view.PlayCheat(new CheatImpact(result.CheatId, result.PlayerCards, result.HouseCards));
+                _view.PlayCheat(new CheatImpact(result.CheatId, hit, result.HouseCards));
                 string cheatId = result.CheatId;
                 Say(_ => UiText.CheatLine(cheatId), DealerMood.Scheming);
 
@@ -1151,7 +1154,7 @@ namespace HellPoker.Presentation
                 {
                     _view.Player.Show(PlayerSlots(faceUp, keepHidden: true));
                     _view.PlaySfx(SfxIds.Backfire);
-                    _view.PlayMoment(TableMoment.Backfire, UiText.BackfireFlash, result.PlayerCards);
+                    _view.PlayMoment(TableMoment.Backfire, UiText.BackfireFlash, hit);
                     Say(d => d.Backfire, _game.RoundNumber, DealerMood.Annoyed);
                 }
             }
@@ -1205,9 +1208,14 @@ namespace HellPoker.Presentation
             if (upgrades.Count > 0) ability += "\n" + string.Format(UiText.UpgradesLineFormat, string.Join(", ", upgrades.Select(UiText.UpgradeName)));
             if (sinner.JackpotFallsTo > 0 && sinner.Class.JokerJackpot > 0)
                 ability += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, sinner.Class.JokerJackpot, sinner.JackpotFallsTo);
+            // Phase 2 (2.1.1): the class's K power is ready once every hand — no gauge; the badge says ready or spent.
+            ClassPowers powers = _kit?.Powers;
+            bool ready = powers != null && powers.IsReady;
+            string state = powers == null ? null : ready ? UiText.PowerReadyHint : UiText.PowerUsedThisHand;
             _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), ability, sinner.Charge, sinner.Rules.Full, usable,
-                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1, upgrades.Count));
-            if (sinner.IsCharged && !_relabelling)
+                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1, upgrades.Count,
+                state, ready));
+            if (powers == null && sinner.IsCharged && !_relabelling)
                 Tip(UiText.TipPowerReady);
         }
 
@@ -1812,6 +1820,8 @@ namespace HellPoker.Presentation
                 SettleChapterHand();
             }
             ShowSeatTitle();
+            // The result band lasts until the next hand is dealt (NEXT HAND brings the table back to betting).
+            if (_game.Phase != GamePhase.RoundOver && !_game.IsGameOver) TakeBandDown();
             // A power switched on stays on through bets, turned cards and the draw prompt — it closes only when used, switched off,
             // or when its moment has gone. The Bone Die's pick goes when no card may be rolled any more (the draw passed, the hand ended).
             if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
@@ -1966,6 +1976,10 @@ namespace HellPoker.Presentation
                 _view.SetAnte(Shown(_game.UpcomingAnte));
                 _view.SetMessage(string.Format(CoinMode ? UiText.CoinPromptBetFormat : BarMode ? UiText.BarPromptBetFormat : UiText.PromptBetFormat,
                     Shown(_game.UpcomingAnte)), Tone.Neutral);
+                // The last blow: the next win ends the demon — the bar glows and the table says so.
+                if (LastBlow)
+                    _view.SetMessage(string.Format(UiText.LastBlowFormat, UiText.NameInSentence(_dealerText)) + "\n" +
+                        string.Format(UiText.BarPromptBetFormat, Shown(_game.UpcomingAnte)), Tone.Triumph);
             }
             _view.SetAction(_pendingEvent == null ? UiText.Deal : null);   // an event waits for its answer first
 
@@ -2222,6 +2236,8 @@ namespace HellPoker.Presentation
             }
 
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
+            // A chapter's table: the result band, the edge's blink, the amount floating up, the last hands' pips (before the moments).
+            ShowHandResult(round);
             if (round != null && !_relabelling)
             {
                 if (CoinMode)
@@ -2271,7 +2287,7 @@ namespace HellPoker.Presentation
                     // A floor speaks in coins (its numbers are the purse's, the Collector's toll included); the cheat's log has no years then.
                     string result = CoinMode ? CoinResultMessage(round, _seat.LastHand)
                         : BarMode && !soulHand ? BarResultMessage(round) : ResultMessage(round, soulHand);
-                    if (BarMode) _view.SetPot(0);   // the hand is over: its lines take the pot's place
+                    if (_seat != null) _view.SetPot(0);   // the hand is over: the band and the result say the amount (2.1.1: floors too)
                     _view.SetMessage(WithKitLines(WithSeatLine(WithJackpot(WithCheatLog(result, soulHand || CoinMode), round)), round),
                         playerWon || round.HouseFolded ? Tone.Good : houseWon || round.Folded ? Tone.Bad : Tone.Neutral);
                     if (IsHoldingTheLastYear)

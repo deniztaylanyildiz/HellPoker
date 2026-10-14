@@ -18,15 +18,20 @@ namespace HellPoker.Presentation.Views
     public sealed class KitView : MonoBehaviour
     {
         public const int Width = 104, Height = 38;
-        private const int CardWidth = 16, CardHeight = 22, CardStep = 19, MaxCards = 5;
+        private const int CardWidth = 18, CardHeight = 22, CardStep = 20, MaxCards = 5;
 
         private AnimationSequencer _sequencer;
         private Action<int> _cardPressed, _buttonPressed;
         private Image _frame;
         private Text _title;
+        private Text _note;
         private GameObject _tooltip;
         private Text _tooltipText;
         private readonly List<(Image border, Image face, Text rank, Image suit)> _cards = new List<(Image, Image, Text, Image)>();
+
+        /// <summary>Each small card's rim (in its suit's colour) and its big centre suit.</summary>
+        private readonly List<(Image rim, Image big)> _cardParts = new List<(Image, Image)>();
+        private bool _subscribed;
         private readonly List<(Button button, Image image, Text label)> _buttons = new List<(Button, Image, Text)>();
         private KitDisplay _shown = KitDisplay.Hidden;
 
@@ -60,6 +65,10 @@ namespace HellPoker.Presentation.Views
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
             _title.raycastTarget = false;
 
+            _note = UiFactory.CreateText("Note", _frame.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
+            _note.rectTransform.PlaceTL(4, 15, Width - 8, 20);
+            _note.raycastTarget = false;
+
             for (int i = 0; i < MaxCards; i++)
             {
                 int index = i;
@@ -71,17 +80,26 @@ namespace HellPoker.Presentation.Views
                 button.transition = Selectable.Transition.None;
                 UiFactory.MakeClickOnly(button);
                 button.onClick.AddListener(() => _cardPressed?.Invoke(index));
+                // A rim in the suit's colour inside the frame: the suit reads at a glance even on so small a card.
+                Image rim = UiFactory.CreateImage("Rim", border.transform, Palette.BlackSuit);
+                rim.rectTransform.PlaceTL(1, 1, CardWidth - 2, CardHeight - 2);
+                rim.raycastTarget = false;
                 Image face = UiFactory.CreateImage("Face", border.transform, Palette.Bone);
-                face.rectTransform.PlaceTL(1, 1, CardWidth - 2, CardHeight - 2);
+                face.rectTransform.PlaceTL(2, 2, CardWidth - 4, CardHeight - 4);
                 face.raycastTarget = false;
                 Text rank = UiFactory.CreateText("Rank", face.transform, "", 8, Palette.BlackSuit, TextAnchor.UpperLeft);
-                rank.rectTransform.PlaceTL(1, 0, CardWidth - 3, 9);
+                rank.rectTransform.PlaceTL(1, 0, CardWidth - 5, 9);
                 rank.horizontalOverflow = HorizontalWrapMode.Overflow;
                 rank.raycastTarget = false;
+                // The 5×5 suit beside the rank (placed after the rank's width), the big one under them.
                 Image suit = UiFactory.CreateImage("Suit", face.transform, Color.white);
-                suit.rectTransform.PlaceTL(4, 11, 5, 5);
+                suit.rectTransform.PlaceTL(CardWidth - 4 - 6, 2, 5, 5);
                 suit.raycastTarget = false;
+                Image big = UiFactory.CreateImage("BigSuit", face.transform, Color.white);
+                big.rectTransform.PlaceTL((CardWidth - 4 - 11) / 2, CardHeight - 4 - 11, 11, 11);
+                big.raycastTarget = false;
                 _cards.Add((border, face, rank, suit));
+                _cardParts.Add((rim, big));
             }
 
             (int x, int y, int w)[] places = { (4, 13, 47), (53, 13, 47), (4, 25, 96) };
@@ -138,18 +156,30 @@ namespace HellPoker.Presentation.Views
                 return;
             }
             _title.text = kit.Title;
+            _note.text = kit.Note ?? "";
             for (int i = 0; i < _cards.Count; i++)
             {
                 bool on = i < kit.Cards.Count && kit.Buttons.Count == 0;
                 _cards[i].border.gameObject.SetActive(on);
                 if (!on) continue;
                 Card card = kit.Cards[i].Card;
-                bool red = card.Suit == Suit.Hearts || card.Suit == Suit.Diamonds;
+                Color ink = card.IsJoker ? Palette.Crimson : Palette.SuitInk(card.Suit, SuitColors.FourColor);
                 _cards[i].rank.text = card.IsJoker ? "JK" : RankText(card.Rank);
-                _cards[i].rank.color = red ? Palette.RedSuit : Palette.BlackSuit;
+                _cards[i].rank.color = ink;
+                _cardParts[i].rim.color = ink;
                 _cards[i].suit.sprite = card.IsJoker ? null : UiArt.Suit(card.Suit, small: true);
                 _cards[i].suit.enabled = _cards[i].suit.sprite != null;
+                // Beside the rank: one pixel after its width ("10" is wider than "7").
+                int rankWidth = Mathf.CeilToInt(_cards[i].rank.preferredWidth);
+                _cards[i].suit.rectTransform.PlaceTL(Mathf.Min(CardWidth - 4 - 5, 1 + rankWidth + 1), 2, 5, 5);
+                _cardParts[i].big.sprite = card.IsJoker ? null : UiArt.Suit(card.Suit, small: false);
+                _cardParts[i].big.enabled = _cardParts[i].big.sprite != null;
                 _cards[i].border.color = kit.Cards[i].Picked ? Palette.GoldLight : Palette.Black;
+            }
+            if (!_subscribed)
+            {
+                _subscribed = true;
+                SuitColors.Changed += Repaint;
             }
             for (int i = 0; i < _buttons.Count; i++)
             {
@@ -162,6 +192,14 @@ namespace HellPoker.Presentation.Views
             }
             if (_tooltip.activeSelf) ShowTip();
         }
+
+        /// <summary>The deck's colours changed: the cards on show take the new ink.</summary>
+        private void Repaint()
+        {
+            if (this != null && _shown != null && !_shown.IsHidden) Apply(_shown);
+        }
+
+        private void OnDestroy() => SuitColors.Changed -= Repaint;
 
         private static string RankText(Rank rank)
         {

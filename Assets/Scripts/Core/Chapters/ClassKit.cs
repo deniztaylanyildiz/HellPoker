@@ -36,8 +36,11 @@ namespace HellPoker.Core.Chapters
         /// <summary>The King's treasury holds at most this many taxes; the prices of its three acts.</summary>
         public const int TaxMax = 10, RevealPrice = 1, FreeRaisePrice = 2, SeizePrice = 4;
 
-        /// <summary>The Warlock's charged power sends up to this many seen cards to the bottom in a hand.</summary>
-        public const int RearrangesPerUse = 2;
+        /// <summary>The Warlock's K power sends up to this many seen cards to the bottom in a hand (2.1.1: once every hand, so one, not two).</summary>
+        public static int RearrangesPerUse = 1;
+
+        /// <summary>The King's K power: a seizure for this share (percent) of its price in taxes (2.1.1: once every hand, so not for nothing).</summary>
+        public static int PowerSeizePercent = 50;
 
         /// <summary>The prophecy at Lilith's and Lucifer's tables (and its most).</summary>
         public const int ProphecyMost = 3;
@@ -215,6 +218,9 @@ namespace HellPoker.Core.Chapters
         public int PalaceGuards { get; set; }
         public int Summons { get; set; }
         public int WildImps { get; set; }
+
+        /// <summary>How many hands the K power was used in (2.1.1: once a hand).</summary>
+        public int PowerUses { get; set; }
 
         // ------------------------------------------------------------------ the save
 

@@ -105,6 +105,12 @@ namespace HellPoker.Core.Chapters
         /// <summary>Lucifer's Feather has spared its one hand (optional key).</summary>
         public bool FeatherSpent;
 
+        /// <summary>Optional keys (2.1.1): the Devil's Compass's steps taken this chapter, the floors it carried the player across; the
+        /// wardens beaten this chapter.</summary>
+        public int CompassUsed;
+        public List<int> CompassJumps = new List<int>();
+        public int WardensHere;
+
         // ------------------------------------------------------------------ where the player is
 
         /// <summary>The current node is done (its panel answered, its match over).</summary>
@@ -198,6 +204,9 @@ namespace HellPoker.Core.Chapters
                 "vendor=" + Vendor,
                 "cleansed=" + string.Join(",", Cleansed),
                 "feather.spent=" + B(FeatherSpent),
+                "compass.used=" + CompassUsed,
+                "compass.jumps=" + string.Join(",", CompassJumps),
+                "wardens.here=" + WardensHere,
                 "node.done=" + B(NodeDone),
                 "pending=" + (Pending ?? ""),
                 "match=" + (Match ?? ""),
@@ -304,6 +313,9 @@ namespace HellPoker.Core.Chapters
                     Vendor = I("vendor", -1),
                     Cleansed = Ids("cleansed"),
                     FeatherSpent = Bool("feather.spent"),
+                    CompassUsed = Math.Max(0, I("compass.used")),
+                    CompassJumps = Ints("compass.jumps"),
+                    WardensHere = Math.Max(0, I("wardens.here")),
                     NodeDone = Bool("node.done"),
                     Pending = S("pending"),
                     Match = S("match"),

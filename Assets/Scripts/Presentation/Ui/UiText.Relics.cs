@@ -50,6 +50,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.SummonersLeash: return L("SUMMONER'S LEASH", "ÇAĞIRICININ TASMASI");
                 case ChapterRelicIds.LucifersFeather: return L("LUCIFER'S FEATHER", "LUCIFER'İN TÜYÜ");
                 case ChapterRelicIds.MammonsGoldTooth: return L("MAMMON'S GOLD TOOTH", "MAMMON'UN ALTIN DİŞİ");
+                case ChapterRelicIds.DevilsCompass: return L("THE DEVIL'S COMPASS", "ŞEYTANIN PUSULASI");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -99,6 +100,8 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.SummonersLeash: return L("An imp runs wild half as often.", "İblis yarı yarıya daha az azar.");
                 case ChapterRelicIds.LucifersFeather: return L("Once a run, a lost hand at a demon's table counts as a push.", "Koşuda bir kez, şeytan masasında kaybedilecek el berabere sayılır.");
                 case ChapterRelicIds.MammonsGoldTooth: return L("Every 50 coins you bring to the gate: a demon's win +3% (15% at most).", "Kapıya getirdiğin her 50 coin: şeytana karşı kazanç +%3 (en çok %15).");
+                case ChapterRelicIds.DevilsCompass: return L("Twice a chapter, on the map: step to another node of the floor you are on (nothing there happens; the way goes on from it).",
+                    "Bölümde iki kez, haritada: bulunduğun kattaki başka bir düğüme geç (oradaki bir şey olmaz; yol oradan sürer).");
                 default: return "";
             }
         }
@@ -147,6 +150,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.SummonersLeash: return L("Imps cost 2 coins more (a demon's table: 1% more).", "İblis bedeli 2 coin fazla (şeytan masasında %1).");
                 case ChapterRelicIds.LucifersFeather: return L("As you take it: your sentence 10% longer.", "Aldığın an: cezan %10 uzar.");
                 case ChapterRelicIds.MammonsGoldTooth: return L("The gate's tribute +15%.", "Kapıda haraç +%15.");
+                case ChapterRelicIds.DevilsCompass: return L("Every step through it: +40 years on your sentence.", "Her geçiş: cezana +40 yıl.");
                 default: return "";
             }
         }
@@ -175,6 +179,28 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>{0} the relic, {1} the gift, {2} the curse.</summary>
         public static string RelicTakenFormat => L("You carry the {0} now. {1} But: {2}", "Artık {0} sende. {1} Ama: {2}");
+
+        /// <summary>A relic left the run by the player's choice. {0}: the relic.</summary>
+        public static string RelicLeftFormat => L("{0} left behind.", "{0} bırakıldı.");
+
+        /// <summary>{0}: the relic, {1}: the coins.</summary>
+        public static string RelicSoldFormat => L("{0} sold for {1} coins.", "{0}, {1} coin'e satıldı.");
+
+        // ------------------------------------------------------------------ the Devil's Compass (2.1.1)
+
+        /// <summary>The map's button: {0} the steps left this chapter.</summary>
+        public static string CompassButtonFormat => L("COMPASS {0}", "PUSULA {0}");
+
+        public static string CompassPrompt => L("The compass: pick a node on your floor (Esc: put it away).", "Pusula: kattaki bir düğümü seç (Esc: vazgeç).");
+
+        /// <summary>{0}: the years it put on the sentence.</summary>
+        public static string CompassDoneFormat => L("The compass turns. You stand elsewhere. Sentence +{0} years.", "Pusula döndü. Başka yerdesin. Ceza +{0} yıl.");
+
+        public static string CompassNone => L("The compass is still: no steps left this chapter.", "Pusula kıpırdamıyor: bu bölümde hakkın kalmadı.");
+        public static string CompassNowhere => L("The compass finds no other node on this floor.", "Pusula bu katta başka düğüm bulmuyor.");
+        public static string CompassNotYet => L("The compass works from a floor you stand on (take the first step first).", "Pusula üstünde durduğun katta çalışır (önce ilk adımı at).");
+        public static string CompassHint => L("The Devil's Compass: twice a chapter, step to another node of this floor (+40 years each).",
+            "Şeytanın Pusulası: bölümde iki kez bu kattaki başka bir düğüme geç (her biri +40 yıl).");
 
         public static string RedrawPrompt => L("Pick the card the Bone Die throws back (click the die again: cancel).", "Kemik Zar'ın geri atacağı kartı seç (zara yine tıkla: vazgeç).");
         public static string RedrawNotNow => L("The Bone Die rolls once at each demon's table (full again at every summons to Lucifer), before the draw, on a card you can see.",

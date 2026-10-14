@@ -36,10 +36,17 @@ namespace HellPoker.Core.Chapters
         NoCard,
 
         /// <summary>No raise can be made this hand.</summary>
-        CannotRaise
+        CannotRaise,
+
+        /// <summary>The seen cards may not go to the bottom (the Seer's Spectacles are worn).</summary>
+        NoBottom
     }
 
-    /// <summary>The class's part of a Phase 2 table: its power replaces the demo's (the free fold, the ward, the crown).</summary>
+    /// <summary>
+    /// The class's part of a Phase 2 table: its power replaces the demo's (the free fold, the ward, the crown). The K power (the harvest,
+    /// the rearranging, a free seizure, the Legion) is ready once every hand (2.1.1: no charge gauge in Phase 2 — the demo keeps its own),
+    /// at any moment of the hand it makes sense.
+    /// </summary>
     public abstract class ClassPowers : TableHooks
     {
         protected ClassPowers(ClassKit kit, IRandomSource random)
@@ -53,8 +60,42 @@ namespace HellPoker.Core.Chapters
 
         public override bool ReplacesClassPower => true;
 
-        /// <summary>True when the gauge is full (the charged power can be paid).</summary>
-        public bool IsCharged => Kit.Sinner.Charge >= Kit.Sinner.Rules.Full;
+        /// <summary>The K power was used in this hand (it is ready again at the next deal).</summary>
+        public bool UsedThisHand { get; private set; }
+
+        /// <summary>The K power can be paid for: not used yet this hand (the simulation's old rule: the full gauge).</summary>
+        public bool IsReady => ChapterTuning.PowersEveryHand ? !UsedThisHand : Kit.Sinner.Charge >= Kit.Sinner.Rules.Full;
+
+        /// <summary>Why the K power is not ready: used this hand (the old rule: the gauge not full).</summary>
+        protected static KitRefusal NotReady => ChapterTuning.PowersEveryHand ? KitRefusal.AlreadyUsed : KitRefusal.NotCharged;
+
+        /// <summary>Pays for the K power: the hand's one use (the old rule: the full gauge). False when it is not ready.</summary>
+        protected bool SpendPower()
+        {
+            if (!IsReady) return false;
+            if (!ChapterTuning.PowersEveryHand) return Kit.Sinner.SpendCharge();
+            UsedThisHand = true;
+            Kit.PowerUses++;
+            return true;
+        }
+
+        public sealed override void HandDealt(HellPokerGame game)
+        {
+            UsedThisHand = false;
+            Dealt(game);
+        }
+
+        public sealed override void HandSettled(HellPokerGame game, RoundResult round)
+        {
+            UsedThisHand = false;
+            Settled(game, round);
+        }
+
+        /// <summary>A hand was dealt (the class's own part).</summary>
+        protected virtual void Dealt(HellPokerGame game) { }
+
+        /// <summary>The hand was settled (the class's own part).</summary>
+        protected virtual void Settled(HellPokerGame game, RoundResult round) { }
 
         /// <summary>Before the draw is done: the hand is being played and the draw still to come.</summary>
         protected static bool BeforeTheDraw(HellPokerGame game) =>
@@ -100,7 +141,7 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
-        public override void HandDealt(HellPokerGame game)
+        protected override void Dealt(HellPokerGame game)
         {
             _offered.Clear();
             _seen = false;
@@ -126,23 +167,23 @@ namespace HellPoker.Core.Chapters
         public override bool HouseReRaises(HellPokerGame game, bool wants) =>
             wants || (_seen && Random.Next(100) < Kit.SatchelRisk);
 
-        /// <summary>Why the harvest cannot be made now (in the draw, a full gauge, cards in the satchel and cards thrown).</summary>
+        /// <summary>Why the harvest cannot be made now (in the draw, once a hand, cards in the satchel and cards thrown).</summary>
         public KitRefusal WhyNoHarvest(HellPokerGame game, IReadOnlyCollection<int> discards)
         {
             if (game.Phase != GamePhase.Drawing || !game.HandInPlay) return KitRefusal.NotNow;
-            if (!IsCharged) return KitRefusal.NotCharged;
+            if (!IsReady) return NotReady;
             if (Kit.Satchel.Count == 0) return KitRefusal.Empty;
             if (discards == null || discards.Count == 0) return KitRefusal.NothingThrown;
             return KitRefusal.None;
         }
 
         /// <summary>The harvest: the draw, with every thrown place the satchel can fill filled from it (the best cards for the hand); the
-        /// demon does not see it. Spends the gauge. Null when it cannot be done.</summary>
+        /// demon does not see it. The hand's K power. Null when it cannot be done.</summary>
         public ExchangeResult Harvest(HellPokerGame game, IReadOnlyCollection<int> discards)
         {
             if (WhyNoHarvest(game, discards) != KitRefusal.None) return null;
             IReadOnlyDictionary<int, Card> fill = BestFill(game, game.PlayerHand, discards, Kit.Satchel);
-            if (!game.CanDraw(discards, fill, out _) || !Kit.Sinner.SpendCharge()) return null;
+            if (!game.CanDraw(discards, fill, out _) || !SpendPower()) return null;
             _harvesting = true;
             try
             {
@@ -217,9 +258,26 @@ namespace HellPoker.Core.Chapters
         /// <summary>The demon knowing a low card bullies: his re-raise comes this much (percent) more often.</summary>
         public const int BullyPercent = 20;
 
-        public ProphecyPowers(ClassKit kit, IRandomSource random) : base(kit, random)
+        public ProphecyPowers(ClassKit kit, IRandomSource random, int barStart = 0) : base(kit, random)
         {
+            _barStart = Math.Max(0, barStart);
         }
+
+        /// <summary>The K power's price (2.1.1: once every hand, so not for nothing): at a demon's table his bar grows this share of where it
+        /// began (written on as the hand is settled); on the floors these coins (never the purse's last).</summary>
+        public static int RearrangeBarPercent = 1, RearrangeCoins = 2;
+
+        private readonly int _barStart;
+        private int _barCost;
+
+        /// <summary>The run's purse (the floors' price); set by the chapter as the table opens.</summary>
+        public CoinPurse Purse { get; set; }
+
+        /// <summary>What sending cards down costs this hand: bar years at a demon's table, coins on the floors (0: the old gauge's rule).</summary>
+        public int RearrangePrice => !ChapterTuning.PowersEveryHand ? 0
+            : _barStart > 0 ? Math.Max(1, _barStart * RearrangeBarPercent / 100) : RearrangeCoins;
+
+        public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => _barCost;
 
         /// <summary>The card of the Warlock's the demon knows this hand; null between hands.</summary>
         public Card? KnownCard { get; private set; }
@@ -227,35 +285,47 @@ namespace HellPoker.Core.Chapters
         /// <summary>Cards the charged power may still send to the bottom (this hand).</summary>
         public int RearrangesLeft { get; private set; }
 
-        /// <summary>The deck's top cards as the Warlock sees them, the next one first.</summary>
+        /// <summary>The deck's top cards as the Warlock sees them, the next one first — the cards his draw will take. Only while the
+        /// prophecy is open (<see cref="IsOpen"/>: dealt, the draw still to come); empty otherwise (2.1.1: between hands the deal would
+        /// take the very cards he saw).</summary>
         public IReadOnlyList<Card> TopCards(HellPokerGame game) =>
-            game.Deck.Remaining.Reverse().Take(Kit.ProphecyCards).ToArray();
+            IsOpen(game) ? game.Deck.Remaining.Reverse().Take(Kit.ProphecyCards).ToArray() : Array.Empty<Card>();
 
-        public override void HandDealt(HellPokerGame game)
+        /// <summary>The prophecy is open: a hand is dealt and its draw is still to come (between hands and after the draw it is shut).</summary>
+        public static bool IsOpen(HellPokerGame game) => BeforeTheDraw(game);
+
+        protected override void Dealt(HellPokerGame game)
         {
+            RearrangesLeft = 0;
             // The Blind Mirror: half the hands the demon learns nothing (the dice are only asked with the upgrade).
             KnownCard = Kit.DemonKnowsPercent >= 100 || Random.Next(100) < Kit.DemonKnowsPercent ? game.PlayerHand[Random.Next(Hand.Size)] : (Card?)null;
         }
 
-        public override void HandSettled(HellPokerGame game, RoundResult round)
+        protected override void Settled(HellPokerGame game, RoundResult round)
         {
             KnownCard = null;
             RearrangesLeft = 0;
+            _barCost = 0;
         }
 
         public KitRefusal WhyNoRearrange(HellPokerGame game)
         {
-            if (game.IsGameOver || game.IsAfterDraw && game.HandInPlay) return KitRefusal.NotNow;
+            if (!IsOpen(game)) return KitRefusal.NotNow;
             if (RearrangesLeft > 0) return KitRefusal.AlreadyUsed;
-            if (!IsCharged) return KitRefusal.NotCharged;
+            if (!IsReady) return NotReady;
+            if (_barStart == 0 && RearrangePrice > 0 && Purse != null && Purse.Coins <= RearrangePrice) return KitRefusal.NoTaxes;
+            if (!Kit.CanSendToBottom) return KitRefusal.NoBottom;
             if (TopCards(game).Count == 0) return KitRefusal.NoCard;
             return KitRefusal.None;
         }
 
-        /// <summary>The charged power: up to <see cref="ClassKit.RearrangesPerUse"/> seen cards may now go to the bottom.</summary>
+        /// <summary>The hand's K power: up to <see cref="ClassKit.RearrangesPerCharge"/> seen cards may now go to the bottom.</summary>
         public bool StartRearranging(HellPokerGame game)
         {
-            if (!Kit.CanSendToBottom || WhyNoRearrange(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
+            if (WhyNoRearrange(game) != KitRefusal.None || !SpendPower()) return false;
+            int price = RearrangePrice;
+            if (_barStart > 0) _barCost += price;
+            else if (price > 0) Purse?.TrySpend(price);
             RearrangesLeft = Kit.RearrangesPerCharge;
             return true;
         }
@@ -263,7 +333,7 @@ namespace HellPoker.Core.Chapters
         /// <summary>The seen card at <paramref name="index"/> (0: the top) goes to the bottom of the deck.</summary>
         public bool SendToBottom(HellPokerGame game, int index)
         {
-            if (RearrangesLeft <= 0 || (game.IsAfterDraw && game.HandInPlay)) return false;
+            if (RearrangesLeft <= 0 || !IsOpen(game)) return false;
             List<Card> order = game.Deck.Remaining.Reverse().ToList();
             if (index < 0 || index >= Math.Min(Kit.ProphecyCards, order.Count)) return false;
             Card card = order[index];
@@ -327,15 +397,18 @@ namespace HellPoker.Core.Chapters
         /// <summary>The taxes an act costs (the class's upgrades may make it cheaper).</summary>
         public int PriceOf(TaxAct act) => Kit.PriceOf(act);
 
+        /// <summary>The K power's seizure: <see cref="ClassKit.PowerSeizePercent"/> of the seizure's price (rounded up; the old gauge's: nothing).</summary>
+        public int PowerSeizePrice => ChapterTuning.PowersEveryHand ? Math.Max(1, (PriceOf(TaxAct.Seize) * ClassKit.PowerSeizePercent + 99) / 100) : 0;
+
         public bool DoneThisHand(TaxAct act) => _done.Contains(act);
 
-        public override void HandDealt(HellPokerGame game) => _done.Clear();
+        protected override void Dealt(HellPokerGame game) => _done.Clear();
 
         public static bool IsPalaceCard(Card card) => !card.IsJoker && (card.Rank == Rank.Jack || card.Rank == Rank.Queen || card.Rank == Rank.King);
 
         public override bool IsPlayerCardGuarded(Card card) => IsPalaceCard(card);
 
-        public override void HandSettled(HellPokerGame game, RoundResult round)
+        protected override void Settled(HellPokerGame game, RoundResult round)
         {
             bool won = round.HouseFolded || (!round.Folded && round.Showdown?.Outcome == ShowdownOutcome.PlayerWins);
             if (won && Kit.Taxes < Kit.TaxCapacity)
@@ -346,12 +419,13 @@ namespace HellPoker.Core.Chapters
             if (_bossTable && !round.Folded && round.Showdown?.Outcome == ShowdownOutcome.HouseWins) Kit.HalveTaxes();
         }
 
-        /// <summary>Why the act cannot be done now; <paramref name="charged"/>: a seizure paid with the full gauge instead of taxes.</summary>
+        /// <summary>Why the act cannot be done now; <paramref name="charged"/>: a seizure paid with the hand's K power instead of taxes.</summary>
         public KitRefusal WhyNot(HellPokerGame game, TaxAct act, bool charged = false)
         {
             if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
             if (_done.Contains(act)) return KitRefusal.AlreadyUsed;
-            if (charged ? act != TaxAct.Seize || !IsCharged : Kit.Taxes < PriceOf(act)) return charged ? KitRefusal.NotCharged : KitRefusal.NoTaxes;
+            if (charged && (act != TaxAct.Seize || !IsReady)) return NotReady;
+            if (Kit.Taxes < (charged ? PowerSeizePrice : PriceOf(act))) return KitRefusal.NoTaxes;
             switch (act)
             {
                 case TaxAct.Reveal:
@@ -406,7 +480,11 @@ namespace HellPoker.Core.Chapters
             if (take >= game.HouseCardsRevealed) game.RevealNextHouseCard();
             Card taken = game.HouseHand[take], given = game.PlayerHand[give];
             game.SetHands(game.PlayerHand.With(give, taken), game.HouseHand.With(take, given));
-            if (charged) Kit.Sinner.SpendCharge();
+            if (charged)
+            {
+                Kit.SpendTaxes(PowerSeizePrice);
+                SpendPower();
+            }
             else Kit.SpendTaxes(PriceOf(TaxAct.Seize));
             _done.Add(TaxAct.Seize);
             Kit.Seizures++;
@@ -476,10 +554,10 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>What an imp costs here: coins on the floors, years on the bar at a demon's table (0 under the Legion).</summary>
         public int PriceOf(SummonAct act) =>
-            Legion ? 0 : AtDemonsTable ? Math.Max(1, _barStart * (BarPercents[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpBarPrice)) / 100)
+            Legion && _legionFree > 0 ? 0 : AtDemonsTable ? Math.Max(1, _barStart * (BarPercents[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpBarPrice)) / 100)
             : CoinPrices[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpPrice);
 
-        public override void HandDealt(HellPokerGame game)
+        protected override void Dealt(HellPokerGame game)
         {
             _done.Clear();
             Legion = false;
@@ -490,7 +568,7 @@ namespace HellPoker.Core.Chapters
 
         public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => _barCost;
 
-        public override void HandSettled(HellPokerGame game, RoundResult round) => _barCost = 0;
+        protected override void Settled(HellPokerGame game, RoundResult round) => _barCost = 0;
 
         /// <summary>Why the imp cannot be summoned now.</summary>
         public KitRefusal WhyNot(HellPokerGame game, SummonAct act)
@@ -513,16 +591,25 @@ namespace HellPoker.Core.Chapters
         {
             if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
             if (Legion) return KitRefusal.AlreadyUsed;
-            return IsCharged ? KitRefusal.None : KitRefusal.NotCharged;
+            return IsReady ? KitRefusal.None : NotReady;
         }
 
-        /// <summary>The charged power: every imp free this hand.</summary>
+        /// <summary>The hand's K power: every imp free this hand.</summary>
         public bool CallLegion(HellPokerGame game)
         {
-            if (WhyNoLegion(game) != KitRefusal.None || !Kit.Sinner.SpendCharge()) return false;
+            if (WhyNoLegion(game) != KitRefusal.None || !SpendPower()) return false;
             Legion = true;
+            _legionFree = ChapterTuning.PowersEveryHand ? LegionImps : 3;
             return true;
         }
+
+        /// <summary>The Legion frees this many imps of the hand (2.1.1: once every hand, so the first one, not all three).</summary>
+        public static int LegionImps = 1;
+
+        private int _legionFree;
+
+        /// <summary>Imps the Legion still frees this hand.</summary>
+        public int LegionFreeLeft => Legion ? _legionFree : 0;
 
         /// <summary>The Eye: the demon's next closed card turns.</summary>
         public bool Eye(HellPokerGame game)
@@ -565,6 +652,7 @@ namespace HellPoker.Core.Chapters
         private void Summoned(HellPokerGame game, SummonAct act)
         {
             int price = PriceOf(act);
+            if (Legion && _legionFree > 0) _legionFree--;
             if (AtDemonsTable) _barCost += price;
             else if (price > 0) Purse?.TrySpend(price);
             _done.Add(act);

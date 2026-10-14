@@ -16,7 +16,8 @@ ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary", "jesters
          "mammons_seal", "mammons_scales", "belials_mask", "belials_tongue",
          "ash_purse", "ferrymans_lantern", "rusted_chain", "lead_seal",
          "liars_tongue", "blood_pact", "lost_souls_letter", "twin_dice", "jesters_hat", "seers_spectacles", "peasants_scythe", "kings_signet",
-         "summoners_leash", "lucifers_feather", "mammons_gold_tooth"]
+         "summoners_leash", "lucifers_feather", "mammons_gold_tooth",
+         "devils_compass"]
 
 
 def icon(relic_id):
@@ -336,6 +337,17 @@ def icon(relic_id):
         img.paint(img.m_poly([(4, 3), (12, 3), (12, 9), (10, 14), (8, 10), (6, 14), (4, 9)]), C.GOLD)
         img.paint(img.m_rect(5, 4, 7, 5), C.GOLD_LIGHT)
         img.dither(img.m_rect(4, 8, 12, 14), C.GOLD, C.GOLD_DARK, 0.3)
+    elif relic_id == "devils_compass":
+        # A brass compass, its needle a red horn pointing sideways (across the floor, never down).
+        case = img.m_ellipse(7.5, 8.5, 6.5, 6.5)
+        img.paint(case, C.GOLD_MID)
+        img.paint(img.m_ellipse(7.5, 8.5, 5, 5), C.NIGHT)
+        img.dither(case & img.m_rect(9, 0, ICON, ICON) & ~img.m_ellipse(7.5, 8.5, 5, 5), C.GOLD_MID, C.GOLD_DARK, 0.5)
+        img.paint(img.m_rect(6, 0, 9, 1), C.GOLD)
+        img.paint(img.m_poly([(8, 7), (13, 8), (8, 10)]), C.HELL)
+        img.paint(img.m_poly([(7, 7), (2, 8), (7, 10)]), C.BONE_MID)
+        img.put(7, 8, C.GOLD_LIGHT)
+        img.put(8, 9, C.GOLD_LIGHT)
     img.outline(C.BLACK)
     return img
 def write_all(art_dir):

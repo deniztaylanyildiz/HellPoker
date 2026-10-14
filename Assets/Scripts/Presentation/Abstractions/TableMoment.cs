@@ -22,6 +22,12 @@ namespace HellPoker.Presentation.Abstractions
         Ward,
 
         /// <summary>The demon's two jokers turned up at the showdown: a fool's laugh flares up (the text), the demon fumes.</summary>
-        JokerLaugh
+        JokerLaugh,
+
+        /// <summary>A hand won (Phase 2): the screen's edge blinks gold, twice.</summary>
+        WinGlow,
+
+        /// <summary>A hand lost (Phase 2): the screen's edge blinks red, twice.</summary>
+        LossGlow
     }
 }

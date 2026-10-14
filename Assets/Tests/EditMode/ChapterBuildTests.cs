@@ -43,9 +43,9 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThePool_ThirtyNineRelics_ByRarity_AndTwoOfEachLootingDemonsOwn()
         {
-            Assert.AreEqual(39, ChapterRelics.All.Count, "Demo 2.1: fifteen more");
+            Assert.AreEqual(40, ChapterRelics.All.Count, "Demo 2.1: fifteen more; 2.1.1: the Devil's Compass");
             Assert.AreEqual(12, ChapterRelics.OfRarity(RelicRarity.Common).Count());
-            Assert.AreEqual(17, ChapterRelics.OfRarity(RelicRarity.Rare).Count());
+            Assert.AreEqual(18, ChapterRelics.OfRarity(RelicRarity.Rare).Count(), "2.1.1: the compass is rare");
             Assert.AreEqual(6, ChapterRelics.OfRarity(RelicRarity.Legendary).Count());
             Assert.AreEqual(4, ChapterRelics.OfRarity(RelicRarity.Boss).Count());
             Assert.AreEqual(2, ChapterRelics.BossLoot(DealerRoster.MammonId).Count);
@@ -235,7 +235,7 @@ namespace HellPoker.Core.Tests
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();
             Assert.IsTrue(hooks.Prophecy.StartRearranging(game));
-            Assert.AreEqual(3, hooks.Prophecy.RearrangesLeft, "Thrice");
+            Assert.AreEqual(2, hooks.Prophecy.RearrangesLeft, "Thrice: one more (2.1.1: one a use)");
 
             var blind = new ClassKit(new Sinner(SinnerRoster.Warlock));
             blind.AddUpgrade(UpgradeIds.BlindMirror);

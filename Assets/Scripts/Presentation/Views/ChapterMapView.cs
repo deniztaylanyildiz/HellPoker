@@ -73,6 +73,16 @@ namespace HellPoker.Presentation.Views
         public event Action<int, int> NodePressed;
         public event Action MenuPressed;
         public event Action RelicsPressed;
+        public event Action CompassPressed;
+
+        private Text _keys;
+        private Button _compass;
+        private Text _compassLabel;
+
+        /// <summary>The compass's flicker: the two nodes and how long it still plays.</summary>
+        private MapNode _stepFrom, _stepTo;
+        private float _stepLeft;
+        private const float StepDuration = 0.5f;
 
         public bool IsVisible => _canvas.enabled;
 
@@ -135,8 +145,14 @@ namespace HellPoker.Presentation.Views
             _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, 88);
             _lines.lineSpacing = 1f;
 
-            UiFactory.CreateText("Keys", side.transform, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).WithOutline().Localized(() => UiText.MapKeysHint)
-                .rectTransform.PlaceTL(8, 192, SideWidth - 16, 20);
+            _keys = UiFactory.CreateText("Keys", side.transform, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).WithOutline().Localized(() => UiText.MapKeysHint);
+            _keys.rectTransform.PlaceTL(8, 192, SideWidth - 16, 20);
+
+            // The Devil's Compass (2.1.1): only while one is worn, in the keys' place (they are the map's usual ones).
+            _compass = UiFactory.CreateButton("MapCompassButton", side.transform, "", 8, out _compassLabel, ButtonSkin.Ash);
+            ((RectTransform)_compass.transform).PlaceTL(8, 192, SideWidth - 16, 18);
+            _compass.onClick.AddListener(() => CompassPressed?.Invoke());
+            _compass.gameObject.SetActive(false);
 
             // RELICS: the worn ones and the bag, to look at (they change places at a camp).
             Button relics = UiFactory.CreateButton("MapRelicsButton", side.transform, "", 8, out Text relicsLabel, ButtonSkin.Ash);
@@ -217,8 +233,19 @@ namespace HellPoker.Presentation.Views
             _gate.sprite = icons != null && icons.Length > GateIcon ? icons[GateIcon] : null;
             _gate.color = _gate.sprite != null ? Color.white : Palette.Gold;
             _gateLabel.text = state.GateLabel;
+            bool compass = state.CompassLabel != null;
+            _compass.gameObject.SetActive(compass);
+            _keys.gameObject.SetActive(!compass);
+            if (compass) _compassLabel.text = state.CompassLabel;
             DrawPaths(state);
             Paint();
+        }
+
+        public void PlayStep(MapNode from, MapNode to)
+        {
+            _stepFrom = from;
+            _stepTo = to;
+            _stepLeft = StepDuration;
         }
 
         private void PlaceGate()
@@ -335,22 +362,30 @@ namespace HellPoker.Presentation.Views
                     SetIcon(w.Icon, shown, icons);
                 }
                 bool choice = _state.Choices.Contains(node);
+                bool target = _state.CompassTargets.Contains(node);   // the compass is out: the floor's nodes it may step to
                 bool here = node == _state.Current;
                 bool walked = trail.Contains(node);
                 bool past = _state.Current != null && node.Floor <= _state.Current.Floor && !walked;
                 Color frame = Palette.Black;
                 if (choice) frame = node == _state.Selected ? Palette.Ember : lit ? Palette.GoldLight : Palette.Gold;
+                else if (target) frame = node == _state.Selected ? Palette.Ember : lit ? Palette.Lilac : Palette.Plum;
                 else if (here) frame = Palette.Gold;
                 else if (walked) frame = Palette.Plum;
+                // The compass's flicker: both nodes blink lilac and bone for a moment.
+                if (_stepLeft > 0f && (node == _stepFrom || node == _stepTo))
+                    frame = Mathf.Repeat(_stepLeft, 0.12f) < 0.06f ? Palette.Lilac : Palette.Bone;
                 w.Frame.color = frame;
-                Color tint = choice || here ? Color.white : walked ? new Color(0.75f, 0.75f, 0.75f) : past ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.5f, 0.5f, 0.5f);
+                Color tint = choice || here || target ? Color.white : walked ? new Color(0.75f, 0.75f, 0.75f) : past ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.5f, 0.5f, 0.5f);
                 w.Icon.color = w.Icon.sprite != null ? tint : FallbackColor(shown) * tint;
             }
         }
 
         private void Update()
         {
-            if (!_canvas.enabled || _state == null || _state.Choices.Count == 0) return;
+            if (!_canvas.enabled || _state == null) return;
+            bool stepping = _stepLeft > 0f;
+            if (stepping) _stepLeft -= Time.unscaledDeltaTime;
+            if (_state.Choices.Count == 0 && _state.CompassTargets.Count == 0 && !stepping) return;
             _blink += Time.unscaledDeltaTime;
             Paint();
         }

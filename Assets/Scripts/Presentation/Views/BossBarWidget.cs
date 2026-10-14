@@ -135,6 +135,11 @@ namespace HellPoker.Presentation.Views
 
         private void Update()
         {
+            // The last blow: the fill burns gold and ember, slowly (whole colours).
+            if (_shown.LastBlow && _changeLeft <= 0f && _fill.enabled)
+                _fill.color = Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.3f ? Palette.GoldLight : Palette.Ember;
+            else if (_changeLeft <= 0f && _fill.enabled)
+                _fill.color = ColorFor(_shown.Fill);
             if (_changeLeft <= 0f) return;
             _changeLeft -= Time.unscaledDeltaTime;
             if (_changeLeft <= 0f)

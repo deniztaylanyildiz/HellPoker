@@ -40,9 +40,22 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Phase 2's class upgrades the run has: a gold pip each over the badge (their names are in the description).</summary>
         public int Upgrades { get; }
 
+        /// <summary>
+        /// Phase 2 (2.1.1): the power is ready once every hand, no gauge — the words over the badge in place of the pips ("READY: K",
+        /// "USED THIS HAND"); null: the demo's gauge.
+        /// </summary>
+        public string PowerState { get; }
+
+        /// <summary>With <see cref="PowerState"/>: the power can still be used this hand (the words glow).</summary>
+        public bool PowerReady { get; }
+
+        public bool ShowsPowerState => PowerState != null;
+
         public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false,
-            bool armed = false, int jokers = -1, int upgrades = 0)
+            bool armed = false, int jokers = -1, int upgrades = 0, string powerState = null, bool powerReady = false)
         {
+            PowerState = powerState;
+            PowerReady = powerReady;
             Upgrades = upgrades;
             Jokers = jokers;
             Armed = armed;

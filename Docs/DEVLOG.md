@@ -3275,3 +3275,46 @@ Araf Ateşi: +25 coin / şarj +2 / desteyi karıştır.
   100 yıl (75'te simülasyon her seferinde aldı). Test: `MammonsGoldTooth_CountsThePurseBroughtToTheGate…`.
 - Simülasyon 1000 koşu: 50.1 / 24.6 / 38.4 / 15.0 / 32.4, hepsi 32.1. EditMode 1062 (1058, 4 explicit), PlayMode bölüm grubu 5/5.
 - `v2.1-demo` etiketi (push edilmemişti) bu commit'e taşındı; zip yeniden üretildi.
+
+## 2026-10-14/15 — Demo 2.1.1: oyun testi düzeltmeleri (A–J)
+
+### İstek (kullanıcı)
+Oyun testinden gelen liste: A kehanet sadece dağıtımla draw arası; B dört renkli deste ayarı ve küçük kartlar; C belirgin el sonucu (bant,
+kenar parlaması, süzülen miktar, son 5 el pipleri); D yeni nadir emanet Şeytanın Pusulası; E üst üste binen yazılar + iki dilde düzen testi;
+F Mammon'un hilesi iki kart değiştirdi (araştır, hile kartı kimliğiyle izlesin); G boss masasında sabit bahis + SON DARBE; H sınıf güçleri her
+elde bir kez (Phase 2), rozet HAZIR / BU ELDE KULLANILDI; I emanet kaybı yollarını denetle; J testler, ekran görüntüleri, 2.1.1, belgeler,
+build, duman turu, commit + `v2.1.1-demo` (push yok). Boss Simülatörü ve demo kurallarına dokunma. Ardından: "senin önerine göre devam edelim"
+(arka plandaki 5×1000 simülasyon bellek yüzünden kesildi; sınıf başına 500 koşu, ön planda).
+
+### Yapılanlar
+- **A:** `ProphecyPowers.IsOpen` = dağıtımdan sonra, draw'dan önce; dışında `TopCards` boş, panel "Kehanet: dağıtımdan sonra".
+- **B:** `SuitColors` (statik, `Changed`), `GameSettings.FourColorDeck` (`settings.fourcolor`, varsayılan açık), Ayarlar ▸ OYUN 4. satır
+  (satır 30 px), `Palette.Green / Blue` (pixel.py'ye #2a4aa0), `_four` takım sprite'ları, yeni 5×5 maça / sinek; `KitView` küçük kartları 18×22,
+  değerin yanında sembol, renkli kenar.
+- **C:** `ResultDisplay` (`HandOutcome`, `ResultBand`, `HandPip`), `TablePresenter.Results.cs`, bant NEXT HAND'e kadar, `TableMoment.WinGlow /
+  LossGlow`, `FloatAmount`, `SentenceView` son 5 el pipi (hover: el + miktar). Eski sonuç satırı duruyor.
+- **D:** `devils_compass` (nadir, kilit `wardens3`: bir bölümde 3 bekçi), `ChapterRun.StepWithCompass` (aynı kat, bölümde 2, +40 yıl ceza),
+  harita PUSULA düğmesi (Esc vazgeçer, geçiş sesi), kayıt `compass.used / compass.jumps / wardens.here`, rekor `wardens.chapter`, ikon.
+  Simülasyonda +0.5 (10'un çok altında).
+- **E:** DESTE sayacı başlığın soluna, pot mesajın altına (mesaj en çok 3 satır, fazlası " · " ile birleşir ya da "…" + hover), oyuncu başlığı
+  1 px uzak, boss ante'si "%6 BAR"; `TableLayoutTests` (PlayMode) iki dilde her yazı / düğme kutusunu çakışmaya karşı gezer.
+- **F:** günlüklerde el ayrıntısı yoktu, kesin neden bulunamadı. `CheatResult.PlayerCardsHit` artık kartın kendisini tutuyor (indeks değil);
+  sunum vurulan kartları kimlikle bulur. Bölüm boss masasında güçler + emanetlerle her kart hilesinin testi (hepsi tek kart vuruyor).
+- **G:** `HellPokerGame.FixedStakeYears` (boss masasında barın başlangıcı; birim 1/10, tavan %30), `NextWinEndsIt` → SON DARBE satırı + bar parlaması.
+- **H:** `ClassPowers.UsedThisHand / IsReady / SpendPower`, `ChapterTuning.PowersEveryHand`; rozet HAZIR: K / BU ELDE KULLANILDI, ret nedenleri
+  iki dilde. Denge (etkiyi küçülterek): Büyücü dibe 1 kart (bar %1 ya da 2 coin), Kral'ın şarjlı müsaderesi yarı fiyata, LEJYON elin ilk iblisi.
+- **I:** gerçek kayıp yolu tek: Günah Takası karşılık bulamazsa emanet gidiyordu → "none" sonucu, emanet kalır. Bırakma / satma / takas
+  mesaj + günlük satırı; kayıt / devam / bölüm geçişi / Lucifer'de bütün emanetler testle sabit.
+- **J:** `PlaytestFixTests`, `TableLayoutTests`, `PlaytestScreenshots` (140–152, `Screenshots/2.1.1_en|tr`), bundleVersion 2.1.1-demo, CHANGELOG,
+  How to Play (Pusula, son darbe), CLAUDE.md, PHASE2_CHAPTERS on dördüncü tur.
+
+### Simülasyon (WholeRun; Köylü / Büyücü / Kral / Soytarı / Çağırıcı; 500 koşu, Büyücü 1000)
+- 2.1: 49.6 / 23.6 / 37.8 / 16.2 / 34.8 · yalnız G: 47.8 / 20.3 / 35.4 / 16.2 / 37.6 (±3 içinde) · G+H son: 47.2 / 20.3 / 33.0 / 16.2 / 35.6.
+- H'nin ilk hali Büyücü +13, Kral +11.4, Çağırıcı +10.4 verdi → etkiler küçültüldü. Köylü'nün H'deki düşüşü simülasyon oyuncusunun heybesi.
+
+### Kararlar (varsayılanla)
+- H'nin "+5 sınırı" G'nin üstüne gelen fark olarak okundu; düzen değişiklikleri (E) her masaya uygulandı (simülatör masası dahil, kural yok);
+  son el pipleri kat ve boss masasında sayacın çubuğunda; Kehanet'in dibe yollamasına küçük bir bedel eklendi (kısıtlama yerine etkiyi küçültme).
+
+### Testler
+- EditMode 1081 (1077 geçti, 4 explicit); PlayMode 17/17, 3/3, 8/8, 5/5, TableLayout 2/2; ekran görüntüleri 13 + 13.

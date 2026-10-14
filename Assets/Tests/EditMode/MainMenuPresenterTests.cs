@@ -230,6 +230,9 @@ namespace HellPoker.Core.Tests
             public void PressWindowScale() => WindowScalePressed?.Invoke();
             public void PressPixelScale() => PixelScalePressed?.Invoke();
             public void PressVSync() => VSyncPressed?.Invoke();
+            public event Action FourColorPressed;
+            public void PressFourColor() => FourColorPressed?.Invoke();
+            public bool FourColor => Screen != null && Screen.FourColor;
 
             public void Render(SettingsScreen screen) => Screen = screen;
 

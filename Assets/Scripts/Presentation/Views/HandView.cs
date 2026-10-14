@@ -22,7 +22,10 @@ namespace HellPoker.Presentation.Views
         /// <param name="x">Left edge of the row, in screen pixels from the left.</param>
         /// <param name="y">Top edge of the row, in screen pixels from the top.</param>
         /// <param name="captionY">Top of the caption line, in screen pixels from the top.</param>
-        public static HandView Create(Transform parent, string name, int x, int y, int spacing, int captionY, AnimationSequencer sequencer)
+        /// <param name="captionLeft">The caption's own box (screen pixels): it is centred in it and never runs out of it (2.1.1: the House's
+        /// caption keeps clear of the deck counter); -1: the row's width and 40 pixels each side.</param>
+        public static HandView Create(Transform parent, string name, int x, int y, int spacing, int captionY, AnimationSequencer sequencer,
+            int captionLeft = -1, int captionWidth = 0)
         {
             int width = CardView.Size.x * Hand.Size + spacing * (Hand.Size - 1);
             RectTransform root = UiFactory.CreateRect(name, parent).PlaceTL(x, y, width, CardView.Size.y);
@@ -30,8 +33,12 @@ namespace HellPoker.Presentation.Views
             var view = root.gameObject.AddComponent<HandView>();
             view._sequencer = sequencer;
             view.Build(root, spacing, x, captionY, width);
+            if (captionLeft >= 0) view._caption.rectTransform.PlaceTL(captionLeft, captionY, captionWidth, 8);
             return view;
         }
+
+        /// <summary>The caption's text and box (for the layout tests).</summary>
+        public Text CaptionText => _caption;
 
         private void Build(RectTransform root, int spacing, int x, int captionY, int width)
         {
@@ -55,6 +62,9 @@ namespace HellPoker.Presentation.Views
             {
                 _caption.text = text;
                 _caption.color = Palette.For(tone);
+                // Too wide for its box in the blocky capitals: the narrow text font says it (it never runs over the deck counter).
+                _caption.font = UiArt.Display;
+                if (_caption.font != null && _caption.preferredWidth > _caption.rectTransform.rect.width) _caption.font = UiArt.Body;
             });
         }
 

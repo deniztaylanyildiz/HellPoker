@@ -43,8 +43,8 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThirtyNineRelics_EachWithWordsAndAnIcon()
         {
-            Assert.AreEqual(35, ChapterRelics.New.Count);
-            Assert.AreEqual(39, ChapterRelics.All.Count, "the demo's four and thirty-five");
+            Assert.AreEqual(36, ChapterRelics.New.Count);
+            Assert.AreEqual(40, ChapterRelics.All.Count, "the demo's four and thirty-six");
             Assert.AreEqual(RelicRoster.IconOrder.Count, RelicRoster.IconOrder.Distinct().Count());
             foreach (ChapterRelic relic in ChapterRelics.New.Skip(20))
             {

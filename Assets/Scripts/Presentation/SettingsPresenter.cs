@@ -44,6 +44,7 @@ namespace HellPoker.Presentation
             _view.SpeedPressed += _settings.CycleSpeed;
             _view.HandGuidePressed += _settings.ToggleHandGuide;
             _view.ResetTipsPressed += _settings.ResetTips;
+            _view.FourColorPressed += _settings.ToggleFourColor;
             _view.FullscreenPressed += _settings.ToggleFullscreen;
             _view.WindowScalePressed += CycleWindowScale;
             _view.PixelScalePressed += ToggleFill;
@@ -99,6 +100,7 @@ namespace HellPoker.Presentation
             _view.SpeedPressed -= _settings.CycleSpeed;
             _view.HandGuidePressed -= _settings.ToggleHandGuide;
             _view.ResetTipsPressed -= _settings.ResetTips;
+            _view.FourColorPressed -= _settings.ToggleFourColor;
             _view.FullscreenPressed -= _settings.ToggleFullscreen;
             _view.WindowScalePressed -= CycleWindowScale;
             _view.PixelScalePressed -= ToggleFill;
@@ -143,6 +145,7 @@ namespace HellPoker.Presentation
                 HandGuide = _settings.HandGuide,
                 TipsLeft = _settings.TipsSeen.Count > 0,
                 Language = UiText.LanguageName(_settings.Language),
+                FourColor = _settings.FourColorDeck,
                 Fullscreen = _settings.Fullscreen,
                 WindowMode = _settings.Fullscreen ? UiText.SettingFullscreen : UiText.WindowModeWindow,
                 WindowScale = auto ? UiText.WindowScaleAuto : size,

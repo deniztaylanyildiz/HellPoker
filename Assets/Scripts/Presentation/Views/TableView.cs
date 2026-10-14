@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Animation;
@@ -22,6 +23,15 @@ namespace HellPoker.Presentation.Views
         private const int CardSpacing = 8;
         private const int ControlsY = 204;
         private const int ButtonHeight = 20;
+
+        // The middle column's lines (2.1.1: nothing in it overlaps — the layout test walks every text and button).
+        private const int LineHeight = 9;
+        private const int MessageY = 91, MessageLines = 3;
+        private const int PotY = 119, StakeY = 128;
+        private const int PlayerY = 139;
+
+        /// <summary>The result band across the middle (a chapter's table): the big word and the amount; the message keeps to two lines under it.</summary>
+        private const int BandY = 90, BandHeight = 27, BandMessageY = 118, BandMessageLines = 2;   // the dotted İ of the title clears the House's cards
 
         private AnimationSequencer _sequencer;
         private Canvas _canvas;
@@ -113,17 +123,20 @@ namespace HellPoker.Presentation.Views
             });
         }
 
-        /// <summary>The deck's count over the House's row, left; hovering it tells how the deck works.</summary>
+        /// <summary>The deck counter's own box: left of the title, on a line of its own (2.1.1: it ran into the House's caption).</summary>
+        public const int DeckX = Middle, DeckY = 8, DeckWidth = 46;
+
+        /// <summary>The deck's count left of the title (the House's caption has its row to itself); hovering it tells how the deck works.</summary>
         private void BuildDeckCounter(Transform screen)
         {
-            _deckCount = UiFactory.CreateText("DeckCount", screen, "", 8, Palette.GoldLight, TextAnchor.MiddleLeft, FontStyle.Bold).WithOutline();
-            _deckCount.rectTransform.PlaceTL(Middle + 4, 27, 72, 9);
+            _deckCount = UiFactory.CreateText("DeckCount", screen, "", 8, Palette.GoldLight, TextAnchor.MiddleLeft).WithOutline();
+            _deckCount.rectTransform.PlaceTL(DeckX, DeckY, DeckWidth, 9);
             _deckCount.horizontalOverflow = HorizontalWrapMode.Overflow;
             _deckCount.raycastTarget = true;
 
             Image tip = UiFactory.CreateImage("DeckTip", screen, Palette.Black);
             tip.raycastTarget = false;
-            tip.rectTransform.PlaceTL(Middle + 4, 38, 200, 30);
+            tip.rectTransform.PlaceTL(DeckX, DeckY + 11, 200, 30);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _deckTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _deckTipText.rectTransform.PlaceTL(4, 3, 192, 26);
@@ -239,19 +252,23 @@ namespace HellPoker.Presentation.Views
             // Middle column: house cards, the talk of the table, player cards, the bet controls.
             int handWidth = CardView.Size.x * 5 + CardSpacing * 4;
             int handX = Middle + (MiddleWidth - handWidth) / 2;
-            House = HandView.Create(screen, "HouseHand", handX, 38, CardSpacing, 28, _sequencer);
-            Player = HandView.Create(screen, "PlayerHand", handX, 140, CardSpacing, 192, _sequencer);
+            House = HandView.Create(screen, "HouseHand", handX, 38, CardSpacing, 28, _sequencer, Middle, MiddleWidth);
+            // 2.1.1: the player's row a pixel higher and its caption a pixel lower — the caption no longer hugs the cards' edge.
+            Player = HandView.Create(screen, "PlayerHand", handX, PlayerY, CardSpacing, PlayerY + CardView.Size.y + 6, _sequencer, Middle, MiddleWidth);
 
+            // The message: three lines at most (91-118), the pot under it (119), the outlook or the power's line under that (128). With the
+            // result band up (a chapter's table) the message moves under the band and keeps to two lines.
             _message = UiFactory.CreateText("Message", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline();
-            _message.rectTransform.PlaceTL(Middle, 91, MiddleWidth, 27);   // three lines at most (a demon's table: the hand, the bar and the sentence, a rule); the pot under it is empty then
+            _message.rectTransform.PlaceTL(Middle, MessageY, MiddleWidth, MessageLines * LineHeight);
+            BuildMessageTip(screen);
             _pot = UiFactory.CreateText("Pot", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
-            _pot.rectTransform.PlaceTL(Middle, 111, MiddleWidth, 8);
+            _pot.rectTransform.PlaceTL(Middle, PotY, MiddleWidth, 8);
             _stakeInfo = UiFactory.CreateText("StakeInfo", screen, "", 8, Palette.BoneMid).WithOutline();
-            _stakeInfo.rectTransform.PlaceTL(Middle, 123, MiddleWidth, 9);
+            _stakeInfo.rectTransform.PlaceTL(Middle, StakeY, MiddleWidth, 9);
             _stakeInfo.horizontalOverflow = HorizontalWrapMode.Overflow;
             // A power switched on: what to do stays on this line (in place of the win / lose outlook) until it is used or off.
             _powerHint = UiFactory.CreateText("PowerHint", screen, "", 8, Palette.GoldLight).WithOutline();   // the text font: the title font overflows the column
-            _powerHint.rectTransform.PlaceTL(Middle, 123, MiddleWidth, 9);
+            _powerHint.rectTransform.PlaceTL(Middle, StakeY, MiddleWidth, 9);
             _powerHint.horizontalOverflow = HorizontalWrapMode.Overflow;
             _powerHint.gameObject.SetActive(false);
 
@@ -307,7 +324,206 @@ namespace HellPoker.Presentation.Views
                 () => JokerConfirmPressed?.Invoke());
             _event = EventPanelView.Create(screen, Middle, 60, _sequencer, dealers, index => EventOptionPressed?.Invoke(index));
             _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, () => UiText.HandRanksTableFooter);
+            BuildResults(screen);
             _stage = new Stage(this);
+        }
+
+        // ------------------------------------------------------------------ a hand's result, plainly (2.1.1)
+
+        private Image _band;
+        private Text _bandTitle;
+        private Text _bandAmount;
+        private readonly Image[] _edges = new Image[4];
+        private float _glowLeft;
+        private Color _glowColor;
+        private const float GlowBlink = 0.08f, GlowSeconds = GlowBlink * 4;
+        private Text _float;
+        private float _floatLeft;
+        private int _floatX, _floatY;
+        private const float FloatSeconds = 0.9f;
+        private const int FloatRise = 14;
+
+        /// <summary>The band on show (for tests and screenshots); null when down.</summary>
+        public ResultBand Band { get; private set; }
+
+        /// <summary>The last amount floated (for tests and screenshots).</summary>
+        public string LastFloat { get; private set; }
+
+        private void BuildResults(Transform screen)
+        {
+            _band = UiFactory.CreateImage("ResultBand", screen, Palette.Black);
+            _band.raycastTarget = false;
+            _band.rectTransform.PlaceTL(Middle, BandY, MiddleWidth, BandHeight);
+            UiFactory.AddBorder(_band.gameObject, Palette.Gold, 1f);
+            _bandTitle = UiFactory.CreateText("Title", _band.transform, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
+            _bandTitle.rectTransform.PlaceTL(0, 2, MiddleWidth, 16);
+            _bandTitle.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _bandAmount = UiFactory.CreateText("Amount", _band.transform, "", 8, Palette.Bone).WithOutline();
+            _bandAmount.rectTransform.PlaceTL(0, 18, MiddleWidth, 8);
+            _bandAmount.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _band.gameObject.SetActive(false);
+
+            // The screen's edge: two pixels each side, blinking a moment in the result's colour.
+            (int x, int y, int w, int h)[] edges =
+            {
+                (0, 0, PixelScreen.Width, 2), (0, PixelScreen.Height - 2, PixelScreen.Width, 2), (0, 0, 2, PixelScreen.Height),
+                (PixelScreen.Width - 2, 0, 2, PixelScreen.Height)
+            };
+            for (int i = 0; i < edges.Length; i++)
+            {
+                _edges[i] = UiFactory.CreateImage("ResultEdge" + i, screen, Palette.Gold);
+                _edges[i].raycastTarget = false;
+                _edges[i].rectTransform.PlaceTL(edges[i].x, edges[i].y, edges[i].w, edges[i].h);
+                _edges[i].enabled = false;
+            }
+
+            _float = UiFactory.CreateText("ResultFloat", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
+            _float.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _float.enabled = false;
+        }
+
+        public void SetResultBand(ResultBand band)
+        {
+            _sequencer.Do(() =>
+            {
+                Band = band;
+                _band.gameObject.SetActive(band != null);
+                if (band != null)
+                {
+                    Color title = band.Outcome == HandOutcome.Win ? Palette.GoldLight : band.Outcome == HandOutcome.Loss ? Palette.Hell : Palette.BoneMid;
+                    Color border = band.Outcome == HandOutcome.Win ? Palette.Gold : band.Outcome == HandOutcome.Loss ? Palette.Crimson : Palette.BoneDark;
+                    _bandTitle.text = band.Title;
+                    _bandTitle.color = title;
+                    _bandAmount.text = band.Amount;
+                    _band.GetComponent<Outline>().effectColor = border;
+                    _band.transform.SetAsLastSibling();
+                }
+                LayOutMessage();
+            });
+        }
+
+        public void FloatAmount(string text, Tone tone, bool overBar)
+        {
+            _sequencer.Do(() =>
+            {
+                LastFloat = text;
+                _float.text = text ?? "";
+                _float.color = Palette.For(tone);
+                // Over the counter's number (top right), or over the demon's bar under the portrait.
+                _floatX = overBar ? 8 : 372;
+                _floatY = overBar ? 112 : 22;
+                _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? 92 : SentenceView.Width, 8);
+                _float.transform.SetAsLastSibling();
+                _float.enabled = true;
+                _floatLeft = FloatSeconds;
+            });
+        }
+
+        public void SetRecentHands(System.Collections.Generic.IReadOnlyList<HandPip> hands) => _sentence.SetRecent(hands);
+
+        private void Glow(Color color)
+        {
+            _glowColor = color;
+            _glowLeft = GlowSeconds;
+            foreach (Image edge in _edges) edge.transform.SetAsLastSibling();
+        }
+
+        private void Update()
+        {
+            if (_glowLeft > 0f)
+            {
+                _glowLeft -= Time.unscaledDeltaTime * AnimationClock.Speed;
+                // Two hard blinks (on, off, on, off): whole colours, no blending.
+                bool on = _glowLeft > 0f && (int)((GlowSeconds - _glowLeft) / GlowBlink) % 2 == 0;
+                foreach (Image edge in _edges)
+                {
+                    edge.enabled = on;
+                    edge.color = _glowColor;
+                }
+            }
+            if (_floatLeft > 0f)
+            {
+                _floatLeft -= Time.unscaledDeltaTime * AnimationClock.Speed;
+                int rise = Mathf.RoundToInt(FloatRise * (1f - Mathf.Clamp01(_floatLeft / FloatSeconds)));
+                _float.rectTransform.anchoredPosition = new Vector2(_floatX, -(_floatY - rise));
+                if (_floatLeft <= 0f) _float.enabled = false;
+            }
+        }
+
+        private void FinishResults()
+        {
+            _glowLeft = 0f;
+            foreach (Image edge in _edges) edge.enabled = false;
+            _floatLeft = 0f;
+            _float.enabled = false;
+        }
+
+        // ------------------------------------------------------------------ the message: three lines at most, the rest on its hover
+
+        private string _messageFull = "";
+        private GameObject _messageTip;
+        private Text _messageTipText;
+
+        /// <summary>The message as shown (for tests: the lines it was folded into).</summary>
+        public string MessageShown => _message.text;
+
+        private void BuildMessageTip(Transform screen)
+        {
+            Image tip = UiFactory.CreateImage("MessageTip", screen, Palette.Black);
+            tip.raycastTarget = false;
+            UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
+            _messageTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _messageTip = tip.gameObject;
+            _messageTip.SetActive(false);
+            var hover = _message.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => ShowMessageTip());
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => _messageTip.SetActive(false));
+            hover.triggers.Add(enter);
+            hover.triggers.Add(exit);
+        }
+
+        private void ShowMessageTip()
+        {
+            if (!_message.raycastTarget) return;
+            const int width = 256;
+            _messageTipText.text = _messageFull;
+            _messageTipText.rectTransform.PlaceTL(4, 3, width - 8, 200);
+            int height = Mathf.CeilToInt(_messageTipText.preferredHeight) + 6;
+            _messageTipText.rectTransform.PlaceTL(4, 3, width - 8, height - 6);
+            ((RectTransform)_messageTip.transform).PlaceTL(Middle, Band != null ? BandY - height - 2 : MessageY + MessageLines * LineHeight + 2, width, height);
+            _messageTip.transform.SetAsLastSibling();
+            _messageTip.SetActive(true);
+        }
+
+        /// <summary>
+        /// The message in its place: three lines over the pot (two under the result band). Lines past the last are folded into it with " · ";
+        /// if that still runs over, the last line is cut short ("…") and the whole message is on the hover.
+        /// </summary>
+        private void LayOutMessage()
+        {
+            int lines = Band != null ? BandMessageLines : MessageLines;
+            _message.rectTransform.PlaceTL(Middle, Band != null ? BandMessageY : MessageY, MiddleWidth, lines * LineHeight);
+            _stakeInfo.gameObject.SetActive(Band == null);
+            _powerHint.transform.localScale = Band == null ? Vector3.one : Vector3.zero;   // under the band the message has the column
+
+            string[] parts = (_messageFull ?? "").Split('\n');
+            if (parts.Length > lines)
+                parts = parts.Take(lines - 1).Concat(new[] { string.Join(" · ", parts.Skip(lines - 1).Where(p => p.Trim().Length > 0)) }).ToArray();
+            _message.text = string.Join("\n", parts);
+            bool cut = false;
+            while (_message.preferredHeight > lines * LineHeight + 1 && _message.text.Length > 1)
+            {
+                // Too long for its lines: cut the last line back a word at a time.
+                string text = _message.text.TrimEnd('…', ' ');
+                int space = text.LastIndexOf(' ');
+                if (space <= 0) break;
+                _message.text = text.Substring(0, space) + " …";
+                cut = true;
+            }
+            _message.raycastTarget = cut;
+            if (!cut) _messageTip.SetActive(false);
         }
 
         /// <summary>The dealer as the presenter sees it: the demon's portrait and talk, and the hall they sit in.</summary>
@@ -416,8 +632,9 @@ namespace HellPoker.Presentation.Views
         {
             _sequencer.Do(() =>
             {
-                _message.text = text;
+                _messageFull = text ?? "";
                 _message.color = Palette.For(tone);
+                LayOutMessage();
             });
         }
 
@@ -556,10 +773,17 @@ namespace HellPoker.Presentation.Views
             _cheatEffects.Finish();
             _malice.Finish();
             _scenes.Finish();
+            FinishResults();
         }
 
         public void PlayMoment(TableMoment moment, string text = null, System.Collections.Generic.IReadOnlyList<int> playerCards = null)
         {
+            if (moment == TableMoment.WinGlow || moment == TableMoment.LossGlow)
+            {
+                Color color = moment == TableMoment.WinGlow ? Palette.Gold : Palette.Hell;
+                _sequencer.Do(() => Glow(color));
+                return;
+            }
             // A backfire (and the Warlock's ward) belongs to the cheat's effects: it lands on the player's cards.
             if (moment == TableMoment.Backfire || moment == TableMoment.Ward)
                 _cheatEffects.PlayBackfire(text, playerCards);

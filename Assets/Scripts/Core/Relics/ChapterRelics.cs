@@ -106,6 +106,9 @@ namespace HellPoker.Core.Relics
             JestersHat = "jesters_hat", SeersSpectacles = "seers_spectacles", PeasantsScythe = "peasants_scythe", KingsSignet = "kings_signet",
             SummonersLeash = "summoners_leash";
         public const string LucifersFeather = "lucifers_feather", MammonsGoldTooth = "mammons_gold_tooth";
+
+        // 2.1.1
+        public const string DevilsCompass = "devils_compass";
     }
 
     /// <summary>
@@ -191,7 +194,12 @@ namespace HellPoker.Core.Relics
             // legendary
             M(ChapterRelicIds.LucifersFeather, RelicRarity.Legendary, Mk((RelicExtras.FeatherSpare, 1)), Mk(), 15),
             M(ChapterRelicIds.MammonsGoldTooth, RelicRarity.Legendary, Mk((RelicExtras.ToothPoints, 3)), Mk(), 20, curseEffects: new RelicEffects(tributePercent: 115)),
+            // 2.1.1 — rare: two steps a chapter across a floor of the map, forty years each.
+            M(ChapterRelicIds.DevilsCompass, RelicRarity.Rare, Mk((RelicExtras.CompassSteps, CompassSteps)), Mk((RelicExtras.CompassYears, CompassYears)), 5),
         };
+
+        /// <summary>The Devil's Compass: steps a chapter, and the years every step puts on the sentence.</summary>
+        public const int CompassSteps = 2, CompassYears = 40;
 
         public static ChapterRelic Find(string id) => New.FirstOrDefault(r => r.Id == id);
 

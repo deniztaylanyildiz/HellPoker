@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.1-win64.zip` (bundleVersion **2.1.0-demo**: menüde "Demo 2.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.1.1-win64.zip` (bundleVersion **2.1.1-demo**: menüde "Demo 2.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -92,6 +92,22 @@ yenileme), emanet fiyatı 55 / 65 / 75; Mammon'un Altın Dişi kapıya getirilen
 **Kullanıcı kararı (Demo 2.1):** sınıflar farklı zorlukta olabilir, güçlü emanet dizilimleri (build) oyunun parçası — sınıfları eşitlemeye
 çalışma (Demo 2.1, 1000 koşu: Köylü %50.1, Kral %38.4, Çağırıcı %32.4, Büyücü %24.6, Soytarı %15.0; hepsi %32.1). Açık:
 dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
+**Demo 2.1.1** (oyun testi düzeltmeleri; tablolar PHASE2_CHAPTERS on dördüncü tur; bundleVersion **2.1.1-demo**, zip
+`HellPoker-Demo-2.1.1-win64.zip`): **Kehanet** yalnız dağıtımdan sonra, draw'dan önce açık (`ProphecyPowers.IsOpen`; panelde "Dağıtımdan
+sonra görünür"). **Sınıf güçleri elde bir kez** (Phase 2'de şarj yok; `ClassPowers.IsReady / UsedThisHand / SpendPower`, `KitRefusal.NoBottom`;
+rozet `SinnerBadge.PowerState` HAZIR / BU ELDE KULLANILDI; demo'nun şarjı aynı; simülasyon düğmesi `HELLPOKER_POWER_HAND=0`). Denge kısmaları:
+Büyücü dibe 1 kart (`ClassKit.RearrangesPerUse`) + bedel bar %1 / katta 2 coin (`ProphecyPowers.RearrangeBarPercent / RearrangeCoins`), Kral K
+müsaderesi yarı vergiye (`ClassKit.PowerSeizePercent`, `TreasuryPowers.PowerSeizePrice`), Lejyon elin ilk iblisi (`SummonPowers.LegionImps`).
+**Boss bahsi sabit** (`HellPokerGame.FixedStakeYears` = barın başlangıcı, `BossTable.Create`; `NextWinEndsIt` → masada SON DARBE, bar parlar
+`BossBarDisplay.LastBlow`; düğme `HELLPOKER_FIXED_STAKES=0`). **Dört renkli deste** (`settings.fourcolor`, varsayılan açık; `SuitColors`,
+`Palette.SuitInk`, paletin 32. rengi mavi `#2a4aa0`, sprite'lar `suit_<renk>[_small]_four`; küçük kartlarda değerin yanında sembol + renkli
+kenar; Ayarlar satırları 30 px). **Sonuç bandı** (`ITableView.SetResultBand / FloatAmount / SetRecentHands`, `TableMoment.WinGlow / LossGlow`,
+`TablePresenter.Results.cs`; sadece bölüm masalarında). **Masa düzeni** (`TableView` sabitleri: mesaj 91 / 3 satır, pot 119, outlook 128,
+oyuncu kartları 139, başlık 193; bant açıkken mesaj 116 / 2 satır; fazla satır " · " ile birleşir, sığmazsa "…" ve hover; DESTE sayacı başlığın
+solunda `DeckX/DeckY`; başlık sığmazsa dar yazıya geçer; PlayMode `TableLayoutTests` glif sınırlarıyla çakışma arar). **Hile kartı kimlikle**
+(`CheatResult.PlayerCardsHit / PlayerCardsIn`). **Şeytanın Pusulası** (`devils_compass`, nadir, kilitli: `ChapterRecords.MostWardensInAChapter` ≥ 3;
+`ChapterRun.StepWithCompass / CompassTargets / CompassJumps`; kayıtta `compass.used`, `compass.jumps`, `wardens.here`; haritada PUSULA). Emanetler
+40. Günah Takası'nda teklif çıkmazsa emanet gitmez; emanet bırakma / satma / takası mesaj + günlük satırı.
 
 ## Oyun
 
@@ -240,7 +256,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - koşu, aklanma, lanet, şeytan başına aklanma (Lucifer'de biten koşu gelinen şeytana yazılır), en hızlı aklanma;
   - Lucifer'e ulaşma, Lucifer'i yenme, en az denemede yenme, Wild Bill kaçışları (satırlar isteğe bağlı, eski defter okunur).
 - **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): üç sekme, sekme butonları ya da **Q / E** (sol / sağ ok) ile döner, Esc menüye döner,
-  satırlar 32 px (`SettingsView`, `SettingsPresenter.Tab`, `ISettingsCommands.NextTab / PreviousTab / IsSettingsOpen`):
+  satırlar 30 px, OYUN sekmesinde DÖRT RENKLİ DESTE de (`SettingsView`, `SettingsPresenter.Tab`, `ISettingsCommands.NextTab / PreviousTab / IsSettingsOpen`):
   - **OYUN:** animasyon hızı, el rehberi, ipuçları, **dil** (`settings.language`, adıyla).
   - **GÖRÜNTÜ:** GÖRÜNTÜ MODU tam ekran (kenarlıksız) / pencere (Alt+Enter; `settings.display.mode` 0 / 1; eski `settings.fullscreen`
     taşınır ve hâlâ yazılır); PENCERE BOYUTU OTOMATİK (varsayılan, ekranın %85'ine sığan en büyük kat) ya da ×2'den ekrana sığan en büyük

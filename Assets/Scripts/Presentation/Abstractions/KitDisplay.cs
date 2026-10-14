@@ -53,10 +53,15 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The panel waits for a click (a pick under way): it pulses.</summary>
         public bool Waiting { get; }
 
+        /// <summary>A line in place of the cards (the prophecy shut: "Shows after the deal."); null for none.</summary>
+        public string Note { get; }
+
         public bool IsHidden => Title == null;
 
-        public KitDisplay(string title, IReadOnlyList<KitCard> cards, IReadOnlyList<KitButton> buttons, string hint, bool waiting = false)
+        public KitDisplay(string title, IReadOnlyList<KitCard> cards, IReadOnlyList<KitButton> buttons, string hint, bool waiting = false,
+            string note = null)
         {
+            Note = note;
             Title = title;
             Cards = cards ?? new KitCard[0];
             Buttons = buttons ?? new KitButton[0];

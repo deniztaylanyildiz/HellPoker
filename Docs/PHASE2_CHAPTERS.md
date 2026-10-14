@@ -653,3 +653,24 @@ kullanıcının "kırık build olabilir" kararıyla kabul).
 2. `ChapterSimulation` (EditMode, `[Explicit]` değil ama ayrı filtre): akıllı oyuncu + mağaza / ateş / yol seçimi politikası; rapor:
    haracı tam ödeyen %, kapıdaki coin dağılımı, Kara Pazar'dan emanet alanların eksiği, iblise karşı el kazanma oranı.
 3. Hedefler tutmazsa sırayla maç bonusu, ante, iblis yapay zekası.
+
+## On dördüncü tur: Demo 2.1.1 — sabit boss bahsi, elde bir güç (2026-10-14)
+
+Simülasyon (WholeRun, daire 0, sınıf başına 500 koşu; Büyücü 1000; her sınıf ayrı çalıştırıldı — 5×1000 tek koşu bellek yüzünden kesildi).
+Düğmeler: `HELLPOKER_FIXED_STAKES=0` (bahis kalan bara göre), `HELLPOKER_POWER_HAND=0` (güç dolu şarjla).
+
+| Sınıf | Eski kurallar | Yalnız G (sabit bahis) | G + H (elde bir güç) |
+|---|---|---|---|
+| Köylü | 49.6 | 47.8 (yeni oyuncu modeliyle 54.8) | 47.2 |
+| Büyücü | 23.6 | 20.3 | 20.3 |
+| Kral | 37.8 | 35.4 | 33.0 |
+| Soytarı | 16.2 | 16.2 | 16.2 |
+| Çağırıcı | 34.8 | 37.6 | 35.6 |
+
+- G: sınıf başına −2.6..+2.8 (sınır ±3): yüzde ayarı gerekmedi. Boss başına el ~15-25'ten ~5-13'e indi (son darbe hızlı geliyor).
+- H ilk hali (Büyücü 2 kart dibe bedava, Kral bedava müsadere, Lejyon üç iblis bedava): Büyücü +13.0, Kral +11.4, Çağırıcı +10.4 — sınır +5.
+  Kısmalar (gücü kısıtlamadan): Büyücü 1 kart + bedel (şeytan masasında bar %1, katta 2 coin; %2 / 5 coin'de 11.2 — fazla ağır), Kral K
+  müsaderesi yarı vergiye (2), Lejyon elin ilk iblisini bedava yapar. Son fark: Büyücü 0.0, Kral −2.4, Çağırıcı −2.0, Soytarı 0.
+- Köylü'de H −7.6: simülasyon oyuncusu her elde hasat edip heybeyi boşaltıyor (gücün kendisi değil, oyuncu modeli). Oyuncu artık hasadı yalnız
+  eli iki çift ve üstüne çıkarıyorsa kullanıyor; Kral'ın oyuncusu müsadere için vergi biriktiriyor (önce her vergiyi AÇ'a harcıyordu).
+- Şeytanın Pusulası (500 koşu, Köylü): 38 alım, 2. bölümde taşıyanların kurtuluşu +0.5 — 10 puan sınırının çok altında.

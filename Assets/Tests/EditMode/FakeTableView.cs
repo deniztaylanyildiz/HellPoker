@@ -230,6 +230,29 @@ namespace HellPoker.Core.Tests
         public Currency Currency { get; private set; } = Currency.Years;
 
         public void SetCurrency(Currency currency) => Currency = currency;
+
+        /// <summary>The result band as last shown (null: down), and every band shown.</summary>
+        public ResultBand Band { get; private set; }
+        public List<ResultBand> Bands { get; } = new List<ResultBand>();
+
+        public void SetResultBand(ResultBand band)
+        {
+            if (band != null)
+            {
+                Bands.Add(band);
+                TextLog.Add(band.Title);
+                TextLog.Add(band.Amount);
+            }
+            Band = band;
+        }
+
+        /// <summary>Every amount floated up, with its tone and where.</summary>
+        public List<(string text, Tone tone, bool overBar)> Floats { get; } = new List<(string, Tone, bool)>();
+        public void FloatAmount(string text, Tone tone, bool overBar) => Floats.Add((text, tone, overBar));
+
+        /// <summary>The last hands' pips as last shown.</summary>
+        public IReadOnlyList<HandPip> RecentHands { get; private set; } = new HandPip[0];
+        public void SetRecentHands(IReadOnlyList<HandPip> hands) => RecentHands = hands ?? new HandPip[0];
         public void SetVisible(bool visible) => Visible = visible;
         public void PressMenu() => MenuPressed?.Invoke();
 

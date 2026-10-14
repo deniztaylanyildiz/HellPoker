@@ -116,7 +116,8 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(legion.CallLegion(game2));
             Assert.AreEqual(0, legion.PriceOf(SummonAct.Hand));
             legion.Eye(game2);
-            Assert.AreEqual(0, legion.YearsAfterHand(game2, null, false, false));
+            Assert.AreEqual(0, legion.YearsAfterHand(game2, null, false, false), "the hand's first imp is free");
+            Assert.AreEqual(30, legion.PriceOf(SummonAct.Whisper), "2.1.1: only the first");
             Assert.AreEqual(KitRefusal.AlreadyUsed, legion.WhyNoLegion(game2));
         }
 
@@ -234,7 +235,7 @@ namespace HellPoker.Core.Tests
         {
             var book = new ChapterRecords();
             Assert.AreEqual(24, ChapterUnlocks.OpenRelics(book).Count(), "Demo 2.1: 39 relics, 15 locked");
-            Assert.AreEqual(15, ChapterUnlocks.Relics.Count);
+            Assert.AreEqual(16, ChapterUnlocks.Relics.Count, "2.1.1: the compass is locked too");
             Assert.IsFalse(ChapterUnlocks.IsClassOpen(Summoner.ClassId, book));
             Assert.IsTrue(SinnerRoster.All.All(c => ChapterUnlocks.IsClassOpen(c.Id, book)));
 

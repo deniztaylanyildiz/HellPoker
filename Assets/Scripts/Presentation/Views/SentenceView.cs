@@ -93,6 +93,87 @@ namespace HellPoker.Presentation.Views
 
             _damnation = UiFactory.CreateText("Damnation", root, "", 8, Palette.BoneDark);
             _damnation.rectTransform.PlaceTL(0, 41, Width, 9);
+            _barBack = bar.rectTransform;
+            BuildRecent(root);
+        }
+
+        // ------------------------------------------------------------------ the last hands (Phase 2, 2.1.1)
+
+        public const int RecentCount = 5;
+        private const int PipSize = 4, PipStep = 5;
+        private RectTransform _barBack;
+        private readonly List<Image> _recent = new List<Image>();
+        private readonly List<string> _recentHints = new List<string>();
+        private GameObject _recentTip;
+        private Text _recentTipText;
+
+        /// <summary>The pips on show, oldest first (for tests and screenshots): their outcome by colour.</summary>
+        public IReadOnlyList<HandPip> RecentShown { get; private set; } = new HandPip[0];
+
+        /// <summary>Five pips at the bar's right end (the bar makes room for them), each with its hover.</summary>
+        private void BuildRecent(RectTransform root)
+        {
+            for (int i = 0; i < RecentCount; i++)
+            {
+                int index = i;
+                Image pip = UiFactory.CreateImage("RecentPip" + i, root, Palette.Plum);
+                pip.rectTransform.PlaceTL(Width - 8 - RecentCount * PipStep + 1 + i * PipStep, 35, PipSize, PipSize);
+                pip.raycastTarget = true;
+                var hover = pip.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+                var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+                enter.callback.AddListener(_ => ShowRecentTip(index));
+                var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+                exit.callback.AddListener(_ => _recentTip.SetActive(false));
+                hover.triggers.Add(enter);
+                hover.triggers.Add(exit);
+                pip.gameObject.SetActive(false);
+                _recent.Add(pip);
+                _recentHints.Add("");
+            }
+            // Under the counter, reaching left (the counter sits at the screen's right edge).
+            Image tip = UiFactory.CreateImage("RecentTip", root, Palette.Black);
+            tip.raycastTarget = false;
+            UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
+            _recentTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _recentTipText.rectTransform.PlaceTL(4, 3, 152, 9);
+            _recentTipText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            tip.rectTransform.PlaceTL(Width - 160, Height + 2, 160, 14);
+            _recentTip = tip.gameObject;
+            _recentTip.SetActive(false);
+        }
+
+        private void ShowRecentTip(int index)
+        {
+            if (index >= RecentShown.Count) return;
+            _recentTipText.text = _recentHints[index];
+            _recentTip.transform.SetAsLastSibling();
+            _recentTip.SetActive(true);
+        }
+
+        /// <summary>The last hands as pips (gold a win, red a loss, grey a push or a fold), oldest first; none: the bar is whole again.</summary>
+        public void SetRecent(IReadOnlyList<HandPip> hands)
+        {
+            hands = hands ?? new HandPip[0];
+            _sequencer.Do(() =>
+            {
+                RecentShown = hands;
+                int shown = Mathf.Min(RecentCount, hands.Count);
+                int first = hands.Count - shown;
+                for (int i = 0; i < RecentCount; i++)
+                {
+                    bool on = i < shown;
+                    _recent[i].gameObject.SetActive(on);
+                    if (!on) continue;
+                    HandPip pip = hands[first + i];
+                    _recent[i].color = pip.Outcome == HandOutcome.Win ? Palette.GoldLight : pip.Outcome == HandOutcome.Loss ? Palette.Hell : Palette.BoneDark;
+                    _recentHints[i] = pip.Hint;
+                }
+                // The bar gives the pips its right end (whole pixels, a pixel apart).
+                _barWidth = hands.Count > 0 ? Width - 16 - RecentCount * PipStep - 1 : Width - 16;
+                _barBack.sizeDelta = new Vector2(_barWidth, _barBack.sizeDelta.y);
+                Apply(_hasShown ? _shown : _target);
+                if (hands.Count == 0) _recentTip.SetActive(false);
+            });
         }
 
         public void SetSoulLine(int years) => SetLimit(years, string.Format(UiText.SoulLineFormat, years));

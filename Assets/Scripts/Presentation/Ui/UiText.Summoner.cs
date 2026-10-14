@@ -11,7 +11,7 @@ namespace HellPoker.Presentation.Ui
         // ------------------------------------------------------------------ the Summoner's panel
 
         public static string KitSummonTitle => L("IMPS", "İBLİSLER");
-        public static string KitSummonLegionTitle => L("THE LEGION: ALL FREE", "LEJYON: HEPSİ BEDAVA");
+        public static string KitSummonLegionTitle => L("THE LEGION: ONE FREE", "LEJYON: BİRİ BEDAVA");
 
         /// <summary>The imps' buttons: {0} the price (coins on a floor; "%" of the bar at a demon's).</summary>
         public static string KitEyeButtonFormat => L("EYE {0}", "GÖZ {0}");
@@ -99,6 +99,7 @@ namespace HellPoker.Presentation.Ui
                 case "runs": return string.Format(L("Play {0} runs.", "{0} koşu oyna."), m.Count);
                 case "bought": return string.Format(L("Buy {0} relics at the black market.", "Kara Pazar'dan {0} emanet al."), m.Count);
                 case "warden": return L("Beat a warden.", "Bir bekçiyi yen.");
+                case "wardens3": return string.Format(L("Beat {0} wardens in one chapter.", "Bir bölümde {0} bekçi yen."), m.Count);
                 case "chapter2": return L("Reach Belial's chapter.", "Belial'in bölümüne ulaş.");
                 case "tribute": return L("Pay a gate's tribute in full.", "Bir kapının haracını tam öde.");
                 case "belial": return L("Beat Belial.", "Belial'i yen.");

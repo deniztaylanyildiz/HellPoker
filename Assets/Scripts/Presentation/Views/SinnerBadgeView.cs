@@ -134,7 +134,7 @@ namespace HellPoker.Presentation.Views
                 _jokerFlash = JokerFlashSeconds;
             Badge = badge;
             _strip.gameObject.SetActive(badge.Visible);
-            _hint.gameObject.SetActive(badge.Visible && (badge.Usable || badge.PowerOn));
+            _hint.gameObject.SetActive(badge.Visible && (badge.Usable || badge.PowerOn || badge.ShowsPowerState));
             if (!badge.Visible)
             {
                 _tooltip.SetActive(false);
@@ -146,18 +146,23 @@ namespace HellPoker.Presentation.Views
             for (int i = 0; i < _upgradePips.Count; i++) _upgradePips[i].gameObject.SetActive(i < badge.Upgrades);
             _icon.sprite = UiArt.SinnerIcon(badge.ClassId);
             _icon.enabled = _icon.sprite != null;
-            _jokerCount.gameObject.SetActive(badge.ShowsJokers);
-            _jokerCount.text = badge.ShowsJokers ? string.Format(UiText.JokerCountFormat, badge.Jokers) : "";
+            // Phase 2: no gauge — beside the icon a K (ready) or a dash (spent this hand), the words over the badge.
+            bool state = badge.ShowsPowerState && !badge.ShowsJokers;
+            _jokerCount.gameObject.SetActive(badge.ShowsJokers || state);
+            _jokerCount.text = badge.ShowsJokers ? string.Format(UiText.JokerCountFormat, badge.Jokers) : state ? (badge.PowerReady ? "K" : "-") : "";
+            _jokerCount.color = state && !badge.PowerReady ? Palette.BoneDark : Palette.GoldLight;
             for (int i = 0; i < _pips.Count; i++)
             {
-                _pips[i].enabled = !badge.ShowsJokers && i < badge.Full;
+                _pips[i].enabled = !badge.ShowsJokers && !state && i < badge.Full;
                 _pips[i].color = i < badge.Charge ? Palette.GoldLight : Palette.Plum;
             }
-            _hint.text = badge.PowerOn ? UiText.PowerOnLabel : badge.Usable ? UiText.PowerReadyHint : "";
+            _hint.text = badge.PowerOn ? UiText.PowerOnLabel : badge.ShowsPowerState ? badge.PowerState : badge.Usable ? UiText.PowerReadyHint : "";
+            _hint.color = badge.ShowsPowerState && !badge.PowerReady && !badge.PowerOn ? Palette.BoneMid : Palette.GoldLight;
             if (!badge.PowerOn) _strip.color = Palette.Black;
             _tooltipText.text = badge.Name + "\n" + badge.Description + "\n" +
                                 (badge.ShowsJokers ? UiText.JokerBadgeHint(badge.Jokers)
-                                    : badge.WardRaised ? UiText.WardUpHint : UiText.SinnerCharge(badge.Charge, badge.Full));
+                                    : badge.WardRaised ? UiText.WardUpHint
+                                    : badge.ShowsPowerState ? UiText.PowerOncePerHandHint : UiText.SinnerCharge(badge.Charge, badge.Full));
             // As tall as the words, whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 180, textHeight);

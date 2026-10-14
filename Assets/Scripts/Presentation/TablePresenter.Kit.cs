@@ -100,10 +100,27 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ K: the class's charged power
 
+        /// <summary>Why K cannot be used now, in a few words (2.1.1: once a hand, at the class's moment).</summary>
+        private string PowerRefusalText(KitRefusal why)
+        {
+            HellPokerGame game = KitGame;
+            switch (why)
+            {
+                case KitRefusal.AlreadyUsed: return UiText.KitUsedThisHand;
+                case KitRefusal.NoTaxes when _kit.Prophecy != null: return UiText.SummonNoCoins;   // the floors' price of sending down
+                case KitRefusal.NoTaxes when _kit.Treasury != null:
+                    return UiText.KitRefused(why, 0, 0, _kit.Kit.Taxes, _kit.Treasury.PowerSeizePrice);
+                case KitRefusal.NotNow:
+                    if (_kit.Satchel != null) return UiText.KitHarvestInDraw;
+                    return game.IsAfterDraw && game.HandInPlay ? UiText.KitNotAfterDraw
+                        : _kit.Prophecy != null || !game.HandInPlay ? UiText.KitAfterTheDeal : UiText.KitNotBeforeDraw;
+                default: return UiText.KitRefused(why, _sinner.Charge, _sinner.Rules.Full);
+            }
+        }
+
         private void UseKitPower()
         {
             HellPokerGame game = KitGame;
-            int charge = _sinner.Charge, full = _sinner.Rules.Full;
             switch (_kit.Powers)
             {
                 case SatchelPowers satchel:
@@ -111,7 +128,7 @@ namespace HellPoker.Presentation
                     KitRefusal why = satchel.WhyNoHarvest(game, _discards);
                     if (why != KitRefusal.None)
                     {
-                        _view.SetMessage(UiText.KitRefused(why, charge, full), Tone.Warning);
+                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
                         return;
                     }
                     TableState before = CaptureState();
@@ -134,10 +151,10 @@ namespace HellPoker.Presentation
                     KitRefusal why = prophecy.WhyNoRearrange(game);
                     if (why != KitRefusal.None)
                     {
-                        _view.SetMessage(UiText.KitRefused(why, charge, full), Tone.Warning);
+                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
                         return;
                     }
-                    prophecy.StartRearranging(game);
+                    if (!prophecy.StartRearranging(game)) return;
                     LogNote($"power: the Warlock rearranges the deck (hand {_game.RoundNumber})");
                     Refresh();
                     _view.SetMessage(string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft), Tone.Good);
@@ -148,10 +165,10 @@ namespace HellPoker.Presentation
                     KitRefusal why = summon.WhyNoLegion(game);
                     if (why != KitRefusal.None)
                     {
-                        _view.SetMessage(UiText.KitRefused(why, charge, full), Tone.Warning);
+                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
                         return;
                     }
-                    summon.CallLegion(game);
+                    if (!summon.CallLegion(game)) return;
                     LogNote($"power: the LEGION (hand {_game.RoundNumber})");
                     Refresh();
                     _view.SetMessage(UiText.LegionCalled, Tone.Good);
@@ -168,7 +185,7 @@ namespace HellPoker.Presentation
                     KitRefusal why = treasury.WhyNot(game, TaxAct.Seize, charged: true);
                     if (why != KitRefusal.None)
                     {
-                        _view.SetMessage(why == KitRefusal.NoTaxes ? UiText.KitRefused(KitRefusal.NotCharged, charge, full) : KitRefusalText(why), Tone.Warning);
+                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
                         return;
                     }
                     _seizing = true;
@@ -440,10 +457,13 @@ namespace HellPoker.Presentation
                 }
                 case ProphecyPowers prophecy:
                 {
-                    bool coming = game.Phase == GamePhase.Betting && game.DeckCount < game.CardsForAHand;
-                    if (coming)
+                    // 2.1.1: shut between hands (the deal would take the very cards shown) and after the draw; it opens once the deal
+                    // has played out (this is queued after the cards' animation).
+                    if (!ProphecyPowers.IsOpen(game))
                     {
-                        _view.SetKit(new KitDisplay(UiText.KitShuffleComing, null, null, UiText.KitProphecyHint));
+                        bool afterDraw = game.IsAfterDraw && game.HandInPlay;
+                        _view.SetKit(new KitDisplay(UiText.KitProphecyShutTitle, null, null, UiText.KitProphecyHint,
+                            note: afterDraw ? UiText.KitProphecyNextDeal : UiText.KitProphecyAfterDeal));
                         return;
                     }
                     bool rearranging = prophecy.RearrangesLeft > 0;
@@ -454,7 +474,7 @@ namespace HellPoker.Presentation
                 }
                 case SummonPowers summon:
                 {
-                    string Price(SummonAct act) => summon.Legion ? UiText.KitFree : summon.AtDemonsTable
+                    string Price(SummonAct act) => summon.LegionFreeLeft > 0 ? UiText.KitFree : summon.AtDemonsTable
                         ? string.Format(UiText.KitBarPriceFormat, SummonPowers.BarPercents[(int)act]) : summon.PriceOf(act).ToString();
                     KitButton Button(SummonAct act, string format) =>
                         new KitButton(string.Format(format, Price(act)), summon.WhyNot(game, act) != KitRefusal.None);
@@ -616,8 +636,11 @@ namespace HellPoker.Presentation
             string label = UiText.Upper(string.Format(UiText.BarLabelFormat, UiText.GenitiveOf(_dealerText)));
             string hint = string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
                 fall ? UiText.BarMarkFall : UiText.BarMarkSoul) + "\n" + UiText.BarLeft(value, _seat.BarStart);
-            return new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint);
+            return new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint, LastBlow);
         }
+
+        /// <summary>Between hands at a demon's table: the next win ends him (the bar is a unit or less: 2.1.1's fixed stakes).</summary>
+        private bool LastBlow => BarMode && KitGame != null && KitGame.NextWinEndsIt && !_game.IsSoulAtStake;
 
         /// <summary>At the showdown: the thrown card Lilith kept is marked in her hand.</summary>
         private bool IsTempted(int index) =>

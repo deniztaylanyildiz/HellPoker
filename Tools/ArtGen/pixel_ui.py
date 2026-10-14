@@ -136,9 +136,11 @@ def card_slot():
 
 
 # Suits: 5×5 for card corners, 11×11 for the card centre. 'k' = ink, 'h' = highlight.
+# At 5×5 the spade is one pointed leaf on a thin stem, the club three round leaves (a flat-topped one over two parted by a gap): the
+# two share no row but the stem.
 SUITS_SMALL = {
-    "spades": ["..k..", ".kkk.", "kkkkk", "..k..", ".kkk."],
-    "clubs": [".kkk.", ".kkk.", "kkkkk", "k.k.k", "..k.."],
+    "spades": ["..k..", ".kkk.", "kkkkk", "kkkkk", "..k.."],
+    "clubs": [".kkk.", ".kkk.", "kk.kk", "kk.kk", "..k.."],
     "hearts": ["kk.kk", "kkkkk", "kkkkk", ".kkk.", "..k.."],
     "diamonds": ["..k..", ".kkk.", "kkkkk", ".kkk.", "..k.."],
 }
@@ -154,10 +156,13 @@ SUITS_BIG = {
 }
 SUIT_INK = {"spades": (C.BLACK, C.DUSK), "clubs": (C.BLACK, C.DUSK), "hearts": (C.CRIMSON, C.HELL), "diamonds": (C.CRIMSON, C.HELL)}
 
+# The four-colour deck (the game's default): clubs green, diamonds blue ("suit_<name>[_small]_four"; spades and hearts as ever).
+SUIT_INK_FOUR = {"clubs": (C.GREEN, C.GREEN_LIGHT), "diamonds": (C.BLUE, C.SILVER)}
 
-def suit(name, big):
+
+def suit(name, big, four=False):
     rows = SUITS_BIG[name] if big else SUITS_SMALL[name]
-    ink, light = SUIT_INK[name]
+    ink, light = SUIT_INK_FOUR[name] if four and name in SUIT_INK_FOUR else SUIT_INK[name]
     img = Img(len(rows[0]), len(rows))
     img.rows(0, 0, rows, {"k": ink, "h": light})
     return img
@@ -575,6 +580,9 @@ def write_all(out_dir, fonts_dir):
     for name in SUITS_SMALL:
         jobs["suit_" + name] = suit(name, big=True)
         jobs["suit_" + name + "_small"] = suit(name, big=False)
+    for name in SUIT_INK_FOUR:
+        jobs["suit_" + name + "_four"] = suit(name, big=True, four=True)
+        jobs["suit_" + name + "_small_four"] = suit(name, big=False, four=True)
 
     written = []
     for name, img in jobs.items():

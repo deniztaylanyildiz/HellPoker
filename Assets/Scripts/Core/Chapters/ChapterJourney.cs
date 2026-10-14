@@ -255,7 +255,10 @@ namespace HellPoker.Core.Chapters
                 Sentence = journey.Sentence
             };
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
-                save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted);
+                save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted,
+                save.CompassJumps);
+            journey.Run.RestoreCompass(save.CompassUsed);
+            journey.Run.RestoreWardensBeaten(save.WardensHere);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
             if (save.CampBar.HasValue) journey.Run.RestoreCampBar(save.CampBar.Value);
             journey.Run.RestoreGateCoins(save.GateCoins);
@@ -348,6 +351,9 @@ namespace HellPoker.Core.Chapters
                 Vendor = run.MarketHere.HasValue ? (int)run.MarketHere.Value : -1,
                 Cleansed = Effects.Cleansed.ToList(),
                 FeatherSpent = Effects.FeatherSpent,
+                CompassUsed = run.CompassStepsUsed,
+                CompassJumps = run.CompassJumps.OrderBy(f => f).ToList(),
+                WardensHere = run.WardensBeatenHere,
                 Upgrades = Kit.Upgrades.ToList(),
                 BossHands = BossHands.ToList(),
                 FloorHands = FloorHands,

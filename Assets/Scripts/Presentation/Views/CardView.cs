@@ -142,7 +142,17 @@ namespace HellPoker.Presentation.Views
 
             Apply(CardSlot.Empty);
             SetSelected(false);
+            SuitColors.Changed += Repaint;
         }
+
+        /// <summary>The deck's colours changed (the settings): a face on show takes the new ink at once.</summary>
+        private void Repaint()
+        {
+            if (this == null || _faceGroup == null || !_faceGroup.activeSelf) return;
+            PaintFace(_faceCard);
+        }
+
+        private void OnDestroy() => SuitColors.Changed -= Repaint;
 
         private void BuildFace()
         {
@@ -310,8 +320,12 @@ namespace HellPoker.Presentation.Views
             _faceGroup.SetActive(slot.Kind == CardSlot.SlotKind.Face);
             ShowMark(slot.Mark);
             if (slot.Kind != CardSlot.SlotKind.Face) return;
+            PaintFace(slot.Card);
+        }
 
-            Card card = slot.Card;
+        /// <summary>The face of <paramref name="card"/>: its rank and suit in the deck's colours (a joker: its own face).</summary>
+        private void PaintFace(Card card)
+        {
             _faceCard = card;
             // A joker: its own face (when the art is there), nothing of a rank or a suit.
             bool joker = card.IsJoker;
@@ -325,7 +339,7 @@ namespace HellPoker.Presentation.Views
                 _centerSymbol.color = Palette.Crimson;
                 return;
             }
-            Color ink = card.Suit.IsBlack() ? Palette.BlackSuit : Palette.RedSuit;
+            Color ink = Palette.SuitInk(card.Suit, SuitColors.FourColor);
             string rank = card.Rank.ToShortString();
 
             foreach (Text text in new[] { _rankTop, _rankBottom })

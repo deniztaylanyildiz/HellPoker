@@ -177,6 +177,9 @@ namespace HellPoker.Core.Relics
 
         /// <summary>Mammon's Gold Tooth: points on a demon's win for every 50 coins brought to the gate, before the tribute (at most 15).</summary>
         public const string ToothPoints = "tooth";
+
+        /// <summary>The Devil's Compass (2.1.1): steps to another node of the floor a chapter; the years each step puts on the sentence.</summary>
+        public const string CompassSteps = "compass.steps", CompassYears = "compass.years";
     }
 
     /// <summary>

@@ -151,9 +151,15 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        public static Sprite Suit(Core.Cards.Suit suit, bool small)
+        /// <summary>A suit's sprite in the deck's colours (<see cref="SuitColors.FourColor"/>: green clubs, blue diamonds; the two-colour one
+        /// when the four-colour art is missing).</summary>
+        public static Sprite Suit(Core.Cards.Suit suit, bool small) => Suit(suit, small, SuitColors.FourColor);
+
+        public static Sprite Suit(Core.Cards.Suit suit, bool small, bool fourColor)
         {
-            return Sprite("Ui/suit_" + suit.ToString().ToLowerInvariant() + (small ? "_small" : ""));
+            string name = "Ui/suit_" + suit.ToString().ToLowerInvariant() + (small ? "_small" : "");
+            bool own = fourColor && (suit == Core.Cards.Suit.Clubs || suit == Core.Cards.Suit.Diamonds);
+            return own ? Sprite(name + "_four") ?? Sprite(name) : Sprite(name);
         }
 
         /// <summary>Blocky capitals for titles, numbers and buttons (Press Start 2P, 8 px grid).</summary>

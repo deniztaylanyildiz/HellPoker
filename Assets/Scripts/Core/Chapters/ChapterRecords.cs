@@ -55,7 +55,15 @@ namespace HellPoker.Core.Chapters
         public int RelicsBought { get; private set; }
         public int TributesPaid { get; private set; }
 
-        public void WardenBeaten() => WardensBeaten++;
+        /// <summary>The most wardens one run beat in one chapter (the Devil's Compass opens at three).</summary>
+        public int MostWardensInAChapter { get; private set; }
+
+        /// <summary>A warden beaten; <paramref name="inThisChapter"/>: how many this run has beaten in the chapter now (0: not counted).</summary>
+        public void WardenBeaten(int inThisChapter = 0)
+        {
+            WardensBeaten++;
+            MostWardensInAChapter = Math.Max(MostWardensInAChapter, inThisChapter);
+        }
         public void RelicBought() => RelicsBought++;
         public void TributePaidInFull() => TributesPaid++;
 
@@ -119,6 +127,7 @@ namespace HellPoker.Core.Chapters
             lines.AddRange(_beatenByBoss.OrderBy(p => p.Key).Select(p => "beaten." + p.Key + "=" + I(p.Value)));
             lines.AddRange(_lowestSentence.OrderBy(p => p.Key).Select(p => "sentence." + p.Key + "=" + I(p.Value)));
             lines.Add("wardens=" + I(WardensBeaten));
+            lines.Add("wardens.chapter=" + I(MostWardensInAChapter));
             lines.Add("bought=" + I(RelicsBought));
             lines.Add("tributes=" + I(TributesPaid));
             return string.Join("\n", lines);
@@ -155,6 +164,7 @@ namespace HellPoker.Core.Chapters
             foreach (var pair in values.Where(p => p.Key.StartsWith("sentence.", StringComparison.Ordinal)))
                 book._lowestSentence[pair.Key.Substring("sentence.".Length)] = Count(pair.Key);
             book.WardensBeaten = Count("wardens");
+            book.MostWardensInAChapter = Count("wardens.chapter");
             book.RelicsBought = Count("bought");
             book.TributesPaid = Count("tributes");
             return book;
