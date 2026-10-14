@@ -673,4 +673,17 @@ Düğmeler: `HELLPOKER_FIXED_STAKES=0` (bahis kalan bara göre), `HELLPOKER_POWE
   müsaderesi yarı vergiye (2), Lejyon elin ilk iblisini bedava yapar. Son fark: Büyücü 0.0, Kral −2.4, Çağırıcı −2.0, Soytarı 0.
 - Köylü'de H −7.6: simülasyon oyuncusu her elde hasat edip heybeyi boşaltıyor (gücün kendisi değil, oyuncu modeli). Oyuncu artık hasadı yalnız
   eli iki çift ve üstüne çıkarıyorsa kullanıyor; Kral'ın oyuncusu müsadere için vergi biriktiriyor (önce her vergiyi AÇ'a harcıyordu).
+- **Yeniden ölçüm (2026-10-15, `v2.1.1-demo` kodu, aynı oyuncu modeli; 500 koşu, hepsi ayrı ayrı):**
+
+  | Sınıf | Eski (G ve H kapalı) | Yalnız G | Yalnız H | G + H |
+  |---|---|---|---|---|
+  | Köylü | 57.4 | 54.8 | 54.2 | 47.2 |
+  | Büyücü | 23.2 | – | – | 19.6 |
+  | Kral | 37.8 | – | – | 33.0 |
+  | Soytarı | 16.2 | – | – | 16.2 |
+  | Çağırıcı | 35.0 | – | – | 35.6 |
+
+  Eski kuralların Köylü'sü yeni oyuncu modeliyle 57.4: yukarıdaki 49.6 eski modelindi. Köylü'de G −2.6, H −3.2, ikisi birlikte **−10.2**
+  (toplamdan büyük; 500 koşunun gürültüsü ~±3). Yukarıdaki "H −7.6 oyuncu modelinden" açıklaması yetmiyor: G ile elde bir hasat
+  birlikte Köylü'yü gerçekten zayıflatıyor. Kral −4.8, Büyücü −3.6. Açık: Köylü'ye telafi (kullanıcı kararı; sınıflar farklı zorlukta olabilir).
 - Şeytanın Pusulası (500 koşu, Köylü): 38 alım, 2. bölümde taşıyanların kurtuluşu +0.5 — 10 puan sınırının çok altında.

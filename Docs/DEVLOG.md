@@ -3318,3 +3318,12 @@ build, duman turu, commit + `v2.1.1-demo` (push yok). Boss Simülatörü ve demo
 
 ### Testler
 - EditMode 1081 (1077 geçti, 4 explicit); PlayMode 17/17, 3/3, 8/8, 5/5, TableLayout 2/2; ekran görüntüleri 13 + 13.
+
+## 2026-10-15 — 2.1.1 simülasyonlarının yeniden ölçümü
+
+- İstek: simG.xml'i oku (dosya yok; sonuçlar sim_G_*.xml), G+H ve eski kuralları yeniden çalıştır.
+- v2.1.1-demo koduyla sınıf başına 500 koşu (Köylü / Büyücü / Kral / Soytarı / Çağırıcı): eski 57.4 / 23.2 / 37.8 / 16.2 / 35.0, G+H 47.2 / 19.6 / 33.0 / 16.2 / 35.6;
+  Köylü yalnız G 54.8, yalnız H 54.2.
+- Bulgu: önceki eski kurallar tablosu (Köylü 49.6) eski oyuncu modelindendi. Aynı modelle Köylü G+H'de −10.2 (G −2.6, H −3.2 tek başına).
+  Kral −4.8, Büyücü −3.6. PHASE2_CHAPTERS on dördüncü tura tablo eklendi.
+- Açık (kullanıcıda): Köylü'ye telafi yapılsın mı (ör. hasat gücü ya da başlangıç kesesi), yoksa sınıf farkı olarak kalsın mı.
