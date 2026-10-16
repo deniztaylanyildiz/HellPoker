@@ -3483,3 +3483,20 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 ### Kaldığı yer / sıradaki
 - FullRunTests'i sınıf sınıf, ön planda çalıştır (`-testFilter HellPoker.PlayMode.Tests.FullRunTests.Peasant_English` …), sonra Chaos.
 - Ardından 6) kapanış: bütün testler, 2000 koşuluk simülasyon, ekran görüntüleri, 2.2.0-demo, CLAUDE.md / PHASE2_CHAPTERS, build, duman turları, `v2.2-demo`.
+
+## 2026-10-16 — Demo 2.2, iş 5 tamam: tam koşular ve kaos turu geçti
+
+- İstek: "belirli dosyaları kapadım, tekrar dene" — kalan testler tek tek, ön planda.
+- Test düzeltmesi: kampta eylemden sonra panelde EMANET DÜZENİ + DEVAM kalıyor (DEVAM "çıkış" işaretli değil); test ilk seçeneğe dönüp
+  döngüye giriyordu. Çıkış yoksa son etkin seçenek seçiliyor, panel sayaçları her düğümde sıfırlanıyor. (Oyun hatası değil.)
+- Sonuçlar (her biri ~70-85 sn, Unity ile ~1 dk 45 sn):
+  | koşu | son | düğümler | yeniden yükleme | güç |
+  |---|---|---|---|---|
+  | Köylü EN | KURTULUŞ | 7/7 | 3 | 3 bölüm |
+  | Kâhin TR | DÜŞTÜN (Lucifer) | 7/7 | 3 | 3 |
+  | Kral EN | KURTULUŞ | 7/7 | 3 | 3 |
+  | Soytarı TR | KURTULUŞ | 7/7 | 3 | 3 |
+  | Çağırıcı EN | KURTULUŞ | 7/7 | 3 | 3 |
+  | Köylü 5. daire TR | KURTULUŞ | 7/7 | 3 | 3 |
+- Kaos turu (2000 rastgele basış, sonra yeni koşu + ilk el): geçti, hata logu yok.
+- Sıradaki: 6) kapanış.

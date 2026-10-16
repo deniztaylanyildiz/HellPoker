@@ -224,7 +224,7 @@ namespace HellPoker.PlayMode.Tests
             int pick = -1;
             if (presses < 3) pick = First(card, i => card.Options[i].Enabled && !card.Options[i].IsLeave);
             if (pick < 0) pick = Last(card, i => card.Options[i].IsLeave);
-            if (pick < 0) pick = Math.Max(0, First(card, i => card.Options[i].Enabled));
+            if (pick < 0) pick = Math.Max(0, Last(card, i => card.Options[i].Enabled));   // the way on is the last (ON after a camp's act)
             story.Notes.Add($"panel '{card.Title}': {card.Options[pick].Label}");
             KeepThePurse();
             HellPokerScreenshots.Press("PanelOption" + pick);
@@ -268,6 +268,7 @@ namespace HellPoker.PlayMode.Tests
                 yield break;
             }
             MapNode next = BestChoice(run.Map, choices, story);
+            story.PanelPresses.Clear();   // a new node: its panels answered afresh
             story.Visited.Add(next.Kind);
             story.VisitedHere.Add(next.Kind);
             if (next.Kind == NodeKind.Unknown) story.Notes.Add($"? held {next.Hidden}");
