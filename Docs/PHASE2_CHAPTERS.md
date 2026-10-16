@@ -687,3 +687,35 @@ Düğmeler: `HELLPOKER_FIXED_STAKES=0` (bahis kalan bara göre), `HELLPOKER_POWE
   (toplamdan büyük; 500 koşunun gürültüsü ~±3). Yukarıdaki "H −7.6 oyuncu modelinden" açıklaması yetmiyor: G ile elde bir hasat
   birlikte Köylü'yü gerçekten zayıflatıyor. Kral −4.8, Büyücü −3.6. Açık: Köylü'ye telafi (kullanıcı kararı; sınıflar farklı zorlukta olabilir).
 - Şeytanın Pusulası (500 koşu, Köylü): 38 alım, 2. bölümde taşıyanların kurtuluşu +0.5 — 10 puan sınırının çok altında.
+
+## On beşinci tur: Demo 2.2 — Kâhin, harita aralığı, hata avı (2026-10-16)
+
+- **Kâhin (Oracle, id "warlock"):** ÖNSEZİ her bölümde 2 kart (Üçüncü Göz +1), KADERİ BÜK elde bir kez bir kartı üste ya da dibe,
+  bedelsiz (bedel Ayna Laneti). Izgara (500 koşu, `ChapterSimulation.OracleTuning`): 2.1.1'in bedeliyle %20.6, 3 kartla %23.8,
+  bedelsiz %28.2, bedelsiz 3 kartla %32.0; şeytanın bilme oranını %50'ye indirmek simülasyon oyuncusunda fark etmiyor.
+- **Harita sürüm 3:** yol üzerinde iki pazar ya da iki kamp arasında en az 2 kat, yolda en çok 2 pazar. Kese / haraç oranları eski
+  haritaya göre ±5 puan içinde; 3. bölümde pazar 0.9 → 0.6 uğrama.
+- Çağırıcı'nın LEJYON'dan sonraki ücretli iblisi artık kesesi yetmezse gelmiyor (düzeltme; simülasyonda fark gürültü içinde).
+
+### Son simülasyon (WholeRun)
+Daire 0, sınıf başına 2000 koşu:
+
+| sınıf | Lucifer'e | kurtuluş | 1. böl. kese boşalan / tam haraç | 2. böl. | 3. böl. | Lucifer'de düşüş |
+|---|---|---|---|---|---|---|
+| Köylü | %69.7 | **%51.3** | 3.7 / 75.1 | 5.2 / 38.4 | 4.9 / 55.1 | %26.4 |
+| Kâhin | %49.5 | **%29.8** | 6.9 / 70.1 | 9.8 / 31.8 | 10.3 / 50.3 | %39.9 |
+| Kral | %47.4 | **%31.7** | 4.7 / 61.6 | 8.9 / 24.1 | 6.6 / 39.5 | %33.2 |
+| Soytarı | %18.5 | **%13.6** | 30.0 / 56.2 | 34.3 / 22.2 | 24.5 / 46.2 | %26.8 |
+| Çağırıcı | %51.6 | **%36.9** | 6.6 / 47.2 | 9.8 / 67.2 | 9.5 / 71.5 | %28.6 |
+
+Boss başına el (ortalama, Köylü / Kâhin / Kral / Soytarı / Çağırıcı): Mammon 8.4 / 10.9 / 11.5 / 9.6 / 10.8, Belial 6.6 / 7.8 / 7.2 /
+6.4 / 9.1, Lilith 6.9 / 9.8 / 10.2 / 5.8 / 12.6, Lucifer 5.9 / 7.3 / 8.2 / 5.5 / 12.3. Kamplar: dinlen %59-67, döv %28-31, tören %4-6,
+bile %1-5. Hedef %25-40: Kâhin, Kral, Çağırıcı içinde; Köylü üstünde, Soytarı altında (kullanıcı kararı: sınıflar farklı zorlukta
+olabilir, zorla eşitlenmedi).
+
+Daireler (sınıf başına 500 koşu; Köylü / Kâhin / Kral / Soytarı / Çağırıcı, ortalama):
+- 1: 51.6 / 27.6 / 30.0 / 12.0 / 35.0 → 31.2
+- 2: 46.0 / 24.4 / 27.0 / 11.8 / 31.8 → 28.2
+- 3: 43.4 / 19.2 / 20.4 / 8.0 / 19.4 → 22.1
+- 4: 39.6 / 15.6 / 17.4 / 10.4 / 16.0 → 19.8
+- 5: 33.0 / 12.0 / 14.8 / 6.4 / 8.0 → 14.8

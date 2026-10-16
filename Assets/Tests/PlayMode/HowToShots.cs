@@ -72,6 +72,44 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
+        /// <summary>Demo 2.2's screens (160–166), in both languages: the Oracle's card, BEND FATE's arrows and a card brought up, a map
+        /// (the markets spaced), the camp, a demon's table at the last blow (the sentence, the bar).</summary>
+        [UnityTest, Timeout(600000)]
+        public IEnumerator CaptureDemoTwoTwo()
+        {
+            foreach (string language in new[] { "English", "Turkish" })
+            {
+                string l = language == "Turkish" ? "tr" : "en";
+                yield return Load(language);
+                HellPokerScreenshots.Press("NewGameButton");
+                yield return new WaitForSeconds(0.8f);
+                yield return HellPokerScreenshots.Shot($"160_oracle_card_{l}");
+
+                yield return Load(language, Boss(Core.Sinners.SinnerRoster.Warlock, 1300, 1300));
+                yield return Settle();
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle(0.8f);
+                yield return HellPokerScreenshots.Shot($"161_bend_fate_arrows_{l}");
+                ((TablePresenter)ChapterJourneyTests.Chapters.Table).PressKitArrow(1, true);
+                yield return Settle(0.4f);
+                yield return HellPokerScreenshots.Shot($"162_bend_fate_brought_up_{l}");
+
+                ChapterSave map = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 2, "");
+                map.NodeDone = true;
+                yield return Load(language, map);
+                yield return new WaitForSeconds(0.4f);
+                yield return HellPokerScreenshots.Shot($"163_map_markets_spaced_{l}");
+
+                yield return Load(language, AtNode(Core.Sinners.SinnerRoster.Peasant, 11, NodeKind.PurgatoryFire, "fire"));
+                yield return new WaitForSeconds(0.4f);
+                yield return HellPokerScreenshots.Shot($"164_camp_{l}");
+
+                yield return Load(language, Boss(Core.Sinners.SinnerRoster.King, 40, 1600));
+                yield return Settle(0.8f);
+                yield return HellPokerScreenshots.Shot($"165_boss_sentence_bar_last_blow_{l}");
+            }
+        }
+
         private static IEnumerator Load(string language, ChapterSave save = null)
         {
             HellPokerBootstrap.BatchStore.Clear();

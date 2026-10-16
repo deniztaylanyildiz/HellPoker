@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.1.1-win64.zip` (bundleVersion **2.1.1-demo**: menüde "Demo 2.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.2-win64.zip` (bundleVersion **2.2.0-demo**: menüde "Demo 2.2" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -108,6 +108,23 @@ solunda `DeckX/DeckY`; başlık sığmazsa dar yazıya geçer; PlayMode `TableLa
 (`CheatResult.PlayerCardsHit / PlayerCardsIn`). **Şeytanın Pusulası** (`devils_compass`, nadir, kilitli: `ChapterRecords.MostWardensInAChapter` ≥ 3;
 `ChapterRun.StepWithCompass / CompassTargets / CompassJumps`; kayıtta `compass.used`, `compass.jumps`, `wardens.here`; haritada PUSULA). Emanetler
 40. Günah Takası'nda teklif çıkmazsa emanet gitmez; emanet bırakma / satma / takası mesaj + günlük satırı.
+
+**Demo 2.2** (etiket `v2.2-demo`; DEVLOG 2026-10-16, PHASE2_CHAPTERS on beşinci tur): **Büyücü → KÂHİN / ORACLE** — C# sınıfı `Warlock`,
+id `"warlock"` ve yükseltme id'leri aynı (kayıtlar, rekorlar); ekranda her yerde ORACLE / KÂHİN (simülatörde de; simülatördeki
+Warlock'un koruma gücü ve metni aynı). Phase 2: ÖNSEZİ `ClassKit.ForesightCards` = 2 (Üçüncü Göz `deep_prophecy` +1, Kâhinin Gözlüğü +1),
+KADERİ BÜK `ProphecyPowers.Bend / PullToTop / SendToBottom` (elde bir kez, bedelsiz: `RearrangeBarPercent / RearrangeCoins` 0; Kader
+Dokumacısı `thrice` iki kart; Gözlük yalnız ▼'yi kapatır), panelde kartın sağında piksel ▲ / ▼ (`KitCard.Arrows / CanTop / CanBottom`,
+`ITableView.KitArrowPressed`), Ayna Laneti (şeytan bir kartı bilir; Kör Ayna %50), Kehanet Mührü `eye_of_truth` (dolandırıcıyı GEÇ → +10
+coin, `ClassKit.SealCoins`, sonuç "sealed"). Kör Kâhin olayı Türkçede KÖR FALCI. Portre `pixel_sinners.oracle()`.
+**Harita sürüm 3** (`ChapterMap.CurrentVersion`; 2.1 kayıtları sürüm 2 ile aynı haritayı alır): yol üzerinde iki pazar ("?" içeriği dahil)
+ya da iki kamp arasında en az 2 kat, yolda en çok 2 pazar (`MapMaker.FloorsBetween / MostMarketsOnAPath / SpaceTheMarkets / NearA`).
+**How to Play** (oyun): 10 resimli sayfa (`HowToPlayView`, `UiText.HowTo.cs`; resimler `Resources/Art/HowTo/<nn_ad>_<en|tr>.png`,
+[Explicit] `HowToShots` üretir: 1920×1080 → 480×270 doğal piksel → 200×112 kırpma; oklar / Q-E `IMenuCommands.TurnRulesPage`);
+simülatörün sayfaları aynı. **Günlük:** bölüm masaları elleri, hileleri, güçleri ve reddedilen K'yi bölümün `RunLog`'una yazar
+(`TablePresenter.ChapterLog`). Tek kopya (`forceSingleInstance`). Hata avı düzeltmeleri: Çağırıcı LEJYON sonrası ücret, müsadere seçimi
+draw ile kapanır, Ayna metinleri (`LuciferMirror.DrewTop / UsedBag`), ipuçları yükseltmelerle. Testler: `OracleTests`, `PowerHuntTests`,
+`MapSpacingTests` (180.000 harita, ~2 dk), PlayMode `HowToPlayTests`, [Explicit] `FullRunTests` (her sınıf tam koşu + 5. daire + kaos;
+her biri ~1.5 dk, tek tek çalıştır). Son simülasyon (daire 0, 2000): Köylü %51.3, Kâhin %29.8, Kral %31.7, Soytarı %13.6, Çağırıcı %36.9.
 
 ## Oyun
 
