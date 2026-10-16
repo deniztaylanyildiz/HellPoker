@@ -72,8 +72,9 @@ namespace HellPoker.Core.Tests
         public void TheSatchel_FullPushesTheOldestOut()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            foreach (string c in new[] { "2C", "3C", "4C", "5C" }) Assert.IsTrue(kit.Keep(C(c)));
-            CollectionAssert.AreEqual(new[] { C("3C"), C("4C"), C("5C") }, kit.Satchel, "three at most");
+            string[] kept = { "2C", "3C", "4C", "5C" };
+            foreach (string c in kept) Assert.IsTrue(kit.Keep(C(c)));
+            CollectionAssert.AreEqual(kept.Skip(kept.Length - ClassKit.SatchelSize).Select(C), kit.Satchel, "the satchel's size at most, the oldest out");
             Assert.IsFalse(new ClassKit(new Sinner(SinnerRoster.King)).Keep(C("2C")), "only the Peasant has a satchel");
         }
 
@@ -113,7 +114,7 @@ namespace HellPoker.Core.Tests
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
             Card[] kept = { C("AS"), C("KS"), C("QS") };
-            kit.Restore(kept, 0, null, 0);
+            kit.Restore(kept, 0, null, 0, new[] { UpgradeIds.WideSatchel });   // three cards: the wide satchel
             HellPokerGame game = Shuffled(3, kit.Sinner);
             ChapterHooks.Attach(game, kit, null, 0, 1);
             Assert.IsFalse(game.Deck.Remaining.Intersect(kept).Any(), "out of the deck as the hooks come");
@@ -131,7 +132,7 @@ namespace HellPoker.Core.Tests
         public void TheHarvest_FillsEveryThrownPlace_Unseen_AndSpendsTheGauge()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant, charge: 5));
-            kit.Restore(new[] { C("AD"), C("AC"), C("3D") }, 0, null, 0);
+            kit.Restore(new[] { C("AD"), C("AC"), C("3D") }, 0, null, 0, new[] { UpgradeIds.WideSatchel });   // three cards: the wide satchel
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();

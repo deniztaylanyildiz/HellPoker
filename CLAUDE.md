@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.2-win64.zip` (bundleVersion **2.2.0-demo**: menüde "Demo 2.2" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.2.1-win64.zip` (bundleVersion **2.2.1-demo**: menüde "Demo 2.2.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -129,7 +129,7 @@ her biri ~1.5 dk, tek tek çalıştır). Son simülasyon (daire 0, 2000): Köyl�
 **Demo 2.2 sonrası:** altıncı sınıf **HIRSIZ** (`Thief`, id `thief`, `KitKind.Theft`, `TheftPowers`: GÖZ UCU `ClassKit.GlanceCards`, ÇAL elde bir kez
 körlemesine, YAKALANMA %25 → takas yok + ceza: katta 1 ante coin, boss'ta bar %3; yükseltmeler `light_fingers / night_eye / master_thief / loot_sack`;
 Lucifer her 3 elde bir çalar `LuciferMirror.StealEveryHands`; 140 coin, 6500 yıl; simülasyon %29.2). **Bütün sınıflar açık** (`ChapterUnlocks.IsClassOpen` hep
-true). Sınıf kartı düzeni başlık yüksekliğine göre akar. Köylü ölçümü: `SatchelPowers.HarvestsPerTable` (0 = her el; masa başı sınır kurtuluşu düşürmedi).
+true). Sınıf kartı düzeni başlık yüksekliğine göre akar. Köylü: heybe `ClassKit.SatchelSize` = **2** (Demo 2.2.1; %49 → %41), `SatchelPowers.HarvestsPerTable` (0 = her el; masa başı sınır işe yaramadı).
 
 ## Oyun
 

@@ -617,26 +617,33 @@ namespace HellPoker.Core.Tests
         [Test, Timeout(3600000)]
         public void PeasantTuning()
         {
-            string grid = Environment.GetEnvironmentVariable("HELLPOKER_HARVEST_GRID") ?? "0;1;2";
+            // "harvests a table,re-raise risk %,satchel size;..."
+            string grid = Environment.GetEnvironmentVariable("HELLPOKER_HARVEST_GRID") ?? "0,30,3;1,30,3;2,30,3";
             int runs = EnvInt("HELLPOKER_RUNS", 500);
-            int keep = SatchelPowers.HarvestsPerTable;
-            var report = new StringBuilder($"The Peasant, {runs} whole runs a setting (circle 0)\nharvests a table   reached Lucifer   freed   harvests a run\n");
+            int keep = SatchelPowers.HarvestsPerTable, risk = ClassKit.SatchelReRaisePercent, size = ClassKit.SatchelSize;
+            var report = new StringBuilder($"The Peasant, {runs} whole runs a setting (circle 0)\nharvests,risk,size   reached Lucifer   freed   harvests / taken a run\n");
             try
             {
                 foreach (string setting in grid.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     ChapterTuning.Reset();
-                    SatchelPowers.HarvestsPerTable = int.Parse(setting.Trim());
+                    int[] n = setting.Split(',').Select(s => int.Parse(s.Trim())).ToArray();
+                    SatchelPowers.HarvestsPerTable = n[0];
+                    ClassKit.SatchelReRaisePercent = n.Length > 1 ? n[1] : risk;
+                    ClassKit.SatchelSize = n.Length > 2 ? n[2] : size;
                     var tally = new RunTally();
                     var all = new RunTally();
                     for (int run = 0; run < runs; run++) PlayWholeRun(SinnerRoster.Peasant, run * 7919 + 29, tally, all);
-                    report.AppendLine($"{setting.Trim(),17}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}   {Avg((int)tally.Harvests, tally.Runs)}");
+                    report.AppendLine($"{setting.Trim(),18}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}   " +
+                                      $"{Avg((int)tally.Harvests, tally.Runs)} / {Avg((int)tally.Taken, tally.Runs)}");
                 }
             }
             finally
             {
                 ChapterTuning.Reset();
                 SatchelPowers.HarvestsPerTable = keep;
+                ClassKit.SatchelReRaisePercent = risk;
+                ClassKit.SatchelSize = size;
             }
             TestContext.Out.WriteLine(report.ToString());
         }

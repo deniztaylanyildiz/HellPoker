@@ -26,7 +26,7 @@ NASIL AÇILIR
 
 OYUN NE?
 --------
-YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Kâhin, Kral ya da Soytarı (Çağırıcı ilk kurtuluşunla açılır). Cezan cehennemin
+YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Kâhin, Kral, Soytarı, Çağırıcı ya da Hırsız (hepsi baştan açık). Cezan cehennemin
 şeytanları arasında paylaştırılmıştır; her şeytanda bir payın var.
 Bir sınıfla kurtulursan o sınıf için cehennemin bir sonraki DAİRESİ açılır (sınıf kartındaki < DAİRE > oklarıyla seçilir; her daire
 biraz daha zor). Bazı emanetler kilitli başlar; ne zaman açılacakları REKORLAR'da yazar.
@@ -64,7 +64,7 @@ düşüğü); barı sonundaki işareti geçerse düşersin (koşu biter).
 
 SINIF GÜÇLERİ (K ya da rozet: her elde bir kez; rozetin üstünde HAZIR / BU ELDE KULLANILDI yazar). Masada diyalog kutusunun
 altındaki panelde:
-  - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (en çok 3). Sonraki kart değiştirmelerde heybedeki
+  - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (en çok 2). Sonraki kart değiştirmelerde heybedeki
     karta tıklarsan desteden çekmek yerine o gelir; ama şeytan görür, o el daha sık artırır. K: HASAT, atılan her yer heybeden, gizlice.
   - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek 2 kartı görür. GERÇEĞİ
     GÖRÜR — şeytanın yalanlarını ve dolandırıcıların tuzağını açıkça görür. K ya da kartın üstündeki oklar: KADERİ BÜK, gördüğün
@@ -79,6 +79,9 @@ altındaki panelde:
   - Çağırıcı, İBLİSLER: kart değiştirmeden önce GÖZ (şeytanın kapalı bir kartını aç, 5 coin), EL (bir kartını onun açık bir kartıyla
     değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını
     düşürür. K: LEJYON, o elin ilk iblisi bedava.
+  - Hırsız, EL ÇABUKLUĞU: GÖZ UCU — şeytanın kapalı kartlarından biri dağıtımdan açık gelir. K ya da ÇAL düğmesi (elde bir kez,
+    kart değiştirmeden önce): bir kartına tıkla, şeytanın kapalı kartlarından biriyle körlemesine yer değişir. Dörtte bir
+    yakalanırsın: takas olmaz, ceza ödersin (katta bir ante coin, şeytan masasında bar %3).
 
 ŞEYTAN KURALLARI (sadece şeytanların kendi masalarında; masa açılırken söylerler):
   - Mammon, FAİZ: kazanamadığın her elde bar biraz uzar.

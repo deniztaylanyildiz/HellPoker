@@ -73,7 +73,7 @@ namespace HellPoker.Core.Tests
         {
             var peasant = Journey(SinnerRoster.Peasant).Run;
             peasant.Effects.Give(ChapterRelicIds.PeasantsScythe);
-            Assert.AreEqual(4, peasant.Kit.SatchelCapacity);
+            Assert.AreEqual(ClassKit.SatchelSize + 1, peasant.Kit.SatchelCapacity);
             Assert.AreEqual(ClassKit.SatchelReRaisePercent + 5, peasant.Kit.SatchelRisk);
             var king = Journey(SinnerRoster.King).Run;
             king.Effects.Give(ChapterRelicIds.KingsSignet);

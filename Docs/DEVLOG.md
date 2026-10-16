@@ -3572,3 +3572,27 @@ göre dizayn edip oyuna getir" → "karakter denemeleri için bütün karakterle
 
 ### Not
 - `v2.2-demo` etiketi ve `HellPoker-Demo-2.2-win64.zip` bu işten önceki halde. Hırsız'lı bir test build'i için yeni sürüm (ör. 2.2.1) gerekir.
+
+## 2026-10-17 — Köylü dengesi (heybe 2 kart) ve Demo 2.2.1 build'i
+
+### İstek
+"buildi al ve ikinsinede evet" — Hırsız'lı build ve Köylü'nün heybesini simülasyonla ayarla.
+
+### Köylü
+- `PeasantTuning` ızgarası artık "hasat sınırı, heybe riski %, heybe boyutu" (`HELLPOKER_HARVEST_GRID`). 500 koşu:
+  | ayar | kurtuluş |
+  |---|---|
+  | 0, %30, 3 (eski) | %49.2 |
+  | 0, %60, 3 | %51.0 |
+  | 0, %100, 3 | %51.2 |
+  | 0, %30, **2** | **%41.8** |
+  | 0, %60, 2 | %42.4 |
+  | 1, %60, 2 | %43.0 |
+- Risk etkisiz (simülasyon oyuncusu riskten çekinmiyor), asıl kaldıraç heybe boyutu → `ClassKit.SatchelSize` 3 → **2** (artık ayar
+  değişkeni; Geniş Heybe "bir kart fazla", Köylü'nün Tırpanı +1). 2000 koşu: Köylü **%41.1**, Hırsız **%30.0**.
+- Testler sayıyı `ClassKit.SatchelSize`'dan okuyor; üç kartlık heybe isteyen iki test Geniş Heybe ile kuruluyor.
+
+### Sürüm
+- bundleVersion **2.2.1-demo** ("Demo 2.2.1"), CHANGELOG Demo 2.2.1 başlığı (Hırsız, bütün sınıflar açık, kartlar, heybe 2), OKUBENI (altı
+  sınıf açık, Hırsız paragrafı, heybe en çok 2).
+- EditMode 1107 (1101 geçti, 6 explicit).

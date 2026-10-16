@@ -13,8 +13,8 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("SATCHEL: keep 3 thrown cards to draw later. Power: HARVEST, unseen.",
-                    "HEYBE: attığın bir kartı sakla (en çok 3), sonra çek. Güç: gizli HASAT.");
+                case Peasant.ClassId: return string.Format(L("SATCHEL: keep {0} thrown cards to draw later. Power: HARVEST, unseen.",
+                    "HEYBE: attığın bir kartı sakla (en çok {0}), sonra çek. Güç: gizli HASAT."), ClassKit.SatchelSize);
                 case Warlock.ClassId: return string.Format(L("FORESIGHT: your next {0} cards, and the lies. Power: BEND FATE, one up or down.",
                     "ÖNSEZİ: gelecek {0} kart ve yalanlar. Güç: KADERİ BÜK, biri üste ya da dibe."), ClassKit.ForesightCards);
                 case King.ClassId: return L("A tax per win: open a card 1, free raise 2, seize 4. No cheat touches his J Q K.",

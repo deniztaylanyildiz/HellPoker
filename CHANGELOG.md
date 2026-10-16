@@ -1,6 +1,6 @@
 # Hell Poker — değişiklikler
 
-## Sonraki sürüm (henüz yayınlanmadı)
+## Demo 2.2.1 (2.2.1-demo) — 2026-10-17
 
 ### Yeni
 - **Hırsız (HIRSIZ):** altıncı sınıf. GÖZ UCU: şeytanın kapalı kartlarından biri açık gelir. ÇAL (K ya da düğme, elde bir kez): bir kartını
@@ -9,6 +9,7 @@
 ### Değişen
 - Bütün sınıflar baştan oynanabilir (Çağırıcı'nın kilidi kalktı).
 - Sınıf kartları altı sınıfa göre yeniden düzenlendi, metinler kısaldı.
+- **Köylü'nün heybesi 3 → 2 kart** (Geniş Heybe ile 3): kurtuluşu %51'den %41'e indi (simülasyon, 2000 koşu).
 
 ## Demo 2.2 (2.2.0-demo) — 2026-10-16
 

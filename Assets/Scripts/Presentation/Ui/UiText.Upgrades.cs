@@ -37,7 +37,7 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case UpgradeIds.WideSatchel: return L("The satchel holds four cards.", "Heybe dört kart alır.");
+                case UpgradeIds.WideSatchel: return L("The satchel holds one card more.", "Heybe bir kart fazla alır.");
                 case UpgradeIds.QuietSatchel: return L("The demon notices the satchel half as often.", "Şeytan heybeyi yarı yarıya daha az fark eder.");
                 case UpgradeIds.Seed: return L("Every new chapter puts a ten or better in your satchel.", "Her yeni bölüm heybene onlu ya da daha iyi bir kart koyar.");
                 case UpgradeIds.Abundance: return L("After a draw two thrown cards may go into the satchel.", "Değişten sonra atılan iki kart heybeye girebilir.");

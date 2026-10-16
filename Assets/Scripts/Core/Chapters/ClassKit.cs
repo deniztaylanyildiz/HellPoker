@@ -31,7 +31,8 @@ namespace HellPoker.Core.Chapters
     public sealed class ClassKit
     {
         /// <summary>The satchel holds this many cards; a new one pushes the oldest out.</summary>
-        public const int SatchelSize = 3;
+        /// <remarks>Demo 2.2: 3 → 2 (the Peasant freed 49.2% → 41.8%, 500 whole runs; the re-raise risk barely mattered, a harvest a table neither).</remarks>
+        public static int SatchelSize = 2;   // a tuning knob
 
         /// <summary>A hand the Peasant draws from his satchel the demon sees it: its re-raise comes this much (percent) more often.</summary>
         public static int SatchelReRaisePercent = 30;   // a tuning knob (the simulation's)

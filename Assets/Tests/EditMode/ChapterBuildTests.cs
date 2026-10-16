@@ -179,10 +179,11 @@ namespace HellPoker.Core.Tests
         public void ThePeasantsUpgrades_AWiderSatchel_TwoKept_AQuieterOne()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            Assert.AreEqual(3, kit.SatchelCapacity);
+            Assert.AreEqual(ClassKit.SatchelSize, kit.SatchelCapacity);
             kit.AddUpgrade(UpgradeIds.WideSatchel);
-            foreach (string c in new[] { "2C", "3C", "4C", "5C", "6C" }) kit.Keep(C(c));
-            CollectionAssert.AreEqual(new[] { C("3C"), C("4C"), C("5C"), C("6C") }, kit.Satchel, "four at most");
+            string[] kept = { "2C", "3C", "4C", "5C", "6C" };
+            foreach (string c in kept) kit.Keep(C(c));
+            CollectionAssert.AreEqual(kept.Skip(kept.Length - ClassKit.SatchelSize - 1).Select(C), kit.Satchel, "one more with the upgrade");
 
             Assert.AreEqual(ClassKit.SatchelReRaisePercent, kit.SatchelRisk);
             kit.AddUpgrade(UpgradeIds.QuietSatchel);
