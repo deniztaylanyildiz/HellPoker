@@ -11,7 +11,12 @@ namespace HellPoker.Presentation.Ui
         // ------------------------------------------------------------------ the Summoner's panel
 
         public static string KitSummonTitle => L("IMPS", "İBLİSLER");
-        public static string KitSummonLegionTitle => L("THE LEGION: ONE FREE", "LEJYON: BİRİ BEDAVA");
+
+        /// <summary>The panel's title while the loyal imp frees one (Demo 2.3's passive).</summary>
+        public static string KitSummonLoyalTitle => L("IMPS: ONE FREE", "İBLİSLER: BİRİ BEDAVA");
+
+        /// <summary>An imp not open yet, on its button.</summary>
+        public static string KitLockedShort => L("LOCK", "KİLİT");
 
         /// <summary>The imps' buttons: {0} the price (coins on a floor; "%" of the bar at a demon's).</summary>
         public static string KitEyeButtonFormat => L("EYE {0}", "GÖZ {0}");
@@ -22,10 +27,26 @@ namespace HellPoker.Presentation.Ui
         public static string KitBarPriceFormat => L("+{0}%", "+%{0}");
         public static string KitFree => L("FREE", "BEDAVA");
 
-        public static string KitSummonHint => L("Before the draw: EYE turns a closed card of the demon's, HAND trades a card of yours for an open one of " +
-            "his, WHISPER tells his next cheat. One imp in ten runs wild. K: the Legion.",
+        /// <summary>The imps' hover: {0} the imps open, {1} the wild ones (percent).</summary>
+        public static string KitSummonHintFormat => L("Before the draw: EYE turns a closed card of the demon's, HAND trades a card of yours for an open one of " +
+            "his, WHISPER tells his next cheat. Open now: {0} of 3 (his relics open the HAND, then the WHISPER, then halve the prices). " +
+            "LOYAL IMP: a hand's first imp is free. One imp in ten runs wild.",
             "Değişten önce: GÖZ şeytanın kapalı bir kartını açar, EL bir kartını onun açık bir kartıyla değişir, FISILTI sıradaki hilesini " +
-            "söyler. Onda bir iblis azar. K: Lejyon.");
+            "söyler. Açık: {0}/3 (emanetleri önce EL'i, sonra FISILTI'yı açar, sonra fiyatları yarıya indirir). SADIK İBLİS: elin ilk iblisi " +
+            "bedava. Onda bir iblis azar.");
+
+        public static string KitSummonHint(ClassKit kit) => string.Format(KitSummonHintFormat, kit?.ImpsOpen ?? 1);
+
+        /// <summary>An imp not open yet: the Hand or the Whisper waits for the Summoner's relics.</summary>
+        public static string ImpLockedText(SummonAct act) => act == SummonAct.Hand
+            ? L("The HAND opens with a Summoner's relic.", "EL bir Çağırıcı emanetiyle açılır.")
+            : L("The WHISPER opens with a second Summoner's relic.", "FISILTI ikinci bir Çağırıcı emanetiyle açılır.");
+
+        /// <summary>The loyal imp freed this one.</summary>
+        public static string LoyalImpLine => L("Loyal imp: this one is free.", "Sadık iblis: bu bedava.");
+
+        /// <summary>The Blood Oath: {0} the demon's card lowered, {1} what it became.</summary>
+        public static string WildDemonFormat => L("The imp runs wild — on the demon: his {0} is a {1} now.", "İblis azdı — şeytana: onun {0} kartı artık {1}.");
 
         public static string EyeOpened => L("The imp's eye turns one of his cards.", "İblisin gözü kartlarından birini açtı.");
         public static string SwapPrompt => L("Pick the card the imp's hand trades (the button again: put away).", "İblisin elinin değişeceği kartı seç (yine bas: vazgeç).");
@@ -39,7 +60,6 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>{0} the card lowered, {1} what it became.</summary>
         public static string WildFormat => L("The imp runs wild: your {0} is a {1} now.", "İblis azdı: {0} artık {1}.");
-        public static string LegionCalled => L("The Legion answers: every imp is free this hand.", "Lejyon cevap verdi: bu elde her iblis bedava.");
         public static string SummonNoCoins => L("Not enough coins: the imps never take your last.", "Yeterli coin yok: iblisler son coinini almaz.");
 
         // ------------------------------------------------------------------ the circles of Hell

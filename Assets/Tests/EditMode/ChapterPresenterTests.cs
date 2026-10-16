@@ -419,7 +419,7 @@ namespace HellPoker.Core.Tests
         {
             Begin();
             _map.Press(_map.State.Choices.First());
-            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 0, ClassKit.SatchelSize), _tableView.Kit.Title);
+            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 0, ClassKit.SatchelStart), _tableView.Kit.Title);
             Act();   // the deal
             for (int guard = 0; _table.Game.Phase != GamePhase.Drawing && guard < 10; guard++) Act();
             Assert.AreEqual(GamePhase.Drawing, _table.Game.Phase);
@@ -430,7 +430,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(2, _tableView.Kit.Cards.Count);
             _tableView.PressKitCard(0);
             Assert.AreEqual(1, _chapters.Run.Kit.Satchel.Count);
-            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 1, ClassKit.SatchelSize), _tableView.Kit.Title);
+            Assert.AreEqual(string.Format(UiText.KitSatchelTitleFormat, 1, ClassKit.SatchelStart), _tableView.Kit.Title);
         }
 
         [Test]
@@ -464,10 +464,10 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(_chapters.IsAtTable);
             Assert.IsInstanceOf<BelialRoleSwap>(_table.Kit.Rule);
             Assert.AreEqual(UiText.DemonRuleLine(_table.Kit.Rule), _tableView.DealerView.LastLine, "the rule, said as the table opens");
-            Assert.AreEqual(UiText.KitProphecyShutTitle, _tableView.Kit.Title, "2.1.1: shut until the deal");
+            Assert.AreEqual(UiText.KitProphecyAfterDeal, _tableView.Kit.Note, "2.1.1: shut until the deal");
             _table.PerformAction();   // the deal
             Assert.AreEqual(UiText.KitProphecyTitle, _tableView.Kit.Title);
-            Assert.AreEqual(2, _tableView.Kit.Cards.Count, "two cards of the top after Mammon");
+            Assert.AreEqual(ClassKit.ForesightStart, _tableView.Kit.Cards.Count, "Demo 2.3: FORESIGHT's starting level, whatever the chapter");
         }
 
         [Test]
@@ -674,13 +674,14 @@ namespace HellPoker.Core.Tests
             _chapters.Continue();
             Assert.AreEqual(UiText.LootTitle, _panel.Card.Title);
             var labels = _panel.Card.Options.Select(o => o.Label).ToList();
-            Assert.AreEqual(4, labels.Count, "two relics, an upgrade, the coins");
+            Assert.AreEqual(5, labels.Count, "two relics, the class's next relic (Demo 2.3), an upgrade, the coins");
             Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsSeal), labels[0]);
             Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsScales), labels[1]);
+            Assert.AreEqual(UiText.RelicName(ChapterRelicIds.RopeBelt), labels[2], "the Peasant's first class relic");
             string upgrade = _chapters.Run.LootUpgrade;
-            Assert.AreEqual(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), labels[2]);
+            Assert.AreEqual(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), labels[3]);
             StringAssert.StartsWith(UiText.RarityName(RelicRarity.Boss), _panel.Card.Options[0].Detail, "the rarity on the relic's line");
-            _panel.Press(2);
+            _panel.Press(3);
             CollectionAssert.AreEqual(new[] { upgrade }, _chapters.Journey.Kit.Upgrades, "the upgrade joins the run");
             Assert.AreEqual(2, _chapters.Journey.Chapter, "on to Belial");
         }

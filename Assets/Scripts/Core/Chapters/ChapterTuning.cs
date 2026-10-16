@@ -38,10 +38,6 @@ namespace HellPoker.Core.Chapters
         /// before (HELLPOKER_FIXED_STAKES=0).</summary>
         public static bool FixedBossStakes = true;
 
-        /// <summary>The classes' K powers once a hand, no gauge (2.1.1, the game's); false: the full gauge pays for them, as before
-        /// (HELLPOKER_POWER_HAND=0).</summary>
-        public static bool PowersEveryHand = true;
-
         /// <summary>How often (percent) the demon learns one of the Oracle's cards without the Blind Mirror (Demo 2.2's tuning; 100: always).</summary>
         public static int DemonKnowsPercent = 100;
 
@@ -49,7 +45,6 @@ namespace HellPoker.Core.Chapters
         {
             DemonKnowsPercent = 100;
             FixedBossStakes = true;
-            PowersEveryHand = true;
             StartingCoins.Clear();
             SentenceTotals.Clear();
             TributeOverStart.Clear();

@@ -103,8 +103,6 @@ namespace HellPoker.Core.Tests
         public event Action<int> KitButtonPressed;
         public void PressKitCard(int index) => KitCardPressed?.Invoke(index);
         public void PressKitButton(int index) => KitButtonPressed?.Invoke(index);
-        public event Action<int, bool> KitArrowPressed;
-        public void PressKitArrow(int index, bool toTop) => KitArrowPressed?.Invoke(index, toTop);
 
         /// <summary>The deck counter (-1: hidden) and the SHUFFLE button (null: hidden).</summary>
         public string DeckLabel { get; private set; }

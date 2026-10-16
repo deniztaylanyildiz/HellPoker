@@ -1327,6 +1327,11 @@ namespace HellPoker.Core.Game
                 SparedThisHand = true;
                 LossSpared?.Invoke();
             }
+            else if (showdown.Outcome == ShowdownOutcome.HouseWins && Hooks != null && Hooks.SparesLoss(this, showdown))
+            {
+                // Phase 2: a class's own charge spares it (the Jester's shields): a push too.
+                SparedThisHand = true;
+            }
             else if (showdown.Outcome == ShowdownOutcome.HouseWins)
             {
                 int lost = (int)Math.Ceiling(_payouts.GetYearsAdded(showdown.HouseBust ? HandCategory.HighCard : showdown.House.Category, CurrentStake - FreeStake, Ante,

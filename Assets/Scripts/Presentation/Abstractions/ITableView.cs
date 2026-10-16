@@ -70,9 +70,6 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A button of the class panel was clicked (its index in <see cref="KitDisplay.Buttons"/>).</summary>
         event Action<int> KitButtonPressed;
 
-        /// <summary>One of a small card's arrows was clicked (the Oracle's BEND FATE): its index, and true for ▲ (to the top), false for ▼.</summary>
-        event Action<int, bool> KitArrowPressed;
-
         /// <summary>The deck counter over the House's row and its hover text; a null label hides it (the Jester's deck).</summary>
         void SetDeck(string label, string hint);
 

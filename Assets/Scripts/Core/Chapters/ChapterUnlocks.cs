@@ -68,8 +68,12 @@ namespace HellPoker.Core.Chapters
 
         public static bool IsRelicOpen(string id, ChapterRecords records) => ForRelic(id)?.IsReached(records) ?? true;
 
-        /// <summary>Demo 2.2: every class is open from the start (the user's call: to try them all); the Summoner's milestone stays only as words.</summary>
-        public static bool IsClassOpen(string classId, ChapterRecords records) => true;
+        /// <summary>Every class is open from the start (Demo 2.2, the user's call: the test builds try them all). False brings the old lock
+        /// back: the Summoner opens with the first freedom (<see cref="SummonerMilestone"/>).</summary>
+        public static bool AllClassesOpen = true;
+
+        public static bool IsClassOpen(string classId, ChapterRecords records) =>
+            AllClassesOpen || classId != Summoner.ClassId || SummonerMilestone.IsReached(records);
 
         /// <summary>The relics a run may meet now.</summary>
         public static IEnumerable<string> OpenRelics(ChapterRecords records) => ChapterRelics.All.Where(id => IsRelicOpen(id, records));

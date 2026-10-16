@@ -240,8 +240,8 @@ namespace HellPoker.Core.Chapters
                 case Sinners.King.ClassId: return 200;
                 case Sinners.Warlock.ClassId: return 150;
                 case Sinners.Jester.ClassId: return 130;
-                case Sinners.Summoner.ClassId: return 200;
-                case Sinners.Thief.ClassId: return 140;   // 140 asked: 19.6% free with 6500 years (ChapterSimulation 2026-10-13)
+                case Sinners.Summoner.ClassId: return 200;   // 140 asked: 19.6% free with 6500 years (ChapterSimulation 2026-10-13); 200 / 5800
+                case Sinners.Thief.ClassId: return 140;   // Demo 2.2: the Summoner's asked purse; 29.2% free with 6500 years (500 whole runs)
                 default: return 120;
             }
         }

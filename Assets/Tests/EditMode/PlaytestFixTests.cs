@@ -62,17 +62,16 @@ namespace HellPoker.Core.Tests
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
             kit.EnterChapter(2);
+            kit.AddUpgrade(UpgradeIds.DeepProphecy);   // two cards
             HellPokerGame game = Stacked(Deal, kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
 
             Assert.IsEmpty(hooks.Prophecy.TopCards(game), "between hands: the deal would take the very cards shown");
-            Assert.AreEqual(KitRefusal.NotNow, hooks.Prophecy.WhyNoRearrange(game), "no sending down before the deal");
             Assert.IsFalse(ProphecyPowers.IsOpen(game));
 
             game.PlaceBet();
             Assert.IsTrue(ProphecyPowers.IsOpen(game));
             CollectionAssert.AreEqual(new[] { C("6H"), C("10C") }, hooks.Prophecy.TopCards(game), "the cards the draw will take");
-            Assert.AreEqual(KitRefusal.None, hooks.Prophecy.WhyNoRearrange(game));
             game.CheckToDraw();
             Assert.AreEqual(GamePhase.Drawing, game.Phase);
             Assert.AreEqual(2, hooks.Prophecy.TopCards(game).Count, "still open in the draw");
@@ -80,8 +79,6 @@ namespace HellPoker.Core.Tests
             game.Draw(new[] { 4 });
             Assert.AreEqual(C("6H"), game.PlayerHand[4], "the prophecy told the truth");
             Assert.IsEmpty(hooks.Prophecy.TopCards(game), "shut after the draw");
-            Assert.AreEqual(KitRefusal.NotNow, hooks.Prophecy.WhyNoRearrange(game));
-            Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0));
         }
 
         [Test]
@@ -93,42 +90,56 @@ namespace HellPoker.Core.Tests
             HellPokerGame boss = journey.Run.OpenBossTable(GameRules.Default);
             presenter.SitAtBoss(boss, journey.Run, journey.Run.BossBarStart);
 
-            Assert.AreEqual(UiText.KitProphecyShutTitle, view.Kit.Title);
+            Assert.AreEqual(UiText.KitProphecyTitle, view.Kit.Title);
             Assert.AreEqual(UiText.KitProphecyAfterDeal, view.Kit.Note);
             Assert.IsEmpty(view.Kit.Cards);
-            presenter.UsePower();
-            Assert.AreEqual(UiText.KitAfterTheDeal, view.Message, "K before the deal: after the deal");
 
             presenter.PerformAction();   // the deal
             Assert.AreEqual(UiText.KitProphecyTitle, view.Kit.Title);
             Assert.AreEqual(journey.Kit.ProphecyCards, view.Kit.Cards.Count);
             presenter.UsePower();
-            Assert.AreEqual(string.Format(UiText.RearrangePromptFormat, journey.Kit.RearrangesPerCharge), view.Message);
-            presenter.UsePower();
-            Assert.AreEqual(UiText.KitUsedThisHand, view.Message, "once a hand");
+            Assert.AreEqual(UiText.ClassPassiveInfo(Warlock.ClassId, journey.Kit), view.Message, "Demo 2.3: K tells, nothing is pressed");
             presenter.Dispose();
         }
 
         // ------------------------------------------------------------------ B: the four-colour deck
 
         [Test]
-        public void TheFourColourDeck_IsOnByDefault_SavedAndApplied()
+        public void TheFourColourDeck_IsOffByDefault_SavedAndApplied()
         {
             try
             {
                 var store = new MemoryStore();
                 var settings = new GameSettings(store);
-                Assert.IsTrue(settings.FourColorDeck);
-                Assert.IsTrue(SuitColors.FourColor);
+                Assert.IsFalse(settings.FourColorDeck, "Demo 2.3: the classic two colours by default");
+                Assert.IsFalse(SuitColors.FourColor);
                 settings.ToggleFourColor();
-                Assert.IsFalse(settings.FourColorDeck);
-                Assert.IsFalse(SuitColors.FourColor, "applied at once");
-                Assert.AreEqual(0, store.GetInt("settings.fourcolor", 1));
-                Assert.IsFalse(new GameSettings(store).FourColorDeck, "read back");
+                Assert.IsTrue(settings.FourColorDeck);
+                Assert.IsTrue(SuitColors.FourColor, "applied at once");
+                Assert.AreEqual(1, store.GetInt("settings.fourcolor.v2", 0));
+                Assert.IsTrue(new GameSettings(store).FourColorDeck, "read back");
             }
             finally
             {
-                SuitColors.Set(true);
+                SuitColors.Set(false);
+            }
+        }
+
+        [Test]
+        public void AnOlderPlayersFourColourDeck_TurnsIntoTwoColours_Once()
+        {
+            try
+            {
+                var store = new MemoryStore();
+                store.SetInt("settings.fourcolor", 1);   // 2.1.1-2.2.1: on by default, saved so
+                var settings = new GameSettings(store);
+                Assert.IsFalse(settings.FourColorDeck, "once: the two colours");
+                settings.ToggleFourColor();   // the player turns it back on
+                Assert.IsTrue(new GameSettings(store).FourColorDeck, "from then on the player's choice stands");
+            }
+            finally
+            {
+                SuitColors.Set(false);
             }
         }
 
@@ -151,15 +162,15 @@ namespace HellPoker.Core.Tests
                 var view = new MainMenuPresenterTests.FakeSettingsView();
                 var settings = new GameSettings(new MemoryStore());
                 var presenter = new SettingsPresenter(settings, view, new FakeDisplay());
-                Assert.IsTrue(view.FourColor);
+                Assert.IsFalse(view.FourColor, "Demo 2.3: off by default");
                 view.PressFourColor();
-                Assert.IsFalse(view.FourColor);
-                Assert.IsFalse(SuitColors.FourColor);
+                Assert.IsTrue(view.FourColor);
+                Assert.IsTrue(SuitColors.FourColor);
                 presenter.Dispose();
             }
             finally
             {
-                SuitColors.Set(true);
+                SuitColors.Set(false);
             }
         }
 
@@ -234,33 +245,12 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(100, game.Unit);
         }
 
-        // ------------------------------------------------------------------ H: the class powers, once every hand
+        // ------------------------------------------------------------------ H → Demo 2.3: the passives work every hand, on their own
 
         [Test]
-        public void TheWarlocksPower_OnceEveryHand_NoGauge()
+        public void ThePassives_WorkEveryHand_OnTheirOwn_NoGauge()
         {
-            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
-            HellPokerGame game = Stacked(Deal, kit.Sinner);
-            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
-            for (int hand = 0; hand < 3; hand++)
-            {
-                Assert.AreEqual(0, kit.Sinner.Charge >= kit.Sinner.Rules.Full ? 1 : 0, "the gauge is never full: it does not matter");
-                game.PlaceBet();
-                Assert.IsTrue(hooks.Prophecy.IsReady);
-                Assert.IsTrue(hooks.Prophecy.StartRearranging(game), $"hand {hand}");
-                Assert.AreEqual(KitRefusal.AlreadyUsed, hooks.Prophecy.WhyNoRearrange(game));
-                Assert.IsTrue(hooks.Prophecy.UsedThisHand);
-                game.Bet(BetAction.Fold);
-                Assert.IsFalse(hooks.Prophecy.UsedThisHand, "ready again once the hand is settled");
-                game.NextRound();
-            }
-            Assert.AreEqual(3, kit.PowerUses);
-        }
-
-        [Test]
-        public void TheKingsFreeSeizure_TheLegion_TheHarvest_OnceEveryHand()
-        {
-            // The King: a seizure at half its price, every hand (4 taxes: two seizures, then none).
+            // The King: the royal discount every hand (4 taxes: two seizures at two, then none).
             var king = new ClassKit(new Sinner(SinnerRoster.King));
             king.Restore(null, 4, null, 0);
             HellPokerGame kingGame = Stacked("AD KD 7C 4S 2D  AH 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H AS 8S", king.Sinner);
@@ -268,57 +258,95 @@ namespace HellPoker.Core.Tests
             for (int hand = 0; hand < 2; hand++)
             {
                 kingGame.PlaceBet();
-                if (hand == 1) Assert.AreEqual(KitRefusal.NoTaxes, kingHooks.Treasury.WhyNot(kingGame, TaxAct.Seize), "2 taxes: no full-price seizure");
-                Assert.IsNotNull(kingHooks.Treasury.Seize(kingGame, 2, charged: true), $"hand {hand}");
-                Assert.AreEqual(KitRefusal.AlreadyUsed, kingHooks.Treasury.WhyNot(kingGame, TaxAct.Seize, charged: true));
+                Assert.IsNotNull(kingHooks.Treasury.Seize(kingGame, 2), $"hand {hand}");
+                Assert.IsTrue(kingHooks.Treasury.PassiveThisHand);
+                Assert.AreEqual(KitRefusal.AlreadyUsed, kingHooks.Treasury.WhyNot(kingGame, TaxAct.Seize));
                 kingGame.Bet(BetAction.Fold);
                 kingGame.NextRound();
             }
+            Assert.AreEqual(0, king.Taxes);
+            Assert.AreEqual(2, king.Passives);
 
-            // The Summoner: the Legion every hand.
+            // The Summoner: the loyal imp every hand.
             var summoner = new ClassKit(new Sinner(SinnerRoster.Find(Summoner.ClassId)));
             HellPokerGame summonGame = Stacked(Deal, summoner.Sinner);
             ChapterHooks summonHooks = ChapterHooks.Attach(summonGame, summoner, null, 0, 1);
             for (int hand = 0; hand < 2; hand++)
             {
                 summonGame.PlaceBet();
-                Assert.IsTrue(summonHooks.Summon.CallLegion(summonGame), $"hand {hand}");
-                Assert.AreEqual(KitRefusal.AlreadyUsed, summonHooks.Summon.WhyNoLegion(summonGame));
+                Assert.AreEqual(1, summonHooks.Summon.FreeLeft, $"hand {hand}");
+                Assert.IsFalse(summonHooks.Summon.PassiveThisHand, "nothing until an imp is called");
+                Assert.IsTrue(summonHooks.Summon.Eye(summonGame));
+                Assert.AreEqual(0, summonHooks.Summon.FreeLeft);
+                Assert.IsTrue(summonHooks.Summon.PassiveThisHand);
                 summonGame.Bet(BetAction.Fold);
                 summonGame.NextRound();
             }
 
-            // The Peasant: a harvest every hand the satchel has a card for.
+            // The Peasant: the silent field every hand a satchel card is taken.
             var peasant = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            peasant.Restore(new[] { C("AC"), C("AS"), C("KS") }, 0, null, 0);
+            peasant.Restore(new[] { C("AC") }, 0, null, 0);
             HellPokerGame peasantGame = Stacked(Deal, peasant.Sinner);
             ChapterHooks peasantHooks = ChapterHooks.Attach(peasantGame, peasant, null, 0, 1);
-            for (int hand = 0; hand < 2; hand++)
-            {
-                peasantGame.PlaceBet();
-                Assert.AreEqual(KitRefusal.NotNow, peasantHooks.Satchel.WhyNoHarvest(peasantGame, new[] { 4 }), "the harvest is made in the draw");
-                peasantGame.CheckToDraw();
-                Assert.IsNotNull(peasantHooks.Satchel.Harvest(peasantGame, new[] { 4 }), $"hand {hand}");
-                PassToTheEnd(peasantGame);
-                peasantGame.NextRound();
-            }
-            Assert.AreEqual(2, peasant.Harvests);
+            peasantGame.PlaceBet();
+            peasantGame.CheckToDraw();
+            peasantGame.Draw(new[] { 4 }, new System.Collections.Generic.Dictionary<int, Card> { [4] = C("AC") });
+            Assert.IsFalse(peasantHooks.Satchel.SeenThisHand);
+            Assert.AreEqual(C("AC"), peasantHooks.Satchel.SilentCard);
+            Assert.AreEqual(0, peasant.Sinner.Charge, "no gauge in Phase 2");
         }
 
         [Test]
-        public void TheBadge_SaysReady_ThenUsedThisHand()
+        public void TheOldKPowers_CannotBeCalled_KTellsWhatTheClassDoes_ButTheThiefsKSteals()
         {
-            var view = new FakeTableView();
-            var presenter = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), view);
-            ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Warlock, 78);
-            presenter.SitAtBoss(journey.Run.OpenBossTable(GameRules.Default), journey.Run, journey.Run.BossBarStart);
-            Assert.AreEqual(UiText.PowerReadyHint, view.Sinner.PowerState);
-            Assert.IsTrue(view.Sinner.PowerReady);
-            presenter.PerformAction();
-            presenter.UsePower();
-            Assert.AreEqual(UiText.PowerUsedThisHand, view.Sinner.PowerState);
-            Assert.IsFalse(view.Sinner.PowerReady);
-            presenter.Dispose();
+            foreach (SinnerClass cls in SinnerRoster.PhaseTwo)
+            {
+                var view = new FakeTableView();
+                var presenter = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), view);
+                ChapterJourney journey = ChapterJourney.Begin(cls, 78);
+                presenter.SitAtBoss(journey.Run.OpenBossTable(GameRules.Default), journey.Run, journey.Run.BossBarStart);
+                presenter.PerformAction();   // the deal
+                presenter.UsePower();
+                if (cls.Id == Thief.ClassId)
+                    Assert.AreEqual(UiText.StealPrompt, view.Message, "the Thief's K: his steal");
+                else
+                    Assert.AreEqual(UiText.ClassPassiveInfo(cls.Id, journey.Kit), view.Message, cls.Id + ": K only tells");
+                Assert.IsFalse(presenter.Game.PowerArmed, cls.Id + ": nothing switched on");
+                presenter.Dispose();
+            }
+        }
+
+        [Test]
+        public void TheBadge_ShowsTheLevel_NoReadyWords_AndTheHoverSaysThePowerAndThePassive_InBothLanguages()
+        {
+            try
+            {
+                foreach (Language language in new[] { Language.English, Language.Turkish })
+                foreach (SinnerClass cls in SinnerRoster.PhaseTwo)
+                {
+                    Lang.Set(language);
+                    var view = new FakeTableView();
+                    var presenter = new TablePresenter((d, s) => HellPokerGameFactory.Create(GameRules.Default, d, 1, sinner: s), view);
+                    ChapterJourney journey = ChapterJourney.Begin(cls, 78);
+                    presenter.SitAtBoss(journey.Run.OpenBossTable(GameRules.Default), journey.Run, journey.Run.BossBarStart);
+                    SinnerBadge badge = view.Sinner;
+                    Assert.IsTrue(badge.Passive, cls.Id);
+                    Assert.IsFalse(badge.Usable, cls.Id + ": no READY: K");
+                    Assert.AreEqual(journey.Kit.Level, badge.Charge, cls.Id + ": the pips are the level");
+                    StringAssert.StartsWith(UiText.ChapterSinnerAbility(cls.Id, journey.Kit), badge.Description, cls.Id + ": the class card's words");
+                    if (UiText.ChapterPassiveLine(cls.Id) != null)
+                        StringAssert.Contains(language == Language.English ? "PASSIVE:" : "PASİF:", badge.Description, cls.Id);
+                    // The demo's words never show in Phase 2 (its powers: the free fold, the ward, the crown's whole hand; its K line).
+                    foreach (string demo in new[] { "walk away from a hand for free", "bir eli bedelsiz bırak", "ward off", "savuştur",
+                                 "whole hand", "bütün elini", "K: the power", "K: güç", "Power:", "Güç:" })
+                        StringAssert.DoesNotContain(demo, badge.Description, cls.Id + " / " + language);
+                    presenter.Dispose();
+                }
+            }
+            finally
+            {
+                Lang.Set(Language.English);
+            }
         }
 
         // ------------------------------------------------------------------ F: every card cheat, at a Phase 2 demon's table
@@ -395,7 +423,6 @@ namespace HellPoker.Core.Tests
             // The class's acts before the draw (their own commands: a turned card, a free seizure, the imps, the deck rearranged).
             if (hooks.Treasury != null && hooks.Treasury.WhyNot(game, TaxAct.Reveal) == KitRefusal.None) hooks.Treasury.Reveal(game);
             if (hooks.Summon != null && hooks.Summon.WhyNot(game, SummonAct.Eye) == KitRefusal.None) hooks.Summon.Eye(game);
-            if (hooks.Prophecy != null && hooks.Prophecy.StartRearranging(game)) hooks.Prophecy.SendToBottom(game, 0);
             while (game.Phase == GamePhase.PlayerReveal) Command(() => { game.Bet(BetAction.Pass); return null; });
             if (game.Phase == GamePhase.Drawing)
             {
@@ -528,7 +555,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(3, ChapterRecords.Decode(records.Encode()).MostWardensInAChapter, "kept in the book");
             Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(ChapterRelicIds.DevilsCompass));
             CollectionAssert.Contains(ChapterRelics.All, ChapterRelicIds.DevilsCompass);
-            Assert.AreEqual(RelicRoster.IconOrder.Count - 1, RelicRoster.IconOrder.ToList().IndexOf(ChapterRelicIds.DevilsCompass), "its icon is the strip's last");
+            Assert.AreEqual(RelicRoster.IconOrder.Count - 14, RelicRoster.IconOrder.ToList().IndexOf(ChapterRelicIds.DevilsCompass),
+                "its icon is the last before Demo 2.3's thirteen class relics");
         }
 
         // ------------------------------------------------------------------ the presenter: the compass on the map, the result band

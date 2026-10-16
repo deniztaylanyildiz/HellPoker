@@ -3596,8 +3596,65 @@ göre dizayn edip oyuna getir" → "karakter denemeleri için bütün karakterle
 - bundleVersion **2.2.1-demo** ("Demo 2.2.1"), CHANGELOG Demo 2.2.1 başlığı (Hırsız, bütün sınıflar açık, kartlar, heybe 2), OKUBENI (altı
   sınıf açık, Hırsız paragrafı, heybe en çok 2).
 - EditMode 1107 (1101 geçti, 6 explicit).
-
-﻿
 - Build: `Builds/HellPoker-Demo-2.2.1-win64.zip` (36 MB). Kayıtlar yedeklendi; zip'ten 3 × `-fpstour`: çıkış 0, Player.log'da hata yok; yedek geri kondu.
 - Etiket `v2.2.1-demo` (push yok).
+
+## 2026-10-17 — Demo 2.3, iş 1: pasif sınıf güçleri, sınıf seviyesi ve sınıf emanetleri, iki renk, büyük kit kartları
+
+### İstek (kullanıcı)
+Uzun bir prompt (A–F): Phase 2'de K güçleri kalksın, her sınıfın ana gücü kalsın + kendiliğinden çalışan bir pasif (A); K'ye bağlı
+yükseltme / emanet / Lucifer'in Aynası / KitPlayer / günlük güncellensin (B); sınıflar zayıf başlasın, üç sınıf emaneti (yaygın / nadir /
+efsanevi, sırayla gelir) ve DÖV ile büyüsün (B2); rozet ve hover sınıf kartıyla aynı metin, demo metni hiçbir yerde (C); varsayılan iki
+renkli deste + bir kerelik geçiş, ÖNSEZİ / heybe kartları büyük (D); denge %20-45 (E); yorum kaymaları, Thief_Turkish, tek kilit anahtarı
+(E2); testler, ekran görüntüleri, 2.3.0-demo, build, `v2.3-demo` (F). Simülatöre ve demo kurallarına dokunma. Sonradan: "guide ekranını da
+güncelle, K güçlerinin eskimiş resimleri var".
+
+### Yapılanlar (Core)
+- **Pasifler** (`ClassPowers`; K'ye basılan hiçbir şey yok): Köylü SESSİZ TARLA (elin ilk heybe kartını şeytan görmez; ikincisi görülür,
+  re-raise riski `SatchelRisk`), Kâhin GERÇEĞİ GÖRÜR (eski pasif: yalanlar + tuzaklar; KADERİ BÜK ve okları kalktı), Kral KRALİYET İNDİRİMİ
+  (elin müsaderesi yarı fiyat, yukarı yuvarlanır), Çağırıcı SADIK İBLİS (elin ilk iblisi bedava), Hırsız GÖZ UCU (aynen) + ÇAL artık
+  **draw'dan sonra da** (`TheftPowers.InTheHand`: PlayerReveal / Drawing / DrawReveal / HouseReRaise / HouseReveal; elde bir kez
+  `TriedThisHand`; mühürlü elde draw'dan sonra karar anı olmadığı için kapalı). Soytarı değişmedi. `PassiveThisHand`, `ClassKit.Passives`.
+- **Silindi:** `IsReady / UsedThisHand / SpendPower`, `ChapterTuning.PowersEveryHand`, HASAT (`Harvest`, `BestFill`, `HarvestsPerTable`),
+  KADERİ BÜK (`Bend / PullToTop / SendToBottom / RearrangePrice`), LEJYON (`CallLegion`, `LegionImps`), şarjlı müsadere (`PowerSeizePrice`),
+  `KitRefusal.NotCharged / NothingThrown / NoBottom / UsedAtTable / Empty` (yeni: `Locked`), `KitCard.Arrows`, `ITableView.KitArrowPressed`,
+  `SinnerBadge.PowerState`, metinler (`HarvestDone`, `BentUpFormat`, `LegionCalled`, `KitUsedThisHand`...), Aynanın `SentDown`'u.
+- **Seviye** (`ClassKit.Level`, 0-3 = takılı sınıf emanetlerinin `RelicExtras.ClassStep` adımı + sınıfın "adım" yükseltmesi): heybe 1→4,
+  ÖNSEZİ 1→4, hazine 5→20 (adım 5), yakalanma %40→%10 (adım 10, en az 5), iblisler GÖZ → +EL → +FISILTI → yarı fiyat, Soytarı masa başına
+  0→3 kalkan (kendi iki jokeriyle kaybedilen el berabere: `UpgradeHooks.SparesLoss`, yeni `TableHooks.SparesLoss`). `ValueAt / PowerValue /
+  PowerMax`. DÖV: `Boon.Partial(50)` 1 adımı yukarı yuvarlar → dövülmüş sınıf emaneti 2 adım. Çantadaki emanet etkisiz (yalnız takılı).
+- **Sınıf emanetleri** (`ChapterRelics.ClassChain`, 6 × 3; 13 yeni: İp Kuşak, Hasat Ayı, Çatlak Küre, Yıldız Haritası, Vergi Defteri, Altın
+  Asa, Tebeşir Çemberi, Kara Grimuar, Eski Eldivenler, Maymuncuk, Gölge Pelerini, Çıngıraklı Yaka, Alaycı Maske; 5 eski nadir zincirin ortası).
+  Genel çekilişe hiç girmez; sırayla gelir (`NextClassRelic`): pazarda %35 bir yuvada (`BlackMarket.ClassRelic`), bekçi ödülü %35, ganimette
+  hep ek seçenek. `ChapterRelics.ClassRelicChance` ayar düğmesi. Kâhinin Gözlüğü'nün yeni laneti: şeytan düşük kartla %10 daha çok zorbalık.
+- **Yükseltmeler:** Geniş Heybe / Üçüncü Göz / Taşan Hazine / Hafif Parmaklar = bir seviye; Kader Dokumacısı → şeytanın bildiği kart
+  görünür; Ucuz Müsadere → indirim dörtte bir; Çağırıcı'ya 4 yükseltme (yoktu): İki Sadık İblis, Evcil İblisler, Keskin Göz, Kan Yemini.
+- Lucifer'in Aynası: Kâhin'e karşı artık desteyi dibe yollamaz (yalnız pat çekerken üst kartı alır); vergi tavanı `LuciferTaxCap` 10.
+- `ChapterUnlocks.AllClassesOpen` (true; false eski kural: Çağırıcı ilk kurtuluşla). Yorumlar: BossShares ve StartingCoinsFor'da Hırsız /
+  Çağırıcı notları yerine kondu.
+
+### Yapılanlar (sunum)
+- K: Hırsız'da ÇAL'ın kısayolu, diğerlerinde `UiText.ClassPassiveInfo` mesajı. Rozet: pipler = seviye, HAZIR / BU ELDE KULLANILDI yok,
+  pasif çalışınca kısa parlama (`SinnerBadge.Passive / PassiveFlashes`); hover = `UiText.ChapterSinnerAbility(id, kit)` (ana güç şu anki ve
+  en yüksek değerle + "PASİF: ..." + yükseltmeler), sınıf kartı da aynı fonksiyonu kullanıyor.
+- Kit paneli: kartlar 24×36 (`KitView.CardWidth/Height`), panel kartlarla 52 px; Kâhin panelinde ok yok; Çağırıcı'nın kilitli iblisi "KİLİT".
+- Haritanın yan sütununda "ÖNSEZİ 2/4"; güç büyüyünce harita bir kez söyler ("ÖNSEZİ artık 2 kart görür."), pazarda alınca da.
+- Günlük: `passive: SILENT FIELD / ROYAL DISCOUNT / LOYAL IMP ...`, `theft: ... (after the draw)`, `jester's shield`, `refused: <neden>`.
+- Kartlar: `SuitColors` / `GameSettings.FourColorDeck` varsayılan kapalı; yalnız `settings.fourcolor.v2` okunur → eski "açık" bir kez kapalı.
+- How to Play sayfa 7 "GÜNAHKÂRLAR VE GÜÇLER" (ana güç + pasif, büyüme satırı), sayfa 8'e sınıf emaneti satırı. 13 ikon (`pixel_relics.py`).
+
+### Kararlar (varsayılanla)
+- Seviye üst sınırı 3 (emanet + dövme + adım yükseltmesi toplamı); kullanıcının "1→2→3, yükseltme +1" örneği en çok 4'e denk.
+- Adım yükseltmeleri (Geniş Heybe vb.) emanetle aynı türden etki (seviye); kullanıcının açık örneği bu olduğu için korundu.
+- Kâhin'in pasifi eskisi; Kader Dokumacısı yeni bilgi (şeytanın bildiği kart). Çağırıcı'nın yükseltmesi yoktu, dört tane eklendi.
+- Sınıf emanetleri genel çekilişten çıktı (yalnız pazar %35, bekçi %35, ganimet); simülasyon oyuncusu pazarda / ganimette önce onu alır.
+
+### Testler
+- EditMode 1110 (1105 geçti, 5 explicit). Güncellenen: ClassKitTests, OracleTests, PowerHuntTests, PlaytestFixTests (pasifler her elde,
+  eski K'ler çağrılamaz, rozet hover'ı iki dilde demo metni içermez, iki renk + bir kerelik geçiş), ThiefTests (draw sonrası / re-raise'de
+  ÇAL, showdown'dan sonra red, kilit anahtarı), NewRelicTests (zincir sırası, adımlar, dövme, çanta, pazar / ganimet), ChapterProgressTests
+  (iblis kilitleri, sadık iblis, İki Sadık İblis).
+
+### Sıradaki
+- Simülasyon ve ayar (E), ekran görüntüleri + HowToShots (C, guide resimleri), PlayMode / FullRun (Thief_Turkish), sürüm ve build (F).
 

@@ -39,17 +39,17 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheSummoner_AfterTheLegionsFreeImp_PaysForTheNext_AndIsRefusedWithoutTheCoins()
+        public void TheSummoner_AfterTheLoyalImpsFreeOne_PaysForTheNext_AndIsRefusedWithoutTheCoins()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Summoner));
+            kit.Relics = () => new HellPoker.Core.Relics.RelicEffects(extras: HellPoker.Core.Relics.RelicEffects.Marks((HellPoker.Core.Relics.RelicExtras.ClassStep, 2)));
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             var imps = new SummonPowers(kit, new Always(99), 0) { Purse = new CoinPurse(6) };
             game.UseHooks(imps);
             game.PlaceBet();
-            Assert.IsTrue(imps.CallLegion(game));
-            Assert.IsTrue(imps.Eye(game), "the Legion's free imp");
+            Assert.IsTrue(imps.Eye(game), "the loyal imp's free one");
             Assert.AreEqual(6, imps.Purse.Coins);
-            Assert.AreEqual(SummonPowers.CoinPrices[(int)SummonAct.Whisper], imps.PriceOf(SummonAct.Whisper), "the Legion's one free imp is spent");
+            Assert.AreEqual(SummonPowers.CoinPrices[(int)SummonAct.Whisper], imps.PriceOf(SummonAct.Whisper), "the hand's one free imp is spent");
             Assert.AreEqual(KitRefusal.NoTaxes, imps.WhyNot(game, SummonAct.Whisper), "eight coins with six in the purse: refused");
             Assert.IsFalse(imps.Whisper(game));
             Assert.AreEqual(6, imps.Purse.Coins);
@@ -92,6 +92,7 @@ namespace HellPoker.Core.Tests
         public void TheSatchel_TheCollateralChain_AndTheDraw_EachCardLandsWhereItShould()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
+            kit.AddUpgrade(UpgradeIds.WideSatchel);   // room for two
             kit.Keep(TestCards.Card("AS"));
             kit.Keep(TestCards.Card("AD"));
             var random = new Always(0);
@@ -129,7 +130,8 @@ namespace HellPoker.Core.Tests
             CollectionAssert.AreEqual(new[] { TestCards.Card("AD") }, kit.Satchel, "the ace taken is out of the satchel");
             var everywhere = after.Concat(game.HouseHand).Concat(game.Deck.Remaining).Concat(kit.Satchel).ToList();
             Assert.AreEqual(everywhere.Count, everywhere.Distinct().Count(), "no card in two places");
-            Assert.IsTrue(hooks.Satchel.SeenThisHand, "the demon saw the satchel opened");
+            Assert.IsFalse(hooks.Satchel.SeenThisHand, "one satchel card: the Silent Field keeps it unseen");
+            Assert.AreEqual(TestCards.Card("AS"), hooks.Satchel.SilentCard);
         }
 
         [Test]
@@ -163,7 +165,7 @@ namespace HellPoker.Core.Tests
                 game.PlaceBet();
             }
             Assert.IsTrue(mirror.EyeSaw.HasValue, "the third hand: his eye");
-            Assert.IsFalse(mirror.DrewTop || mirror.UsedBag || mirror.SentDown, "nothing else: no 'top card' line");
+            Assert.IsFalse(mirror.DrewTop || mirror.UsedBag, "nothing else: no 'top card' line");
 
             // Against the Oracle, standing pat on a full house: the ace on top makes it four, he draws it.
             var oracle = new ClassKit(new Sinner(SinnerRoster.Warlock));
@@ -174,7 +176,7 @@ namespace HellPoker.Core.Tests
             pat.CheckToDraw();
             pat.Draw(new[] { 0 });
             Assert.IsTrue(seer.DrewTop, "he drew the top card");
-            Assert.IsFalse(seer.UsedBag || seer.SentDown || seer.EyeSaw.HasValue);
+            Assert.IsFalse(seer.UsedBag || seer.EyeSaw.HasValue);
             Assert.AreEqual(HandCategory.FourOfAKind, Evaluator.Evaluate(pat.HouseHand).Category);
         }
 
@@ -188,16 +190,16 @@ namespace HellPoker.Core.Tests
             var chapters = new ChapterPresenter(map, panel, () => (table, view), null, new AudioTests.FakeAudio(), GameRules.Default, () => 4242);
             try
             {
-                chapters.Start(SinnerRoster.Warlock);
+                chapters.Start(SinnerRoster.Thief);
                 panel.Press(0);
                 map.Press(map.State.Choices.FirstOrDefault(n => n.Kind == NodeKind.Table) ?? map.State.Choices.First());
                 Assert.IsTrue(table.AtChapterTable);
-                table.UsePower();   // K before the deal: refused
+                table.UsePower();   // K (the Thief's steal) before the deal: refused
                 int guard = 0;
                 while (table.AtChapterTable && table.Game.RoundNumber < 2 && guard++ < 50) table.PerformAction();
                 string[] lines = chapters.Feedback.LogLines.ToArray();
                 Assert.IsTrue(lines.Any(l => l.StartsWith("#1 ")), string.Join("\n", lines));
-                Assert.IsTrue(lines.Any(l => l.Contains("K refused")), string.Join("\n", lines));
+                Assert.IsTrue(lines.Any(l => l.Contains("refused: NotNow")), string.Join("\n", lines));
             }
             finally
             {

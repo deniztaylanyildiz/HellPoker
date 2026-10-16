@@ -29,6 +29,10 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.NightEye: return L("NIGHT EYE", "GECE GÖZÜ");
                 case UpgradeIds.MasterThief: return L("MASTER THIEF", "USTA HIRSIZ");
                 case UpgradeIds.LootSack: return L("LOOT SACK", "GANİMET ÇUVALI");
+                case UpgradeIds.LoyalPair: return L("TWO LOYAL IMPS", "İKİ SADIK İBLİS");
+                case UpgradeIds.TameImps: return L("TAME IMPS", "EVCİL İBLİSLER");
+                case UpgradeIds.KeenEye: return L("KEEN EYE", "KESKİN GÖZ");
+                case UpgradeIds.BloodOath: return L("BLOOD OATH", "KAN YEMİNİ");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -37,17 +41,20 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case UpgradeIds.WideSatchel: return L("The satchel holds one card more.", "Heybe bir kart fazla alır.");
+                case UpgradeIds.WideSatchel: return L("The SATCHEL a step up: one card more.", "HEYBE bir adım büyür: bir kart fazla.");
                 case UpgradeIds.QuietSatchel: return L("The demon notices the satchel half as often.", "Şeytan heybeyi yarı yarıya daha az fark eder.");
                 case UpgradeIds.Seed: return L("Every new chapter puts a ten or better in your satchel.", "Her yeni bölüm heybene onlu ya da daha iyi bir kart koyar.");
                 case UpgradeIds.Abundance: return L("After a draw two thrown cards may go into the satchel.", "Değişten sonra atılan iki kart heybeye girebilir.");
-                case UpgradeIds.DeepProphecy: return L("FORESIGHT sees one card more.", "ÖNSEZİ bir kart fazla görür.");
+                case UpgradeIds.DeepProphecy: return L("FORESIGHT a step up: one card more.", "ÖNSEZİ bir adım büyür: bir kart fazla.");
                 case UpgradeIds.BlindMirror: return L("Half the hands the demon learns none of your cards.", "Ellerin yarısında şeytan kartlarından hiçbirini öğrenemez.");
-                case UpgradeIds.Thrice: return L("BEND FATE moves two cards.", "KADERİ BÜK iki kart oynatır.");
+                case UpgradeIds.Thrice: return L("You see which of your cards the demon knows.", "Şeytanın hangi kartını bildiğini görürsün.");
                 case UpgradeIds.EyeOfTruth: return string.Format(L("Walk away from a swindler's offer: +{0} coins.",
                     "Bir dolandırıcının teklifini geri çevir: +{0} coin."), ClassKit.SealCoins);
-                case UpgradeIds.OverflowingTreasury: return L("The treasury holds fifteen taxes.", "Hazine on beş vergi alır.");
-                case UpgradeIds.CheapSeizure: return L("A seizure costs 3 taxes.", "Müsadere 3 vergi.");
+                case UpgradeIds.OverflowingTreasury: return string.Format(L("The TREASURY a step up: {0} taxes more.", "HAZİNE bir adım büyür: {0} vergi fazla."),
+                    ClassKit.TaxStep);
+                case UpgradeIds.CheapSeizure: return string.Format(L("The royal discount takes three quarters off a seizure ({0} taxes).",
+                    "Kraliyet indirimi müsaderenin dörtte üçünü siler ({0} vergi)."),
+                    System.Math.Max(1, (ClassKit.SeizePrice * ClassKit.CheapSeizurePercent + 99) / 100));
                 case UpgradeIds.CrownGuard: return L("A demon's hand lost takes a quarter of your taxes, not half.",
                     "Kaybedilen boss eli vergilerinin yarısını değil dörtte birini alır.");
                 case UpgradeIds.RoyalDecree: return L("A free raise costs 1 tax.", "Bedava artırma 1 vergi.");
@@ -56,7 +63,13 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.DoubleLaugh: return L("A draw that brings you two jokers throws one back for the next card.",
                     "Sana iki joker getiren değiş birini geri atar, yerine sıradaki kart gelir.");
                 case UpgradeIds.JokerPurse: return L("The black market's joker service costs half.", "Kara Pazar'ın joker hizmeti yarı fiyat.");
-                case UpgradeIds.LightFingers: return L("Caught one time in ten, not one in four.", "Dörtte bir değil, onda bir yakalanırsın.");
+                case UpgradeIds.LightFingers: return string.Format(L("The QUICK HAND a step up: caught {0}% less often.",
+                    "EL ÇABUKLUĞU bir adım büyür: %{0} daha az yakalanırsın."), ClassKit.CaughtStep);
+                case UpgradeIds.LoyalPair: return L("A hand's first two imps are free.", "Elin ilk iki iblisi bedava.");
+                case UpgradeIds.TameImps: return L("An imp never runs wild.", "İblis asla azmaz.");
+                case UpgradeIds.KeenEye: return L("The EYE turns two of the demon's cards.", "GÖZ şeytanın iki kartını açar.");
+                case UpgradeIds.BloodOath: return L("An imp that runs wild lowers one of the demon's cards, not yours.",
+                    "Azan iblis senin değil, şeytanın bir kartını düşürür.");
                 case UpgradeIds.NightEye: return L("Two of the demon's closed cards show from the deal.", "Şeytanın iki kapalı kartı dağıtımdan açık gelir.");
                 case UpgradeIds.MasterThief: return L("STEAL takes the demon's best open card when he shows one.",
                     "ÇAL, şeytanın açık kartı varsa en iyisini alır.");

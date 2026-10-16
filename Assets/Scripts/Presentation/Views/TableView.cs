@@ -84,7 +84,6 @@ namespace HellPoker.Presentation.Views
         public event Action<string> RelicPressed;
         public event Action<int> KitCardPressed;
         public event Action<int> KitButtonPressed;
-        public event Action<int, bool> KitArrowPressed;
         public event Action ShufflePressed;
         public event Action<int, int> JokerStepPressed;
         public event Action JokerConfirmPressed;
@@ -317,8 +316,7 @@ namespace HellPoker.Presentation.Views
             // The relics down the portrait box's right edge, under the intent sign.
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
             // Phase 2's class panel: under the dialog box, where a chapter's table has no LEAVE TABLE.
-            _kit = KitView.Create(screen, 4, 207, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i),
-                (i, up) => KitArrowPressed?.Invoke(i, up));
+            _kit = KitView.Create(screen, 4, 207, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
             // Phase 2: the demon's health bar, under the name (in place of the line under it).
             _bossBar = BossBarWidget.Create(screen, "BossBar", 8, 122, 92, 7, hover: true);
             // The joker picker sits where the bet controls do (they are hidden while it is open).

@@ -10,7 +10,8 @@ using NUnit.Framework;
 
 namespace HellPoker.Core.Tests
 {
-    /// <summary>Demo 2.2: the Warlock became the Oracle (FORESIGHT, BEND FATE with a card's arrows, the Mirror Curse); the id stays.</summary>
+    /// <summary>Demo 2.2: the Warlock became the Oracle (FORESIGHT, the Mirror Curse); the id stays. Demo 2.3: BEND FATE and its arrows are
+    /// gone — FORESIGHT only shows, the passive sees the truth.</summary>
     public class OracleTests
     {
         [TearDown]
@@ -27,43 +28,33 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheArrows_ShowWhileFateMayBeBent_AndAnUpArrowBringsTheCardToTheTop()
+        public void Foresight_ShowsTheDecksTop_NothingMovesIt_AndKOnlyTellsThePassive()
         {
             var (presenter, view, journey) = AtTheBoss();
-            Assert.IsFalse(view.Kit.Cards.Any(c => c.Arrows), "shut before the deal");
+            Assert.AreEqual(0, view.Kit.Cards.Count, "shut before the deal");
             presenter.PerformAction();   // the deal
-            Assert.AreEqual(2, view.Kit.Cards.Count, "FORESIGHT: two cards");
-            Assert.IsTrue(view.Kit.Cards.All(c => c.Arrows));
-            Assert.IsFalse(view.Kit.Cards[0].CanTop, "the top card is on top already");
-            Assert.IsTrue(view.Kit.Cards[1].CanTop);
-            Assert.IsTrue(view.Kit.Cards.All(c => c.CanBottom));
+            HellPokerGame game = (HellPokerGame)presenter.Game;
+            Assert.AreEqual(ClassKit.ForesightStart, view.Kit.Cards.Count, "Demo 2.3: FORESIGHT starts with one card");
+            Card top = game.Deck.Remaining[game.Deck.Remaining.Count - 1];
+            Assert.AreEqual(top, view.Kit.Cards[0].Card, "the deck's top card");
 
-            Card second = view.Kit.Cards[1].Card;
-            presenter.PressKitArrow(0, true);
-            Assert.AreEqual(UiText.BendAlreadyOnTop, view.Message);
-            Assert.IsFalse(presenter.Kit.Prophecy.UsedThisHand, "a refused move does not spend the power");
-
-            presenter.PressKitArrow(1, true);
-            Assert.AreEqual(second, view.Kit.Cards[0].Card, "the second card is the top now");
-            StringAssert.StartsWith(string.Format(UiText.BentUpFormat, second), view.Message);
-            Assert.IsTrue(presenter.Kit.Prophecy.UsedThisHand);
-            Assert.IsFalse(view.Kit.Cards.Any(c => c.Arrows), "the hand's bend is spent: the arrows go");
-
-            presenter.PressKitArrow(1, false);
-            Assert.AreEqual(UiText.KitUsedThisHand, view.Message, "once a hand");
+            presenter.PressKitCard(0);
+            Assert.AreEqual(top, game.Deck.Remaining[game.Deck.Remaining.Count - 1], "a click on the card moves nothing");
+            presenter.UsePower();
+            Assert.AreEqual(UiText.ClassPassiveInfo(Warlock.ClassId, journey.Kit), view.Message, "K: what the class does, nothing pressed");
+            StringAssert.Contains("SEES THE TRUTH", view.Message);
             presenter.Dispose();
         }
 
         [Test]
-        public void TheDownArrow_SendsTheCardToTheBottom()
+        public void TheFateWeaver_ShowsTheCardTheDemonKnows()
         {
-            var (presenter, view, _) = AtTheBoss(78);
+            var (presenter, view, journey) = AtTheBoss(78);
+            journey.Kit.AddUpgrade(UpgradeIds.Thrice);
             presenter.PerformAction();
-            Card top = view.Kit.Cards[0].Card, second = view.Kit.Cards[1].Card;
-            presenter.PressKitArrow(0, false);
-            Assert.AreEqual(second, view.Kit.Cards[0].Card);
-            Assert.AreNotEqual(top, view.Kit.Cards[1].Card);
-            StringAssert.StartsWith(string.Format(UiText.RearrangedFormat, top), view.Message);
+            Card? known = presenter.Kit.Prophecy.KnownCard;
+            Assert.IsTrue(known.HasValue, "the Mirror Curse: the demon knows a card every hand");
+            StringAssert.Contains(string.Format(UiText.DemonKnowsFormat, known.Value), view.Kit.Title);
             presenter.Dispose();
         }
 

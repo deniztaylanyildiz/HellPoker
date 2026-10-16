@@ -137,7 +137,6 @@ namespace HellPoker.Presentation
             _view.JokerConfirmPressed += ConfirmJoker;
             _view.KitCardPressed += PressKitCard;
             _view.KitButtonPressed += PressKitButton;
-            _view.KitArrowPressed += PressKitArrow;
             Lang.Changed += OnLanguageChanged;
         }
 
@@ -911,7 +910,8 @@ namespace HellPoker.Presentation
             int bar = Math.Sign(round.YearsChange) * Shown(Math.Abs(round.YearsChange));
             int sentence = round.YearsChange + (KitGame?.UnhealedYearsThisHand ?? 0);
             string lines = "\n" + UiText.BarSentenceLines(bar, sentence);
-            if (KitGame?.SparedThisHand == true) lines += "\n" + UiText.LossSpared;   // a relic spared the loss: a push
+            // A relic spared the loss: a push (the Jester's shield says its own line: WithKitLines).
+            if (KitGame?.SparedThisHand == true && _kit?.Upgrades?.ShieldedThisHand != true) lines += "\n" + UiText.LossSpared;
             if (round.Folded) return round.FreeFold ? UiText.FreeFoldMessage : UiText.BarFold + lines;
             ShowdownResult s = round.Showdown;
             if (s == null) return UiText.BarFold + lines;   // (a demon never gives up his hand)
@@ -959,7 +959,6 @@ namespace HellPoker.Presentation
             _view.JokerConfirmPressed -= ConfirmJoker;
             _view.KitCardPressed -= PressKitCard;
             _view.KitButtonPressed -= PressKitButton;
-            _view.KitArrowPressed -= PressKitArrow;
             Lang.Changed -= OnLanguageChanged;
         }
 
@@ -1221,21 +1220,24 @@ namespace HellPoker.Presentation
                 return;
             }
             string id = sinner.Id;
+            int jokers = sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1;
+            if (_kit != null)
+            {
+                // Phase 2 (Demo 2.3): the class's main power and its passive work on their own — the hover says what the class card says,
+                // with the power's numbers now; the pips are its level; a passive that worked this hand flashes the badge.
+                ClassKit kit = _kit.Kit;
+                string text = UiText.ChapterSinnerAbility(id, kit);
+                if (sinner.JackpotFallsTo > 0 && sinner.Class.JokerJackpot > 0)
+                    text += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, sinner.Class.JokerJackpot, sinner.JackpotFallsTo);
+                if (jokers >= 0) text += "\n" + UiText.JokerBadgeHint(jokers);
+                _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), text, kit.Level, kit.Grows ? ClassKit.MaxLevel : 0, jokers: jokers,
+                    upgrades: kit.Upgrades.Count, passive: true, passiveFlashes: kit.Passives + kit.Shields));
+                return;
+            }
             bool usable = sinner.IsCharged && _game.WhyNoPower() == PowerRefusal.None;
-            // At a chapter's table: the class's upgrades, a pip each, named in the hover.
-            IReadOnlyList<string> upgrades = _kit?.Kit.Upgrades ?? (IReadOnlyList<string>)Array.Empty<string>();
-            string ability = UiText.SinnerAbility(id);
-            if (upgrades.Count > 0) ability += "\n" + string.Format(UiText.UpgradesLineFormat, string.Join(", ", upgrades.Select(UiText.UpgradeName)));
-            if (sinner.JackpotFallsTo > 0 && sinner.Class.JokerJackpot > 0)
-                ability += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, sinner.Class.JokerJackpot, sinner.JackpotFallsTo);
-            // Phase 2 (2.1.1): the class's K power is ready once every hand — no gauge; the badge says ready or spent.
-            ClassPowers powers = _kit?.Powers;
-            bool ready = powers != null && powers.IsReady;
-            string state = powers == null ? null : ready ? UiText.PowerReadyHint : UiText.PowerUsedThisHand;
-            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), ability, sinner.Charge, sinner.Rules.Full, usable,
-                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, sinner.Class.StartingJokers > 0 ? sinner.Jokers : -1, upgrades.Count,
-                state, ready));
-            if (powers == null && sinner.IsCharged && !_relabelling)
+            _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), UiText.SinnerAbility(id), sinner.Charge, sinner.Rules.Full, usable,
+                sinner.WardRaised || sinner.HandProtected, _game.PowerArmed, jokers));
+            if (sinner.IsCharged && !_relabelling)
                 Tip(UiText.TipPowerReady);
         }
 
@@ -1420,9 +1422,9 @@ namespace HellPoker.Presentation
             if (!Playing || _pendingEvent != null || Hurry()) return;
             Sinner sinner = _game.Sinner;
             if (sinner == null) return;
-            if (_kit?.Powers != null)
+            if (_kit != null)
             {
-                UseKitPower();   // Phase 2: the class's chapter power in place of the demo's
+                UseKitPower();   // Phase 2 (Demo 2.3): the Thief's steal; the other classes' powers work on their own
                 return;
             }
             if (sinner.Ability == SinnerAbility.None)
@@ -1847,8 +1849,8 @@ namespace HellPoker.Presentation
             if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
                 _redrawing = false;
             // A seizure's (or the imp's Hand's) pick is made before the draw: once the draw is done (or the hand over) it closes
-            // (Demo 2.2: it stayed open, and every card clicked after the draw only repeated its prompt).
-            if (_seizing && (KitGame == null || !KitGame.HandInPlay || KitGame.IsAfterDraw))
+            // (Demo 2.2: it stayed open, and every card clicked after the draw only repeated its prompt). The Thief's lasts to the showdown.
+            if (_seizing && KitPickMomentGone())
                 _seizing = false;
             // The joker picker lives only while the showdown waits for the joker's name.
             if (_game.Phase != GamePhase.NamingJoker)

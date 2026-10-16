@@ -43,8 +43,8 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThirtyNineRelics_EachWithWordsAndAnIcon()
         {
-            Assert.AreEqual(36, ChapterRelics.New.Count);
-            Assert.AreEqual(40, ChapterRelics.All.Count, "the demo's four and thirty-six");
+            Assert.AreEqual(49, ChapterRelics.New.Count, "Demo 2.3: thirteen class relics more");
+            Assert.AreEqual(53, ChapterRelics.All.Count, "the demo's four and forty-nine");
             Assert.AreEqual(RelicRoster.IconOrder.Count, RelicRoster.IconOrder.Distinct().Count());
             foreach (ChapterRelic relic in ChapterRelics.New.Skip(20))
             {
@@ -54,38 +54,102 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheClassRelics_OnlyForTheirClass_ThreeTimesAsOften()
+        public void TheClassRelics_NeverInADraw_ThreeAClass_InOrder()
         {
-            string[] classRelics = { ChapterRelicIds.JestersHat, ChapterRelicIds.SeersSpectacles, ChapterRelicIds.PeasantsScythe, ChapterRelicIds.KingsSignet,
-                ChapterRelicIds.SummonersLeash };
-            var counts = new Dictionary<string, int>();
             for (int seed = 0; seed < 400; seed++)
-                foreach (string id in ChapterRelics.Draw(new SystemRandomSource(seed), new RelicWeights(0, 1, 0), 3, null, null, Peasant.ClassId))
-                    counts[id] = (counts.TryGetValue(id, out int n) ? n : 0) + 1;
-            Assert.IsFalse(classRelics.Where(id => id != ChapterRelicIds.PeasantsScythe).Any(counts.ContainsKey), "another class's: never");
-            int scythe = counts[ChapterRelicIds.PeasantsScythe];
-            double others = counts.Where(p => p.Key != ChapterRelicIds.PeasantsScythe).Average(p => p.Value);
-            Assert.Greater(scythe, others * 1.8, "the Peasant's own: about three times as often");
+                foreach (string id in ChapterRelics.Draw(new SystemRandomSource(seed), new RelicWeights(1, 1, 1), 3, null, null, Peasant.ClassId))
+                    Assert.IsFalse(ChapterRelics.IsClassRelic(id), "Demo 2.3: a class relic comes only by its own ways");
+            foreach (SinnerClass cls in SinnerRoster.PhaseTwo)
+            {
+                IReadOnlyList<string> chain = ChapterRelics.ClassChain(cls.Id);
+                Assert.AreEqual(3, chain.Count, cls.Id);
+                CollectionAssert.AreEqual(new[] { RelicRarity.Common, RelicRarity.Rare, RelicRarity.Legendary }, chain.Select(ChapterRelics.RarityOf).ToArray(), cls.Id);
+                var held = new HashSet<string>();
+                foreach (string id in chain)
+                {
+                    Assert.AreEqual(id, ChapterRelics.NextClassRelic(cls.Id, held.Contains), "the common, then the rare, then the legendary");
+                    held.Add(id);
+                }
+                Assert.IsNull(ChapterRelics.NextClassRelic(cls.Id, held.Contains), "all three held");
+            }
         }
 
         [Test]
-        public void TheClassRelics_BendTheKit()
+        public void TheClassRelics_EachAStepOfTheMainPower_WornNotBagged_AForgedOneTwo()
         {
             var peasant = Journey(SinnerRoster.Peasant).Run;
+            Assert.AreEqual(0, peasant.Kit.Level);
+            peasant.Effects.Give(ChapterRelicIds.RopeBelt);
+            Assert.AreEqual(ClassKit.SatchelStart + 1, peasant.Kit.SatchelCapacity, "a step: a card more");
             peasant.Effects.Give(ChapterRelicIds.PeasantsScythe);
-            Assert.AreEqual(ClassKit.SatchelSize + 1, peasant.Kit.SatchelCapacity);
-            Assert.AreEqual(ClassKit.SatchelReRaisePercent + 5, peasant.Kit.SatchelRisk);
+            Assert.AreEqual(2, peasant.Kit.Level);
+            Assert.AreEqual(ClassKit.SatchelReRaisePercent + 5, peasant.Kit.SatchelRisk, "the scythe's curse");
+            peasant.Effects.Forge(ChapterRelicIds.RopeBelt);
+            Assert.AreEqual(3, peasant.Kit.Level, "a forged class relic: another step");
+            Assert.AreEqual(ClassKit.MaxLevel, peasant.Kit.Level);
+
             var king = Journey(SinnerRoster.King).Run;
-            king.Effects.Give(ChapterRelicIds.KingsSignet);
-            Assert.AreEqual(15, king.Kit.TaxCapacity);
-            Assert.AreEqual(5, king.Kit.PriceOf(TaxAct.Seize));
-            var warlock = Journey(SinnerRoster.Find(Warlock.ClassId)).Run;
-            int seen = warlock.Kit.ProphecyCards;
-            warlock.Effects.Give(ChapterRelicIds.SeersSpectacles);
-            Assert.AreEqual(seen + 1, warlock.Kit.ProphecyCards);
-            Assert.IsFalse(warlock.Kit.CanSendToBottom);
-            Assert.AreEqual(-5, Of(ChapterRelicIds.SummonersLeash).Extra(RelicExtras.ImpWild));
+            king.Effects.MaxCarried = 1;
+            king.Effects.MaxBag = 5;
+            king.Effects.Give(ChapterRelicIds.BloodRing);   // the one slot
+            king.Effects.Give(ChapterRelicIds.KingsSignet);   // into the bag
+            CollectionAssert.Contains(king.Effects.Bag, ChapterRelicIds.KingsSignet);
+            Assert.AreEqual(ClassKit.TaxStart, king.Kit.TaxCapacity, "a class relic in the bag does nothing");
+            Assert.IsTrue(king.Effects.Swap(ChapterRelicIds.BloodRing, ChapterRelicIds.KingsSignet));
+            Assert.AreEqual(ClassKit.TaxStart + ClassKit.TaxStep, king.Kit.TaxCapacity, "worn: a step");
+            Assert.AreEqual(ClassKit.SeizePrice + 1, king.Kit.SeizeFullPrice, "the signet's curse");
+
+            var oracle = Journey(SinnerRoster.Find(Warlock.ClassId)).Run;
+            int seen = oracle.Kit.ProphecyCards;
+            oracle.Effects.Give(ChapterRelicIds.SeersSpectacles);
+            Assert.AreEqual(seen + 1, oracle.Kit.ProphecyCards);
+            var thief = Journey(SinnerRoster.Thief).Run;
+            Assert.AreEqual(ClassKit.CaughtStart, thief.Kit.ThiefCaughtPercent);
+            thief.Effects.Give(ChapterRelicIds.WornGloves);
+            Assert.AreEqual(ClassKit.CaughtStart - ClassKit.CaughtStep, thief.Kit.ThiefCaughtPercent);
+            var summoner = Journey(SinnerRoster.Summoner).Run;
+            Assert.AreEqual(1, summoner.Kit.ImpsOpen);
+            summoner.Effects.Give(ChapterRelicIds.ChalkCircle);
+            Assert.AreEqual(2, summoner.Kit.ImpsOpen, "the Hand opens");
             Assert.AreEqual(2, Of(ChapterRelicIds.SummonersLeash).Extra(RelicExtras.ImpPrice));
+            var jester = Journey(SinnerRoster.Jester).Run;
+            Assert.AreEqual(0, jester.Kit.BustShieldsPerTable);
+            jester.Effects.Give(ChapterRelicIds.BellCollar);
+            Assert.AreEqual(1, jester.Kit.BustShieldsPerTable);
+        }
+
+        [Test]
+        public void TheClassRelic_ComesByTheMarket_TheWarden_AndTheLoot()
+        {
+            int chance = ChapterRelics.ClassRelicChance;
+            ChapterRelics.ClassRelicChance = 100;
+            try
+            {
+                ChapterRun run = Journey(SinnerRoster.Peasant, 7).Run;
+                BlackMarket market = new BlackMarket(run, new SystemRandomSource(3), MarketVendor.Smuggler);
+                Assert.AreEqual(ChapterRelicIds.RopeBelt, market.ClassRelic, "the market's stall: the class's first relic");
+                Assert.IsTrue(market.Relics.Any(o => o.RelicId == ChapterRelicIds.RopeBelt));
+                run.Effects.Give(ChapterRelicIds.RopeBelt);
+                Assert.AreEqual(ChapterRelicIds.PeasantsScythe, run.NextClassRelic, "then the rare one");
+                Assert.AreEqual(ChapterRelicIds.PeasantsScythe, run.RollClassRelic(new SystemRandomSource(1)));
+                run.PayTribute();
+                run.LeaveBossTable(0);
+                CollectionAssert.Contains(run.LootOffers, ChapterRelicIds.PeasantsScythe, "a beaten demon's loot offers it");
+            }
+            finally
+            {
+                ChapterRelics.ClassRelicChance = chance;
+            }
+            ChapterRelics.ClassRelicChance = 0;
+            try
+            {
+                ChapterRun run = Journey(SinnerRoster.Peasant, 7).Run;
+                Assert.IsNull(new BlackMarket(run, new SystemRandomSource(3), MarketVendor.Smuggler).ClassRelic);
+            }
+            finally
+            {
+                ChapterRelics.ClassRelicChance = chance;
+            }
         }
 
         [Test]

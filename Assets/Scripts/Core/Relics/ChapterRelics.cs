@@ -109,6 +109,14 @@ namespace HellPoker.Core.Relics
 
         // 2.1.1
         public const string DevilsCompass = "devils_compass";
+
+        // Demo 2.3: every class's three relics (common, rare, legendary), each a step of its main power; the rare ones are Demo 2.1's.
+        public const string RopeBelt = "rope_belt", HarvestMoon = "harvest_moon";
+        public const string CrackedOrb = "cracked_orb", StarChart = "star_chart";
+        public const string TaxLedger = "tax_ledger", GoldenScepter = "golden_scepter";
+        public const string ChalkCircle = "chalk_circle", BlackGrimoire = "black_grimoire";
+        public const string WornGloves = "worn_gloves", Lockpick = "lockpick", ShadowCloak = "shadow_cloak";
+        public const string BellCollar = "bell_collar", MockingMask = "mocking_mask";
     }
 
     /// <summary>
@@ -185,18 +193,60 @@ namespace HellPoker.Core.Relics
             M(ChapterRelicIds.BloodPact, RelicRarity.Rare, Mk((RelicExtras.BarNeverHeals, 25)), Mk((RelicExtras.SentenceLossPoints, 25)), 20),
             M(ChapterRelicIds.LostSoulsLetter, RelicRarity.Rare, Mk((RelicExtras.HelpGoodPercent, 20)), Mk((RelicExtras.EventYears, 20)), 0),
             R(ChapterRelicIds.TwinDice, RelicRarity.Rare, new RelicEffects(redrawsPerTable: 1, maliceExtraPerHand: 1), new RelicEffects(redrawsPerTable: 1), 15),
-            M(ChapterRelicIds.JestersHat, RelicRarity.Rare, Mk((RelicExtras.JokerWinPoints, 25)), Mk((RelicExtras.JokerBustPoints, 25)), 10, Sinners.Jester.ClassId),
-            M(ChapterRelicIds.SeersSpectacles, RelicRarity.Rare, Mk((RelicExtras.ProphecyCards, 1)), Mk((RelicExtras.ProphecyNoBottom, 1)), 10, Sinners.Warlock.ClassId),
-            M(ChapterRelicIds.PeasantsScythe, RelicRarity.Rare, Mk((RelicExtras.SatchelRoom, 1)), Mk((RelicExtras.SatchelRisk, 5)), 10, Sinners.Peasant.ClassId),
-            M(ChapterRelicIds.KingsSignet, RelicRarity.Rare, Mk((RelicExtras.TaxCap, 5)), Mk((RelicExtras.SeizePrice, 1)), 10, Sinners.King.ClassId),
-            M(ChapterRelicIds.SummonersLeash, RelicRarity.Rare, Mk((RelicExtras.ImpWild, -5)), Mk((RelicExtras.ImpPrice, 2), (RelicExtras.ImpBarPrice, 1)), 10,
-                Sinners.Summoner.ClassId),
+            // (Demo 2.3: the five class relics are the rare steps of their classes' chains — see the end of the list.)
+            C(ChapterRelicIds.JestersHat, RelicRarity.Rare, Sinners.Jester.ClassId, Mk((RelicExtras.JokerBustPoints, 25))),
+            C(ChapterRelicIds.SeersSpectacles, RelicRarity.Rare, Sinners.Warlock.ClassId, Mk((RelicExtras.ProphecyBully, 10))),
+            C(ChapterRelicIds.PeasantsScythe, RelicRarity.Rare, Sinners.Peasant.ClassId, Mk((RelicExtras.SatchelRisk, 5))),
+            C(ChapterRelicIds.KingsSignet, RelicRarity.Rare, Sinners.King.ClassId, Mk((RelicExtras.SeizePrice, 1))),
+            C(ChapterRelicIds.SummonersLeash, RelicRarity.Rare, Sinners.Summoner.ClassId, Mk((RelicExtras.ImpPrice, 2), (RelicExtras.ImpBarPrice, 1))),
             // legendary
             M(ChapterRelicIds.LucifersFeather, RelicRarity.Legendary, Mk((RelicExtras.FeatherSpare, 1)), Mk(), 15),
             M(ChapterRelicIds.MammonsGoldTooth, RelicRarity.Legendary, Mk((RelicExtras.ToothPoints, 3)), Mk(), 20, curseEffects: new RelicEffects(tributePercent: 115)),
             // 2.1.1 — rare: two steps a chapter across a floor of the map, forty years each.
             M(ChapterRelicIds.DevilsCompass, RelicRarity.Rare, Mk((RelicExtras.CompassSteps, CompassSteps)), Mk((RelicExtras.CompassYears, CompassYears)), 5),
+            // Demo 2.3 — the classes' chains: a common and a legendary step for every class (the rare is above), the Thief's three.
+            C(ChapterRelicIds.RopeBelt, RelicRarity.Common, Sinners.Peasant.ClassId, Mk(), new RelicEffects(antePercent: 105)),
+            C(ChapterRelicIds.HarvestMoon, RelicRarity.Legendary, Sinners.Peasant.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
+            C(ChapterRelicIds.CrackedOrb, RelicRarity.Common, Sinners.Warlock.ClassId, Mk(), new RelicEffects(antePercent: 105)),
+            C(ChapterRelicIds.StarChart, RelicRarity.Legendary, Sinners.Warlock.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
+            C(ChapterRelicIds.TaxLedger, RelicRarity.Common, Sinners.King.ClassId, Mk(), new RelicEffects(marketPercent: 110)),
+            C(ChapterRelicIds.GoldenScepter, RelicRarity.Legendary, Sinners.King.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
+            C(ChapterRelicIds.ChalkCircle, RelicRarity.Common, Sinners.Summoner.ClassId, Mk((RelicExtras.ImpPrice, 1))),
+            C(ChapterRelicIds.BlackGrimoire, RelicRarity.Legendary, Sinners.Summoner.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
+            C(ChapterRelicIds.WornGloves, RelicRarity.Common, Sinners.Thief.ClassId, Mk(), new RelicEffects(antePercent: 105)),
+            C(ChapterRelicIds.Lockpick, RelicRarity.Rare, Sinners.Thief.ClassId, Mk(), new RelicEffects(lossAntePercent: 10)),
+            C(ChapterRelicIds.ShadowCloak, RelicRarity.Legendary, Sinners.Thief.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
+            C(ChapterRelicIds.BellCollar, RelicRarity.Common, Sinners.Jester.ClassId, Mk(), new RelicEffects(antePercent: 105)),
+            C(ChapterRelicIds.MockingMask, RelicRarity.Legendary, Sinners.Jester.ClassId, Mk(), new RelicEffects(maliceExtraPerHand: 1)),
         };
+
+        /// <summary>A class relic (Demo 2.3): its gift a step of the class's main power (<see cref="RelicExtras.ClassStep"/>), its curse a
+        /// light one (marks, or the hand's own effects). The simulation's player wears it before anything (its worth).</summary>
+        private static ChapterRelic C(string id, RelicRarity rarity, string cls, (string, int)[] curse, RelicEffects curseEffects = null) =>
+            M(id, rarity, Mk((RelicExtras.ClassStep, 1)), curse, ClassRelicWorth + (int)rarity * 5, cls, curseEffects: curseEffects);
+
+        /// <summary>What a class relic is worth to the simulation's player (more than any other: the class's power grows with it).</summary>
+        public const int ClassRelicWorth = 40;
+
+        /// <summary>A class's three relics in the order they come (common, rare, legendary); empty for an unknown class.</summary>
+        public static IReadOnlyList<string> ClassChain(string classId) =>
+            New.Where(r => r.ClassId != null && r.ClassId == classId).OrderBy(r => r.Rarity).Select(r => r.Id).ToArray();
+
+        /// <summary>A class relic: one of a class's chain.</summary>
+        public static bool IsClassRelic(string id) => Find(id)?.ClassId != null;
+
+        /// <summary>
+        /// The class relic that comes next (Demo 2.3: they come in order — the common, then the rare, then the legendary — so the power grows
+        /// step by step): the first of the chain the run does not hold. Null when it holds all three, or the next one is locked.
+        /// </summary>
+        public static string NextClassRelic(string classId, Func<string, bool> held, Func<string, bool> available = null)
+        {
+            string next = ClassChain(classId).FirstOrDefault(id => held == null || !held(id));
+            return next != null && (available == null || available(next)) ? next : null;
+        }
+
+        /// <summary>How often (percent) a market's stall shows the class's next relic, and a warden leaves it as his prize (a tuning knob).</summary>
+        public static int ClassRelicChance = 35;
 
         /// <summary>The Devil's Compass: steps a chapter, and the years every step puts on the sentence.</summary>
         public const int CompassSteps = 2, CompassYears = 40;
@@ -220,9 +270,6 @@ namespace HellPoker.Core.Relics
         /// <summary>A beaten demon's own two relics (none for a demon without loot).</summary>
         public static IReadOnlyList<string> BossLoot(string bossId) => New.Where(r => r.BossId != null && r.BossId == bossId).Select(r => r.Id).ToArray();
 
-        /// <summary>A class's own relic is drawn this many times as often (for that class).</summary>
-        public const int ClassWeight = 3;
-
         /// <summary>The market's first-chapter price of a relic, by its rarity.</summary>
         public static int PriceOf(string id)
         {
@@ -238,11 +285,12 @@ namespace HellPoker.Core.Relics
         /// <paramref name="count"/> different relics drawn by <paramref name="weights"/>: a rarity first (among those with a relic left), then a
         /// relic of it. Never one in <paramref name="exclude"/> (those carried) or one <paramref name="available"/> refuses (locked).
         /// </summary>
-        /// <param name="classId">The run's class (Demo 2.1): another class's relic is never drawn, its own three times as often; null: none drawn.</param>
+        /// <param name="classId">The run's class. Demo 2.3: no class relic is drawn here — they come in order, by their own ways
+        /// (<see cref="NextClassRelic"/>: a market's stall, a warden's prize, a demon's loot).</param>
         public static IReadOnlyList<string> Draw(IRandomSource random, RelicWeights weights, int count, ICollection<string> exclude = null,
             Func<string, bool> available = null, string classId = null)
         {
-            Func<string, bool> classOk = id => Find(id)?.ClassId == null || Find(id).ClassId == classId;
+            Func<string, bool> classOk = id => !IsClassRelic(id);
             Func<string, bool> unlocked = available;
             available = id => classOk(id) && (unlocked == null || unlocked(id));
             if (random == null) throw new ArgumentNullException(nameof(random));
@@ -267,8 +315,7 @@ namespace HellPoker.Core.Relics
                         break;
                     }
                 }
-                // The class's own relics three times as often within their rarity.
-                var pool = left[tier].SelectMany(id => Enumerable.Repeat(id, Find(id)?.ClassId != null ? ClassWeight : 1)).ToList();
+                var pool = left[tier];
                 picked.Add(pool[random.Next(pool.Count)]);
             }
             return picked;

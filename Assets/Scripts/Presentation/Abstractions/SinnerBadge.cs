@@ -41,21 +41,22 @@ namespace HellPoker.Presentation.Abstractions
         public int Upgrades { get; }
 
         /// <summary>
-        /// Phase 2 (2.1.1): the power is ready once every hand, no gauge — the words over the badge in place of the pips ("READY: K",
-        /// "USED THIS HAND"); null: the demo's gauge.
+        /// Phase 2 (Demo 2.3): the class's powers work on their own — no gauge, no K hint; the pips are the main power's level
+        /// (<see cref="Charge"/> of <see cref="Full"/>) and the description says it all.
         /// </summary>
-        public string PowerState { get; }
+        public bool Passive { get; }
 
-        /// <summary>With <see cref="PowerState"/>: the power can still be used this hand (the words glow).</summary>
-        public bool PowerReady { get; }
+        /// <summary>How many hands a passive has worked in so far: a new one flashes the badge.</summary>
+        public int PassiveFlashes { get; }
 
-        public bool ShowsPowerState => PowerState != null;
+        /// <summary>The gauge is full and waiting (never for a passive class's level pips).</summary>
+        public bool Glows => IsCharged && !Passive;
 
         public SinnerBadge(string classId, string name, string description, int charge, int full, bool usable = false, bool wardRaised = false,
-            bool armed = false, int jokers = -1, int upgrades = 0, string powerState = null, bool powerReady = false)
+            bool armed = false, int jokers = -1, int upgrades = 0, bool passive = false, int passiveFlashes = 0)
         {
-            PowerState = powerState;
-            PowerReady = powerReady;
+            Passive = passive;
+            PassiveFlashes = passiveFlashes;
             Upgrades = upgrades;
             Jokers = jokers;
             Armed = armed;

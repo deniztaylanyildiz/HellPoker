@@ -304,6 +304,19 @@ namespace HellPoker.Presentation
                 lines.Add(UiText.MapUpgradesLabel);
                 foreach (string id in _run.Kit.Upgrades) lines.Add("  " + UiText.UpgradeName(id));
             }
+            // Demo 2.3: the class's main power, now and at most; when it grows (a class relic, an upgrade) the map says so once.
+            if (_run.Kit.Grows)
+            {
+                lines.Add(UiText.ClassPowerShort(_run.Kit));
+                if (_levelJourney != _journey) _levelShown = _run.Kit.Level;
+                if (_run.Kit.Level > _levelShown && _mapNotice == null)
+                {
+                    _mapNotice = UiText.ClassPowerNow(_run.Kit);
+                    Note($"class power: level {_run.Kit.Level} ({_run.Kit.PowerValue}; relic steps {_run.Kit.RelicSteps})");
+                }
+                _levelJourney = _journey;
+                _levelShown = _run.Kit.Level;
+            }
             if (_run.ImpsEyeNext) lines.Add(UiText.MapEyeReady);
             if (_run.NextTableMarks.HidesAll) lines.Add(UiText.MapSpectacleReady);
             if (_run.NextTableMarks.FreeHands > 0) lines.Add(UiText.MapInsomniaReady);
@@ -592,7 +605,9 @@ namespace HellPoker.Presentation
                     Note($"black market ({vendor}): bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
                     _records.RelicBought();
                     _archive?.SaveRecords(_records);
-                    ShowMarket(market, UiText.RelicName(id));
+                    // A class relic worn: what the main power is now ("FORESIGHT now sees 2 cards.").
+                    bool step = ChapterRelics.IsClassRelic(id) && _run.Effects.Relics.Contains(id);
+                    ShowMarket(market, UiText.RelicName(id) + (step ? "\n" + UiText.ClassPowerNow(_run.Kit) : ""));
                 });
             }
             var held = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray();
@@ -907,6 +922,10 @@ namespace HellPoker.Presentation
 
         /// <summary>A line the map says once, in place of its prompt (a relic left behind for a warden's or a demon's); null: none.</summary>
         private string _mapNotice;
+
+        /// <summary>The class power's level the map has shown, and the run it was shown for (a new one starts quietly).</summary>
+        private int _levelShown;
+        private ChapterJourney _levelJourney;
 
         /// <summary>A relic left the run by the player's choice: the log and the map say so.</summary>
         private void RelicLeft(string id, string why)

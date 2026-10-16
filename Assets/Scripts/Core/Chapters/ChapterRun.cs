@@ -121,9 +121,8 @@ namespace HellPoker.Core.Chapters
         private FloorTable Hooked(FloorTable table)
         {
             Hooks = ChapterHooks.Attach(table.Game, Kit, null, 0, RandomSeeds.Derive(_seed, MatchStream + 100 + _matches));
-            if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;
-            if (Hooks.Theft != null) Hooks.Theft.Purse = Purse;   // the Thief's fines and loot   // the Summoner's imps cost coins on the floors
-            if (Hooks.Prophecy != null) Hooks.Prophecy.Purse = Purse;   // and the Warlock's sending down (2.1.1)
+            if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;   // the Summoner's imps cost coins on the floors
+            if (Hooks.Theft != null) Hooks.Theft.Purse = Purse;   // the Thief's fines and loot
             return table;
         }
 
@@ -446,11 +445,23 @@ namespace HellPoker.Core.Chapters
             ChapterRelics.Draw(_nodeRandom, rarity == RelicRarity.Common ? new RelicWeights(1, 0, 0) : rarity == RelicRarity.Rare ? new RelicWeights(0, 1, 0)
                 : new RelicWeights(0, 0, 1), 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
 
-        /// <summary>Whether <paramref name="count"/> relics of <paramref name="rarity"/> (null: any) could still be drawn.</summary>
+        /// <summary>Whether <paramref name="count"/> relics of <paramref name="rarity"/> (null: any) could still be drawn (never a class relic:
+        /// those come in order, <see cref="NextClassRelic"/>).</summary>
         public bool CanDrawRelic(RelicRarity? rarity, int count = 1) =>
-            ChapterRelics.All.Count(id => !Effects.Holds(id) && (RelicAvailable == null || RelicAvailable(id)) &&
-                                          (ChapterRelics.Find(id)?.ClassId == null || ChapterRelics.Find(id).ClassId == Sinner.Id) &&
+            ChapterRelics.All.Count(id => !Effects.Holds(id) && (RelicAvailable == null || RelicAvailable(id)) && !ChapterRelics.IsClassRelic(id) &&
                                           (rarity == null || ChapterRelics.RarityOf(id) == rarity.Value)) >= count;
+
+        /// <summary>The class's next relic (Demo 2.3: the common, then the rare, then the legendary — the main power a step at a time): the
+        /// first of its chain the run does not hold; null when it holds them all.</summary>
+        public string NextClassRelic => ChapterRelics.NextClassRelic(Sinner.Id, Effects.Holds, RelicAvailable);
+
+        /// <summary>The class's next relic, <see cref="ChapterRelics.ClassRelicChance"/> of the time (a market's stall, a warden's prize);
+        /// null otherwise. The dice are asked only when there is one to give.</summary>
+        public string RollClassRelic(IRandomSource random)
+        {
+            string next = NextClassRelic;
+            return next != null && (random ?? _nodeRandom).Next(100) < ChapterRelics.ClassRelicChance ? next : null;
+        }
 
         /// <summary>A helper's good turn, in percent, as the relics bend it (the Lost Soul's Letter more, the Liar's Tongue less).</summary>
         public int HelpPercent(int percent) =>
@@ -554,7 +565,9 @@ namespace HellPoker.Core.Chapters
             if (!table.MatchWon || !table.IsWarden) return;
             WardensBeatenHere++;
 
-            string relic = ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
+            // The class's next relic some of the time (Demo 2.3), else a relic drawn by the warden's odds.
+            string relic = RollClassRelic(_nodeRandom)
+                           ?? ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
             else if (!Effects.Give(relic)) WardenRelicWaiting = relic;
         }
@@ -583,7 +596,8 @@ namespace HellPoker.Core.Chapters
             Purse.Add(Rules.WardenRelicCoins);
         }
 
-        /// <summary>A beaten demon's loot: his own two relics (one carried already: a rare in its place), and a class upgrade not yet had.</summary>
+        /// <summary>A beaten demon's loot: his own two relics (one carried already: a rare in its place), the class's next relic (Demo 2.3)
+        /// and a class upgrade not yet had.</summary>
         private void DrawLoot()
         {
             var loot = ChapterRelics.BossLoot(Rules.BossId).Where(id => !Effects.Holds(id)).ToList();
@@ -592,6 +606,8 @@ namespace HellPoker.Core.Chapters
                 var exclude = Effects.AllHeld.Concat(loot).ToList();
                 loot.AddRange(ChapterRelics.Draw(_nodeRandom, new RelicWeights(0, 1, 0), LootRelics - loot.Count, exclude, RelicAvailable, Sinner.Id));
             }
+            string classRelic = NextClassRelic;
+            if (classRelic != null && !loot.Contains(classRelic)) loot.Add(classRelic);
             _loot = loot;
             IReadOnlyList<string> upgrades = UpgradesOffered();
             LootUpgrade = upgrades.Count > 0 ? upgrades[_nodeRandom.Next(upgrades.Count)] : null;

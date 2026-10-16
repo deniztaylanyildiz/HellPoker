@@ -43,10 +43,10 @@ namespace HellPoker.Core.Tests
         [Test]
         public void ThePool_ThirtyNineRelics_ByRarity_AndTwoOfEachLootingDemonsOwn()
         {
-            Assert.AreEqual(40, ChapterRelics.All.Count, "Demo 2.1: fifteen more; 2.1.1: the Devil's Compass");
-            Assert.AreEqual(12, ChapterRelics.OfRarity(RelicRarity.Common).Count());
-            Assert.AreEqual(18, ChapterRelics.OfRarity(RelicRarity.Rare).Count(), "2.1.1: the compass is rare");
-            Assert.AreEqual(6, ChapterRelics.OfRarity(RelicRarity.Legendary).Count());
+            Assert.AreEqual(53, ChapterRelics.All.Count, "Demo 2.1: fifteen more; 2.1.1: the Devil's Compass; Demo 2.3: thirteen class relics");
+            Assert.AreEqual(18, ChapterRelics.OfRarity(RelicRarity.Common).Count(), "Demo 2.3: a common class relic for six classes");
+            Assert.AreEqual(19, ChapterRelics.OfRarity(RelicRarity.Rare).Count(), "2.1.1: the compass is rare; Demo 2.3: the Thief's lockpick");
+            Assert.AreEqual(12, ChapterRelics.OfRarity(RelicRarity.Legendary).Count(), "Demo 2.3: a legendary class relic for six classes");
             Assert.AreEqual(4, ChapterRelics.OfRarity(RelicRarity.Boss).Count());
             Assert.AreEqual(2, ChapterRelics.BossLoot(DealerRoster.MammonId).Count);
             Assert.AreEqual(2, ChapterRelics.BossLoot(DealerRoster.BelialId).Count);
@@ -172,18 +172,20 @@ namespace HellPoker.Core.Tests
                 string other = ClassUpgrades.All.First(u => ClassUpgrades.ClassOf(u) != cls.Id);
                 Assert.IsFalse(kit.AddUpgrade(other), "another class's");
             }
-            Assert.AreEqual(20, ClassUpgrades.All.Distinct().Count(), "Demo 2.2: the Thief's four too");
+            Assert.AreEqual(24, ClassUpgrades.All.Distinct().Count(), "Demo 2.2: the Thief's four too; Demo 2.3: the Summoner's four");
+            foreach (SinnerClass cls in SinnerRoster.PhaseTwo) Assert.AreEqual(4, ClassUpgrades.For(cls.Id).Count, cls.Id + ": four each");
         }
 
         [Test]
         public void ThePeasantsUpgrades_AWiderSatchel_TwoKept_AQuieterOne()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
-            Assert.AreEqual(ClassKit.SatchelSize, kit.SatchelCapacity);
+            Assert.AreEqual(ClassKit.SatchelStart, kit.SatchelCapacity);
             kit.AddUpgrade(UpgradeIds.WideSatchel);
+            Assert.AreEqual(1, kit.Level, "the Wide Satchel: a level");
             string[] kept = { "2C", "3C", "4C", "5C", "6C" };
             foreach (string c in kept) kit.Keep(C(c));
-            CollectionAssert.AreEqual(kept.Skip(kept.Length - ClassKit.SatchelSize - 1).Select(C), kit.Satchel, "one more with the upgrade");
+            CollectionAssert.AreEqual(kept.Skip(kept.Length - ClassKit.SatchelStart - 1).Select(C), kit.Satchel, "one more with the upgrade");
 
             Assert.AreEqual(ClassKit.SatchelReRaisePercent, kit.SatchelRisk);
             kit.AddUpgrade(UpgradeIds.QuietSatchel);
@@ -191,6 +193,7 @@ namespace HellPoker.Core.Tests
 
             var abundance = new ClassKit(new Sinner(SinnerRoster.Peasant));
             abundance.AddUpgrade(UpgradeIds.Abundance);
+            abundance.AddUpgrade(UpgradeIds.WideSatchel);   // room for the two
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", abundance.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, abundance, null, 0, 1);
             game.PlaceBet();
@@ -228,15 +231,14 @@ namespace HellPoker.Core.Tests
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock, charge: 5));
             kit.AddUpgrade(UpgradeIds.DeepProphecy);
             kit.AddUpgrade(UpgradeIds.Thrice);
-            Assert.AreEqual(3, kit.ProphecyCards, "the Third Eye: one more");
+            Assert.AreEqual(2, kit.ProphecyCards, "the Third Eye: a level, one card more");
             kit.EnterLucifer();
-            Assert.AreEqual(3, kit.ProphecyCards);
+            Assert.AreEqual(2, kit.ProphecyCards);
             kit.EnterChapter(1);
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();
-            Assert.IsTrue(hooks.Prophecy.StartRearranging(game));
-            Assert.AreEqual(2, hooks.Prophecy.RearrangesLeft, "Thrice: one more (2.1.1: one a use)");
+            Assert.IsTrue(hooks.Prophecy.ShowsKnownCard, "the Fate Weaver (Demo 2.3): the card the demon knows shows");
 
             var blind = new ClassKit(new Sinner(SinnerRoster.Warlock));
             blind.AddUpgrade(UpgradeIds.BlindMirror);
@@ -265,7 +267,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(Warlock.ClassId, back.Sinner.Id);
             Assert.AreEqual(KitKind.Prophecy, back.Kit.Kind);
             CollectionAssert.AreEqual(new[] { UpgradeIds.DeepProphecy, UpgradeIds.EyeOfTruth }, back.Kit.Upgrades);
-            Assert.AreEqual(3, back.Kit.ProphecyCards);
+            Assert.AreEqual(2, back.Kit.ProphecyCards, "Demo 2.3: one card and the Third Eye's level");
             Assert.AreEqual("ORACLE", HellPoker.Presentation.Ui.UiText.SinnerName(Warlock.ClassId));
         }
 
@@ -297,16 +299,16 @@ namespace HellPoker.Core.Tests
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.King));
             kit.AddTax(20);
-            Assert.AreEqual(10, kit.Taxes);
+            Assert.AreEqual(5, kit.Taxes, "Demo 2.3: the treasury starts with five");
             kit.AddUpgrade(UpgradeIds.OverflowingTreasury);
             kit.AddTax(20);
-            Assert.AreEqual(15, kit.Taxes);
+            Assert.AreEqual(10, kit.Taxes, "the Overflowing Treasury: a level, five more");
 
-            Assert.AreEqual(4, kit.PriceOf(TaxAct.Seize));
+            Assert.AreEqual(2, kit.PriceOf(TaxAct.Seize), "the royal discount: half of four");
             Assert.AreEqual(2, kit.PriceOf(TaxAct.FreeRaise));
             kit.AddUpgrade(UpgradeIds.CheapSeizure);
             kit.AddUpgrade(UpgradeIds.RoyalDecree);
-            Assert.AreEqual(3, kit.PriceOf(TaxAct.Seize));
+            Assert.AreEqual(1, kit.PriceOf(TaxAct.Seize), "the Cheap Seizure: a quarter");
             Assert.AreEqual(1, kit.PriceOf(TaxAct.FreeRaise));
             Assert.AreEqual(1, kit.PriceOf(TaxAct.Reveal));
 

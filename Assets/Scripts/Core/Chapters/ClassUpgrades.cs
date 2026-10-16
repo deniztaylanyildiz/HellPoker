@@ -14,11 +14,11 @@ namespace HellPoker.Core.Chapters
         public const string Abundance = "abundance";
 
         // The Oracle's sight (Demo 2.2: the ids are the old Warlock's, kept for the saves).
-        /// <summary>The Third Eye: FORESIGHT sees one card more.</summary>
+        /// <summary>The Third Eye: FORESIGHT a level up (one card more).</summary>
         public const string DeepProphecy = "deep_prophecy";
         /// <summary>The Blind Mirror: half the hands the demon learns none of the Oracle's cards.</summary>
         public const string BlindMirror = "blind_mirror";
-        /// <summary>The Fate Weaver: BEND FATE moves two cards.</summary>
+        /// <summary>The Fate Weaver (Demo 2.3; BEND FATE is gone): the Oracle sees which of his cards the demon knows.</summary>
         public const string Thrice = "thrice";
         /// <summary>The Prophecy Seal: a swindler's offer walked away from pays <see cref="ClassKit.SealCoins"/> coins.</summary>
         public const string EyeOfTruth = "eye_of_truth";
@@ -36,7 +36,7 @@ namespace HellPoker.Core.Chapters
         public const string Buffoon = "buffoon";
 
         // The Thief's quick hand (Demo 2.2).
-        /// <summary>Light Fingers: caught one time in ten, not one in four.</summary>
+        /// <summary>Light Fingers: the quick hand a level up (caught less often: <see cref="ClassKit.Level"/>).</summary>
         public const string LightFingers = "light_fingers";
         /// <summary>The Night Eye: two of the demon's face-down cards glanced at.</summary>
         public const string NightEye = "night_eye";
@@ -44,6 +44,16 @@ namespace HellPoker.Core.Chapters
         public const string MasterThief = "master_thief";
         /// <summary>The Loot Sack: a steal on the floors brings coins too.</summary>
         public const string LootSack = "loot_sack";
+
+        // The Summoner's imps (Demo 2.3: he had none).
+        /// <summary>Two Loyal Imps: the first two imps of a hand come for nothing.</summary>
+        public const string LoyalPair = "loyal_pair";
+        /// <summary>Tame Imps: an imp never runs wild.</summary>
+        public const string TameImps = "tame_imps";
+        /// <summary>The Keen Eye: the EYE turns two of the demon's cards.</summary>
+        public const string KeenEye = "keen_eye";
+        /// <summary>The Blood Oath: an imp that runs wild lowers one of the demon's cards, not the Summoner's.</summary>
+        public const string BloodOath = "blood_oath";
     }
 
     /// <summary>
@@ -60,6 +70,7 @@ namespace HellPoker.Core.Chapters
             [King.ClassId] = new[] { UpgradeIds.OverflowingTreasury, UpgradeIds.CheapSeizure, UpgradeIds.CrownGuard, UpgradeIds.RoyalDecree },
             [Jester.ClassId] = new[] { UpgradeIds.ControlledChaos, UpgradeIds.DoubleLaugh, UpgradeIds.JokerPurse, UpgradeIds.Buffoon },
             [Thief.ClassId] = new[] { UpgradeIds.LightFingers, UpgradeIds.NightEye, UpgradeIds.MasterThief, UpgradeIds.LootSack },
+            [Summoner.ClassId] = new[] { UpgradeIds.LoyalPair, UpgradeIds.TameImps, UpgradeIds.KeenEye, UpgradeIds.BloodOath },
         };
 
         /// <summary>Every upgrade, class by class (the icon strip's order).</summary>

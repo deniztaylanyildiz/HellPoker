@@ -10,8 +10,9 @@ namespace HellPoker.Core.Chapters
 {
     /// <summary>
     /// The class upgrades that act in a hand outside the class's own powers: the Jester's (he has no panel) — Controlled Chaos, the
-    /// Double Laugh, the Buffoon. (The Warlock's Eye of Truth opens a card at the deal: <see cref="ChapterHooks.Attach"/>.) Its dice are
-    /// asked only by an upgrade the run has, so a run without them plays as before.
+    /// Double Laugh, the Buffoon — and his relics' shields (Demo 2.3: <see cref="ClassKit.BustShieldsPerTable"/> hands a table lost to his own
+    /// two jokers count as pushes). Its dice are asked only by an upgrade the run has, so a run without them plays as before. A new table's
+    /// hooks are new: the shields are full again.
     /// </summary>
     public sealed class UpgradeHooks : TableHooks
     {
@@ -20,7 +21,7 @@ namespace HellPoker.Core.Chapters
 
         private readonly ClassKit _kit;
         private readonly IRandomSource _random;
-        private int _jokersAtDeal;
+        private int _jokersAtDeal, _shieldsUsed;
         private bool _laughed;
 
         public UpgradeHooks(ClassKit kit, IRandomSource random)
@@ -32,10 +33,27 @@ namespace HellPoker.Core.Chapters
         /// <summary>The Double Laugh threw a joker back this hand.</summary>
         public bool LaughedThisHand => _laughed;
 
+        /// <summary>A shield spared this hand's loss to the Jester's own two jokers.</summary>
+        public bool ShieldedThisHand { get; private set; }
+
+        /// <summary>The shields left at this table.</summary>
+        public int ShieldsLeft => Math.Max(0, _kit.BustShieldsPerTable - _shieldsUsed);
+
         public override void HandDealt(HellPokerGame game)
         {
             _jokersAtDeal = _kit.Sinner.Jokers;
             _laughed = false;
+            ShieldedThisHand = false;
+        }
+
+        /// <summary>The Jester's shields: a showdown lost to his own two jokers (or more) is a push while the table's shields last.</summary>
+        public override bool SparesLoss(HellPokerGame game, ShowdownResult showdown)
+        {
+            if (showdown == null || !showdown.PlayerBust || ShieldsLeft <= 0) return false;
+            _shieldsUsed++;
+            _kit.Shields++;
+            ShieldedThisHand = true;
+            return true;
         }
 
         /// <summary>The Double Laugh: a hand drawn to two jokers or more throws one back for the deck's next plain card (the joker goes under).</summary>
@@ -65,7 +83,7 @@ namespace HellPoker.Core.Chapters
         public override void HandSettled(HellPokerGame game, RoundResult round)
         {
             if (!_kit.Has(UpgradeIds.ControlledChaos) || round == null || round.Folded) return;
-            if (round.Showdown?.Outcome != ShowdownOutcome.HouseWins) return;
+            if (round.Showdown?.Outcome != ShowdownOutcome.HouseWins || game.SparedThisHand) return;
             if (_kit.Sinner.Jokers == _jokersAtDeal) _kit.Sinner.ChangeJokers(-1);   // the class's own rule did not take one already
         }
     }

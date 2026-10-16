@@ -267,7 +267,14 @@ namespace HellPoker.Core.Tests
                         int carried = effects.Relics.Count;
                         run.FinishTable(table);
                         if (effects.Relics.Count > carried) Bump(tally.RelicPicks, effects.Relics.Last());
-                        if (run.WardenRelicWaiting != null) run.TakeWardenCoins();   // the designer's rule for the simulation: always the coins
+                        // A class relic waiting (Demo 2.3): it goes in place of the least worth held; any other: the coins (the designer's rule).
+                        if (run.WardenRelicWaiting != null && ChapterRelics.IsClassRelic(run.WardenRelicWaiting))
+                        {
+                            string worst = effects.AllHeld.Where(r => !RelicRoster.IsReward(r) && !ChapterRelics.IsClassRelic(r))
+                                .OrderBy(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).FirstOrDefault();
+                            if (worst != null) run.SwapForWardenRelic(worst);
+                        }
+                        if (run.WardenRelicWaiting != null) run.TakeWardenCoins();
                         if (table.IsWarden)
                         {
                             tally.WardensPlayed++;
@@ -301,7 +308,10 @@ namespace HellPoker.Core.Tests
                         // Two relics freely (Demo 2.0's market sold no more); past them only with the gate's tribute still in the purse.
                         int held = effects.CarriedOffered + effects.Bag.Count;
                         int keep = held < 2 ? Reserve : Math.Max(Reserve, run.Tribute);
-                        RelicOffer? best = market.Relics.Where(o => market.CanBuyRelic(o.RelicId) && run.Purse.Coins - o.Price >= keep)
+                        // Demo 2.3: the class's own relic first (the power grows with it), with only the reserve kept.
+                        RelicOffer? best = market.Relics.Where(o => ChapterRelics.IsClassRelic(o.RelicId) && market.CanBuyRelic(o.RelicId)
+                                                                    && run.Purse.Coins - o.Price >= Reserve).Select(o => (RelicOffer?)o).FirstOrDefault()
+                                           ?? market.Relics.Where(o => market.CanBuyRelic(o.RelicId) && run.Purse.Coins - o.Price >= keep)
                             .OrderByDescending(o => o.Price).Select(o => (RelicOffer?)o).FirstOrDefault();
                         if (best.HasValue && market.BuyRelic(best.Value.RelicId))
                         {
@@ -527,13 +537,27 @@ namespace HellPoker.Core.Tests
             public readonly Dictionary<string, int> HeldAtCh2 = new Dictionary<string, int>(), FreedHeldAtCh2 = new Dictionary<string, int>();
 
             /// <summary>The class mechanics used, over all runs.</summary>
-            public long Kept, Taken, Harvests, Rearranges, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost, Summons, WildImps, PowerUses;
+            public long Kept, Taken, Passives, Reveals, FreeRaises, Seizures, TaxesEarned, TaxesLost, Summons, WildImps, Steals, StealsAfterDraw, Caught, Shields;
+
+            /// <summary>Demo 2.3: the class relics taken over all runs; the main power's level and value as each chapter (and Lucifer's
+            /// table) began, summed, and the runs that got there.</summary>
+            public long ClassRelics;
+            public readonly long[] LevelAt = new long[4], ValueAt = new long[4];
+            public readonly int[] StartedAt = new int[4];
 
             public void AddKit(ClassKit kit)
             {
-                Kept += kit.Kept; Taken += kit.TakenFromSatchel; Harvests += kit.Harvests; Rearranges += kit.Rearranges; Reveals += kit.Reveals;
+                Kept += kit.Kept; Taken += kit.TakenFromSatchel; Passives += kit.Passives; Reveals += kit.Reveals;
                 FreeRaises += kit.FreeRaises; Seizures += kit.Seizures; TaxesEarned += kit.TaxesEarned; TaxesLost += kit.TaxesLost;
-                Summons += kit.Summons; WildImps += kit.WildImps; PowerUses += kit.PowerUses;
+                Summons += kit.Summons; WildImps += kit.WildImps; Steals += kit.Steals; StealsAfterDraw += kit.StealsAfterDraw; Caught += kit.Caught;
+                Shields += kit.Shields;
+            }
+
+            public void AddLevel(int at, ClassKit kit)
+            {
+                LevelAt[at] += kit.Level;
+                ValueAt[at] += kit.PowerValue;
+                StartedAt[at]++;
             }
         }
 
@@ -564,86 +588,97 @@ namespace HellPoker.Core.Tests
                 int[] losses = EnvInts("HELLPOKER_BOSS_LOSS");   // "250,220,110,90": Mammon, Belial, Lilith, Lucifer
                 for (int i = 0; losses != null && i < losses.Length && i < 4; i++) ChapterTuning.BossLossPercent[i + 1] = losses[i];
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
-                // 2.1.1: the demons' fixed stakes (0: measured against the bar left) and the K powers once a hand (0: the full gauge).
+                // 2.1.1: the demons' fixed stakes (0: measured against the bar left).
                 ChapterTuning.FixedBossStakes = EnvInt("HELLPOKER_FIXED_STAKES", 1) != 0;
-                ChapterTuning.PowersEveryHand = EnvInt("HELLPOKER_POWER_HAND", 1) != 0;
+                // Demo 2.3: the class powers' starting values and the class relics' chance (HELLPOKER_POWERS = "name=value,...").
+                ApplyPowers(Environment.GetEnvironmentVariable("HELLPOKER_POWERS"));
                 WholeRunReport();
             }
             finally
             {
                 ChapterTuning.Reset();
                 ClassKit.SatchelReRaisePercent = satchelRisk;
+                ResetPowers();
             }
+        }
+
+        // ------------------------------------------------------------------ Demo 2.3: the class powers' numbers, tried
+
+        private static readonly int[] PowerDefaults =
+        {
+            ChapterRelics.ClassRelicChance, ClassKit.SatchelStart, ClassKit.ForesightStart, ClassKit.TaxStart, ClassKit.TaxStep,
+            ClassKit.CaughtStart, ClassKit.CaughtStep, ClassKit.SatchelReRaisePercent
+        };
+
+        /// <summary>"chance=35,satchel=1,foresight=1,tax=5,taxstep=5,caught=40,caughtstep=10,risk=30": the knobs named are set, the rest kept.</summary>
+        private static void ApplyPowers(string setting)
+        {
+            if (string.IsNullOrWhiteSpace(setting)) return;
+            foreach (string part in setting.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] kv = part.Split('=');
+                if (kv.Length != 2 || !int.TryParse(kv[1].Trim(), out int v)) continue;
+                switch (kv[0].Trim().ToLowerInvariant())
+                {
+                    case "chance": ChapterRelics.ClassRelicChance = v; break;
+                    case "satchel": ClassKit.SatchelStart = v; break;
+                    case "foresight": ClassKit.ForesightStart = v; break;
+                    case "tax": ClassKit.TaxStart = v; break;
+                    case "taxstep": ClassKit.TaxStep = v; break;
+                    case "caught": ClassKit.CaughtStart = v; break;
+                    case "caughtstep": ClassKit.CaughtStep = v; break;
+                    case "risk": ClassKit.SatchelReRaisePercent = v; break;
+                }
+            }
+        }
+
+        private static void ResetPowers()
+        {
+            ChapterRelics.ClassRelicChance = PowerDefaults[0];
+            ClassKit.SatchelStart = PowerDefaults[1];
+            ClassKit.ForesightStart = PowerDefaults[2];
+            ClassKit.TaxStart = PowerDefaults[3];
+            ClassKit.TaxStep = PowerDefaults[4];
+            ClassKit.CaughtStart = PowerDefaults[5];
+            ClassKit.CaughtStep = PowerDefaults[6];
+            ClassKit.SatchelReRaisePercent = PowerDefaults[7];
         }
 
         /// <summary>
-        /// Demo 2.2: the Oracle's numbers tried side by side in one run of Unity. HELLPOKER_ORACLE_GRID = "foresight,bar%,coins,knows%;…"
-        /// (the cards seen, BEND FATE's price at a demon's and on the floors, how often the demon knows a card); freed per setting.
+        /// Demo 2.3: settings of the class powers side by side in one run of Unity: HELLPOKER_POWER_GRID = "setting;setting" (each as
+        /// <see cref="ApplyPowers"/> reads it; an empty one is the game's), HELLPOKER_CLASSES, HELLPOKER_RUNS (500). Freed per class and setting.
         /// </summary>
         [Test, Timeout(3600000)]
-        public void OracleTuning()
+        public void PowerTuning()
         {
-            string grid = Environment.GetEnvironmentVariable("HELLPOKER_ORACLE_GRID") ?? "2,1,2,100;3,1,2,100;2,0,0,100;2,1,2,50";
+            string grid = Environment.GetEnvironmentVariable("HELLPOKER_POWER_GRID") ?? ";chance=50";
             int runs = EnvInt("HELLPOKER_RUNS", 500);
-            int cards = ClassKit.ForesightCards, bar = ProphecyPowers.RearrangeBarPercent, coins = ProphecyPowers.RearrangeCoins;
-            var report = new StringBuilder($"The Oracle, {runs} whole runs a setting (circle 0)\nforesight bar% coins knows%   reached Lucifer   freed\n");
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner,thief")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
+            var report = new StringBuilder($"Class powers, {runs} whole runs a class and setting (circle 0)\nsetting                          " +
+                                           string.Join(" ", classes.Select(c => $"{c.Id,9}")) + "\n");
             try
             {
-                foreach (string setting in grid.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (string setting in grid.Split(';'))
                 {
-                    int[] n = setting.Split(',').Select(s => int.Parse(s.Trim())).ToArray();
                     ChapterTuning.Reset();
-                    ClassKit.ForesightCards = n[0];
-                    ProphecyPowers.RearrangeBarPercent = n[1];
-                    ProphecyPowers.RearrangeCoins = n[2];
-                    ChapterTuning.DemonKnowsPercent = n.Length > 3 ? n[3] : 100;
-                    var tally = new RunTally();
-                    var all = new RunTally();
-                    for (int run = 0; run < runs; run++) PlayWholeRun(SinnerRoster.Warlock, run * 7919 + 29, tally, all);
-                    report.AppendLine($"{n[0],9} {n[1],4} {n[2],5} {(n.Length > 3 ? n[3] : 100),6}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}");
+                    ResetPowers();
+                    ApplyPowers(setting);
+                    var line = new StringBuilder($"{(setting.Trim().Length == 0 ? "(game)" : setting.Trim()),-32}");
+                    foreach (SinnerClass cls in classes)
+                    {
+                        var tally = new RunTally();
+                        var all = new RunTally();
+                        for (int run = 0; run < runs; run++) PlayWholeRun(cls, run * 7919 + 29, tally, all);
+                        line.Append($" {Pct(tally.Freed, tally.Runs),9}");
+                    }
+                    report.AppendLine(line.ToString());
                 }
             }
             finally
             {
                 ChapterTuning.Reset();
-                ClassKit.ForesightCards = cards;
-                ProphecyPowers.RearrangeBarPercent = bar;
-                ProphecyPowers.RearrangeCoins = coins;
-            }
-            TestContext.Out.WriteLine(report.ToString());
-        }
-
-        /// <summary>Demo 2.2: the Peasant's harvest limited per table. HELLPOKER_HARVEST_GRID = "0;1;2" (0: every hand); freed per setting.</summary>
-        [Test, Timeout(3600000)]
-        public void PeasantTuning()
-        {
-            // "harvests a table,re-raise risk %,satchel size;..."
-            string grid = Environment.GetEnvironmentVariable("HELLPOKER_HARVEST_GRID") ?? "0,30,3;1,30,3;2,30,3";
-            int runs = EnvInt("HELLPOKER_RUNS", 500);
-            int keep = SatchelPowers.HarvestsPerTable, risk = ClassKit.SatchelReRaisePercent, size = ClassKit.SatchelSize;
-            var report = new StringBuilder($"The Peasant, {runs} whole runs a setting (circle 0)\nharvests,risk,size   reached Lucifer   freed   harvests / taken a run\n");
-            try
-            {
-                foreach (string setting in grid.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    ChapterTuning.Reset();
-                    int[] n = setting.Split(',').Select(s => int.Parse(s.Trim())).ToArray();
-                    SatchelPowers.HarvestsPerTable = n[0];
-                    ClassKit.SatchelReRaisePercent = n.Length > 1 ? n[1] : risk;
-                    ClassKit.SatchelSize = n.Length > 2 ? n[2] : size;
-                    var tally = new RunTally();
-                    var all = new RunTally();
-                    for (int run = 0; run < runs; run++) PlayWholeRun(SinnerRoster.Peasant, run * 7919 + 29, tally, all);
-                    report.AppendLine($"{setting.Trim(),18}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}   " +
-                                      $"{Avg((int)tally.Harvests, tally.Runs)} / {Avg((int)tally.Taken, tally.Runs)}");
-                }
-            }
-            finally
-            {
-                ChapterTuning.Reset();
-                SatchelPowers.HarvestsPerTable = keep;
-                ClassKit.SatchelReRaisePercent = risk;
-                ClassKit.SatchelSize = size;
+                ResetPowers();
             }
             TestContext.Out.WriteLine(report.ToString());
         }
@@ -725,13 +760,19 @@ namespace HellPoker.Core.Tests
                                   string.Join("  ", Enumerable.Range(0, 4).Select(b => $"{Pct(t.BossPlayerBusts[b], BossHandsAt(b))} / {Pct(t.BossHouseBusts[b], BossHandsAt(b))}")));
             }
             report.AppendLine();
-            report.AppendLine("class powers, a run on average: satchel kept / taken / harvests; rearranges; taxes earned / lost, reveals, free raises, seizures");
+            report.AppendLine("class powers, a run on average: satchel kept / taken; passives worked; taxes earned / lost, reveals, free raises, seizures; " +
+                              "imps (wild); steals (after the draw) / caught; shields");
             foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
-                report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)} / {Avg((int)t.Harvests, t.Runs)};  " +
-                                  $"{Avg((int)t.Rearranges, t.Runs)};  {Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
+                report.AppendLine($"{cls?.Id ?? "all",-9} {Avg((int)t.Kept, t.Runs)} / {Avg((int)t.Taken, t.Runs)};  passives {Avg((int)t.Passives, t.Runs)};  " +
+                                  $"{Avg((int)t.TaxesEarned, t.Runs)} / {Avg((int)t.TaxesLost, t.Runs)}, " +
                                   $"{Avg((int)t.Reveals, t.Runs)}, {Avg((int)t.FreeRaises, t.Runs)}, {Avg((int)t.Seizures, t.Runs)};  imps {Avg((int)t.Summons, t.Runs)} " +
-                                  $"(wild {Avg((int)t.WildImps, t.Runs)});  K used {Avg((int)t.PowerUses, t.Runs)} hands;  " +
-                                  $"compass steps {Avg(t.Chapters.Sum(c => c.CompassSteps), t.Runs)}");
+                                  $"(wild {Avg((int)t.WildImps, t.Runs)});  steals {Avg((int)t.Steals, t.Runs)} ({Avg((int)t.StealsAfterDraw, t.Runs)}) / " +
+                                  $"{Avg((int)t.Caught, t.Runs)};  shields {Avg((int)t.Shields, t.Runs)};  compass steps {Avg(t.Chapters.Sum(c => c.CompassSteps), t.Runs)}");
+            report.AppendLine();
+            report.AppendLine("Demo 2.3: the class relics taken a run, and the main power's level (value) on average as chapter 1 / 2 / 3 / Lucifer began");
+            foreach (var (cls, t) in perClass.Concat(new[] { ((SinnerClass)null, all) }))
+                report.AppendLine($"{cls?.Id ?? "all",-9} class relics {Avg((int)t.ClassRelics, t.Runs)};  level " +
+                                  string.Join(" / ", Enumerable.Range(0, 4).Select(i => $"{Avg((int)t.LevelAt[i], t.StartedAt[i])} ({Avg((int)t.ValueAt[i], t.StartedAt[i])})")));
 
             report.AppendLine();
             report.AppendLine("relics and upgrades: taken (market + wardens + spoils; the fire's upgrades), and freedom of the runs that began chapter 2 " +
@@ -820,10 +861,16 @@ namespace HellPoker.Core.Tests
             RunFreed = false;
             ChapterJourney journey = ChapterJourney.Begin(cls, seed, EnvInt("HELLPOKER_CIRCLE", 0));   // a knob: the circle of Hell
             if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
+            int classRelics = 0;
+            journey.Effects.Joined += id =>
+            {
+                if (ChapterRelics.IsClassRelic(id)) classRelics++;
+            };
             PlayWholeRun(journey, seed, tally, all);
             foreach (RunTally t in new[] { tally, all })
             {
                 t.AddKit(journey.Kit);
+                t.ClassRelics += classRelics;
                 t.Jackpots += journey.Sinner.JokerJackpots;
                 foreach (string id in RunTaken.Distinct())
                 {
@@ -854,6 +901,7 @@ namespace HellPoker.Core.Tests
             var heldAtCh2 = new List<string>();
             for (int ch = 1; ; ch++)
             {
+                foreach (RunTally t in new[] { tally, all }) t.AddLevel(ch - 1, journey.Kit);
                 var chapterTally = new Tally();
                 bool alive = PlayFloorsAndGate(journey.Run, seed + ch * 101, chapterTally);
                 tally.Chapters[ch - 1].Add(chapterTally);
@@ -876,10 +924,13 @@ namespace HellPoker.Core.Tests
                 if (boss.Phase != GamePhase.Absolved) return;
                 journey.Run.LeaveBossTable(0);
                 if (ch == ChapterRules.Chapters) break;
-                // The spoils: the class upgrade (a lasting gift, no curse); else a relic while a slot is free; else the coins.
+                // The spoils: the class's next relic (Demo 2.3: the power grows) while a slot is free; else the class upgrade (a lasting
+                // gift, no curse); else a relic while a slot is free; else the coins.
                 string relic = journey.Run.LootOffers.OrderByDescending(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).FirstOrDefault();
                 string upgrade = journey.Run.LootUpgrade;
-                if (upgrade != null && EnvInt("HELLPOKER_LOOT_UPGRADE", 1) != 0 && journey.Run.TakeLootUpgrade())
+                if (relic != null && ChapterRelics.IsClassRelic(relic) && !journey.Run.RelicsFull && journey.Run.TakeLoot(relic))
+                    foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].RelicPicks, relic);
+                else if (upgrade != null && EnvInt("HELLPOKER_LOOT_UPGRADE", 1) != 0 && journey.Run.TakeLootUpgrade())
                     foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].UpgradePicks, upgrade);
                 else if (relic != null && !journey.Run.RelicsFull && journey.Run.TakeLoot(relic))
                     foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].RelicPicks, relic);
@@ -895,7 +946,11 @@ namespace HellPoker.Core.Tests
                     }
             }
 
-            foreach (RunTally t in new[] { tally, all }) t.ReachedLucifer++;
+            foreach (RunTally t in new[] { tally, all })
+            {
+                t.ReachedLucifer++;
+                t.AddLevel(3, journey.Kit);
+            }
             HellPokerGame lucifer = journey.OpenLuciferTable(GameRules.Default);
             int luciferHands = PlayDemon(lucifer, journey, BossTable.Lucifer.Payouts, out int lPlayerBusts, out int lHouseBusts);
             bool castDown = lucifer.Phase == GamePhase.RoundOver && journey.IsCastDown(lucifer.Years);

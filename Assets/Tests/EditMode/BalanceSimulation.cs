@@ -388,10 +388,12 @@ namespace HellPoker.Core.Tests
 
                     case GamePhase.HouseReRaise:
                         reRaised = true;
+                        if (kit != null) KitPlayer.AfterDrawDecision(game, kit);   // the Thief may still steal (Demo 2.3)
                         BetOrWalkAway(game, Strength(game) >= HandCategory.OnePair ? BetAction.Call : BetAction.Fold);
                         break;
 
                     default:
+                        if (kit != null) KitPlayer.AfterDrawDecision(game, kit);
                         BetOrWalkAway(game, Choose(game, drawing, payouts));
                         break;
                 }

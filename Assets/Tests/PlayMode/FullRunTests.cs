@@ -50,6 +50,7 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest, Timeout(3600000)] public IEnumerator Summoner_English() => Run(4, "English", 0);
         [UnityTest, Timeout(3600000)] public IEnumerator Peasant_FifthCircle_Turkish() => Run(0, "Turkish", 5);
         [UnityTest, Timeout(3600000)] public IEnumerator Thief_English() => Run(5, "English", 0);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Turkish() => Run(5, "Turkish", 0);
 
         private static ChapterPresenter Chapters => ChapterJourneyTests.Chapters;
         private static TablePresenter Table => (TablePresenter)Chapters.Table;
@@ -90,7 +91,7 @@ namespace HellPoker.PlayMode.Tests
 
         private IEnumerator Run(int classIndex, string language, int circle)
         {
-            JesterK = 0;
+            KPressed = 0;
             HellPokerBootstrap.BatchStore.Clear();
             HellPokerBootstrap.BatchStore.SetString("settings.language", language);
             HellPokerBootstrap.BatchStore.SetString(ChapterArchive.RecordsKey, Records());
@@ -397,13 +398,15 @@ namespace HellPoker.PlayMode.Tests
         {
             ClassKit kit = Chapters?.Journey?.Kit;
             if (kit == null) return 0;
-            return kit.Harvests + kit.Rearranges + kit.Reveals + kit.FreeRaises + kit.Seizures + kit.Summons + kit.Steals + kit.Caught + kit.PowerUses + JesterK;
+            return kit.TakenFromSatchel + kit.Passives + kit.Reveals + kit.FreeRaises + kit.Seizures + kit.Summons + kit.Steals + kit.Caught + KPressed;
         }
 
-        private static int JesterK;
+        /// <summary>K pressed by a class whose powers work on their own (Demo 2.3: K tells what the class does).</summary>
+        private static int KPressed;
 
-        /// <summary>The class's power, at its moment: the harvest in the draw, a bend of fate, a card opened for a tax (taxes given when the
-        /// King has none yet), an imp's eye; the Jester's K says what his jokers are.</summary>
+        /// <summary>The class's power, at its moment (Demo 2.3: passives): K tells the Peasant's and the Oracle's (theirs work on their own),
+        /// a card opened for a tax (taxes given when the King has none yet), an imp's eye (the loyal imp: free), the Thief's steal after the
+        /// draw; the Jester's K says what his jokers are.</summary>
         private static void TryPower(string classId, TablePresenter table, HellPokerGame game, Story story)
         {
             if (story.PowerHere) return;
@@ -411,14 +414,11 @@ namespace HellPoker.PlayMode.Tests
             switch (classId)
             {
                 case Core.Sinners.Peasant.ClassId:
-                    if (game.Phase == GamePhase.Drawing && hooks?.Satchel != null && hooks.Kit.Satchel.Count > 0 && game.SuggestedDiscards().Count > 0)
-                        table.UsePower();
-                    break;
                 case Core.Sinners.Warlock.ClassId:
-                    if (hooks?.Prophecy != null && ProphecyPowers.IsOpen(game))
+                    if (game.Phase == GamePhase.PlayerReveal)
                     {
-                        int seen = hooks.Prophecy.TopCards(game).Count;
-                        table.PressKitArrow(seen >= 2 ? 1 : 0, seen >= 2);
+                        table.UsePower();   // K tells the passive; nothing is pressed for
+                        KPressed++;
                     }
                     break;
                 case Core.Sinners.King.ClassId:
@@ -432,7 +432,8 @@ namespace HellPoker.PlayMode.Tests
                     if (hooks?.Summon != null && game.Phase == GamePhase.PlayerReveal) table.PressKitButton(0);
                     break;
                 case Core.Sinners.Thief.ClassId:
-                    if (hooks?.Theft != null && game.Phase == GamePhase.PlayerReveal && hooks.Theft.WhyNoSteal(game) == KitRefusal.None)
+                    // Demo 2.3: the steal after the draw (its bet), K opening the pick, the card clicked given.
+                    if (hooks?.Theft != null && game.IsAfterDraw && hooks.Theft.WhyNoSteal(game) == KitRefusal.None)
                     {
                         table.UsePower();   // the pick opens
                         int give = Enumerable.Range(0, 5).FirstOrDefault(i => hooks.Theft.CanGive(game, i));
@@ -443,7 +444,7 @@ namespace HellPoker.PlayMode.Tests
                     if (game.Phase == GamePhase.PlayerReveal)
                     {
                         table.UsePower();   // the Jester: K tells his jokers' rule
-                        JesterK++;
+                        KPressed++;
                     }
                     break;
             }

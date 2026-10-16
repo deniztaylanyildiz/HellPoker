@@ -156,10 +156,11 @@ namespace HellPoker.Core.Relics
         /// <summary>A camp's rest is this much (percent) more (the Rusted Chain); a camp may not forge while it is worn.</summary>
         public const string RestBonusPercent = "rest.bonus", NoForge = "forge.none";
 
-        /// <summary>The class relics (Demo 2.1): the satchel's room and risk, the prophecy's cards and the bottom forbidden, the treasury's
-        /// cap and the seizure's price, the imps' wildness (percent points) and their price (coins on a floor; a demon's table: percent).</summary>
-        public const string SatchelRoom = "satchel.room", SatchelRisk = "satchel.risk", ProphecyCards = "prophecy.cards", ProphecyNoBottom = "prophecy.nobottom",
-            TaxCap = "tax.cap", SeizePrice = "seize.price", ImpWild = "imp.wild", ImpPrice = "imp.price", ImpBarPrice = "imp.bar";
+        /// <summary>The class relics (Demo 2.3): a step of the class's main power each (<see cref="Chapters.ClassKit.Level"/>; a forged one
+        /// two — the forge adds half a gift, rounded up). Their curses: the satchel's risk (percent points), the seizure's price, the imps'
+        /// price (coins on a floor; a demon's table: percent), the Oracle's bully (percent points).</summary>
+        public const string ClassStep = "class.step", SatchelRisk = "satchel.risk", SeizePrice = "seize.price", ImpPrice = "imp.price",
+            ImpBarPrice = "imp.bar", ProphecyBully = "prophecy.bully";
 
         /// <summary>The floors (Demo 2.1's Ash Purse): coins more for a won floor hand; the first hand's ante more.</summary>
         public const string FloorWinCoins = "floor.win", FloorFirstAnte = "floor.first.ante";

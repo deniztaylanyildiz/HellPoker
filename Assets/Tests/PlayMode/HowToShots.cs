@@ -89,10 +89,7 @@ namespace HellPoker.PlayMode.Tests
                 yield return Settle();
                 ChapterJourneyTests.Chapters.Table.PerformAction();
                 yield return Settle(0.8f);
-                yield return HellPokerScreenshots.Shot($"161_bend_fate_arrows_{l}");
-                ((TablePresenter)ChapterJourneyTests.Chapters.Table).PressKitArrow(1, true);
-                yield return Settle(0.4f);
-                yield return HellPokerScreenshots.Shot($"162_bend_fate_brought_up_{l}");
+                yield return HellPokerScreenshots.Shot($"161_oracle_foresight_{l}");   // Demo 2.3: BEND FATE is gone (162 with it)
 
                 ChapterSave map = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 2, "");
                 map.NodeDone = true;

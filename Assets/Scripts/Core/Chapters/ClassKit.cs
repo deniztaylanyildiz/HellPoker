@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
+using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 
 namespace HellPoker.Core.Chapters
 {
-    /// <summary>What a class plays with in Phase 2 (in place of the demo's power): the Peasant's satchel, the Warlock's prophecy, the
-    /// King's treasury; the Jester keeps his jokers.</summary>
+    /// <summary>What a class plays with in Phase 2 (in place of the demo's power): the Peasant's satchel, the Oracle's foresight, the
+    /// King's treasury, the Summoner's imps, the Thief's quick hand; the Jester keeps his jokers.</summary>
     public enum KitKind
     {
         None,
@@ -24,30 +25,40 @@ namespace HellPoker.Core.Chapters
 
     /// <summary>
     /// The run's class mechanics in Phase 2 — the parts that last from table to table and chapter to chapter (and go into the save): the
-    /// Peasant's satchel of thrown cards, the King's taxes, how far the Warlock sees into the deck; and what Lucifer's mirror keeps of
-    /// them at his table. What happens within a hand lives in the table's hooks (<see cref="ChapterHooks"/>). The charge gauge is the
-    /// sinner's (<see cref="Sinner"/>): a full gauge pays for each class's charged power.
+    /// Peasant's satchel of thrown cards, the King's taxes, how far the Oracle sees into the deck; and what Lucifer's mirror keeps of
+    /// them at his table. What happens within a hand lives in the table's hooks (<see cref="ChapterHooks"/>).
+    /// Demo 2.3: no power is pressed for any more — each class's main power works on its own beside a passive, and grows by
+    /// <see cref="Level"/>: the worn class relics (a step each, a forged one two) and the class's one "step" upgrade.
     /// </summary>
     public sealed class ClassKit
     {
-        /// <summary>The satchel holds this many cards; a new one pushes the oldest out.</summary>
-        /// <remarks>Demo 2.2: 3 → 2 (the Peasant freed 49.2% → 41.8%, 500 whole runs; the re-raise risk barely mattered, a harvest a table neither).</remarks>
-        public static int SatchelSize = 2;   // a tuning knob
+        // ------------------------------------------------------------------ the levels of the main power (Demo 2.3; tuning knobs)
 
-        /// <summary>A hand the Peasant draws from his satchel the demon sees it: its re-raise comes this much (percent) more often.</summary>
+        /// <summary>The main power's highest level (the starting value is level 0).</summary>
+        public const int MaxLevel = 3;
+
+        /// <summary>The Peasant's satchel: this many cards at level 0, one more a level.</summary>
+        public static int SatchelStart = 1;
+
+        /// <summary>The Oracle's FORESIGHT: this many cards at level 0, one more a level.</summary>
+        public static int ForesightStart = 1;
+
+        /// <summary>The King's treasury: this many taxes at level 0, this many more a level.</summary>
+        public static int TaxStart = 5, TaxStep = 5;
+
+        /// <summary>The Thief is caught this often (percent) at level 0, this much less a level, never under the least.</summary>
+        public static int CaughtStart = 40, CaughtStep = 10, CaughtLeast = 5;
+
+        /// <summary>A hand the Peasant draws two satchel cards in or more the demon sees it: his re-raise comes this much (percent) more often
+        /// (the first card is never seen: the Silent Field).</summary>
         public static int SatchelReRaisePercent = 30;   // a tuning knob (the simulation's)
 
-        /// <summary>The King's treasury holds at most this many taxes; the prices of its three acts.</summary>
-        public const int TaxMax = 10, RevealPrice = 1, FreeRaisePrice = 2, SeizePrice = 4;
+        /// <summary>The prices of the treasury's three acts; Lucifer's mirror holds at most <see cref="LuciferTaxCap"/> taxes.</summary>
+        public const int RevealPrice = 1, FreeRaisePrice = 2, SeizePrice = 4, LuciferTaxCap = 10;
 
-        /// <summary>The Oracle's K power (BEND FATE) moves this many seen cards in a hand, each to the top or to the bottom.</summary>
-        public static int RearrangesPerUse = 1;
-
-        /// <summary>The Oracle's FORESIGHT: the cards of the deck's top he sees after the deal (Demo 2.2: two in every chapter).</summary>
-        public static int ForesightCards = 2;
-
-        /// <summary>The King's K power: a seizure for this share (percent) of its price in taxes (2.1.1: once every hand, so not for nothing).</summary>
-        public static int PowerSeizePercent = 50;
+        /// <summary>The King's passive, the ROYAL DISCOUNT: a hand's seizure costs this share (percent) of its price, rounded up (the Cheap
+        /// Seizure: the smaller share).</summary>
+        public const int RoyalDiscountPercent = 50, CheapSeizurePercent = 25;
 
         private readonly List<Card> _satchel = new List<Card>();
 
@@ -64,10 +75,10 @@ namespace HellPoker.Core.Chapters
             Kind = KindOf(sinner.Class);
         }
 
-        /// <summary>The worn relics' effects (the class relics bend the kit: Demo 2.1); null: none.</summary>
-        public Func<HellPoker.Core.Relics.RelicEffects> Relics { get; set; }
+        /// <summary>The worn relics' effects (the class relics lift the main power: Demo 2.3); null: none.</summary>
+        public Func<RelicEffects> Relics { get; set; }
 
-        /// <summary>A mark of the worn relics (<see cref="Relics.RelicExtras"/>).</summary>
+        /// <summary>A mark of the worn relics (<see cref="RelicExtras"/>).</summary>
         public int Mark(string key) => Relics?.Invoke()?.Extra(key) ?? 0;
 
         public static KitKind KindOf(SinnerClass sinnerClass)
@@ -91,6 +102,60 @@ namespace HellPoker.Core.Chapters
 
         public void EnterLucifer() => AtLucifer = true;
 
+        // ------------------------------------------------------------------ the main power's level (Demo 2.3)
+
+        /// <summary>The class's upgrade that lifts the main power a level (the Wide Satchel, the Third Eye, the Overflowing Treasury, Light
+        /// Fingers); null for a class without one.</summary>
+        public static string StepUpgradeOf(string classId)
+        {
+            switch (classId)
+            {
+                case Peasant.ClassId: return UpgradeIds.WideSatchel;
+                case Warlock.ClassId: return UpgradeIds.DeepProphecy;
+                case King.ClassId: return UpgradeIds.OverflowingTreasury;
+                case Thief.ClassId: return UpgradeIds.LightFingers;
+                default: return null;
+            }
+        }
+
+        /// <summary>The steps the worn class relics give (a forged one two).</summary>
+        public int RelicSteps => Math.Max(0, Mark(RelicExtras.ClassStep));
+
+        /// <summary>The main power's level, 0 to <see cref="MaxLevel"/>: the worn class relics' steps and the class's step upgrade.</summary>
+        public int Level
+        {
+            get
+            {
+                string upgrade = StepUpgradeOf(Sinner.Id);
+                return Math.Min(MaxLevel, RelicSteps + (upgrade != null && Has(upgrade) ? 1 : 0));
+            }
+        }
+
+        /// <summary>The main power's number at a level (the hover's "now" and "at most"): the satchel's cards, FORESIGHT's cards, the
+        /// treasury's taxes, the Thief's caught percent, the imps open (the Summoner's fourth level: half price), the Jester's shields.</summary>
+        public int ValueAt(int level)
+        {
+            level = Math.Max(0, Math.Min(MaxLevel, level));
+            switch (Kind)
+            {
+                case KitKind.Satchel: return SatchelStart + level;
+                case KitKind.Prophecy: return ForesightStart + level;
+                case KitKind.Treasury: return TaxStart + TaxStep * level;
+                case KitKind.Theft: return Math.Max(CaughtLeast, CaughtStart - CaughtStep * level);
+                case KitKind.Summon: return Math.Min(ImpCount, 1 + level);
+                default: return IsJester ? level : 0;
+            }
+        }
+
+        /// <summary>The main power's number now, and at its highest level.</summary>
+        public int PowerValue => ValueAt(Level);
+        public int PowerMax => ValueAt(MaxLevel);
+
+        private bool IsJester => Sinner.Class.StartingJokers > 0;
+
+        /// <summary>The class has a power that grows (every class but one without a kit).</summary>
+        public bool Grows => Kind != KitKind.None || IsJester;
+
         // ------------------------------------------------------------------ the class's upgrades (once each a run)
 
         private readonly List<string> _upgrades = new List<string>();
@@ -111,40 +176,16 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
-        /// <summary>The satchel holds this many (the Wide Satchel: one more).</summary>
-        public int SatchelCapacity => SatchelSize + (Has(UpgradeIds.WideSatchel) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.SatchelRoom);
+        // ------------------------------------------------------------------ the Peasant's satchel
+
+        /// <summary>The satchel holds this many (its level: <see cref="SatchelStart"/> and a card a level).</summary>
+        public int SatchelCapacity => Kind == KitKind.Satchel ? ValueAt(Level) : 0;
 
         /// <summary>Thrown cards that may go into the satchel after a draw (Abundance: two).</summary>
         public int KeepsPerHand => Has(UpgradeIds.Abundance) ? 2 : 1;
 
-        /// <summary>How much more often the demon re-raises a hand drawn from the satchel (the Quiet Satchel: half).</summary>
-        public int SatchelRisk => (Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent) + Mark(HellPoker.Core.Relics.RelicExtras.SatchelRisk);
-
-        /// <summary>Seen cards BEND FATE moves in a hand (the Fate Weaver: two).</summary>
-        public int RearrangesPerCharge => RearrangesPerUse + (Has(UpgradeIds.Thrice) ? 1 : 0);
-
-        /// <summary>The Prophecy Seal: coins for every swindler's offer the Oracle walks away from.</summary>
-        public const int SealCoins = 10;
-
-        /// <summary>How often (percent) the demon learns one of the Oracle's cards in a hand (the Mirror Curse; the Blind Mirror: half the hands).</summary>
-        public int DemonKnowsPercent => ChapterTuning.DemonKnowsPercent * (Has(UpgradeIds.BlindMirror) ? 50 : 100) / 100;
-
-        /// <summary>The Thief is caught this often (percent; Light Fingers: ten).</summary>
-        public static int CaughtPercent = 25;
-
-        public int ThiefCaughtPercent => Has(UpgradeIds.LightFingers) ? 10 : CaughtPercent;
-
-        /// <summary>The demon's face-down cards the Thief glances at from the deal (the Night Eye: two).</summary>
-        public int GlanceCards => Kind != KitKind.Theft ? 0 : Has(UpgradeIds.NightEye) ? 2 : 1;
-
-        /// <summary>The treasury holds this many taxes (the Overflowing Treasury: fifteen).</summary>
-        public int TaxCapacity => (Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax) + Mark(HellPoker.Core.Relics.RelicExtras.TaxCap);
-
-        /// <summary>The taxes an act of the treasury costs (the Cheap Seizure: 3; the Royal Decree: a free raise for 1).</summary>
-        public int PriceOf(TaxAct act) =>
-            act == TaxAct.Reveal ? RevealPrice
-            : act == TaxAct.FreeRaise ? (Has(UpgradeIds.RoyalDecree) ? FreeRaisePrice - 1 : FreeRaisePrice)
-            : (Has(UpgradeIds.CheapSeizure) ? SeizePrice - 1 : SeizePrice) + Mark(HellPoker.Core.Relics.RelicExtras.SeizePrice);
+        /// <summary>How much more often the demon re-raises a hand he saw the satchel in (the Quiet Satchel: half).</summary>
+        public int SatchelRisk => (Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent) + Mark(RelicExtras.SatchelRisk);
 
         /// <summary>The Seed: a chapter begins with a ten or better in the satchel (a card it does not hold yet).</summary>
         public Card? Sow(Randomness.IRandomSource random)
@@ -158,8 +199,6 @@ namespace HellPoker.Core.Chapters
             return card;
         }
 
-        // ------------------------------------------------------------------ the Peasant's satchel
-
         /// <summary>The cards in the satchel, the oldest first. They are out of the deck while they lie here.</summary>
         public IReadOnlyList<Card> Satchel => _satchel;
 
@@ -168,7 +207,7 @@ namespace HellPoker.Core.Chapters
         public bool Keep(Card card)
         {
             if (Kind != KitKind.Satchel || card.IsJoker || _satchel.Contains(card)) return false;
-            if (_satchel.Count >= SatchelCapacity) _satchel.RemoveAt(0);
+            while (_satchel.Count >= Math.Max(1, SatchelCapacity)) _satchel.RemoveAt(0);
             _satchel.Add(card);
             Kept++;
             return true;
@@ -178,6 +217,19 @@ namespace HellPoker.Core.Chapters
         public bool TakeOut(Card card) => _satchel.Remove(card);
 
         // ------------------------------------------------------------------ the King's treasury
+
+        /// <summary>The treasury holds this many taxes (its level: <see cref="TaxStart"/> and <see cref="TaxStep"/> a level).</summary>
+        public int TaxCapacity => Kind == KitKind.Treasury ? ValueAt(Level) : 0;
+
+        /// <summary>A seizure's price before the royal discount (the King's Signet: one more).</summary>
+        public int SeizeFullPrice => SeizePrice + Mark(RelicExtras.SeizePrice);
+
+        /// <summary>The taxes an act of the treasury costs: the seizure under the ROYAL DISCOUNT (half, the Cheap Seizure a quarter, rounded
+        /// up); the Royal Decree's free raise for 1.</summary>
+        public int PriceOf(TaxAct act) =>
+            act == TaxAct.Reveal ? RevealPrice
+            : act == TaxAct.FreeRaise ? (Has(UpgradeIds.RoyalDecree) ? FreeRaisePrice - 1 : FreeRaisePrice)
+            : Math.Max(1, (SeizeFullPrice * (Has(UpgradeIds.CheapSeizure) ? CheapSeizurePercent : RoyalDiscountPercent) + 99) / 100);
 
         /// <summary>The King's taxes, 0 to <see cref="TaxCapacity"/>.</summary>
         public int Taxes { get; private set; }
@@ -202,15 +254,43 @@ namespace HellPoker.Core.Chapters
             TaxesLost += before - Taxes;
         }
 
-        // ------------------------------------------------------------------ the Warlock's prophecy
+        // ------------------------------------------------------------------ the Oracle's foresight
 
-        /// <summary>How many cards of the deck's top the Oracle sees (FORESIGHT): <see cref="ForesightCards"/> in every chapter, one more
-        /// with the Third Eye (and the Seer's Spectacles).</summary>
-        public int ProphecyCards => Kind != KitKind.Prophecy ? 0
-            : ForesightCards + (Has(UpgradeIds.DeepProphecy) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.ProphecyCards);
+        /// <summary>How many cards of the deck's top the Oracle sees (FORESIGHT): its level, <see cref="ForesightStart"/> and a card a level.</summary>
+        public int ProphecyCards => Kind != KitKind.Prophecy ? 0 : ValueAt(Level);
 
-        /// <summary>The seen cards may go to the bottom (not with the Seer's Spectacles worn: they may still go to the top).</summary>
-        public bool CanSendToBottom => Mark(HellPoker.Core.Relics.RelicExtras.ProphecyNoBottom) == 0;
+        /// <summary>The Prophecy Seal: coins for every swindler's offer the Oracle walks away from.</summary>
+        public const int SealCoins = 10;
+
+        /// <summary>How often (percent) the demon learns one of the Oracle's cards in a hand (the Mirror Curse; the Blind Mirror: half the hands).</summary>
+        public int DemonKnowsPercent => ChapterTuning.DemonKnowsPercent * (Has(UpgradeIds.BlindMirror) ? 50 : 100) / 100;
+
+        // ------------------------------------------------------------------ the Summoner's imps
+
+        /// <summary>The imps: the Eye, the Hand, the Whisper (<see cref="SummonAct"/>).</summary>
+        public const int ImpCount = 3;
+
+        /// <summary>The imps the Summoner may call: the Eye from the start, the Hand and the Whisper with his relics (levels 1 and 2).</summary>
+        public int ImpsOpen => Kind == KitKind.Summon ? ValueAt(Level) : 0;
+
+        /// <summary>At the imps' highest level every imp costs half (rounded up).</summary>
+        public bool ImpsHalfPrice => Kind == KitKind.Summon && Level >= MaxLevel;
+
+        /// <summary>The Summoner's passive, the LOYAL IMP: this many imps a hand come for nothing (Two Loyal Imps: two).</summary>
+        public int FreeImpsPerHand => Kind != KitKind.Summon ? 0 : Has(UpgradeIds.LoyalPair) ? 2 : 1;
+
+        // ------------------------------------------------------------------ the Thief's quick hand
+
+        /// <summary>How often (percent) the Thief is caught: its level, from <see cref="CaughtStart"/> down.</summary>
+        public int ThiefCaughtPercent => Kind == KitKind.Theft ? ValueAt(Level) : CaughtStart;
+
+        /// <summary>The demon's face-down cards the Thief glances at from the deal (the Night Eye: two).</summary>
+        public int GlanceCards => Kind != KitKind.Theft ? 0 : Has(UpgradeIds.NightEye) ? 2 : 1;
+
+        // ------------------------------------------------------------------ the Jester's shields
+
+        /// <summary>Hands lost to the Jester's own two jokers that his relics spare at every table (each one a push).</summary>
+        public int BustShieldsPerTable => IsJester ? ValueAt(Level) : 0;
 
         // ------------------------------------------------------------------ Lucifer's mirror (his own copy of the class's mechanic)
 
@@ -224,11 +304,10 @@ namespace HellPoker.Core.Chapters
 
         public int Kept { get; private set; }
         public int TakenFromSatchel { get; set; }
-        public int Harvests { get; set; }
-        public int Rearranges { get; set; }
 
-        /// <summary>Of the Oracle's bends, those that brought a card to the top.</summary>
-        public int PulledUp { get; set; }
+        /// <summary>The passives that worked over the run (the log, the simulation): the Peasant's unseen satchel cards, the King's
+        /// discounted seizures, the Summoner's free imps.</summary>
+        public int Passives { get; set; }
 
         /// <summary>Coins the Prophecy Seal paid (swindlers walked away from).</summary>
         public int SealCoinsEarned { get; set; }
@@ -241,26 +320,32 @@ namespace HellPoker.Core.Chapters
         public int Summons { get; set; }
         public int WildImps { get; set; }
 
-        /// <summary>The Thief's steals, and the times he was caught.</summary>
+        /// <summary>The Thief's steals, and the times he was caught; of the steals, those made after the draw.</summary>
         public int Steals { get; set; }
         public int Caught { get; set; }
+        public int StealsAfterDraw { get; set; }
 
-        /// <summary>How many hands the K power was used in (2.1.1: once a hand).</summary>
-        public int PowerUses { get; set; }
+        /// <summary>The Jester's lost hands his relics spared.</summary>
+        public int Shields { get; set; }
 
         // ------------------------------------------------------------------ the save
 
-        /// <summary>The kit as the save keeps it.</summary>
+        /// <summary>The kit as the save keeps it (a 2.2.1 save's satchel and taxes are cut to the starting level's room unless the worn
+        /// relics give more — they are restored first).</summary>
         public void Restore(IEnumerable<Card> satchel, int taxes, Card? luciferBag, int luciferTaxes, IEnumerable<string> upgrades = null)
         {
             _upgrades.Clear();
             foreach (string id in upgrades ?? Enumerable.Empty<string>()) AddUpgrade(id);
             _satchel.Clear();
             if (Kind == KitKind.Satchel && satchel != null)
-                foreach (Card card in satchel.Where(c => !c.IsJoker).Distinct().Take(SatchelCapacity)) _satchel.Add(card);
+            {
+                // The newest cards are kept when the satchel is smaller now.
+                Card[] cards = satchel.Where(c => !c.IsJoker).Distinct().ToArray();
+                foreach (Card card in cards.Skip(Math.Max(0, cards.Length - SatchelCapacity))) _satchel.Add(card);
+            }
             Taxes = Kind == KitKind.Treasury ? Math.Max(0, Math.Min(TaxCapacity, taxes)) : 0;
             LuciferBag = luciferBag.HasValue && !luciferBag.Value.IsJoker && !_satchel.Contains(luciferBag.Value) ? luciferBag : null;
-            LuciferTaxes = Math.Max(0, luciferTaxes);
+            LuciferTaxes = Math.Max(0, Math.Min(LuciferTaxCap, luciferTaxes));
         }
     }
 }

@@ -9,30 +9,45 @@ using HellPoker.Core.Game;
 namespace HellPoker.Core.Tests
 {
     /// <summary>
-    /// The simulations' player with Phase 2's class mechanics, by simple rules: the Peasant draws a satchel card that betters the hand
-    /// (the harvest when charged), keeps the highest thrown card; the Warlock sends a top card that would not help to the bottom (charged);
-    /// the King seizes at four taxes (or charged), else turns a card for one.
+    /// The simulations' player with Phase 2's class mechanics, by simple rules (Demo 2.3: nothing is pressed for — the passives work on
+    /// their own): the Peasant draws a satchel card that betters the hand and keeps the highest thrown card; the Oracle draws by what
+    /// FORESIGHT shows; the King seizes when he can (at the royal discount), else turns a card with taxes to spare; the Summoner spends
+    /// his free imp and buys the Hand when it pays; the Thief steals after the draw (before it only in a sealed hand).
     /// </summary>
     internal static class KitPlayer
     {
-        /// <summary>Before the draw is made (every card seen): the King's acts.</summary>
+        /// <summary>Before the draw is made (every card seen): the King's acts, the imps, the Thief's steal in a sealed hand.</summary>
         public static void BeforeDraw(HellPokerGame game, ChapterHooks kit)
         {
             if (kit?.Summon != null && game.Phase == GamePhase.Drawing) Summon(game, kit.Summon);
-            // The Thief: a steal with less than two pair, his loneliest low card for one of the demon's face-down ones.
-            if (kit?.Theft != null && game.Phase == GamePhase.Drawing && kit.Theft.WhyNoSteal(game) == KitRefusal.None
+            // The Thief: a sealed hand has no moment after its draw — he steals now, with less than two pair.
+            if (kit?.Theft != null && game.Phase == GamePhase.Drawing && game.IsCommitted
                 && game.Evaluator.Evaluate(game.PlayerHand).Category < HandCategory.TwoPair)
-            {
-                int lone = WorstCard(game, i => kit.Theft.CanGive(game, i));
-                if (lone >= 0) kit.Theft.Steal(game, lone);
-            }
+                Steal(game, kit.Theft);
             TreasuryPowers treasury = kit?.Treasury;
             if (treasury == null || game.Phase != GamePhase.Drawing) return;
             int give = WorstCard(game, i => treasury.CanGive(game, i));
             if (give >= 0 && treasury.WhyNot(game, TaxAct.Seize) == KitRefusal.None) treasury.Seize(game, give);
-            else if (give >= 0 && treasury.WhyNot(game, TaxAct.Seize, charged: true) == KitRefusal.None) treasury.Seize(game, give, charged: true);
-            // A card turned for a tax only with taxes to spare: the rest wait for the K seizure (2.1.1: half price every hand).
-            else if (kit.Kit.Taxes > treasury.PowerSeizePrice && treasury.WhyNot(game, TaxAct.Reveal) == KitRefusal.None) treasury.Reveal(game);
+            // A card turned for a tax only with taxes to spare: the rest wait for a seizure.
+            else if (kit.Kit.Taxes > treasury.PriceOf(TaxAct.Seize) && treasury.WhyNot(game, TaxAct.Reveal) == KitRefusal.None) treasury.Reveal(game);
+        }
+
+        /// <summary>
+        /// After the draw, at the hand's next decision (a bet or a re-raise to answer): the Thief steals with a hand that his loneliest card
+        /// does not make (trips or less), one of his cards for one of the demon's face-down ones (Demo 2.3).
+        /// </summary>
+        public static void AfterDrawDecision(HellPokerGame game, ChapterHooks kit)
+        {
+            if (kit?.Theft == null || !game.IsAfterDraw || kit.Theft.WhyNoSteal(game) != KitRefusal.None) return;
+            if (game.Evaluator.Evaluate(game.PlayerHand).Category > HandCategory.ThreeOfAKind) return;
+            Steal(game, kit.Theft);
+        }
+
+        private static void Steal(HellPokerGame game, TheftPowers theft)
+        {
+            if (theft.WhyNoSteal(game) != KitRefusal.None) return;
+            int lone = WorstCard(game, i => theft.CanGive(game, i));
+            if (lone >= 0) theft.Steal(game, lone);
         }
 
         /// <summary>The draw, with the class's help; <paramref name="discards"/> are what the player throws.</summary>
@@ -40,12 +55,6 @@ namespace HellPoker.Core.Tests
         {
             if (kit?.Satchel != null && discards.Length > 0 && kit.Kit.Satchel.Count > 0)
             {
-                SatchelPowers satchel = kit.Satchel;
-                if (satchel.WhyNoHarvest(game, discards) == KitRefusal.None && Betters(game, SatchelPowers.BestFill(game, game.PlayerHand, discards, kit.Kit.Satchel)))
-                {
-                    satchel.Harvest(game, discards);
-                    return;
-                }
                 IReadOnlyDictionary<int, Card> fill = Helpful(game, discards, kit.Kit.Satchel);
                 if (fill.Count > 0 && game.CanDraw(discards, fill, out _))
                 {
@@ -53,7 +62,7 @@ namespace HellPoker.Core.Tests
                     return;
                 }
             }
-            if (kit?.Prophecy != null && discards.Length > 0) Rearrange(game, kit.Prophecy, discards);
+            if (kit?.Prophecy != null) discards = Foreseen(game, kit.Prophecy, discards);
             game.Draw(discards);
         }
 
@@ -63,6 +72,40 @@ namespace HellPoker.Core.Tests
             SatchelPowers satchel = kit?.Satchel;
             if (satchel == null || satchel.Offered.Count == 0) return;
             satchel.Keep(game, satchel.Offered.OrderByDescending(c => c.Rank).First());
+        }
+
+        /// <summary>
+        /// The Oracle draws by what FORESIGHT shows: every set of throws the seen cards would fill is tried (its result is known), and the
+        /// best known hand is taken when it is at least what the usual throws keep and a pair or better; otherwise the usual throws.
+        /// </summary>
+        private static int[] Foreseen(HellPokerGame game, ProphecyPowers prophecy, int[] discards)
+        {
+            IReadOnlyList<Card> top = prophecy.TopCards(game);
+            if (top.Count == 0 || Enumerable.Range(0, Hand.Size).Any(game.IsPlayerCardHidden)) return discards;
+            Hand hand = game.PlayerHand;
+            int most = Math.Min(top.Count, game.Rules.MaxDiscards);
+            int[] places = Enumerable.Range(0, Hand.Size).Where(i => !game.IsPlayerCardChained(i) && !game.IsPlayerCardThorned(i)).ToArray();
+            int[] best = null;
+            HandEvaluation bestEval = null;
+            foreach (int[] set in Subsets(places).Where(s => s.Length <= most))
+            {
+                if (!game.CanDraw(set, out _)) continue;
+                Hand h = hand;
+                for (int k = 0; k < set.Length; k++) h = h.With(set[k], top[k]);
+                HandEvaluation eval = game.Evaluator.Evaluate(h);
+                if (bestEval != null && eval.CompareTo(bestEval) <= 0) continue;
+                bestEval = eval;
+                best = set;
+            }
+            if (best == null) return discards;
+            if (discards.Length <= top.Count) return best;   // the usual throws are seen too: the best known hand is the best
+            return bestEval.Category >= HandCategory.OnePair && bestEval.Category >= Kept(game, hand, discards) ? best : discards;
+        }
+
+        private static IEnumerable<int[]> Subsets(int[] items)
+        {
+            for (int mask = 0; mask < 1 << items.Length; mask++)
+                yield return Enumerable.Range(0, items.Length).Where(i => (mask & (1 << i)) != 0).Select(i => items[i]).ToArray();
         }
 
         /// <summary>The satchel cards that alone better the hand in a thrown place (a pair made, a set grown).</summary>
@@ -84,16 +127,6 @@ namespace HellPoker.Core.Tests
             return fill;
         }
 
-        /// <summary>The harvest is worth its unseen draw: the satchel alone makes two pair or better of the hand (2.1.1: it comes every hand,
-        /// so a small gain is not spent on it — the satchel's cards wait for a better one).</summary>
-        private static bool Betters(HellPokerGame game, IReadOnlyDictionary<int, Card> fill)
-        {
-            Hand hand = game.PlayerHand;
-            foreach (var pair in fill) hand = hand.With(pair.Key, pair.Value);
-            HandCategory after = game.Evaluator.Evaluate(hand).Category;
-            return after > game.Evaluator.Evaluate(game.PlayerHand).Category && after >= HandCategory.TwoPair;
-        }
-
         /// <summary>What the kept cards make (the thrown places not counted: the hand's cards that stay).</summary>
         private static HandCategory Kept(HellPokerGame game, Hand hand, int[] thrown)
         {
@@ -101,47 +134,17 @@ namespace HellPoker.Core.Tests
             return VisibleHandReader.Read(kept, game.Evaluator) ?? HandCategory.HighCard;
         }
 
-        /// <summary>The Oracle's BEND FATE: when the top card would not better the kept cards, a deeper seen card that would comes up;
-        /// with none, the top card goes down (as many moves as the power gives).</summary>
-        private static void Rearrange(HellPokerGame game, ProphecyPowers prophecy, int[] discards)
-        {
-            if (TopHelps(game, prophecy, discards) || prophecy.WhyNoRearrange(game) != KitRefusal.None) return;
-            for (int k = 0; k < prophecy.Kit.RearrangesPerCharge && !TopHelps(game, prophecy, discards); k++)
-            {
-                IReadOnlyList<Card> top = prophecy.TopCards(game);
-                int up = Enumerable.Range(1, Math.Max(0, top.Count - 1)).FirstOrDefault(i => Helps(game, top[i], discards));
-                bool moved = up > 0 ? prophecy.Bend(game, up, toTop: true) : prophecy.Kit.CanSendToBottom && prophecy.Bend(game, 0, toTop: false);
-                if (!moved) break;
-            }
-        }
-
-        private static bool TopHelps(HellPokerGame game, ProphecyPowers prophecy, int[] discards)
-        {
-            IReadOnlyList<Card> top = prophecy.TopCards(game);
-            return top.Count == 0 || Helps(game, top[0], discards);
-        }
-
-        /// <summary>The card, drawn into the first thrown place, betters what the kept cards make.</summary>
-        private static bool Helps(HellPokerGame game, Card card, int[] discards)
-        {
-            int place = discards.OrderBy(i => i).First();
-            int[] rest = discards.Where(d => d != place).ToArray();
-            return Kept(game, game.PlayerHand.With(place, card), rest) > Kept(game, game.PlayerHand, discards);
-        }
-
         /// <summary>
-        /// The Summoner: the Legion whenever charged (then all three imps, free); otherwise the Hand only when a demon's open card betters
-        /// the hand to two pair or better (on the floors only with coins to spare).
+        /// The Summoner: the loyal imp's free one on the Hand when a demon's open card betters the hand, else on the Eye; then the Hand
+        /// bought only when it makes two pair or better (on the floors only with coins to spare).
         /// </summary>
         private static void Summon(HellPokerGame game, SummonPowers summon)
         {
-            if (summon.WhyNoLegion(game) == KitRefusal.None) summon.CallLegion(game);
-            // 2.1.1: the Legion frees the hand's first imp — the Hand when it betters the hand (below), else the Eye.
             bool handHelps = HandHelps(game, summon);
-            if (summon.LegionFreeLeft > 0 && !handHelps)
+            if (summon.FreeLeft > 0 && !handHelps)
             {
                 if (summon.WhyNot(game, SummonAct.Eye) == KitRefusal.None) summon.Eye(game);
-                if (summon.LegionFreeLeft > 0 && summon.WhyNot(game, SummonAct.Whisper) == KitRefusal.None) summon.Whisper(game);
+                if (summon.FreeLeft > 0 && summon.WhyNot(game, SummonAct.Whisper) == KitRefusal.None) summon.Whisper(game);
             }
             if (summon.WhyNot(game, SummonAct.Hand) != KitRefusal.None) return;
             int give = WorstCard(game, i => summon.CanGive(game, i));
@@ -150,7 +153,7 @@ namespace HellPoker.Core.Tests
             HandCategory best = Enumerable.Range(0, game.HouseCardsRevealed).Where(h => !game.IsHouseCardFalse(h) && !game.HouseHand[h].IsJoker)
                 .Select(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])).Category).DefaultIfEmpty(now).Max();
             if (best <= now) return;
-            bool worth = summon.LegionFreeLeft > 0 || (best >= HandCategory.TwoPair && (summon.AtDemonsTable || summon.Purse != null && summon.Purse.Coins - summon.PriceOf(SummonAct.Hand) >= 40));
+            bool worth = summon.FreeLeft > 0 || (best >= HandCategory.TwoPair && (summon.AtDemonsTable || summon.Purse != null && summon.Purse.Coins - summon.PriceOf(SummonAct.Hand) >= 40));
             if (worth) summon.Swap(game, give);
         }
 

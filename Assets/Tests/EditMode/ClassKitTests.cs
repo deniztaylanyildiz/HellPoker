@@ -74,12 +74,13 @@ namespace HellPoker.Core.Tests
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
             string[] kept = { "2C", "3C", "4C", "5C" };
             foreach (string c in kept) Assert.IsTrue(kit.Keep(C(c)));
-            CollectionAssert.AreEqual(kept.Skip(kept.Length - ClassKit.SatchelSize).Select(C), kit.Satchel, "the satchel's size at most, the oldest out");
+            Assert.AreEqual(ClassKit.SatchelStart, kit.SatchelCapacity, "Demo 2.3: the satchel starts with one card");
+            CollectionAssert.AreEqual(kept.Skip(kept.Length - kit.SatchelCapacity).Select(C), kit.Satchel, "the satchel's size at most, the oldest out");
             Assert.IsFalse(new ClassKit(new Sinner(SinnerRoster.King)).Keep(C("2C")), "only the Peasant has a satchel");
         }
 
         [Test]
-        public void TheSatchel_GivesACardInTheDraw_AndTheDemonSeesIt()
+        public void TheSatchel_GivesACardInTheDraw_TheSilentFieldKeepsItUnseen()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
             kit.Restore(new[] { C("AD") }, 0, null, 0);
@@ -93,8 +94,27 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(C("AD"), game.PlayerHand[4], "the satchel's card in the thrown place");
             Assert.AreEqual(C("6H"), game.PlayerHand[3], "the other from the deck");
             Assert.IsEmpty(kit.Satchel);
-            Assert.IsTrue(hooks.Satchel.SeenThisHand, "the demon saw the satchel opened");
+            Assert.IsFalse(hooks.Satchel.SeenThisHand, "the passive SILENT FIELD: the hand's first satchel card goes unseen");
+            Assert.AreEqual(C("AD"), hooks.Satchel.SilentCard);
+            Assert.IsTrue(hooks.Satchel.PassiveThisHand);
+            Assert.AreEqual(1, kit.Passives);
             Assert.AreEqual(1, kit.TakenFromSatchel);
+        }
+
+        [Test]
+        public void TheSilentField_ASecondSatchelCardTheDemonSees_AndHeReRaisesMore()
+        {
+            var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.RopeBelt });   // a step: two cards
+            kit.Restore(new[] { C("AD"), C("AC") }, 0, null, 0);
+            Assert.AreEqual(2, kit.SatchelCapacity);
+            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
+            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            game.PlaceBet();
+            game.CheckToDraw();
+            game.Draw(new[] { 3, 4 }, new Dictionary<int, Card> { [3] = C("AD"), [4] = C("AC") });
+            Assert.IsTrue(hooks.Satchel.SeenThisHand, "the second card the demon sees");
+            Assert.AreEqual(HandCategory.ThreeOfAKind, Evaluator.Evaluate(game.PlayerHand).Category);
         }
 
         [Test]
@@ -114,7 +134,10 @@ namespace HellPoker.Core.Tests
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant));
             Card[] kept = { C("AS"), C("KS"), C("QS") };
-            kit.Restore(kept, 0, null, 0, new[] { UpgradeIds.WideSatchel });   // three cards: the wide satchel
+            // Three cards: a class relic and the Wide Satchel lift the satchel two steps.
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.RopeBelt });
+            kit.Restore(kept, 0, null, 0, new[] { UpgradeIds.WideSatchel });
+            Assert.AreEqual(3, kit.Satchel.Count);
             HellPokerGame game = Shuffled(3, kit.Sinner);
             ChapterHooks.Attach(game, kit, null, 0, 1);
             Assert.IsFalse(game.Deck.Remaining.Intersect(kept).Any(), "out of the deck as the hooks come");
@@ -129,117 +152,61 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheHarvest_FillsEveryThrownPlace_Unseen_AndSpendsTheGauge()
+        public void ThePeasantsDemoPower_IsGone_AtAChaptersTable()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Peasant, charge: 5));
-            kit.Restore(new[] { C("AD"), C("AC"), C("3D") }, 0, null, 0, new[] { UpgradeIds.WideSatchel });   // three cards: the wide satchel
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
-            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();
-            game.CheckToDraw();
-            Assert.AreEqual(KitRefusal.NothingThrown, hooks.Satchel.WhyNoHarvest(game, new int[0]));
-            Assert.IsNotNull(hooks.Satchel.Harvest(game, new[] { 3, 4 }));
-            Assert.AreEqual(HandCategory.ThreeOfAKind, Evaluator.Evaluate(game.PlayerHand).Category, "the two aces from the satchel");
-            CollectionAssert.AreEqual(new[] { C("3D") }, kit.Satchel);
-            Assert.IsFalse(hooks.Satchel.SeenThisHand, "the harvest is unseen");
-            Assert.IsTrue(hooks.Satchel.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
-            Assert.AreEqual(5, kit.Sinner.Charge, "the gauge is not spent");
             Assert.AreEqual(PowerRefusal.NoPower, game.WhyNoPower(), "the demo's free fold is gone");
+            Assert.AreEqual(5, kit.Sinner.Charge, "the gauge is untouched");
         }
 
-        // ------------------------------------------------------------------ the Warlock's prophecy
+        // ------------------------------------------------------------------ the Oracle's foresight
 
         [Test]
-        public void TheOraclesForesight_SeesTwoCardsInEveryChapter()
+        public void TheOraclesForesight_StartsWithOneCard_InEveryChapter_AndGrowsWithItsLevel()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
-            Assert.AreEqual(2, kit.ProphecyCards);
-            kit.EnterChapter(2);
-            Assert.AreEqual(2, kit.ProphecyCards);
+            Assert.AreEqual(1, kit.ProphecyCards);
             kit.EnterChapter(3);
-            Assert.AreEqual(2, kit.ProphecyCards);
             kit.EnterLucifer();
-            Assert.AreEqual(2, kit.ProphecyCards);
+            Assert.AreEqual(1, kit.ProphecyCards, "the chapter does not change it (Demo 2.3: its level does)");
+            kit.AddUpgrade(UpgradeIds.DeepProphecy);
+            Assert.AreEqual(2, kit.ProphecyCards, "the Third Eye: a level");
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.CrackedOrb,
+                HellPoker.Core.Relics.ChapterRelicIds.SeersSpectacles, HellPoker.Core.Relics.ChapterRelicIds.StarChart });
+            Assert.AreEqual(4, kit.ProphecyCards, "at most four: the highest level");
             Assert.AreEqual(0, new ClassKit(new Sinner(SinnerRoster.Peasant)).ProphecyCards);
         }
 
         [Test]
-        public void BendFate_BringsASeenCardToTheTop_TheDrawTakesItFirst()
+        public void TheProphecy_ShowsTheNextCards_TheDrawTakesThem_AndTheDemonKnowsACard()
         {
-            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
+            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock, charge: 5));
+            kit.AddUpgrade(UpgradeIds.DeepProphecy);   // two cards
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            CollectionAssert.IsEmpty(hooks.Prophecy.TopCards(game), "shut between hands");
             game.PlaceBet();
             CollectionAssert.AreEqual(new[] { C("6H"), C("10C") }, hooks.Prophecy.TopCards(game));
-            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: true), "the top card is already on top: the power is not spent on it");
-            Assert.IsFalse(hooks.Prophecy.UsedThisHand);
-            Assert.IsTrue(hooks.Prophecy.Bend(game, 1, toTop: true));
-            Assert.IsTrue(hooks.Prophecy.UsedThisHand, "the hand's K power");
-            CollectionAssert.AreEqual(new[] { C("10C"), C("6H") }, hooks.Prophecy.TopCards(game));
-            Assert.IsFalse(hooks.Prophecy.Bend(game, 1, toTop: false), "once a hand");
-            Assert.AreEqual(1, kit.PulledUp);
+            Assert.IsNotNull(hooks.Prophecy.KnownCard, "the demon knows one of the Oracle's cards");
+            CollectionAssert.Contains(game.PlayerHand, hooks.Prophecy.KnownCard.Value);
             game.CheckToDraw();
             game.Draw(new[] { 3, 4 });
-            Assert.AreEqual(C("10C"), game.PlayerHand[3], "the card brought up comes first");
-            Assert.AreEqual(C("6H"), game.PlayerHand[4]);
+            Assert.AreEqual(C("6H"), game.PlayerHand[3], "the draw takes the cards seen, in order");
+            Assert.AreEqual(C("10C"), game.PlayerHand[4]);
+            CollectionAssert.IsEmpty(hooks.Prophecy.TopCards(game), "shut after the draw");
+            Assert.AreEqual(5, kit.Sinner.Charge, "the demo's gauge is untouched");
         }
 
         [Test]
-        public void BendFate_WithTheSeersSpectacles_OnlyBringsUp_AndWithTheWeaverMovesTwo()
+        public void TheSeersSpectacles_AStepOfForesight_AndTheirCurseMakesTheDemonBullyMore()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
             kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.SeersSpectacles });
-            kit.AddUpgrade(UpgradeIds.Thrice);
-            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
-            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
-            game.PlaceBet();
-            Assert.AreEqual(3, hooks.Prophecy.TopCards(game).Count, "the spectacles: one card more");
-            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: false), "nothing goes down");
-            Assert.IsFalse(hooks.Prophecy.UsedThisHand);
-            Assert.IsTrue(hooks.Prophecy.Bend(game, 2, toTop: true));
-            Assert.AreEqual(1, hooks.Prophecy.RearrangesLeft, "the Fate Weaver: a second move");
-            Assert.IsTrue(hooks.Prophecy.PullToTop(game, 2));
-            CollectionAssert.AreEqual(new[] { C("10C"), C("JH"), C("6H") }, hooks.Prophecy.TopCards(game));
-        }
-
-        [Test]
-        public void BendFate_WithOneCardLeftInTheDeck_AndAfterTheDraw_IsRefused()
-        {
-            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
-            // Eleven cards: one stays in the deck after the deal.
-            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H", kit.Sinner);
-            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
-            game.PlaceBet();
-            Assert.AreEqual(1, hooks.Prophecy.TopCards(game).Count);
-            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: true), "a single card cannot come up");
-            Assert.IsTrue(hooks.Prophecy.Bend(game, 0, toTop: false), "it may go down (and stays the only card)");
-            game.CheckToDraw();
-            game.Draw(new[] { 4 });
-            Assert.AreEqual(KitRefusal.NotNow, hooks.Prophecy.WhyNoRearrange(game));
-        }
-
-        [Test]
-        public void TheProphecy_ShowsTheNextCards_AndRearrangingSendsTwoToTheBottom()
-        {
-            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock, charge: 5));
-            kit.EnterChapter(2);
-            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
-            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
-            game.PlaceBet();
-            CollectionAssert.AreEqual(new[] { C("6H"), C("10C") }, hooks.Prophecy.TopCards(game));
-            Assert.IsNotNull(hooks.Prophecy.KnownCard, "the demon knows one of the Warlock's cards");
-            CollectionAssert.Contains(game.PlayerHand, hooks.Prophecy.KnownCard.Value);
-
-            Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0), "not without the charged power");
-            Assert.IsTrue(hooks.Prophecy.StartRearranging(game));
-            Assert.IsTrue(hooks.Prophecy.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
-            Assert.IsTrue(hooks.Prophecy.SendToBottom(game, 0));
-            CollectionAssert.AreEqual(new[] { C("10C"), C("JH") }, hooks.Prophecy.TopCards(game));
-            Assert.AreEqual(C("6H"), game.Deck.Remaining[0], "at the bottom");
-            Assert.IsFalse(hooks.Prophecy.SendToBottom(game, 0), "one a use (2.1.1: once every hand)");
-            game.CheckToDraw();
-            game.Draw(new[] { 4 });
-            Assert.AreEqual(C("10C"), game.PlayerHand[4], "the draw takes the card the Warlock left on top");
+            Assert.AreEqual(2, kit.ProphecyCards, "a step: one card more");
+            Assert.AreEqual(10, kit.Mark(HellPoker.Core.Relics.RelicExtras.ProphecyBully), "the curse: the demon bullies a low card more");
         }
 
         // ------------------------------------------------------------------ the King's treasury
@@ -257,14 +224,14 @@ namespace HellPoker.Core.Tests
             PassToTheEnd(win);
             Assert.AreEqual(1, kit.Taxes);
 
-            kit.Restore(null, 7, null, 0);
+            kit.Restore(null, 5, null, 0);
             HellPokerGame loss = Stacked("QS 9H 8D 5C 3H  AH AD 7C 4S 2D  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks.Attach(loss, kit, DealerRoster.MammonId, 1000, 1);
             loss.PlaceBet();
             loss.CheckToDraw();
             loss.Draw(new int[0]);
             PassToTheEnd(loss);
-            Assert.AreEqual(3, kit.Taxes, "a demon's hand lost: 7 → 3");
+            Assert.AreEqual(2, kit.Taxes, "a demon's hand lost: 5 → 2");
         }
 
         [Test]
@@ -315,24 +282,31 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(C("AH"), taken);
             Assert.AreEqual(C("AH"), game.PlayerHand[2]);
             Assert.AreEqual(C("7C"), game.HouseHand[0], "the King's card goes to the demon, face up");
-            Assert.AreEqual(0, kit.Taxes);
-            Assert.IsNull(hooks.Treasury.Seize(game, 2, charged: true), "once a hand");
+            Assert.AreEqual(2, kit.Taxes, "a tax to open, two to seize (the royal discount: half of four)");
+            Assert.IsNull(hooks.Treasury.Seize(game, 2), "once a hand");
         }
 
         [Test]
-        public void TheSeizure_ForTheChargedGauge_CostsNoTax_AndOpensACardWhenNoneIsOpen()
+        public void TheRoyalDiscount_HalvesTheSeizure_OnItsOwn_AndOpensACardWhenNoneIsOpen()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.King, charge: 5));
-            kit.Restore(null, 2, null, 0);   // 2.1.1: the K seizure costs half its price
+            kit.Restore(null, 2, null, 0);
+            Assert.AreEqual(2, kit.PriceOf(TaxAct.Seize), "the passive ROYAL DISCOUNT: half of four");
+            Assert.AreEqual(ClassKit.SeizePrice, kit.SeizeFullPrice);
             HellPokerGame game = Stacked("AD KD 7C 4S 2D  AH 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
             game.PlaceBet();
-            Assert.AreEqual(KitRefusal.NoTaxes, hooks.Treasury.WhyNot(game, TaxAct.Seize));
-            Assert.AreEqual(2, hooks.Treasury.PowerSeizePrice);
-            Assert.AreEqual(C("AH"), hooks.Treasury.Seize(game, 2, charged: true));
+            Assert.AreEqual(C("AH"), hooks.Treasury.Seize(game, 2));
             Assert.AreEqual(1, game.HouseCardsRevealed, "the face-down card turned to be taken");
-            Assert.IsTrue(hooks.Treasury.UsedThisHand, "the hand's K power (2.1.1: no gauge)");
-            Assert.AreEqual(0, kit.Taxes, "half the seizure's price");
+            Assert.AreEqual(0, kit.Taxes);
+            Assert.IsTrue(hooks.Treasury.PassiveThisHand, "the passive worked");
+            Assert.AreEqual(5, kit.Sinner.Charge, "nothing of the demo's gauge");
+
+            kit.AddUpgrade(UpgradeIds.CheapSeizure);
+            Assert.AreEqual(1, kit.PriceOf(TaxAct.Seize), "the Cheap Seizure: a quarter");
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.KingsSignet });
+            Assert.AreEqual(5, kit.SeizeFullPrice, "the signet's curse: a tax more");
+            Assert.AreEqual(2, kit.PriceOf(TaxAct.Seize), "a quarter of five, rounded up");
         }
 
         [Test]
@@ -509,14 +483,15 @@ namespace HellPoker.Core.Tests
 
             Assert.IsTrue(ChapterSave.TryDecode(journey.Capture().Encode(), out ChapterSave save));
             ChapterJourney back = ChapterJourney.Restore(save);
-            CollectionAssert.AreEqual(new[] { C("AS"), C("7D") }, back.Kit.Satchel);
+            CollectionAssert.AreEqual(new[] { C("7D") }, back.Kit.Satchel, "a satchel of one at the starting level: the newest stays");
             Assert.AreEqual(C("2H"), back.Kit.LuciferBag);
             Assert.AreEqual(2, back.Kit.Chapter);
 
             ChapterJourney king = ChapterJourney.Begin(SinnerRoster.King, 4);
             king.Kit.AddTax(6);
+            Assert.AreEqual(ClassKit.TaxStart, king.Kit.Taxes, "the treasury's starting room");
             Assert.IsTrue(ChapterSave.TryDecode(king.Capture().Encode(), out ChapterSave kingSave));
-            Assert.AreEqual(6, ChapterJourney.Restore(kingSave).Kit.Taxes);
+            Assert.AreEqual(ClassKit.TaxStart, ChapterJourney.Restore(kingSave).Kit.Taxes);
         }
 
         [Test]

@@ -53,6 +53,10 @@ namespace HellPoker.Core.Game
         /// <summary>Years put on after the hand is judged, before it is settled (a demon's interest).</summary>
         public virtual int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => 0;
 
+        /// <summary>A showdown the House won is spared: it counts as a push (the Jester's shields against his own two jokers). Asked only
+        /// when no relic spares it already; true spends the hook's own charge.</summary>
+        public virtual bool SparesLoss(HellPokerGame game, ShowdownResult showdown) => false;
+
         /// <summary>The hand is settled (<see cref="HellPokerGame.LastRound"/> is set).</summary>
         public virtual void HandSettled(HellPokerGame game, RoundResult round) { }
     }
@@ -121,6 +125,9 @@ namespace HellPoker.Core.Game
 
         public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) =>
             _links.Sum(l => l.YearsAfterHand(game, outcome, folded, houseFolded));
+
+        /// <summary>The first link that spares the loss spends its charge; the others are not asked.</summary>
+        public override bool SparesLoss(HellPokerGame game, ShowdownResult showdown) => _links.Any(l => l.SparesLoss(game, showdown));
 
         public override void HandSettled(HellPokerGame game, RoundResult round)
         {

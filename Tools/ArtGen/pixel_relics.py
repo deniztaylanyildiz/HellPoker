@@ -17,7 +17,10 @@ ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary", "jesters
          "ash_purse", "ferrymans_lantern", "rusted_chain", "lead_seal",
          "liars_tongue", "blood_pact", "lost_souls_letter", "twin_dice", "jesters_hat", "seers_spectacles", "peasants_scythe", "kings_signet",
          "summoners_leash", "lucifers_feather", "mammons_gold_tooth",
-         "devils_compass"]
+         "devils_compass",
+         # Demo 2.3: the classes' chains (a common and a legendary each; the Thief's rare too).
+         "rope_belt", "harvest_moon", "cracked_orb", "star_chart", "tax_ledger", "golden_scepter", "chalk_circle", "black_grimoire",
+         "worn_gloves", "lockpick", "shadow_cloak", "bell_collar", "mocking_mask"]
 
 
 def icon(relic_id):
@@ -348,6 +351,107 @@ def icon(relic_id):
         img.paint(img.m_poly([(7, 7), (2, 8), (7, 10)]), C.BONE_MID)
         img.put(7, 8, C.GOLD_LIGHT)
         img.put(8, 9, C.GOLD_LIGHT)
+    elif relic_id == "rope_belt":
+        # A coil of rough rope, a knot at the front.
+        loop = img.m_ellipse(8, 8, 6, 4.5) & ~img.m_ellipse(8, 8, 4.2, 2.8)
+        img.paint(loop, C.GOLD_DARK)
+        img.dither(loop & img.m_rect(0, 8, ICON, ICON), C.GOLD_DARK, C.GOLD_MID, 0.4)
+        img.paint(img.m_rect(7, 11, 9, 13), C.GOLD_MID)
+        img.paint(img.m_line([(7, 13), (6, 15)], 1), C.GOLD_DARK)
+        img.paint(img.m_line([(9, 13), (10, 15)], 1), C.GOLD_DARK)
+    elif relic_id == "harvest_moon":
+        # A great amber moon over a sheaf of wheat.
+        img.paint(img.m_ellipse(8, 6, 5, 5), C.AMBER)
+        img.dither(img.m_ellipse(8, 6, 5, 5) & img.m_rect(9, 0, ICON, ICON), C.AMBER, C.ORANGE, 0.4)
+        for x in (5, 7, 9, 11):
+            img.paint(img.m_line([(8, 15), (x, 9)], 1), C.GOLD)
+            img.put(x, 9, C.GOLD_LIGHT)
+        img.paint(img.m_rect(6, 12, 10, 12), C.GOLD_DARK)
+    elif relic_id == "cracked_orb":
+        # A lilac crystal ball with a crack across it, on a small stand.
+        orb = img.m_ellipse(8, 7, 5, 5)
+        img.paint(orb, C.MAUVE)
+        img.dither(orb & img.m_rect(0, 0, 8, 7), C.MAUVE, C.LILAC, 0.5)
+        img.put(6, 5, C.LILAC_LIGHT)
+        img.paint(img.m_line([(10, 3), (8, 7), (10, 10)], 1), C.BLACK)
+        img.paint(img.m_rect(4, 13, 11, 14), C.GOLD_DARK)
+    elif relic_id == "star_chart":
+        # A night-blue chart with gold stars joined by a line.
+        img.paint(img.m_rect(2, 2, 13, 13), C.NIGHT)
+        img.paint(img.m_rect(2, 2, 13, 2), C.BONE_MID)
+        img.paint(img.m_rect(2, 13, 13, 13), C.BONE_MID)
+        stars = ((4, 10), (7, 6), (10, 8), (12, 4))
+        img.paint(img.m_line(list(stars), 1), C.DUSK)
+        for x, y in stars:
+            img.put(x, y, C.GOLD_LIGHT)
+    elif relic_id == "tax_ledger":
+        # A green ledger with a gold coin on its cover.
+        img.paint(img.m_rect(3, 2, 12, 14), C.GREEN_DARK)
+        img.paint(img.m_rect(4, 3, 11, 13), C.GREEN)
+        img.paint(img.m_rect(3, 2, 4, 14), C.GOLD_DARK)
+        img.paint(img.m_ellipse(8, 8, 2.5, 2.5), C.GOLD)
+        img.put(8, 8, C.GOLD_LIGHT)
+    elif relic_id == "golden_scepter":
+        # A gold sceptre topped with a red stone.
+        img.paint(img.m_line([(4, 15), (11, 5)], 1), C.GOLD)
+        img.paint(img.m_line([(5, 15), (12, 5)], 1), C.GOLD_DARK)
+        img.paint(img.m_ellipse(12, 4, 2.5, 2.5), C.GOLD_MID)
+        img.paint(img.m_ellipse(12, 4, 1.4, 1.4), C.CRIMSON)
+        img.put(11, 3, C.HELL)
+    elif relic_id == "chalk_circle":
+        # A white chalk circle with a pentagram scratched in it.
+        for i in range(16):
+            a = 2 * math.pi * i / 16
+            img.put(int(round(7.5 + 6 * math.cos(a))), int(round(8 + 6 * math.sin(a))), C.BONE)
+        pts = [(int(round(7.5 + 4.5 * math.cos(-math.pi / 2 + k * 4 * math.pi / 5))),
+                int(round(8 + 4.5 * math.sin(-math.pi / 2 + k * 4 * math.pi / 5)))) for k in range(6)]
+        img.paint(img.m_line(pts, 1), C.BONE_SHADE)
+    elif relic_id == "black_grimoire":
+        # A thick black tome, clasped, with a glowing violet eye.
+        img.paint(img.m_rect(2, 3, 13, 14), C.BLACK)
+        img.paint(img.m_rect(3, 4, 12, 13), C.DUSK)
+        img.paint(img.m_rect(12, 7, 14, 9), C.SILVER_DARK)
+        img.paint(img.m_ellipse(7.5, 8.5, 2.5, 1.6), C.VIOLET)
+        img.put(7, 8, C.LILAC_LIGHT)
+        img.put(8, 8, C.BLACK)
+    elif relic_id == "worn_gloves":
+        # A pair of worn leather gloves, the fingertips cut off.
+        for ox in (1, 8):
+            img.paint(img.m_rect(ox, 7, ox + 5, 14), C.GOLD_DARK)
+            for f in range(4):
+                img.paint(img.m_rect(ox + f + (1 if f else 0), 3 + (f % 2), ox + f + (1 if f else 0), 6), C.GOLD_DARK)
+            img.paint(img.m_rect(ox, 7, ox + 5, 7), C.BONE_MID)
+        img.dither(img.m_rect(0, 10, ICON, 14), C.GOLD_DARK, C.BLOOD_DARK, 0.3)
+    elif relic_id == "lockpick":
+        # Two lockpicks on a ring.
+        img.paint(img.m_ellipse(4, 4, 2.6, 2.6) & ~img.m_ellipse(4, 4, 1.4, 1.4), C.SILVER_DARK)
+        img.paint(img.m_line([(5, 6), (13, 14)], 1), C.SILVER)
+        img.paint(img.m_line([(6, 5), (14, 9)], 1), C.SILVER)
+        img.put(13, 13, C.SILVER_DARK)
+        img.put(14, 10, C.SILVER_DARK)
+    elif relic_id == "shadow_cloak":
+        # A hooded black cloak, only two eyes in the dark.
+        cloak = img.m_poly([(8, 1), (13, 6), (14, 15), (2, 15), (3, 6)])
+        img.paint(cloak, C.NIGHT)
+        img.dither(cloak & img.m_rect(9, 0, ICON, ICON), C.NIGHT, C.DUSK, 0.4)
+        img.paint(img.m_ellipse(8, 6, 3, 3), C.BLACK)
+        img.put(7, 6, C.EMBER)
+        img.put(9, 6, C.EMBER)
+    elif relic_id == "bell_collar":
+        # A crimson collar hung with three little gold bells.
+        collar = img.m_ellipse(8, 7, 6, 4) & ~img.m_ellipse(8, 7, 4.4, 2.6)
+        img.paint(collar, C.CRIMSON)
+        for x, y in ((4, 11), (8, 12), (12, 11)):
+            img.paint(img.m_ellipse(x, y, 1.6, 1.6), C.GOLD)
+            img.put(x, y + 1, C.GOLD_DARK)
+    elif relic_id == "mocking_mask":
+        # A half-white, half-violet harlequin mask with a crooked grin.
+        face = img.m_ellipse(8, 8, 6, 5)
+        img.paint(face, C.BONE)
+        img.paint(face & img.m_rect(8, 0, ICON, ICON), C.VIOLET)
+        img.paint(img.m_rect(4, 6, 6, 7), C.BLACK)
+        img.paint(img.m_rect(10, 6, 12, 7), C.BLACK)
+        img.paint(img.m_line([(4, 10), (8, 12), (12, 9)], 1), C.CRIMSON)
     img.outline(C.BLACK)
     return img
 def write_all(art_dir):

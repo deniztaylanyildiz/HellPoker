@@ -132,9 +132,12 @@ namespace HellPoker.Presentation.Views
             // A new joker count (not the first showing of the badge): a short flash.
             if (badge.ShowsJokers && Badge.ShowsJokers && badge.Jokers != Badge.Jokers && Badge.ClassId == badge.ClassId)
                 _jokerFlash = JokerFlashSeconds;
+            // A passive worked (Demo 2.3): the same short flash.
+            if (badge.Passive && Badge.Passive && badge.PassiveFlashes > Badge.PassiveFlashes && Badge.ClassId == badge.ClassId)
+                _jokerFlash = JokerFlashSeconds;
             Badge = badge;
             _strip.gameObject.SetActive(badge.Visible);
-            _hint.gameObject.SetActive(badge.Visible && (badge.Usable || badge.PowerOn || badge.ShowsPowerState));
+            _hint.gameObject.SetActive(badge.Visible && !badge.Passive && (badge.Usable || badge.PowerOn));
             if (!badge.Visible)
             {
                 _tooltip.SetActive(false);
@@ -146,23 +149,22 @@ namespace HellPoker.Presentation.Views
             for (int i = 0; i < _upgradePips.Count; i++) _upgradePips[i].gameObject.SetActive(i < badge.Upgrades);
             _icon.sprite = UiArt.SinnerIcon(badge.ClassId);
             _icon.enabled = _icon.sprite != null;
-            // Phase 2: no gauge — beside the icon a K (ready) or a dash (spent this hand), the words over the badge.
-            bool state = badge.ShowsPowerState && !badge.ShowsJokers;
-            _jokerCount.gameObject.SetActive(badge.ShowsJokers || state);
-            _jokerCount.text = badge.ShowsJokers ? string.Format(UiText.JokerCountFormat, badge.Jokers) : state ? (badge.PowerReady ? "K" : "-") : "";
-            _jokerCount.color = state && !badge.PowerReady ? Palette.BoneDark : Palette.GoldLight;
+            // Phase 2 (Demo 2.3): beside the icon the main power's level as pips (the Jester: his jokers' count).
+            _jokerCount.gameObject.SetActive(badge.ShowsJokers);
+            _jokerCount.text = badge.ShowsJokers ? string.Format(UiText.JokerCountFormat, badge.Jokers) : "";
+            _jokerCount.color = Palette.GoldLight;
             for (int i = 0; i < _pips.Count; i++)
             {
-                _pips[i].enabled = !badge.ShowsJokers && !state && i < badge.Full;
+                _pips[i].enabled = !badge.ShowsJokers && i < badge.Full;
                 _pips[i].color = i < badge.Charge ? Palette.GoldLight : Palette.Plum;
             }
-            _hint.text = badge.PowerOn ? UiText.PowerOnLabel : badge.ShowsPowerState ? badge.PowerState : badge.Usable ? UiText.PowerReadyHint : "";
-            _hint.color = badge.ShowsPowerState && !badge.PowerReady && !badge.PowerOn ? Palette.BoneMid : Palette.GoldLight;
+            _hint.text = badge.PowerOn ? UiText.PowerOnLabel : badge.Usable ? UiText.PowerReadyHint : "";
+            _hint.color = Palette.GoldLight;
             if (!badge.PowerOn) _strip.color = Palette.Black;
-            _tooltipText.text = badge.Name + "\n" + badge.Description + "\n" +
-                                (badge.ShowsJokers ? UiText.JokerBadgeHint(badge.Jokers)
-                                    : badge.WardRaised ? UiText.WardUpHint
-                                    : badge.ShowsPowerState ? UiText.PowerOncePerHandHint : UiText.SinnerCharge(badge.Charge, badge.Full));
+            // A passive class's description is whole (its power, its passive, its upgrades); the demo's adds the gauge.
+            _tooltipText.text = badge.Name + "\n" + badge.Description +
+                                (badge.Passive ? "" : "\n" + (badge.ShowsJokers ? UiText.JokerBadgeHint(badge.Jokers)
+                                    : badge.WardRaised ? UiText.WardUpHint : UiText.SinnerCharge(badge.Charge, badge.Full)));
             // As tall as the words, whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 180, textHeight);
@@ -185,7 +187,7 @@ namespace HellPoker.Presentation.Views
             }
             if (Badge.PowerOn)
                 _strip.color = Mathf.Repeat(Time.unscaledTime, PowerBeat) < PowerBeat / 2f ? Palette.Plum : Palette.Black;
-            if (!Badge.IsCharged) return;
+            if (!Badge.Glows) return;
             _pulse += Time.unscaledDeltaTime;
             bool bright = (int)(_pulse / PulseSeconds) % 2 == 0;
             for (int i = 0; i < _pips.Count && i < Badge.Charge; i++)

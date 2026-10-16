@@ -23,8 +23,8 @@ namespace HellPoker.Core.Chapters
             { Peasant.ClassId, new[] { 1300, 1950, 2200, 1050 } },   // 6500
             { Warlock.ClassId, new[] { 1300, 1950, 2200, 1050 } },   // 6500
             { King.ClassId,    new[] { 1600, 2400, 2700, 1300 } },   // 8000
-            { Summoner.ClassId, new[] { 1160, 1740, 1972, 928 } },
-            { Thief.ClassId,   new[] { 1300, 1950, 2200, 1050 } },   // 6500 (Demo 2.2: the Peasant's, tuned by the simulation)   // 5800 (6500 and 140 coins asked: 19.6% free; 200 coins: 26.8%)
+            { Summoner.ClassId, new[] { 1160, 1740, 1972, 928 } },   // 5800 (6500 and 140 coins asked: 19.6% free; 200 coins: 26.8%)
+            { Thief.ClassId,   new[] { 1300, 1950, 2200, 1050 } },   // 6500 (Demo 2.2: the Peasant's shares; 29.2% free, no tuning needed)
         };
 
         /// <summary>The years a sinner of <paramref name="classId"/> owes <paramref name="bossId"/> (any other class: the Peasant's).</summary>

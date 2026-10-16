@@ -49,7 +49,7 @@ namespace HellPoker.Core.Chapters
             switch (kit.Kind)
             {
                 case KitKind.Satchel: powers = new SatchelPowers(kit, Dice(2)); break;
-                case KitKind.Prophecy: powers = new ProphecyPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
+                case KitKind.Prophecy: powers = new ProphecyPowers(kit, Dice(2)); break;
                 case KitKind.Treasury: powers = new TreasuryPowers(kit, Dice(2), bossId != null); break;
                 case KitKind.Summon: powers = new SummonPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
                 case KitKind.Theft: powers = new TheftPowers(kit, Dice(2), bossId != null ? barStart : 0); break;

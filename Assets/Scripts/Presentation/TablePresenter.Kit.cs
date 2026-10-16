@@ -10,8 +10,8 @@ using HellPoker.Presentation.Ui;
 namespace HellPoker.Presentation
 {
     /// <summary>
-    /// Phase 2's class mechanics at a chapter's table (the Peasant's satchel, the Warlock's prophecy, the King's treasury) and the
-    /// demon's rule's words. Nothing here runs at a demo table: <see cref="_kit"/> is null there.
+    /// Phase 2's class mechanics at a chapter's table (the Peasant's satchel, the Oracle's foresight, the King's treasury, the Summoner's
+    /// imps, the Thief's steal), their passives and the demon's rule's words. Nothing here runs at a demo table: <see cref="_kit"/> is null there.
     /// </summary>
     public sealed partial class TablePresenter
     {
@@ -21,14 +21,17 @@ namespace HellPoker.Presentation
         /// <summary>The satchel cards picked to go into this draw.</summary>
         private readonly List<Card> _bagTakes = new List<Card>();
 
-        /// <summary>A seizure waits for the card the King gives (paid with the full gauge when <see cref="_seizeCharged"/>).</summary>
-        private bool _seizing, _seizeCharged;
+        /// <summary>A pick waits for the card the player gives (the King's seizure, the imp's Hand, the Thief's steal).</summary>
+        private bool _seizing;
 
         /// <summary>The taxes the King had lost when the hand was dealt (the line about half of them gone).</summary>
         private int _taxesLostAtDeal;
 
         /// <summary>The demon said he is cornered (once a table).</summary>
         private bool _corneredSaid;
+
+        /// <summary>The hand whose passive the log has written (once a hand).</summary>
+        private int _passiveLoggedRound = -1;
 
         /// <summary>The chapter table's hooks, for tests and screenshots.</summary>
         public ChapterHooks Kit => _kit;
@@ -49,7 +52,7 @@ namespace HellPoker.Presentation
             _kit = (game as HellPokerGame)?.Hooks as ChapterHooks;
             _corneredSaid = false;
             _soulWarned = false;
-            _drawSoundRound = _resultSoundRound = _barRoundShown = -1;
+            _drawSoundRound = _resultSoundRound = _barRoundShown = _passiveLoggedRound = -1;
             _taxesLostAtDeal = _kit?.Kit.TaxesLost ?? 0;
         }
 
@@ -59,7 +62,7 @@ namespace HellPoker.Presentation
             _seizing = false;
             if (_kit == null) return;
             _taxesLostAtDeal = _kit.Kit.TaxesLost;
-            if (_kit.Prophecy != null) _view.PlaySfx(SfxIds.ProphecySee);   // a new hand: the Warlock looks at the deck's top again
+            if (_kit.Prophecy != null) _view.PlaySfx(SfxIds.ProphecySee);   // a new hand: the Oracle looks at the deck's top again
             if (_kit.Rule != null && !_corneredSaid && _kit.Rule.IsCornered(KitGame))
             {
                 _corneredSaid = true;
@@ -91,124 +94,37 @@ namespace HellPoker.Presentation
                 Refresh();
                 return false;
             }
-            LogNote($"satchel: {string.Join(" ", _bagTakes)} into the draw (hand {_game.RoundNumber}; the demon sees it)");
+            LogNote($"satchel: {string.Join(" ", _bagTakes)} into the draw (hand {_game.RoundNumber}{(_bagTakes.Count >= 2 ? "; the demon sees the second" : "")})");
             _view.PlaySfx(SfxIds.SatchelTake);
             KitGame.Draw(discards, fill);
             _bagTakes.Clear();
             return true;
         }
 
-        // ------------------------------------------------------------------ K: the class's charged power
+        // ------------------------------------------------------------------ K: the Thief's steal; for the others, what the class does
 
-        /// <summary>Why K cannot be used now, in a few words (2.1.1: once a hand, at the class's moment). The refusal goes into the log.</summary>
-        private string PowerRefusalText(KitRefusal why)
-        {
-            HellPokerGame game = KitGame;
-            LogNote($"K refused: {why} (hand {_game.RoundNumber + (_game.Phase == GamePhase.Betting && !game.HandInPlay ? 1 : 0)}, {_game.Phase})");
-            switch (why)
-            {
-                case KitRefusal.AlreadyUsed: return UiText.KitUsedThisHand;
-                case KitRefusal.NoTaxes when _kit.Prophecy != null: return UiText.SummonNoCoins;   // the floors' price of sending down
-                case KitRefusal.NoTaxes when _kit.Treasury != null:
-                    return UiText.KitRefused(why, 0, 0, _kit.Kit.Taxes, _kit.Treasury.PowerSeizePrice);
-                case KitRefusal.NotNow:
-                    if (_kit.Satchel != null) return UiText.KitHarvestInDraw;
-                    return game.IsAfterDraw && game.HandInPlay ? UiText.KitNotAfterDraw
-                        : _kit.Prophecy != null || !game.HandInPlay ? UiText.KitAfterTheDeal : UiText.KitNotBeforeDraw;
-                default: return UiText.KitRefused(why, _sinner.Charge, _sinner.Rules.Full);
-            }
-        }
-
+        /// <summary>
+        /// K (or the badge) at a chapter's table (Demo 2.3: the classes' powers are passive): the Thief's STEAL; every other class only
+        /// hears what it does.
+        /// </summary>
         private void UseKitPower()
         {
-            HellPokerGame game = KitGame;
-            switch (_kit.Powers)
+            if (_kit?.Theft != null)
             {
-                case SatchelPowers satchel:
-                {
-                    KitRefusal why = satchel.WhyNoHarvest(game, _discards);
-                    if (why != KitRefusal.None)
-                    {
-                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
-                        return;
-                    }
-                    TableState before = CaptureState();
-                    _view.PlaySfx(SfxIds.Deal);
-                    Hand playerBefore = _game.PlayerHand, houseBefore = _game.HouseHand;
-                    if (satchel.Harvest(game, _discards.OrderBy(i => i).ToArray()) == null)
-                    {
-                        // The draw could not be made with these cards (Demo 2.2: it was announced as done all the same).
-                        _view.SetMessage(PowerRefusalText(KitRefusal.NotNow), Tone.Warning);
-                        return;
-                    }
-                    LogNote($"power: HARVEST (hand {_game.RoundNumber})");
-                    _view.PlaySfx(SfxIds.SatchelTake);
-                    _discards.Clear();
-                    _bagTakes.Clear();
-                    LogJokers("drawn", NewCards(playerBefore, _game.PlayerHand), NewCards(houseBefore, _game.HouseHand));
-                    PlayOutSealedHand(before);
-                    PlayCheatStrikes(before);
-                    Refresh();
-                    _view.SetMessage(UiText.HarvestDone, Tone.Good);
-                    return;
-                }
-                case ProphecyPowers prophecy:
-                {
-                    KitRefusal why = prophecy.WhyNoRearrange(game);
-                    if (why != KitRefusal.None)
-                    {
-                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
-                        return;
-                    }
-                    if (!prophecy.StartRearranging(game)) return;
-                    LogNote($"power: the Oracle bends fate (hand {_game.RoundNumber})");
-                    Refresh();
-                    _view.SetMessage(BendPrompt(prophecy), Tone.Good);
-                    return;
-                }
-                case TheftPowers theft:
-                    PressSteal(theft);
-                    return;
-                case SummonPowers summon:
-                {
-                    KitRefusal why = summon.WhyNoLegion(game);
-                    if (why != KitRefusal.None)
-                    {
-                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
-                        return;
-                    }
-                    if (!summon.CallLegion(game)) return;
-                    LogNote($"power: the LEGION (hand {_game.RoundNumber})");
-                    Refresh();
-                    _view.SetMessage(UiText.LegionCalled, Tone.Good);
-                    return;
-                }
-                case TreasuryPowers treasury:
-                {
-                    if (_seizing && _seizeCharged)
-                    {
-                        _seizing = false;   // K again: put away
-                        Refresh();
-                        return;
-                    }
-                    KitRefusal why = treasury.WhyNot(game, TaxAct.Seize, charged: true);
-                    if (why != KitRefusal.None)
-                    {
-                        _view.SetMessage(PowerRefusalText(why), Tone.Warning);
-                        return;
-                    }
-                    _seizing = true;
-                    _seizeCharged = true;
-                    Refresh();
-                    _view.SetMessage(UiText.SeizePrompt, Tone.Warning);
-                    return;
-                }
+                PressSteal(_kit.Theft);
+                return;
             }
+            _view.SetMessage(UiText.ClassPassiveInfo(_game.Sinner.Id, _kit?.Kit), Tone.Neutral);
         }
 
-        private string KitRefusalText(KitRefusal why, int price = 0) =>
-            why == KitRefusal.NotNow && _kit?.Treasury != null ? UiText.KitNotBeforeDraw
-                : UiText.KitRefused(why, _sinner.Charge, _sinner.Rules.Full, _kit?.Kit.Taxes ?? 0, price);
+        /// <summary>Why an act cannot be done now, in a few words; the refusal goes into the log.</summary>
+        private string KitRefusalText(KitRefusal why, int price = 0)
+        {
+            LogNote($"refused: {why} (hand {_game.RoundNumber + (_game.Phase == GamePhase.Betting && !(KitGame?.HandInPlay ?? false) ? 1 : 0)}, {_game.Phase})");
+            if (why == KitRefusal.NotNow && _kit?.Theft != null) return UiText.StealNotNow;
+            if (why == KitRefusal.NotNow) return UiText.KitNotBeforeDraw;
+            return UiText.KitRefused(why, _kit?.Kit.Taxes ?? 0, price);
+        }
 
         // ------------------------------------------------------------------ the panel's cards and buttons
 
@@ -242,65 +158,15 @@ namespace HellPoker.Presentation
                 }
                 if (!_bagTakes.Remove(bag[index])) _bagTakes.Add(bag[index]);
                 Refresh();
-                if (_bagTakes.Count > 0) _view.SetMessage(string.Format(UiText.SatchelTakeFormat, _bagTakes.Count), Tone.Warning);
+                if (_bagTakes.Count > 0)
+                    _view.SetMessage(string.Format(_bagTakes.Count >= 2 ? UiText.SatchelTakeSeenFormat : UiText.SatchelTakeFormat, _bagTakes.Count), Tone.Warning);
                 return;
             }
-            if (_kit.Prophecy != null)
-            {
-                ProphecyPowers prophecy = _kit.Prophecy;
-                if (prophecy.RearrangesLeft <= 0)
-                {
-                    _view.SetMessage(ProphecyHint, Tone.Neutral);
-                    return;
-                }
-                // A click on the card itself while bending: down when it may go down, else up (the Seer's Spectacles).
-                Bend(index, prophecy.CanSendToBottom(game, index) ? false : true);
-            }
+            if (_kit.Prophecy != null) _view.SetMessage(ProphecyHint, Tone.Neutral);   // the cards only show: nothing moves them
         }
 
-        /// <summary>A small card's ▲ / ▼: the Oracle's BEND FATE (the hand's K power is spent on the first move).</summary>
-        public void PressKitArrow(int index, bool toTop)
-        {
-            if (!Playing || _kit?.Prophecy == null || _pendingEvent != null || Hurry()) return;
-            Bend(index, toTop);
-        }
-
-        private void Bend(int index, bool toTop)
-        {
-            HellPokerGame game = KitGame;
-            ProphecyPowers prophecy = _kit.Prophecy;
-            IReadOnlyList<Card> top = prophecy.TopCards(game);
-            if (index < 0 || index >= top.Count) return;
-            if (prophecy.RearrangesLeft <= 0)
-            {
-                KitRefusal why = prophecy.WhyNoRearrange(game);
-                if (why != KitRefusal.None)
-                {
-                    _view.SetMessage(PowerRefusalText(why), Tone.Warning);
-                    return;
-                }
-            }
-            bool possible = toTop ? index > 0 : _kit.Kit.CanSendToBottom;
-            if (!possible)
-            {
-                _view.SetMessage(toTop ? UiText.BendAlreadyOnTop : UiText.KitNoBottom, Tone.Warning);
-                return;
-            }
-            bool started = prophecy.RearrangesLeft <= 0;
-            Card card = top[index];
-            if (!prophecy.Bend(game, index, toTop)) return;
-            if (started) LogNote($"power: the Oracle bends fate (hand {_game.RoundNumber})");
-            LogNote($"bend fate: {card} to the {(toTop ? "top" : "bottom")} (hand {_game.RoundNumber})");
-            _view.PlaySfx(SfxIds.ProphecyBottom);
-            Refresh();
-            _view.SetMessage(string.Format(toTop ? UiText.BentUpFormat : UiText.RearrangedFormat, card)
-                + (prophecy.RearrangesLeft > 0 ? "\n" + BendPrompt(prophecy) : ""), Tone.Good);
-        }
-
-        /// <summary>The Oracle's hover text with his own numbers (the Fate Weaver moves two).</summary>
-        private string ProphecyHint => string.Format(UiText.KitProphecyHintFormat, _kit?.Kit.RearrangesPerCharge ?? ClassKit.RearrangesPerUse);
-
-        private static string BendPrompt(ProphecyPowers prophecy) => string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft);
+        /// <summary>The Oracle's hover text with his own numbers (FORESIGHT's cards now and at most).</summary>
+        private string ProphecyHint => UiText.KitProphecyHint(_kit?.Kit);
 
         public void PressKitButton(int index)
         {
@@ -318,7 +184,7 @@ namespace HellPoker.Presentation
             HellPokerGame game = KitGame;
             TreasuryPowers treasury = _kit.Treasury;
             TaxAct act = index == 0 ? TaxAct.Reveal : index == 1 ? TaxAct.FreeRaise : TaxAct.Seize;
-            if (act == TaxAct.Seize && _seizing && !_seizeCharged)
+            if (act == TaxAct.Seize && _seizing)
             {
                 _seizing = false;   // the button again: put away
                 Refresh();
@@ -349,7 +215,6 @@ namespace HellPoker.Presentation
                     return;
                 default:
                     _seizing = true;
-                    _seizeCharged = false;
                     Refresh();
                     _view.SetMessage(UiText.SeizePrompt, Tone.Warning);
                     return;
@@ -372,7 +237,8 @@ namespace HellPoker.Presentation
             KitRefusal why = summon.WhyNot(game, act);
             if (why != KitRefusal.None)
             {
-                _view.SetMessage(why == KitRefusal.NoTaxes ? UiText.SummonNoCoins : KitRefusalText(why), Tone.Warning);
+                _view.SetMessage(why == KitRefusal.NoTaxes ? UiText.SummonNoCoins : why == KitRefusal.Locked ? UiText.ImpLockedText(act)
+                    : KitRefusalText(why), Tone.Warning);
                 return;
             }
             int price = summon.PriceOf(act);
@@ -384,15 +250,15 @@ namespace HellPoker.Presentation
                     _view.PlaySfx(SfxIds.ProphecySee);
                     _view.PlaySfx(SfxIds.Flip);
                     Refresh();
-                    _view.SetMessage(WithWild(summon, UiText.EyeOpened), Tone.Good);
+                    _view.SetMessage(WithWild(summon, WithLoyal(price, UiText.EyeOpened)), Tone.Good);
                     return;
                 case SummonAct.Whisper:
                     summon.Whisper(game);
                     LogNote($"imps: the WHISPER: {(summon.WhisperedCheat?.Id ?? "nothing")} (hand {_game.RoundNumber}, {PriceNote(summon, price)})");
                     _view.PlaySfx(SfxIds.ProphecySee);
                     Refresh();
-                    _view.SetMessage(WithWild(summon, summon.WhisperedCheat == null ? UiText.WhisperNothing
-                        : string.Format(UiText.WhisperFormat, UiText.CheatName(summon.WhisperedCheat.Id))), Tone.Good);
+                    _view.SetMessage(WithWild(summon, WithLoyal(price, summon.WhisperedCheat == null ? UiText.WhisperNothing
+                        : string.Format(UiText.WhisperFormat, UiText.CheatName(summon.WhisperedCheat.Id)))), Tone.Good);
                     return;
                 default:
                     _seizing = true;
@@ -402,17 +268,20 @@ namespace HellPoker.Presentation
             }
         }
 
+        /// <summary>An imp the loyal imp freed says so.</summary>
+        private static string WithLoyal(int price, string message) => price == 0 ? message + "\n" + UiText.LoyalImpLine : message;
+
         private string PriceNote(SummonPowers summon, int price) =>
-            price == 0 ? "free" : summon.AtDemonsTable ? $"+{price} on the bar" : $"{price} coins, purse {_seat?.Run.Purse.Coins}";
+            price == 0 ? "free: passive LOYAL IMP" : summon.AtDemonsTable ? $"+{price} on the bar" : $"{price} coins, purse {_seat?.Run.Purse.Coins}";
 
         /// <summary>An imp that ran wild says so after what it did.</summary>
         private string WithWild(SummonPowers summon, string message)
         {
             if (!summon.WildFrom.HasValue || _wildTold == summon.WildFrom) return message;
             _wildTold = summon.WildFrom;
-            LogNote($"imps: one ran wild, {summon.WildFrom.Value} → {summon.WildTo.Value}");
+            LogNote($"imps: one ran wild{(summon.WildOnDemon ? " on the demon (the Blood Oath)" : "")}, {summon.WildFrom.Value} → {summon.WildTo.Value}");
             _view.PlaySfx(SfxIds.Cheat);
-            return message + "\n" + string.Format(UiText.WildFormat, summon.WildFrom.Value, summon.WildTo.Value);
+            return message + "\n" + string.Format(summon.WildOnDemon ? UiText.WildDemonFormat : UiText.WildFormat, summon.WildFrom.Value, summon.WildTo.Value);
         }
 
         private Card? _wildTold;
@@ -429,7 +298,7 @@ namespace HellPoker.Presentation
             KitRefusal why = theft.WhyNoSteal(KitGame);
             if (why != KitRefusal.None)
             {
-                _view.SetMessage(PowerRefusalText(why), Tone.Warning);
+                _view.SetMessage(KitRefusalText(why), Tone.Warning);
                 return;
             }
             _seizing = true;
@@ -442,6 +311,7 @@ namespace HellPoker.Presentation
         {
             TheftPowers theft = _kit.Theft;
             Card given = _game.PlayerHand[index];
+            bool afterDraw = KitGame.IsAfterDraw;
             if (!theft.CanGive(KitGame, index) || !theft.Steal(KitGame, index))
             {
                 _view.SetMessage(UiText.StealPrompt, Tone.Warning);   // not that card: the pick stays open
@@ -449,16 +319,17 @@ namespace HellPoker.Presentation
             }
             _seizing = false;
             _discards.Remove(index);
+            string when = afterDraw ? "after the draw" : "before the draw";
             if (theft.CaughtThisHand)
             {
-                LogNote($"theft: CAUGHT giving {given} (hand {_game.RoundNumber}, fine {theft.Fine}{(theft.AtDemonsTable ? " on the bar" : " coins")})");
+                LogNote($"theft: CAUGHT giving {given} (hand {_game.RoundNumber}, {when}, fine {theft.Fine}{(theft.AtDemonsTable ? " on the bar" : " coins")})");
                 _view.PlaySfx(SfxIds.Cheat);
                 Refresh();
                 _view.SetMessage(theft.AtDemonsTable ? string.Format(UiText.CaughtBarFormat, TheftPowers.FineBarPercent)
                     : string.Format(UiText.CaughtCoinsFormat, theft.Fine), Tone.Bad);
                 return;
             }
-            LogNote($"theft: {theft.Taken} stolen for {given} (hand {_game.RoundNumber})");
+            LogNote($"theft: {theft.Taken} stolen for {given} (hand {_game.RoundNumber}, {when})");
             _view.PlaySfx(SfxIds.Seize);
             Refresh();
             _view.SetMessage(string.Format(UiText.StolenFormat, theft.Taken.Value, given), Tone.Good);
@@ -472,6 +343,15 @@ namespace HellPoker.Presentation
                 return Enumerable.Range(0, Hand.Size).Where(i => _kit.Summon.CanGive(KitGame, i)).ToArray();
             if (_kit?.Treasury == null || KitGame == null) return null;
             return Enumerable.Range(0, Hand.Size).Where(i => _kit.Treasury.CanGive(KitGame, i)).ToArray();
+        }
+
+        /// <summary>A kit's pick stays open while its moment lasts: before the draw (a seizure, the imp's Hand), until the showdown (the
+        /// Thief's steal, Demo 2.3).</summary>
+        private bool KitPickMomentGone()
+        {
+            HellPokerGame game = KitGame;
+            if (game == null || !game.HandInPlay) return true;
+            return _kit?.Theft != null ? !TheftPowers.InTheHand(game) : game.IsAfterDraw;
         }
 
         private void SeizeWith(int index)
@@ -488,7 +368,8 @@ namespace HellPoker.Presentation
             }
             HellPokerGame game = KitGame;
             Card given = _game.PlayerHand[index];
-            Card? taken = _kit.Treasury.Seize(game, index, _seizeCharged);
+            int price = _kit.Treasury.PriceOf(TaxAct.Seize);
+            Card? taken = _kit.Treasury.Seize(game, index);
             if (taken == null)
             {
                 _view.SetMessage(UiText.SeizePrompt, Tone.Warning);   // not that card: the pick stays open
@@ -496,10 +377,11 @@ namespace HellPoker.Presentation
             }
             _seizing = false;
             _discards.Remove(index);
-            LogNote($"treasury: SEIZURE {taken} for {given}{(_seizeCharged ? " (the charged power)" : "")} (hand {_game.RoundNumber})");
+            LogNote($"treasury: SEIZURE {taken} for {given} (hand {_game.RoundNumber}, {price} taxes; passive ROYAL DISCOUNT, full price {_kit.Kit.SeizeFullPrice})");
             _view.PlaySfx(SfxIds.Seize);
             Refresh();
-            _view.SetMessage(string.Format(UiText.SeizedFormat, taken.Value, given), Tone.Good);
+            _view.SetMessage(string.Format(UiText.SeizedFormat, taken.Value, given) + "\n" + string.Format(UiText.RoyalDiscountLineFormat, price,
+                _kit.Kit.SeizeFullPrice), Tone.Good);
         }
 
         /// <summary>The imp's hand: the picked card for the demon's open card that serves the hand best.</summary>
@@ -519,7 +401,29 @@ namespace HellPoker.Presentation
             LogNote($"imps: the HAND, {taken} for {given} (hand {_game.RoundNumber}, {PriceNote(summon, price)})");
             _view.PlaySfx(SfxIds.Seize);
             Refresh();
-            _view.SetMessage(WithWild(summon, string.Format(UiText.SwappedFormat, taken.Value, given)), Tone.Good);
+            _view.SetMessage(WithWild(summon, WithLoyal(price, string.Format(UiText.SwappedFormat, taken.Value, given))), Tone.Good);
+        }
+
+        // ------------------------------------------------------------------ the passives, in the log
+
+        /// <summary>A passive that worked this hand goes into the run's log, once a hand: "passive: LOYAL IMP, EYE free".</summary>
+        private void LogPassive()
+        {
+            ClassPowers powers = _kit?.Powers;
+            if (powers == null || !powers.PassiveThisHand || _passiveLoggedRound == _game.RoundNumber || _relabelling) return;
+            _passiveLoggedRound = _game.RoundNumber;
+            switch (powers)
+            {
+                case SatchelPowers satchel when satchel.SilentCard.HasValue:
+                    LogNote($"passive: SILENT FIELD, {satchel.SilentCard.Value} from the satchel unseen (hand {_game.RoundNumber})");
+                    break;
+                case TreasuryPowers _:
+                    LogNote($"passive: ROYAL DISCOUNT, a seizure for {_kit.Kit.PriceOf(TaxAct.Seize)} of {_kit.Kit.SeizeFullPrice} taxes (hand {_game.RoundNumber})");
+                    break;
+                case SummonPowers summon when summon.FreedThisHand.HasValue:
+                    LogNote($"passive: LOYAL IMP, {summon.FreedThisHand.Value.ToString().ToUpperInvariant()} free (hand {_game.RoundNumber})");
+                    break;
+            }
         }
 
         // ------------------------------------------------------------------ what the panel and the lines show
@@ -529,8 +433,6 @@ namespace HellPoker.Presentation
         {
             if (_kit == null) return null;
             if (_seizing) return _kit.Theft != null ? UiText.StealPrompt : _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
-            if (_kit.Prophecy != null && _kit.Prophecy.RearrangesLeft > 0)
-                return BendPrompt(_kit.Prophecy);
             if (_kit.Rule is BelialRoleSwap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && BelialRoleSwap.ComingIn(KitGame))
                 return UiText.RoleSwapComing;
             return null;
@@ -538,6 +440,7 @@ namespace HellPoker.Presentation
 
         private void ShowKit()
         {
+            LogPassive();
             if (_kit == null || _kit.Powers == null)
             {
                 _view.SetKit(KitDisplay.Hidden);
@@ -553,64 +456,61 @@ namespace HellPoker.Presentation
                     if (offered.Count > 0 && game.IsAfterDraw)
                     {
                         _view.SetKit(new KitDisplay(UiText.KitKeepTitle, offered.Select(c => new KitCard(c, clickable: true)).ToArray(), null,
-                            UiText.KitSatchelHint, waiting: true));
+                            UiText.KitSatchelHint(kit), waiting: true));
                         return;
                     }
                     bool drawing = _game.Phase == GamePhase.Drawing;
                     _view.SetKit(new KitDisplay(string.Format(UiText.KitSatchelTitleFormat, kit.Satchel.Count, kit.SatchelCapacity),
-                        kit.Satchel.Select(c => new KitCard(c, _bagTakes.Contains(c), drawing)).ToArray(), null, UiText.KitSatchelHint));
+                        kit.Satchel.Select(c => new KitCard(c, _bagTakes.Contains(c), drawing)).ToArray(), null, UiText.KitSatchelHint(kit)));
                     return;
                 }
                 case ProphecyPowers prophecy:
                 {
-                    // 2.1.1: shut between hands (the deal would take the very cards shown) and after the draw; it opens once the deal
-                    // has played out (this is queued after the cards' animation).
+                    // Shut between hands (the deal would take the very cards shown) and after the draw; it opens once the deal has played
+                    // out (this is queued after the cards' animation). The Fate Weaver: the card the demon knows, under the title.
+                    string known = prophecy.ShowsKnownCard && prophecy.KnownCard.HasValue && game.HandInPlay
+                        ? string.Format(UiText.DemonKnowsFormat, prophecy.KnownCard.Value) : null;
                     if (!ProphecyPowers.IsOpen(game))
                     {
                         bool afterDraw = game.IsAfterDraw && game.HandInPlay;
-                        _view.SetKit(new KitDisplay(UiText.KitProphecyShutTitle, null, null, ProphecyHint,
-                            note: afterDraw ? UiText.KitProphecyNextDeal : UiText.KitProphecyAfterDeal));
+                        _view.SetKit(new KitDisplay(UiText.KitProphecyTitle, null, null, ProphecyHint,
+                            note: known ?? (afterDraw ? UiText.KitProphecyNextDeal : UiText.KitProphecyAfterDeal)));
                         return;
                     }
-                    bool rearranging = prophecy.RearrangesLeft > 0;
-                    // The arrows show while fate may be bent: the power ready this hand, or a bend under way.
-                    bool arrows = rearranging || prophecy.WhyNoRearrange(game) == KitRefusal.None;
-                    string title = rearranging ? string.Format(UiText.KitRearrangeTitleFormat, prophecy.RearrangesLeft) : UiText.KitProphecyTitle;
                     IReadOnlyList<Card> seen = prophecy.TopCards(game);
-                    _view.SetKit(new KitDisplay(title, seen.Select((c, i) => new KitCard(c, clickable: rearranging, arrows: arrows,
-                            canTop: i > 0, canBottom: kit.CanSendToBottom)).ToArray(), null,
-                        ProphecyHint, waiting: rearranging));
+                    _view.SetKit(new KitDisplay(known == null ? UiText.KitProphecyTitle : UiText.KitProphecyTitle + "  " + known,
+                        seen.Select(c => new KitCard(c)).ToArray(), null, ProphecyHint));
                     return;
                 }
                 case TheftPowers theft:
                     _view.SetKit(new KitDisplay(UiText.KitThiefTitle, null,
                         new[] { new KitButton(UiText.StealButton, theft.WhyNoSteal(game) != KitRefusal.None && !_seizing) },
-                        string.Format(UiText.KitThiefHintFormat, kit.ThiefCaughtPercent, TheftPowers.FineBarPercent), waiting: _seizing));
+                        UiText.KitThiefHint(kit), waiting: _seizing));
                     return;
                 case SummonPowers summon:
                 {
-                    string Price(SummonAct act) => summon.LegionFreeLeft > 0 ? UiText.KitFree : summon.AtDemonsTable
-                        ? string.Format(UiText.KitBarPriceFormat, summon.BarPercentOf(act)) : summon.PriceOf(act).ToString();
+                    string Price(SummonAct act) => !summon.IsOpen(act) ? UiText.KitLockedShort : summon.PriceOf(act) == 0 ? UiText.KitFree
+                        : summon.AtDemonsTable ? string.Format(UiText.KitBarPriceFormat, summon.BarPercentOf(act)) : summon.PriceOf(act).ToString();
                     KitButton Button(SummonAct act, string format) =>
                         new KitButton(string.Format(format, Price(act)), summon.WhyNot(game, act) != KitRefusal.None);
-                    _view.SetKit(new KitDisplay(summon.Legion ? UiText.KitSummonLegionTitle : UiText.KitSummonTitle, null, new[]
+                    // The loyal imp's free one shows in the title while the imps' moment lasts (dealt, the draw still to come).
+                    bool impsMoment = game.HandInPlay && !game.IsAfterDraw;
+                    _view.SetKit(new KitDisplay(summon.FreeLeft > 0 && impsMoment ? UiText.KitSummonLoyalTitle : UiText.KitSummonTitle, null, new[]
                     {
                         Button(SummonAct.Eye, UiText.KitEyeButtonFormat), Button(SummonAct.Hand, UiText.KitHandButtonFormat),
                         Button(SummonAct.Whisper, UiText.KitWhisperButtonFormat)
-                    }, UiText.KitSummonHint, waiting: _seizing));
+                    }, UiText.KitSummonHint(kit), waiting: _seizing));
                     return;
                 }
                 case TreasuryPowers treasury:
                 {
                     KitButton Button(TaxAct act, string format) =>
-                        new KitButton(string.Format(format, treasury.PriceOf(act)), treasury.WhyNot(game, act) != KitRefusal.None
-                            && !(act == TaxAct.Seize && treasury.WhyNot(game, act, charged: true) == KitRefusal.None));
+                        new KitButton(string.Format(format, treasury.PriceOf(act)), treasury.WhyNot(game, act) != KitRefusal.None);
                     _view.SetKit(new KitDisplay(string.Format(UiText.KitTreasuryTitleFormat, kit.Taxes, kit.TaxCapacity), null, new[]
                     {
                         Button(TaxAct.Reveal, UiText.KitRevealButtonFormat), Button(TaxAct.FreeRaise, UiText.KitFreeRaiseButtonFormat),
                         Button(TaxAct.Seize, UiText.KitSeizeButtonFormat)
-                    }, string.Format(UiText.KitTreasuryHintFormat, kit.TaxCapacity, treasury.PriceOf(TaxAct.Reveal), treasury.PriceOf(TaxAct.FreeRaise),
-                        treasury.PriceOf(TaxAct.Seize)), waiting: _seizing));
+                    }, UiText.KitTreasuryHint(kit), waiting: _seizing));
                     return;
                 }
                 default:
@@ -633,7 +533,7 @@ namespace HellPoker.Presentation
             }
         }
 
-        /// <summary>The result, with the demon's rule's line (interest, temptation, the mirror) and the King's taxes lost.</summary>
+        /// <summary>The result, with the demon's rule's line (interest, temptation, the mirror), the King's taxes lost, the Jester's shield.</summary>
         private string WithKitLines(string message, RoundResult round)
         {
             if (_kit == null || round == null) return message;
@@ -647,19 +547,28 @@ namespace HellPoker.Presentation
                     lines.Add(string.Format(UiText.TemptedFormat, temptation.Tempted.Value));
                     break;
                 case LuciferMirror mirror when mirror.StruckThisHand:
-                    // What his mirror really did this hand (Demo 2.2: the line followed the class, not the act — the Summoner's
-                    // Eye and the fifth circle's second copy were told as "he drew the top card").
+                    // What his mirror really did this hand (the line follows the act, not the class).
                     if (mirror.EyeSaw.HasValue) lines.Add(UiText.MirrorEye);
                     if (mirror.UsedBag) lines.Add(UiText.MirrorSatchel);
                     if (mirror.DrewTop) lines.Add(UiText.MirrorTopCard);
-                    if (mirror.SentDown) lines.Add(UiText.MirrorSentDown);
                     break;
             }
             if (_kit.Treasury != null && _kit.Kit.TaxesLost > _taxesLostAtDeal)
                 lines.Add(_kit.Kit.Has(UpgradeIds.CrownGuard) ? UiText.TaxesQuartered : UiText.TaxesHalved);
             if (_kit.Upgrades?.LaughedThisHand == true) lines.Add(UiText.DoubleLaughLine);
+            if (_kit.Upgrades?.ShieldedThisHand == true)
+            {
+                lines.Add(string.Format(UiText.JesterShieldFormat, _kit.Upgrades.ShieldsLeft));
+                if (_shieldLoggedRound != _game.RoundNumber)
+                {
+                    _shieldLoggedRound = _game.RoundNumber;
+                    LogNote($"jester's shield: the two jokers' loss spared, a push ({_kit.Upgrades.ShieldsLeft} left at this table)");
+                }
+            }
             return lines.Count == 0 ? message : message + "\n" + string.Join("\n", lines);
         }
+
+        private int _shieldLoggedRound = -1;
 
         // ------------------------------------------------------------------ the sounds of a chapter's table
 
@@ -698,7 +607,7 @@ namespace HellPoker.Presentation
             switch (_kit.Rule)
             {
                 case LilithTemptation t when t.Tempted.HasValue: _view.PlaySfx(SfxIds.RuleTemptation); break;
-                case LuciferMirror m when m.StruckThisHand && (m.EyeSaw.HasValue || m.UsedBag || m.DrewTop || m.SentDown): _view.PlaySfx(SfxIds.RuleMirror); break;
+                case LuciferMirror m when m.StruckThisHand && (m.EyeSaw.HasValue || m.UsedBag || m.DrewTop): _view.PlaySfx(SfxIds.RuleMirror); break;
             }
             if (_kit.Treasury != null && round.Showdown?.Outcome == ShowdownOutcome.PlayerWins && !round.Folded) _view.PlaySfx(SfxIds.TaxGain);
             if (!BarMode || round.YearsChange == 0) return;

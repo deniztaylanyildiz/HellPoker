@@ -52,9 +52,11 @@ namespace HellPoker.Core.Tests
 
         /// <summary>A floor's game with the Summoner's imps on it (the purse given), dealt and at the draw.</summary>
         private static (HellPokerGame game, SummonPowers imps, CoinPurse purse) AtTheDraw(string cards, int coins = 100, int barStart = 0,
-            IRandomSource dice = null, int charge = 0)
+            IRandomSource dice = null, int charge = 0, int steps = 2)
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Summoner, charge));
+            // Demo 2.3: the Hand and the Whisper open with the Summoner's relics — here two steps of them, with no curse.
+            kit.Relics = () => new HellPoker.Core.Relics.RelicEffects(extras: HellPoker.Core.Relics.RelicEffects.Marks((HellPoker.Core.Relics.RelicExtras.ClassStep, steps)));
             HellPokerGame game = Stacked(cards, kit.Sinner);
             var imps = new SummonPowers(kit, dice ?? new Always(99), barStart);
             var purse = new CoinPurse(coins);
@@ -66,32 +68,38 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheEye_TurnsADemonsCard_ForFiveCoins_OnceAHand()
+        public void TheEye_TurnsADemonsCard_TheLoyalImpMakesTheFirstFree_OnceAHand()
         {
             var (game, imps, purse) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H");
             int open = game.HouseCardsRevealed;
+            Assert.AreEqual(0, imps.PriceOf(SummonAct.Eye), "the passive LOYAL IMP: the hand's first imp is free");
+            Assert.AreEqual(5, imps.FullPriceOf(SummonAct.Eye));
             Assert.IsTrue(imps.Eye(game));
             Assert.AreEqual(open + 1, game.HouseCardsRevealed);
-            Assert.AreEqual(95, purse.Coins);
+            Assert.AreEqual(100, purse.Coins);
+            Assert.AreEqual(SummonAct.Eye, imps.FreedThisHand);
+            Assert.IsTrue(imps.PassiveThisHand);
             Assert.AreEqual(KitRefusal.AlreadyUsed, imps.WhyNot(game, SummonAct.Eye));
+            Assert.AreEqual(8, imps.PriceOf(SummonAct.Whisper), "only the first");
         }
 
         [Test]
         public void TheHand_TradesACardForTheDemonsBestOpenOne_ForFifteen()
         {
             var (game, imps, purse) = AtTheDraw("KH KD 7C 4S 2D  KC 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H");
-            Assert.IsTrue(imps.Eye(game), "an open card to take");
+            Assert.IsTrue(imps.Eye(game), "an open card to take (free)");
             Card? taken = imps.Swap(game, 4);
             Assert.AreEqual(C("KC"), taken, "the king makes three (the dead man's aces would be beyond an imp)");
             Assert.AreEqual(HandCategory.ThreeOfAKind, Evaluator.Evaluate(game.PlayerHand).Category);
             CollectionAssert.Contains(game.HouseHand, C("2D"));
-            Assert.AreEqual(100 - 5 - 15, purse.Coins);
+            Assert.AreEqual(100 - 15, purse.Coins);
         }
 
         [Test]
         public void TheWhisper_TellsTheTruth_AndTheImpsNeverTakeTheLastCoin()
         {
             var (game, imps, purse) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", coins: 8);
+            Assert.IsTrue(imps.Eye(game), "the free one");
             Assert.AreEqual(KitRefusal.NoTaxes, imps.WhyNot(game, SummonAct.Whisper), "8 coins do not pay an 8-coin imp");
             purse.Add(1);
             Assert.IsTrue(imps.Whisper(game));
@@ -101,24 +109,38 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void AtADemonsTable_TheImpsGrowTheBar_AsTheHandIsSettled_AndTheLegionMakesThemFree()
+        public void AtADemonsTable_TheImpsGrowTheBar_AsTheHandIsSettled_TwoLoyalImpsFreeTwo()
         {
             var (game, imps, purse) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", barStart: 1000);
-            Assert.AreEqual(20, imps.PriceOf(SummonAct.Eye));
-            Assert.AreEqual(50, imps.PriceOf(SummonAct.Hand));
-            Assert.AreEqual(30, imps.PriceOf(SummonAct.Whisper));
+            Assert.AreEqual(20, imps.FullPriceOf(SummonAct.Eye));
+            Assert.AreEqual(50, imps.FullPriceOf(SummonAct.Hand));
+            Assert.AreEqual(30, imps.FullPriceOf(SummonAct.Whisper));
             imps.Eye(game);
             imps.Whisper(game);
             Assert.AreEqual(100, purse.Coins, "no coins at a demon's table");
-            Assert.AreEqual(50, imps.YearsAfterHand(game, null, false, false), "the bar grows 2% + 3% of its start");
+            Assert.AreEqual(30, imps.YearsAfterHand(game, null, false, false), "the Eye free, the Whisper's 3% of the bar's start");
 
-            var (game2, legion, _) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", barStart: 1000, charge: 5);
-            Assert.IsTrue(legion.CallLegion(game2));
-            Assert.AreEqual(0, legion.PriceOf(SummonAct.Hand));
-            legion.Eye(game2);
-            Assert.AreEqual(0, legion.YearsAfterHand(game2, null, false, false), "the hand's first imp is free");
-            Assert.AreEqual(30, legion.PriceOf(SummonAct.Whisper), "2.1.1: only the first");
-            Assert.AreEqual(KitRefusal.AlreadyUsed, legion.WhyNoLegion(game2));
+            var (game2, pair, _) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", barStart: 1000);
+            pair.Kit.AddUpgrade(UpgradeIds.LoyalPair);
+            pair.HandDealt(game2);   // the upgrade counts from the next deal
+            pair.Eye(game2);
+            pair.Whisper(game2);
+            Assert.AreEqual(0, pair.YearsAfterHand(game2, null, false, false), "Two Loyal Imps: both free");
+        }
+
+        [Test]
+        public void TheHandAndTheWhisper_WaitForTheSummonersRelics_AndTheThirdStepHalvesThePrices()
+        {
+            var (game, imps, _) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", steps: 0);
+            Assert.AreEqual(1, imps.Kit.ImpsOpen, "the Eye alone");
+            Assert.AreEqual(KitRefusal.Locked, imps.WhyNot(game, SummonAct.Hand));
+            Assert.AreEqual(KitRefusal.Locked, imps.WhyNot(game, SummonAct.Whisper));
+            var (game1, one, _) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", steps: 1);
+            Assert.IsTrue(one.IsOpen(SummonAct.Hand));
+            Assert.AreEqual(KitRefusal.Locked, one.WhyNot(game1, SummonAct.Whisper));
+            var (_, three, _) = AtTheDraw("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", steps: 3);
+            Assert.IsTrue(three.Kit.ImpsHalfPrice);
+            Assert.AreEqual(8, three.FullPriceOf(SummonAct.Hand), "half of fifteen, rounded up");
         }
 
         [Test]
@@ -234,7 +256,7 @@ namespace HellPoker.Core.Tests
         public void TheLocks_FourteenRelicsAndFourClassesOpen_TheMilestonesOpenTheRest()
         {
             var book = new ChapterRecords();
-            Assert.AreEqual(24, ChapterUnlocks.OpenRelics(book).Count(), "Demo 2.1: 39 relics, 15 locked");
+            Assert.AreEqual(37, ChapterUnlocks.OpenRelics(book).Count(), "Demo 2.1: 39 relics, 15 locked; Demo 2.3: the thirteen class relics open");
             Assert.AreEqual(16, ChapterUnlocks.Relics.Count, "2.1.1: the compass is locked too");
             Assert.IsTrue(SinnerRoster.PhaseTwo.All(c => ChapterUnlocks.IsClassOpen(c.Id, book)), "Demo 2.2: every class open");
 

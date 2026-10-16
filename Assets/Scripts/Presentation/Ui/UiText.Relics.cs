@@ -51,12 +51,49 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.LucifersFeather: return L("LUCIFER'S FEATHER", "LUCIFER'İN TÜYÜ");
                 case ChapterRelicIds.MammonsGoldTooth: return L("MAMMON'S GOLD TOOTH", "MAMMON'UN ALTIN DİŞİ");
                 case ChapterRelicIds.DevilsCompass: return L("THE DEVIL'S COMPASS", "ŞEYTANIN PUSULASI");
+                case ChapterRelicIds.RopeBelt: return L("ROPE BELT", "İP KUŞAK");
+                case ChapterRelicIds.HarvestMoon: return L("HARVEST MOON", "HASAT AYI");
+                case ChapterRelicIds.CrackedOrb: return L("CRACKED ORB", "ÇATLAK KÜRE");
+                case ChapterRelicIds.StarChart: return L("STAR CHART", "YILDIZ HARİTASI");
+                case ChapterRelicIds.TaxLedger: return L("TAX LEDGER", "VERGİ DEFTERİ");
+                case ChapterRelicIds.GoldenScepter: return L("GOLDEN SCEPTER", "ALTIN ASA");
+                case ChapterRelicIds.ChalkCircle: return L("CHALK CIRCLE", "TEBEŞİR ÇEMBERİ");
+                case ChapterRelicIds.BlackGrimoire: return L("BLACK GRIMOIRE", "KARA GRİMUAR");
+                case ChapterRelicIds.WornGloves: return L("WORN GLOVES", "ESKİ ELDİVENLER");
+                case ChapterRelicIds.Lockpick: return L("LOCKPICK", "MAYMUNCUK");
+                case ChapterRelicIds.ShadowCloak: return L("SHADOW CLOAK", "GÖLGE PELERİNİ");
+                case ChapterRelicIds.BellCollar: return L("BELL COLLAR", "ÇINGIRAKLI YAKA");
+                case ChapterRelicIds.MockingMask: return L("MOCKING MASK", "ALAYCI MASKE");
                 default: return (id ?? "").ToUpperInvariant();
+            }
+        }
+
+        /// <summary>A class relic's gift (Demo 2.3): a step of its class's main power, with the step's own numbers.</summary>
+        public static string ClassStepGift(string classId)
+        {
+            switch (classId)
+            {
+                case HellPoker.Core.Sinners.Peasant.ClassId: return L("The SATCHEL a step up: one card more.", "HEYBE bir adım büyür: bir kart fazla.");
+                case HellPoker.Core.Sinners.Warlock.ClassId: return L("FORESIGHT a step up: one card more.", "ÖNSEZİ bir adım büyür: bir kart fazla.");
+                case HellPoker.Core.Sinners.King.ClassId:
+                    return string.Format(L("The TREASURY a step up: {0} taxes more.", "HAZİNE bir adım büyür: {0} vergi fazla."), HellPoker.Core.Chapters.ClassKit.TaxStep);
+                case HellPoker.Core.Sinners.Summoner.ClassId:
+                    return L("The IMPS a step up: the HAND opens, then the WHISPER, then every imp costs half.",
+                        "İBLİSLER bir adım büyür: önce EL açılır, sonra FISILTI, sonra hepsi yarı fiyat.");
+                case HellPoker.Core.Sinners.Thief.ClassId:
+                    return string.Format(L("The QUICK HAND a step up: caught {0}% less often.", "EL ÇABUKLUĞU bir adım büyür: %{0} daha az yakalanırsın."),
+                        HellPoker.Core.Chapters.ClassKit.CaughtStep);
+                case HellPoker.Core.Sinners.Jester.ClassId:
+                    return L("A shield more at every table: a hand lost to your own two jokers is a push.",
+                        "Her masada bir kalkan fazla: kendi iki jokerinle kaybettiğin el berabere sayılır.");
+                default: return "";
             }
         }
 
         public static string RelicGift(string id)
         {
+            ChapterRelic classRelic = ChapterRelics.Find(id);
+            if (classRelic?.ClassId != null) return ClassStepGift(classRelic.ClassId);
             switch (id)
             {
                 case RelicIds.BoneDie: return L("Once at each demon's table (full again at every summons to Lucifer), before the draw, redraw a card.",
@@ -93,11 +130,6 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.BloodPact: return L("A lost hand heals a demon's bar half as much.", "Kaybedilen el şeytanın barını yarı yarıya az iyileştirir.");
                 case ChapterRelicIds.LostSoulsLetter: return L("A helper's good turn is a fifth better.", "Yardımcıların iyiliği beşte bir fazla.");
                 case ChapterRelicIds.TwinDice: return L("Once at each table, before the draw, redraw a card.", "Her masada bir kez, değişten önce bir kartı yeniden çek.");
-                case ChapterRelicIds.JestersHat: return L("A hand won with a joker in it: +25%.", "Jokerle kazanılan el: +%25.");
-                case ChapterRelicIds.SeersSpectacles: return L("FORESIGHT sees one card more.", "ÖNSEZİ bir kart fazla görür.");
-                case ChapterRelicIds.PeasantsScythe: return L("The satchel holds one card more.", "HEYBE bir kart fazla taşır.");
-                case ChapterRelicIds.KingsSignet: return L("The treasury holds five taxes more.", "Hazine beş vergi fazla tutar.");
-                case ChapterRelicIds.SummonersLeash: return L("An imp runs wild half as often.", "İblis yarı yarıya daha az azar.");
                 case ChapterRelicIds.LucifersFeather: return L("Once a run, a lost hand at a demon's table counts as a push.", "Koşuda bir kez, şeytan masasında kaybedilecek el berabere sayılır.");
                 case ChapterRelicIds.MammonsGoldTooth: return L("Every 50 coins you bring to the gate: a demon's win +3% (15% at most).", "Kapıya getirdiğin her 50 coin: şeytana karşı kazanç +%3 (en çok %15).");
                 case ChapterRelicIds.DevilsCompass: return L("Twice a chapter, on the map: step to another node of the floor you are on (nothing there happens; the way goes on from it).",
@@ -144,7 +176,16 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.LostSoulsLetter: return L("Every offer taken: +20 years on your sentence.", "Kabul edilen her teklif: cezana +20 yıl.");
                 case ChapterRelicIds.TwinDice: return L("The demon's malice grows one more every hand.", "Şeytanın kötülüğü her el bir fazla dolar.");
                 case ChapterRelicIds.JestersHat: return L("A hand lost to two jokers: +25%.", "İki jokerle kaybedilen el: +%25.");
-                case ChapterRelicIds.SeersSpectacles: return L("BEND FATE can no longer send a card to the bottom.", "KADERİ BÜK artık kartı dibe yollayamaz.");
+                case ChapterRelicIds.SeersSpectacles: return L("Knowing a low card of yours, the demon bullies 10% more often.",
+                    "Düşük bir kartını bilen şeytan %10 daha sık zorbalık yapar.");
+                case ChapterRelicIds.RopeBelt: case ChapterRelicIds.CrackedOrb: case ChapterRelicIds.WornGloves: case ChapterRelicIds.BellCollar:
+                    return L("The ante is 5% higher.", "Ante %5 yüksek.");
+                case ChapterRelicIds.HarvestMoon: case ChapterRelicIds.StarChart: case ChapterRelicIds.GoldenScepter: case ChapterRelicIds.BlackGrimoire:
+                case ChapterRelicIds.ShadowCloak: case ChapterRelicIds.MockingMask:
+                    return L("The demon's malice grows one more every hand.", "Şeytanın kötülüğü her el bir fazla dolar.");
+                case ChapterRelicIds.TaxLedger: return L("Market prices +10%.", "Pazarda fiyatlar +%10.");
+                case ChapterRelicIds.ChalkCircle: return L("Imps cost 1 coin more.", "İblis bedeli 1 coin fazla.");
+                case ChapterRelicIds.Lockpick: return L("A lost hand: a tenth of an ante more against you.", "Kaybedilen el: ante'nin onda biri kadar fazlası aleyhine.");
                 case ChapterRelicIds.PeasantsScythe: return L("A satchel hand: the demon re-raises 5% more often.", "Heybe eli: şeytan %5 daha sık artırır.");
                 case ChapterRelicIds.KingsSignet: return L("A seizure costs one tax more.", "MÜSADERE bir vergi fazla.");
                 case ChapterRelicIds.SummonersLeash: return L("Imps cost 2 coins more (a demon's table: 1% more).", "İblis bedeli 2 coin fazla (şeytan masasında %1).");

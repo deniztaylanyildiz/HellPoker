@@ -44,6 +44,10 @@ namespace HellPoker.Presentation.Settings
         private const string VSyncKey = "settings.vsync";
         private const string FourColorKey = "settings.fourcolor";
 
+        /// <summary>Demo 2.3: the four-colour deck's own key from now on. Not there yet (a first launch, or a 2.1.1-2.2.1 player whose
+        /// "settings.fourcolor" was on by default): the classic two colours, once — after that the player's choice stands.</summary>
+        private const string FourColorV2Key = "settings.fourcolor.v2";
+
         /// <summary>A window's scale: 0 is automatic (the largest multiple that fits comfortably), otherwise ×this.</summary>
         public const int AutoWindowScale = 0;
 
@@ -78,8 +82,9 @@ namespace HellPoker.Presentation.Settings
         public int MasterVolume { get; private set; } = MaxVolume;
         public bool HandGuide { get; private set; } = true;
 
-        /// <summary>The four-colour deck: green clubs and blue diamonds (on by default; applied to <see cref="SuitColors"/>).</summary>
-        public bool FourColorDeck { get; private set; } = true;
+        /// <summary>The four-colour deck: green clubs and blue diamonds (Demo 2.3: off by default — the classic two colours; applied to
+        /// <see cref="SuitColors"/>).</summary>
+        public bool FourColorDeck { get; private set; }
 
         public void ToggleFourColor()
         {
@@ -204,7 +209,8 @@ namespace HellPoker.Presentation.Settings
             VSync = _store.GetInt(VSyncKey, 1) != 0;
             MasterVolume = Volume(_store.GetInt(MasterKey, MaxVolume), MaxVolume);
             HandGuide = _store.GetInt(HandGuideKey, 1) != 0;
-            FourColorDeck = _store.GetInt(FourColorKey, 1) != 0;
+            // Only the Demo 2.3 key counts: an older "settings.fourcolor" (on by default then) turns into the two colours, once.
+            FourColorDeck = _store.GetInt(FourColorV2Key, 0) == 1;
             MusicVolume = Volume(_store.GetInt(MusicKey, DefaultVolume));
             SfxVolume = Volume(_store.GetInt(SfxKey, DefaultVolume));
             // Saved by name; never saved yet: the first launch's language; anything unreadable: English.
@@ -231,7 +237,8 @@ namespace HellPoker.Presentation.Settings
             _store.SetInt(VSyncKey, VSync ? 1 : 0);
             _store.SetInt(MasterKey, MasterVolume);
             _store.SetInt(HandGuideKey, HandGuide ? 1 : 0);
-            _store.SetInt(FourColorKey, FourColorDeck ? 1 : 0);
+            _store.SetInt(FourColorKey, FourColorDeck ? 1 : 0);   // still written: an older build reads only this
+            _store.SetInt(FourColorV2Key, FourColorDeck ? 1 : 0);
             _store.SetString(LanguageKey, Language.ToString());
             _store.SetInt(MusicKey, MusicVolume);
             _store.SetInt(SfxKey, SfxVolume);

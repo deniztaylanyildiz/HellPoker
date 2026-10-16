@@ -5,6 +5,7 @@ using HellPoker.Core.Draw;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
 using HellPoker.Core.Randomness;
+using HellPoker.Core.Relics;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Ui;
@@ -45,6 +46,20 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(4, ClassUpgrades.For(Thief.ClassId).Count);
             foreach (SinnerClass c in SinnerRoster.PhaseTwo)
                 Assert.IsTrue(ChapterUnlocks.IsClassOpen(c.Id, new ChapterRecords()), $"{c.Id} open from the start");
+            // One switch brings the old lock back: the Summoner waits for the first freedom.
+            ChapterUnlocks.AllClassesOpen = false;
+            try
+            {
+                Assert.IsFalse(ChapterUnlocks.IsClassOpen(Summoner.ClassId, new ChapterRecords()));
+                Assert.IsTrue(ChapterUnlocks.IsClassOpen(Thief.ClassId, new ChapterRecords()), "only the Summoner was ever locked");
+                var freed = new ChapterRecords();
+                freed.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 30);
+                Assert.IsTrue(ChapterUnlocks.IsClassOpen(Summoner.ClassId, freed), "the first freedom opens him");
+            }
+            finally
+            {
+                ChapterUnlocks.AllClassesOpen = true;
+            }
             ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Thief, 3);
             Assert.IsTrue(ChapterSave.TryDecode(journey.Capture().Encode(), out ChapterSave read));
             Assert.AreEqual(Thief.ClassId, ChapterJourney.Restore(read).Sinner.Id);
@@ -114,17 +129,82 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void LightFingers_CaughtOneInTen_TheLootSack_Coins()
+        public void LightFingers_ALevelDown_TheLootSack_Coins()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Thief));
-            Assert.AreEqual(25, kit.ThiefCaughtPercent);
+            Assert.AreEqual(ClassKit.CaughtStart, kit.ThiefCaughtPercent, "Demo 2.3: caught 40% at the start");
             kit.AddUpgrade(UpgradeIds.LightFingers);
-            Assert.AreEqual(10, kit.ThiefCaughtPercent);
+            Assert.AreEqual(ClassKit.CaughtStart - ClassKit.CaughtStep, kit.ThiefCaughtPercent, "Light Fingers: a level");
             kit.AddUpgrade(UpgradeIds.LootSack);
-            var (game, theft, purse) = AtTheDraw(20, kit: kit);   // 20: caught at 25%, not at 10%
+            var (game, theft, purse) = AtTheDraw(35, kit: kit);   // 35: caught at 40%, not at 30%
             Assert.IsTrue(theft.Steal(game, 0));
             Assert.IsFalse(theft.CaughtThisHand);
             Assert.AreEqual(100 + TheftPowers.LootCoins, purse.Coins);
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(ChapterRelics.ClassChain(Thief.ClassId));
+            Assert.AreEqual(ClassKit.CaughtStart - ClassKit.MaxLevel * ClassKit.CaughtStep, kit.ThiefCaughtPercent, "at most the highest level");
+        }
+
+        /// <summary>A hook that answers every raise with a re-raise and keeps the demon's hand as he decided on it.</summary>
+        private sealed class ReRaiser : TableHooks
+        {
+            public Hand Seen;
+            public override bool HouseReRaises(HellPokerGame game, bool wants)
+            {
+                Seen = game.HouseHand;
+                return true;
+            }
+        }
+
+        [Test]
+        public void TheSteal_AfterTheDraw_AtTheBetAndAtTheReRaise_TheDemonPlaysAndIsJudgedOnHisNewHand_RefusedOnceItIsOver()
+        {
+            // After the draw, at the bet.
+            var (game, theft, _) = AtTheDraw(99);
+            game.Draw(new int[0]);
+            Assert.AreEqual(GamePhase.DrawReveal, game.Phase);
+            Assert.AreEqual(KitRefusal.None, theft.WhyNoSteal(game), "Demo 2.3: after the draw too");
+            Card given = game.PlayerHand[0];
+            Assert.IsTrue(theft.Steal(game, 0));
+            CollectionAssert.Contains(game.HouseHand, given);
+            Assert.AreEqual(1, theft.Kit.StealsAfterDraw);
+            while (game.Phase != GamePhase.RoundOver && !game.IsGameOver) game.Bet(BetAction.Pass);
+            Assert.AreEqual(Evaluator.Evaluate(game.HouseHand).Category, game.LastRound.Showdown.House.Category, "judged on his hand with the stolen-for card");
+            CollectionAssert.Contains(game.HouseHand, given);
+            Assert.AreEqual(KitRefusal.NotNow, theft.WhyNoSteal(game), "the showdown is over: no steal");
+
+            // At the re-raise: the demon decided on his hand before it; the steal changes what he is judged on.
+            var kit = new ClassKit(new Sinner(SinnerRoster.Thief));
+            HellPokerGame raised = Stacked(Cards, kit.Sinner);
+            var steal = new TheftPowers(kit, new Always(99), 0) { Purse = new CoinPurse(100) };
+            var reRaiser = new ReRaiser();
+            raised.UseHooks(new HookChain(new TableHooks[] { steal, reRaiser }));
+            raised.PlaceBet();
+            raised.CheckToDraw();
+            raised.Draw(new int[0]);
+            raised.Bet(BetAction.Raise);
+            Assert.AreEqual(GamePhase.HouseReRaise, raised.Phase);
+            Assert.AreEqual(KitRefusal.None, steal.WhyNoSteal(raised), "a re-raise to answer: still in the hand");
+            Card mine = raised.PlayerHand[1];
+            Assert.IsTrue(steal.Steal(raised, 1));
+            Assert.AreEqual(KitRefusal.AlreadyUsed, steal.WhyNoSteal(raised), "once a hand");
+            raised.Bet(BetAction.Call);
+            while (raised.Phase != GamePhase.RoundOver && !raised.IsGameOver)
+            {
+                if (raised.Phase == GamePhase.HouseReRaise) raised.Bet(BetAction.Call);
+                else raised.Bet(BetAction.Pass);
+            }
+            CollectionAssert.Contains(raised.HouseHand, mine);
+            Assert.AreEqual(Evaluator.Evaluate(raised.HouseHand).Category, raised.LastRound.Showdown.House.Category);
+        }
+
+        [Test]
+        public void TheSteal_BeforeTheDeal_IsRefused()
+        {
+            var kit = new ClassKit(new Sinner(SinnerRoster.Thief));
+            HellPokerGame game = Stacked(Cards, kit.Sinner);
+            var theft = new TheftPowers(kit, new Always(99), 0);
+            game.UseHooks(theft);
+            Assert.AreEqual(KitRefusal.NotNow, theft.WhyNoSteal(game));
         }
 
         [Test]
@@ -175,7 +255,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(UiText.StealPrompt, view.Message);
             Card given = boss.PlayerHand[0];
             presenter.ToggleDiscard(0);
-            Assert.IsTrue(presenter.Kit.Theft.UsedThisHand);
+            Assert.IsTrue(presenter.Kit.Theft.TriedThisHand);
             if (presenter.Kit.Theft.CaughtThisHand) StringAssert.StartsWith(UiText.CaughtBarFormat.Substring(0, 6), view.Message);
             else Assert.AreEqual(string.Format(UiText.StolenFormat, presenter.Kit.Theft.Taken.Value, given), view.Message);
             presenter.Dispose();

@@ -211,9 +211,11 @@ namespace HellPoker.Core.Chapters
     }
 
     /// <summary>
-    /// Lucifer's MIRROR: he plays the player's own class mechanic against them. Against the Jester the jokers are his too (as ever);
-    /// against the Peasant a satchel of one card; against the Warlock he sees the deck's top card and draws by it; against the King he
-    /// takes a tax for every hand he wins and at <see cref="ClassKit.SeizePrice"/> seizes one of the King's cards (the palace holds).
+    /// Lucifer's MIRROR: he plays the player's own class mechanic against them — its main power, never a pressed one (Demo 2.3). Against
+    /// the Jester the jokers are his too (as ever); against the Peasant a satchel of one card; against the Oracle he sees the deck's top
+    /// card and, standing pat, draws it when it serves him; against the King he takes a tax for every hand he wins and at
+    /// <see cref="ClassKit.SeizePrice"/> seizes one of the King's cards (the palace holds); against the Summoner his own Eye; against the
+    /// Thief a steal every few hands.
     /// </summary>
     public sealed class LuciferMirror : DemonRule
     {
@@ -249,9 +251,6 @@ namespace HellPoker.Core.Chapters
         public Card? Seized { get; private set; }
         public Card? GivenBack { get; private set; }
 
-        /// <summary>Against the Warlock: this hand he sent the top card to the bottom (rather than drawing it).</summary>
-        public bool SentDown { get; private set; }
-
         /// <summary>Against the Oracle: this hand, standing pat, he drew the top card he saw.</summary>
         public bool DrewTop { get; private set; }
 
@@ -265,7 +264,7 @@ namespace HellPoker.Core.Chapters
         {
             base.HandDealt(game);
             Seized = GivenBack = null;
-            SentDown = DrewTop = UsedBag = false;
+            DrewTop = UsedBag = false;
             EyeSaw = null;
             if (Copies(KitKind.Summon) && ++_hands % EyeEveryHands == 0)
             {
@@ -322,15 +321,7 @@ namespace HellPoker.Core.Chapters
                 Triggers++;
                 return new[] { at };
             }
-            if (at >= 0) return discards;
-            // Drawing, and the top card would not serve him: it goes to the bottom (his own rearranging).
-            SentDown = true;
-            List<Card> order = game.Deck.Remaining.Reverse().ToList();
-            order.RemoveAt(0);
-            order.Add(top);
-            game.Deck.Restore(order);
-            StruckThisHand = true;
-            Triggers++;
+            // Drawing, he draws as he would (Demo 2.3: the Oracle no longer moves the deck, and neither does his mirror).
             return discards;
         }
 
@@ -339,7 +330,7 @@ namespace HellPoker.Core.Chapters
         public override void HandSettled(HellPokerGame game, RoundResult round)
         {
             if (Copies(KitKind.Treasury) && !round.Folded && !round.HouseFolded && round.Showdown?.Outcome == ShowdownOutcome.HouseWins)
-                _kit.LuciferTaxes = Math.Min(ClassKit.TaxMax, _kit.LuciferTaxes + 1);
+                _kit.LuciferTaxes = Math.Min(ClassKit.LuciferTaxCap, _kit.LuciferTaxes + 1);
         }
 
         /// <summary>Against the Thief he steals too: every this many hands, as the draw begins, one of the player's cards for his worst.</summary>

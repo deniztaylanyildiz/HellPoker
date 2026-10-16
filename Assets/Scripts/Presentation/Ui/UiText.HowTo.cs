@@ -29,7 +29,7 @@ namespace HellPoker.Presentation.Ui
                 case 3: return L("A HAND", "BİR EL");
                 case 4: return L("THE DEMON'S TABLE", "ŞEYTANIN MASASI");
                 case 5: return L("CHEATS AND RULES", "HİLELER VE KURALLAR");
-                case 6: return L("THE SINNERS", "GÜNAHKÂRLAR");
+                case 6: return L("SINNERS AND POWERS", "GÜNAHKÂRLAR VE GÜÇLER");
                 case 7: return L("RELICS AND CAMPS", "EMANETLER VE KAMP");
                 case 8: return L("MARKETS AND STRANGERS", "PAZARLAR VE OLAYLAR");
                 default: return L("THE HANDS", "ELLER");
@@ -98,18 +98,19 @@ namespace HellPoker.Presentation.Ui
                 case 6:
                     return new[]
                     {
-                        L("Six sinners; K uses the class's power, once a hand.", "Altı günahkâr; K sınıfın gücünü kullanır, elde bir kez."),
-                        L("PEASANT: a satchel of thrown cards. ORACLE: foresight, bends fate.", "KÖYLÜ: atılan kartların heybesi. KÂHİN: önsezi, kaderi büker."),
-                        L("KING: taxes for acts. JESTER: jokers. SUMMONER: imps. THIEF: steals.", "KRAL: vergiyle eylemler. SOYTARI: jokerler. ÇAĞIRICI: iblisler. HIRSIZ: çalar."),
-                        L("Every class pays a price, and has four upgrades to win.", "Her sınıfın bir bedeli ve kazanılacak dört yükseltmesi var."),
-                        L("Hover over the badge: what the power does now.", "Rozetin üzerine gel: gücün şimdi ne yaptığı.")
+                        L("Six sinners: a main power and a passive, both on their own.", "Altı günahkâr: bir ana güç ve bir pasif, ikisi de kendiliğinden."),
+                        L("PEASANT: satchel, its first card unseen. ORACLE: foresight, sees lies.", "KÖYLÜ: heybe, ilk kartı görünmez. KÂHİN: önsezi, yalanı görür."),
+                        L("KING: taxes, seizure at half. SUMMONER: imps, the first one free.", "KRAL: vergi, yarı fiyata müsadere. ÇAĞIRICI: iblis, ilki bedava."),
+                        L("THIEF: a glance; K steals until the showdown. JESTER: jokers.", "HIRSIZ: göz ucu; K ile showdown'a kadar çalar. SOYTARI: joker."),
+                        ClassGrowthLine
                     };
                 case 7:
                     return new[]
                     {
                         L("A relic is a gift and a curse at once.", "Her emanet hem bir lütuf hem bir lanettir."),
                         string.Format(L("You wear {0} and carry {1} more in the bag.", "{0} tanesini takarsın, {1} tanesi çantada durur."), ChapterRelics.Slots, ChapterRelics.BagSlots),
-                        L("Wardens, markets, treasures and the spoils give relics.", "Bekçiler, pazarlar, hazineler ve ganimet emanet verir."),
+                        L("Wardens, markets and spoils give relics; your class's three come in order.",
+                            "Bekçi, pazar ve ganimet emanet verir; sınıfının üç emaneti sırayla gelir."),
                         string.Format(L("A camp gives one act: {0}, {1}, {2} or {3}.", "Kamp bir eylem verir: {0}, {1}, {2} ya da {3}."), CampRest, CampWhet, CampRite, CampForge),
                         L("At a camp you also swap what you wear and what you carry.", "Kampta takılı emanetlerle çantadakileri de değiştirirsin.")
                     };

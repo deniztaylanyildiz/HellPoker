@@ -111,13 +111,21 @@ namespace HellPoker.Core.Chapters
             int count = Vendor == MarketVendor.Pawnshop ? 2 : Vendor == MarketVendor.Alchemist ? 1
                 : Vendor == MarketVendor.GamblersStall || Vendor == MarketVendor.Tailor ? 0 : RelicsOnTable;
             RelicWeights weights = Vendor == MarketVendor.BoneMerchant ? new RelicWeights(10, 60, 30) : RelicWeights.Market;
+            // Demo 2.3: some stalls show the class's next relic in one of their places.
+            string classRelic = count == 0 ? null : _run.RollClassRelic(_random);
             // Drawn by rarity, priced by it, the cheapest first.
-            IReadOnlyList<string> picked = count == 0 ? Array.Empty<string>()
-                : ChapterRelics.Draw(_random, weights, count, _run.Effects.AllHeld.ToList(), _run.RelicAvailable, _run.Sinner.Id);
+            var picked = new List<string>();
+            if (classRelic != null) picked.Add(classRelic);
+            if (count > picked.Count)
+                picked.AddRange(ChapterRelics.Draw(_random, weights, count - picked.Count, _run.Effects.AllHeld.ToList(), _run.RelicAvailable, _run.Sinner.Id));
             _relics = picked.Select(id => new RelicOffer(id, Price(_run.PriceOf(ChapterRelics.PriceOf(id)) *
                                                                (Vendor == MarketVendor.BoneMerchant ? BonePricePercent : 100) / 100)))
                 .OrderBy(o => o.Price).ToList();
+            ClassRelic = classRelic;
         }
+
+        /// <summary>The class's next relic on the stall this visit (Demo 2.3); null when the stall shows none.</summary>
+        public string ClassRelic { get; private set; }
 
         /// <summary>A price after the haggle.</summary>
         private int Price(int price) => Math.Max(1, price * PricePercent / 100);
