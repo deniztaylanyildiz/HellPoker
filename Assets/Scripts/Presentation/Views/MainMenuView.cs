@@ -50,6 +50,11 @@ namespace HellPoker.Presentation.Views
 
         private Page _page;
         private Text _pageLabel;
+        private GameObject _pageButton;
+        private HowToPlayView _howTo;
+
+        /// <summary>The game's paged How to Play (for tests and screenshots).</summary>
+        public HowToPlayView HowTo => _howTo;
         private Core.Game.IPayoutInfo _payouts;
         private RectTransform _logo;
 
@@ -265,6 +270,11 @@ namespace HellPoker.Presentation.Views
             Button page = UiFactory.CreateButton("HandRanksPageButton", panel.transform, "", 8, out _pageLabel, ButtonSkin.Ash);
             ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 108, buttonsY, 104, ButtonHeight);
             page.onClick.AddListener(() => ShowPage(Next(_page)));
+            _pageButton = page.gameObject;
+
+            // Demo 2.2: the game's own How to Play — ten short pages with pictures (the simulator keeps the pages above).
+            _howTo = HowToPlayView.Create(panel.transform, PixelScreen.Width - 16, _handRanks, _payouts, buttonsY);
+            _howTo.Hide();
 
             Button back = UiFactory.CreateButton("BackButton", panel.transform, "", 8, out Text rulesBackLabel, ButtonSkin.Blood);
             rulesBackLabel.Localized(() => UiText.Back);
@@ -308,11 +318,21 @@ namespace HellPoker.Presentation.Views
                 return true;
             }
             if (!_rulesPanel.activeSelf) return false;
-            if (_page != MainPage)
-                ShowPage(MainPage);   // another page goes back to the first one first
+            if (!_simulator && _howTo.Page != 0)
+                _howTo.Show(0);   // another page goes back to the first one first
+            else if (_simulator && _page != MainPage)
+                ShowPage(MainPage);
             else
                 ShowRules(false);
             return true;
+        }
+
+        /// <summary>The arrows / Q-E on How to Play: the game's pages back and forth; the simulator's pages round (either way).</summary>
+        public void TurnRulesPage(int step)
+        {
+            if (!IsShowingRules || step == 0) return;
+            if (_simulator) ShowPage(Next(_page));
+            else _howTo.Turn(step);
         }
 
         private Page Next(Page page)
@@ -335,6 +355,19 @@ namespace HellPoker.Presentation.Views
         private void ShowPage(Page page)
         {
             _page = page;
+            _pageButton.SetActive(_simulator);
+            if (!_simulator)
+            {
+                // The game: the paged How to Play in place of the long pages.
+                _rulesBody.SetActive(false);
+                _cheatsBody.SetActive(false);
+                _sinnersBody.SetActive(false);
+                _chapterBody.SetActive(false);
+                _gameBody.SetActive(false);
+                _howTo.Show(_howTo.gameObject.activeSelf ? _howTo.Page : 0);
+                return;
+            }
+            _howTo.Hide();
             if (page == Page.Hands)
                 _handRanks.Show(_payouts);
             else
@@ -352,6 +385,7 @@ namespace HellPoker.Presentation.Views
 
         private void ShowRules(bool show)
         {
+            _howTo?.Hide();   // How to Play opens on its first page
             ShowPage(MainPage);
             _rulesPanel.SetActive(show);
             _front.SetActive(!show);

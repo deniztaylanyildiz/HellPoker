@@ -125,6 +125,10 @@ namespace HellPoker.Presentation
 
         public bool IsAtMenuRoot => _menu.IsVisible && !_menu.IsConfirming && !_menu.IsShowingRules;
 
+        public bool IsShowingRules => _menu.IsVisible && _menu.IsShowingRules;
+
+        public void TurnRulesPage(int step) => _menu.TurnRulesPage(step);
+
         public void GoBack()
         {
             if (_sinnerSelect != null && _sinnerSelect.IsVisible)

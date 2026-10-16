@@ -36,6 +36,8 @@ namespace HellPoker.Core.Tests
             public string Warning { get; private set; }
             public bool IsConfirming { get; private set; }
             public bool IsShowingRules => RulesOpen;
+            public int PagesTurned { get; private set; }
+            public void TurnRulesPage(int step) => PagesTurned += step;
 
             public string ConfirmLabel { get; private set; }
 

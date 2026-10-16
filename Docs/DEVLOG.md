@@ -3441,3 +3441,25 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 
 ### Sıradaki
 - 4) sayfalı, resimli How to Play.
+
+## 2026-10-16 — Demo 2.2, iş 4: sayfalı ve resimli How to Play
+
+### Yapılanlar
+- Oyunun How to Play'i (simülatör değil) artık 10 kısa sayfa (`HowToPlayView`, metinler `UiText.HowTo.cs`): 1 Amaç · 2 Harita · 3 Kat masası
+  ve kese · 4 Bir el · 5 Şeytanın masası (bar, ceza, son darbe) · 6 Hileler ve kurallar · 7 Günahkârlar · 8 Emanetler ve kamp · 9 Pazarlar
+  ve yabancılar · 10 Eller (var olan el tablosu). Solda oyundan 200×112 resim, sağda başlık + en çok 5 kısa satır; altta `< 3 / 10 >` ve
+  GERİ. Ok tuşları / Q-E sayfa çevirir (`IMenuCommands.IsShowingRules / TurnRulesPage`, `IMainMenuView.TurnRulesPage`); Esc önce ilk
+  sayfaya, sonra menüye. Resim yoksa satırlar bütün genişliği alır. Simülatörün KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR sayfaları aynı.
+- Sayılar koddan: bar iyileşmesi `BossTable.BarHealPercent`, köşeye sıkışma `DemonRule.CorneredPercent`, 5 + 5 emanet `ChapterRelics.Slots / BagSlots`,
+  kamp eylemlerinin adları `UiText.Camp*`.
+- Resimler oyunun içinden: `HowToShots` ([Explicit] PlayMode) her sahneyi kurar, 1920×1080'de çizer, her 4×4 bloğun bir pikselini alarak
+  480×270 doğal piksele indirir (yumuşatma yok), sayfanın bölgesini kırpar → `Assets/Resources/Art/HowTo/<nn_ad>_<en|tr>.png` (tam kareler
+  `Screenshots/howto/`). `CaptureHowToPages` üç sayfanın ve el tablosunun ekran görüntüsü (iki dil). UI değişince yeniden çalıştırılır.
+
+### Testler
+- PlayMode `HowToPlayTests` (2): her sayfa iki dilde açılır, satırlar kesilmez, resimle çakışmaz, pager'ın üstünde kalır, resim varsa yüklenir;
+  sayfalar ileri / geri döner, Esc kapatır; simülatör kendi sayfalarını tutar. HowToShots 2/2.
+- EditMode 1098 (1093 geçti, 5 explicit).
+
+### Sıradaki
+- 5) baştan sona otomatik koşular (FullRunTests) ve kaos turu.

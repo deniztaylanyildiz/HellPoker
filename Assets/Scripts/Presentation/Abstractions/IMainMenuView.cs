@@ -24,6 +24,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>True while the rules (How to Play) are open over the menu.</summary>
         bool IsShowingRules { get; }
 
+        /// <summary>The arrows / Q-E while How to Play is open: <paramref name="step"/> pages on (negative: back).</summary>
+        void TurnRulesPage(int step);
+
         /// <summary>True while a warning (New Game, Quit) is open.</summary>
         bool IsConfirming { get; }
 

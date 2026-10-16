@@ -10,6 +10,12 @@ namespace HellPoker.Presentation.Abstractions
         /// language changes (L).</summary>
         bool IsAtMenuRoot { get; }
 
+        /// <summary>True while How to Play is open over the menu (the arrows and Q / E turn its pages).</summary>
+        bool IsShowingRules { get; }
+
+        /// <summary>The arrows / Q-E on How to Play: a page on (1) or back (-1).</summary>
+        void TurnRulesPage(int step);
+
         /// <summary>True while a screen change plays; all input waits.</summary>
         bool IsTransitioning { get; }
 

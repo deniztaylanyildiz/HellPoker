@@ -87,6 +87,14 @@ namespace HellPoker.Presentation
                 return;
             }
 
+            // How to Play's pages: the arrows or Q / E turn them.
+            if (_menu.IsShowingRules)
+            {
+                if (keyboard.qKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame) _menu.TurnRulesPage(-1);
+                else if (keyboard.eKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame) _menu.TurnRulesPage(1);
+                return;
+            }
+
             // The language changes on the title menu only — never at the table, under a warning or on a sub-screen.
             if (keyboard.lKey.wasPressedThisFrame && _menu.IsAtMenuRoot)
             {
