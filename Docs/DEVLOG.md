@@ -3596,3 +3596,8 @@ göre dizayn edip oyuna getir" → "karakter denemeleri için bütün karakterle
 - bundleVersion **2.2.1-demo** ("Demo 2.2.1"), CHANGELOG Demo 2.2.1 başlığı (Hırsız, bütün sınıflar açık, kartlar, heybe 2), OKUBENI (altı
   sınıf açık, Hırsız paragrafı, heybe en çok 2).
 - EditMode 1107 (1101 geçti, 6 explicit).
+
+﻿
+- Build: `Builds/HellPoker-Demo-2.2.1-win64.zip` (36 MB). Kayıtlar yedeklendi; zip'ten 3 × `-fpstour`: çıkış 0, Player.log'da hata yok; yedek geri kondu.
+- Etiket `v2.2.1-demo` (push yok).
+
