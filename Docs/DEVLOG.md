@@ -3500,3 +3500,37 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
   | Köylü 5. daire TR | KURTULUŞ | 7/7 | 3 | 3 |
 - Kaos turu (2000 rastgele basış, sonra yeni koşu + ilk el): geçti, hata logu yok.
 - Sıradaki: 6) kapanış.
+
+## 2026-10-16 — Demo 2.2, iş 6: kapanış
+
+### Testler
+- EditMode 1098 (1093 geçti, 5 explicit). PlayMode gruplar tek tek: HellPokerScene 10, SalonRegression 5, RunJourney 2, LuciferJourney 1,
+  JesterJourney 1, CheatJourney 7, BackdropMotion 2, ChapterJourney 5, TableLayout 2, HowToPlay 2 → 37/37. FullRunTests 6 koşu + kaos 7/7.
+  HowToShots 3/3 (resimler yeniden üretildi).
+- Ekran görüntüleri (Screenshots/, iki dil): 160 Kâhin kartı, 161-162 KADERİ BÜK okları ve üste çekilen kart, 163 harita, 164 kamp,
+  165 boss masası (ceza + bar + son darbe), howto_<dil>_01/04/07/10.
+
+### Simülasyon (WholeRun)
+- Daire 0, sınıf başına 2000: Köylü 51.3, Kâhin 29.8, Kral 31.7, Soytarı 13.6, Çağırıcı 36.9 (hepsi 32.7). Hedef %25-40'ı tutmayan:
+  Köylü (üstünde) ve Soytarı (altında) — zorlanmadı. Tablolar PHASE2_CHAPTERS on beşinci tur.
+- Daireler 1-5 (500): ortalama 31.2 / 28.2 / 22.1 / 19.8 / 14.8 — sırayla zorlaşıyor.
+
+### Sürüm ve build
+- bundleVersion 2.2.0-demo (menüde "Demo 2.2"), CHANGELOG Demo 2.2 başlığı, OKUBENI / GERI_BILDIRIM (Kâhin, resimli sayfalar, HATA / ÖNERİ
+  konuları), CLAUDE.md "Demo 2.2" paragrafı, PHASE2_CHAPTERS.
+- `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.2-win64.zip` (37 MB; içinde OKUBENI, GERI_BILDIRIM, CHANGELOG). Kayıtlar (PlayerPrefs,
+  runs/, Player.log) yedeklendi; zip'ten 3 × `-fpstour`: çıkış 0, Player.log'da hata yok, 19 FPS satırı; yedek geri kondu.
+- Commit "Demo 2.2: Oracle, hata avı, resimli How to Play" + annotated etiket `v2.2-demo`. Push yok (push ederken etiketleri de gönder:
+  GitHub Desktop'ta "Push" etiketleri götürmüyorsa `git push --tags`).
+
+### Kararlar (varsayılanla)
+- ORACLE / KÂHİN adı simülatörde de; simülatördeki Warlock'un gücü / metni değişmedi. C# sınıfı `Warlock` adıyla kaldı.
+- KADERİ BÜK bedelsiz (simülasyonla; bedel Ayna Laneti). ÖNSEZİ her bölümde 2 kart (eski 1/2/3 kuralı kalktı).
+- Kâhin'in eski pasifi (Belial'de 2 kasa kartı) Phase 2'de duruyor, metinde yazmıyor.
+- Kör Kâhin olayının İngilizcesi THE BLIND SEER kaldı (yalnız Türkçesi KÖR FALCI).
+- Harita kuralı yeni sürüm (3); eski kayıtların haritası değişmez. Pusula'nın yan atlaması kurala dahil değil.
+- FullRunTests koşuyu sona taşımak için keseyi ve şeytanın barını destekliyor (testte yazılı); kaos turu 2000 basış, çıkış / dil / mail düğmeleri hariç.
+- Küçük kart (ÖNSEZİ / heybe) görünümü 2.1.1'deki gibi bırakıldı.
+
+### Açık (kullanıcıda)
+- Köylü %51 ve Soytarı %14 hedefin dışında; sınıf farkı olarak mı kalsın?
