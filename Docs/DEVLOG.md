@@ -3463,3 +3463,23 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 
 ### Sıradaki
 - 5) baştan sona otomatik koşular (FullRunTests) ve kaos turu.
+
+## 2026-10-16 — Demo 2.2, iş 5 (yarım): tam koşu testleri yazıldı, ilk çalıştırma bellek yüzünden durdu
+
+### Yapılanlar
+- `Assets/Tests/PlayMode/FullRunTests.cs` ([Explicit], kategori FullRun): Köylü EN, Kâhin TR, Kral EN, Soytarı TR, Çağırıcı EN, Köylü
+  5. daire TR; gerçek sahne ve düğmeler, sınıf kartı → 3 bölüm → Lucifer → son panel. Yol seçimi eksik düğüm türlerini toplar; bölümde bir
+  kez sahne yeniden yüklenip DEVAM; sınıf gücü her bölümde; panellerde boş metin, masada ilk kararda çakışma (`TableLayoutTests.AssertNothingOverlaps`,
+  artık internal), 30 sn'lik adım / takılma denetimi. Test koşuyu sona taşımak için keseyi 150'de, şeytanın barını başlangıcının altında
+  tutar, 30 eli geçen şeytan masasını son darbeye getirir (açıkça yazılı). Kaos turu: 2000 rastgele basış, sonra yeni koşu ve ilk el.
+- Belgeler: OKUBENI (Kâhin, her elde bir kez güç, LEJYON, pazar/kamp aralığı, resimli How to Play, HATA/ÖNERİ konu satırları),
+  GERI_BILDIRIM (Kâhin, resimli sayfalar, HATA/ÖNERİ), CHANGELOG'a Demo 2.2 başlığı.
+
+### Durum
+- Köylü EN tam koşusunun ilk denemesi derleme hatasıyla bitti (düzeltildi: `MapNode.Hidden` nullable değil, `HellPokerGame.Evaluator`
+  internal). İkinci deneme arka planda koşarken Claude Code sistem belleği kritik düşük diye işlemi durdurdu (fullrun.log'da hata yok,
+  21:01'de kesildi). Kendiliğinden yeniden başlatılmadı; kullanıcı onayı bekleniyor.
+
+### Kaldığı yer / sıradaki
+- FullRunTests'i sınıf sınıf, ön planda çalıştır (`-testFilter HellPoker.PlayMode.Tests.FullRunTests.Peasant_English` …), sonra Chaos.
+- Ardından 6) kapanış: bütün testler, 2000 koşuluk simülasyon, ekran görüntüleri, 2.2.0-demo, CLAUDE.md / PHASE2_CHAPTERS, build, duman turları, `v2.2-demo`.

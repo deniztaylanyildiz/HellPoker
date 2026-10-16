@@ -15,7 +15,7 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 2. KURALLAR
-   Ne yapman gerektiğini anladın mı? Nerede takıldın? (HOW TO PLAY sayfaları, şeytanların ipuçları,
+   Ne yapman gerektiğini anladın mı? Nerede takıldın? (HOW TO PLAY'in resimli sayfaları, şeytanların ipuçları,
    "NOW: ..." el adı, H tuşundaki el tablosu işine yaradı mı?)
 
    >
@@ -42,8 +42,8 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 6. SINIF VE GÜÇ
-   Hangi sınıfı seçtin (Köylü / Büyücü / Kral / Soytarı / Çağırıcı)? Paneldeki gücü (Heybe / Kehanet / Hazine / jokerler /
-   iblisler) anladın mı, ne sıklıkla işine yaradı? K ile dolu gücü kullandın mı? Hangi YÜKSELTMELERİ aldın, fark ettin mi?
+   Hangi sınıfı seçtin (Köylü / Kâhin / Kral / Soytarı / Çağırıcı)? Paneldeki gücü (Heybe / Önsezi ve Kaderi Bük / Hazine /
+   jokerler / iblisler) anladın mı, ne sıklıkla işine yaradı? K'yi her elde kullandın mı? Hangi YÜKSELTMELERİ aldın, fark ettin mi?
 
    >
 
@@ -91,7 +91,8 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 13. HATA / ÖNERİ BUTONU
-    Ana menüdeki HATA / ÖNERİ butonunu denedin mi? E-posta uygulaman açıldı mı, yoksa rapor panoya mı kopyalandı?
+    Ana menüdeki HATA / ÖNERİ butonunu denedin mi? Hata mı öneri mi seçtin? E-posta uygulaman açıldı mı (konu "[Hell Poker HATA]"
+    ya da "[Hell Poker ÖNERİ]"), yoksa rapor panoya mı kopyalandı?
 
     >
 

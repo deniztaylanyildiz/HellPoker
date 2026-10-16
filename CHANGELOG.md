@@ -1,5 +1,28 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.2 (2.2.0-demo) — 2026-10-16
+
+### Yeni
+- **Büyücü → KÂHİN (Oracle):** gözleri bağlı, alnında üçüncü göz. ÖNSEZİ: dağıtımdan sonra kart değiştirmede gelecek 2 kartı görür.
+  GERÇEĞİ GÖRÜR: yalanları ve dolandırıcıların tuzağını görür. KADERİ BÜK (K ya da kartın üstündeki ▲ / ▼, elde bir kez): gördüğün bir
+  kartı en üste çek (ilk o gelir) ya da dibe yolla — bedelsiz. Bedeli AYNA LANETİ: şeytan bir kartını bilir. Yeni yükseltmeler: Üçüncü
+  Göz, Kör Ayna, Kader Dokumacısı, Kehanet Mührü. Eski kayıtlar ve rekorlar aynen açılır.
+- **Resimli How to Play:** 10 kısa sayfa, her birinde oyundan bir resim; oklar ya da Q / E ile gezilir, sonuncusu el tablosu.
+- Haritada iki Kara Pazar ya da iki kamp bir yol üzerinde arka arkaya gelmez (aralarında en az iki kat; bir yolda en çok iki pazar).
+- Bölüm masalarının elleri, güç kullanımları ve reddedilen K basışları artık koşu günlüğünde.
+
+### Değişen
+- "Kör Kâhin" olayı Türkçede **Kör Falcı**.
+- Oyun aynı anda iki kez açılamaz (iki kopya aynı kayda yazıyordu).
+
+### Düzeltilen
+- Çağırıcı: LEJYON'un bedava iblisinden sonra katta coin'i yetmeyen iblis bedava geliyordu.
+- MÜSADERE / EL seçimi açıkken kart değiştirilince seçim açık kalıyor, sonraki her tıklama takılıyordu.
+- Lucifer'in Aynası Çağırıcı'ya "jokerlerin benim de jokerim" diyordu; Göz ve 5. dairenin ikinci kopyası "üstteki kartı çekti" diye
+  anlatılıyordu.
+- Hasat yapılamadığında "hasat yapıldı" deniyordu.
+- Panel ipuçları yükseltmeleri (Ucuz Müsadere, Kraliyet Fermanı, Kader Dokumacısı) ve iblis emanetinin bar bedelini göstermiyordu.
+
 ## Demo 2.1.1 (2.1.1-demo) — 2026-10-14 — oyun testi düzeltmeleri
 
 ### Yeni

@@ -26,7 +26,7 @@ NASIL AÇILIR
 
 OYUN NE?
 --------
-YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Büyücü, Kral ya da Soytarı (Çağırıcı ilk kurtuluşunla açılır). Cezan cehennemin
+YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Kâhin, Kral ya da Soytarı (Çağırıcı ilk kurtuluşunla açılır). Cezan cehennemin
 şeytanları arasında paylaştırılmıştır; her şeytanda bir payın var.
 Bir sınıfla kurtulursan o sınıf için cehennemin bir sonraki DAİRESİ açılır (sınıf kartındaki < DAİRE > oklarıyla seçilir; her daire
 biraz daha zor). Bazı emanetler kilitli başlar; ne zaman açılacakları REKORLAR'da yazar.
@@ -37,10 +37,11 @@ başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne oldu
     boşalırsa koşu biter.
   - Bekçi (altın göz): daha zengin, hileci bir iblis; yenersen bir lanetli emanet verir.
   - Yabancı (kukuletalı): yardım eder, dolandırır ya da cehennemin kendisidir; iki-üç seçenek, bazıları zara bağlı. Dolandırıcının
-    sözlerinde küçük bir ipucu vardır (Büyücü tuzağı açıkça görür, Çağırıcı 5 coin'e iblisine baktırır).
+    sözlerinde küçük bir ipucu vardır (Kâhin tuzağı açıkça görür, Çağırıcı 5 coin'e iblisine baktırır).
   - Bilinmeyen (?): içinde ne olduğu girince belli olur.
   - Kara Pazar (terazi): altı satıcıdan biri (kaçakçı, rehinci, kemik tüccarı, simyacı, kumarbaz, terzi), her birinin kendi malı.
     Her pazarda bir kez pazarlık, bir kez vitrin yenileme. Hazine: bedava coin.
+  - Bir yolda iki pazar ya da iki kamp arka arkaya gelmez: aralarında en az iki kat vardır (bir yolda en çok iki pazar).
   - Kamp (ateş; bölümün ortasında ve son katta): bir şey yap — DİNLEN (cezan düşer, şeytanın barı biraz kısalır), RUHUNU BİLE (sınıf
     yükseltmesi, bar uzar), TÖREN (ilk hileyi boz ya da bir laneti sustur) ya da DÖV (bir emanetin lütfu artar).
 
@@ -61,12 +62,14 @@ yok). Kazandığın el yıllarını hem bardan hem cezandan siler; kaybettiğin 
 LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır (REKORLAR'da sınıf ve daire başına en
 düşüğü); barı sonundaki işareti geçerse düşersin (koşu biter).
 
-SINIF GÜÇLERİ (portrenin altındaki 5 pip: kazanç +1, kayıp +2, çekilme +1; dolunca K gücü kullanır). Masada diyalog kutusunun
+SINIF GÜÇLERİ (K ya da rozet: her elde bir kez; rozetin üstünde HAZIR / BU ELDE KULLANILDI yazar). Masada diyalog kutusunun
 altındaki panelde:
   - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (en çok 3). Sonraki kart değiştirmelerde heybedeki
     karta tıklarsan desteden çekmek yerine o gelir; ama şeytan görür, o el daha sık artırır. K: HASAT, atılan her yer heybeden, gizlice.
-  - Büyücü, KEHANET: destenin üstündeki kartları görür (1, sonra 2, sonra 3). Bedeli: şeytan her elde kartlarından birini bilir.
-    K: gördüğün kartlardan en çok 2'sini destenin dibine yolla. Yalanları da görür.
+  - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek 2 kartı görür. GERÇEĞİ
+    GÖRÜR — şeytanın yalanlarını ve dolandırıcıların tuzağını açıkça görür. K ya da kartın üstündeki oklar: KADERİ BÜK, gördüğün
+    kartlardan birini en üste çek (kart değiştirirken ilk o gelir) ya da dibe yolla. Bedeli, AYNA LANETİ: şeytan her elde kartlarından
+    birini bilir.
   - Kral, HAZİNE: kazandığın her elde 1 vergi. Kart değiştirmeden önce: AÇ (şeytanın bir kartı açılır), BEDAVA (sıradaki artırman
     şeytanın parasıyla), MÜSADERE (bir kartını ver, şeytanın en iyi açık kartını al). J, Q, K'na hiçbir hile dokunamaz. Şeytanın
     masasında kaybedilen el vergilerin yarısını götürür. K: bedava müsadere.
@@ -75,7 +78,7 @@ altındaki panelde:
     Çıngırağı, sonrakilerde bir emanet ya da 30 coin.
   - Çağırıcı, İBLİSLER: kart değiştirmeden önce GÖZ (şeytanın kapalı bir kartını aç, 5 coin), EL (bir kartını onun açık bir kartıyla
     değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını
-    düşürür. K: LEJYON, o elde üçü de bedava.
+    düşürür. K: LEJYON, o elin ilk iblisi bedava.
 
 ŞEYTAN KURALLARI (sadece şeytanların kendi masalarında; masa açılırken söylerler):
   - Mammon, FAİZ: kazanamadığın her elde bar biraz uzar.
@@ -86,7 +89,8 @@ altındaki panelde:
 
 Şeytanlar hile de yapar: portrenin üstünde bir sonraki hilesi duyurulur (niyet), hile kartlarda görünür vurur.
 
-Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR (oyun, güçler, eller, hileler).
+Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR: 10 kısa, resimli sayfa (oklar ya da Q / E ile gezilir; sonuncusu
+el tablosu).
 Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüde sağ üstteki TR / EN butonuyla ya da L tuşuyla değiştirirsin.
 Poker bilmiyorsan dert etme:
   - H tuşu hangi elin hangisini yendiğini gösterir.
@@ -99,14 +103,14 @@ Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür
 KONTROLLER
 ----------
   Space / Enter   dağıt · kart değiştir · pas · karşıla (haritada: seç)
-  Oklar           haritada yol seç · el sonunda jokerin kartını seç (Soytarı)
+  Oklar           haritada yol seç · el sonunda jokerin kartını seç (Soytarı) · How to Play'de sayfa çevir
   R               artır (raise)
   F               çekil (fold)
   D               kart değiştirmeye kadar pas geç (check to draw)
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
   H               el sıralaması
-  K               sınıfının gücü (gösterge doluyken)
+  K               sınıfının gücü (her elde bir kez)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
@@ -121,8 +125,8 @@ KONTROLLER
 BİR SORUN OLURSA
 ----------------
 En kolayı: ana menünün sol üstündeki HATA / ÖNERİ butonu (oyunun ortasında Esc ile menüye dönersin). Hata mı öneri mi seç, birkaç
-satır yaz, GÖNDER'e bas: e-posta uygulaman caveengine@gmail.com adresine hazır bir e-postayla açılır (sürüm, sınıf, daire, bölüm,
-kat ve koşunun son satırları içinde). Açılmazsa rapor panoya kopyalanır; bir e-postaya yapıştırıp o adrese gönder.
+satır yaz, GÖNDER'e bas: e-posta uygulaman caveengine@gmail.com adresine hazır bir e-postayla açılır; konusu hataysa
+"[Hell Poker HATA] ...", öneriyse "[Hell Poker ÖNERİ] ..." olur (gövdede sürüm, sınıf, daire, bölüm, kat ve koşunun son satırları). Açılmazsa rapor panoya kopyalanır; bir e-postaya yapıştırıp o adrese gönder.
 
 Oyun çökerse ya da garip bir şey olursa şu dosyayı da gönder:
 

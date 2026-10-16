@@ -145,7 +145,7 @@ namespace HellPoker.PlayMode.Tests
 
         // ------------------------------------------------------------------ the check
 
-        private static void AssertNothingOverlaps(TableView view, string where)
+        internal static void AssertNothingOverlaps(TableView view, string where)
         {
             Canvas.ForceUpdateCanvases();
             var texts = view.GetComponentsInChildren<Text>(false)
