@@ -512,7 +512,7 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(RunSnapshot.TryDecode(old + "\nclass.jokers=1", out RunSnapshot low));
             Assert.AreEqual(2, new Sinner(SinnerRoster.Jester, jokers: low.ClassJokers).Jokers);
 
-            Assert.IsTrue(RunSnapshot.TryDecode(old.Replace("class=jester", "class=thief"), out RunSnapshot unknown));
+            Assert.IsTrue(RunSnapshot.TryDecode(old.Replace("class=jester", "class=bandit"), out RunSnapshot unknown));
             Assert.IsNull(SinnerRoster.Find(unknown.ClassId), "An unknown class falls back to the Peasant at the table.");
         }
     }

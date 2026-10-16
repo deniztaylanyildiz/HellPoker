@@ -166,6 +166,9 @@ namespace HellPoker.Presentation
                     _view.SetMessage(BendPrompt(prophecy), Tone.Good);
                     return;
                 }
+                case TheftPowers theft:
+                    PressSteal(theft);
+                    return;
                 case SummonPowers summon:
                 {
                     KitRefusal why = summon.WhyNoLegion(game);
@@ -301,6 +304,11 @@ namespace HellPoker.Presentation
 
         public void PressKitButton(int index)
         {
+            if (_kit?.Theft != null)
+            {
+                if (Playing && _pendingEvent == null && !Hurry()) PressSteal(_kit.Theft);
+                return;
+            }
             if (_kit?.Summon != null)
             {
                 PressSummon(index);
@@ -409,8 +417,57 @@ namespace HellPoker.Presentation
 
         private Card? _wildTold;
 
+        /// <summary>The Thief's STEAL (K or the panel's button): the pick of the card he gives opens (again: put away).</summary>
+        private void PressSteal(TheftPowers theft)
+        {
+            if (_seizing)
+            {
+                _seizing = false;
+                Refresh();
+                return;
+            }
+            KitRefusal why = theft.WhyNoSteal(KitGame);
+            if (why != KitRefusal.None)
+            {
+                _view.SetMessage(PowerRefusalText(why), Tone.Warning);
+                return;
+            }
+            _seizing = true;
+            Refresh();
+            _view.SetMessage(UiText.StealPrompt, Tone.Warning);
+        }
+
+        /// <summary>The steal itself, with the card picked: taken (blind), or caught and fined.</summary>
+        private void StealWith(int index)
+        {
+            TheftPowers theft = _kit.Theft;
+            Card given = _game.PlayerHand[index];
+            if (!theft.CanGive(KitGame, index) || !theft.Steal(KitGame, index))
+            {
+                _view.SetMessage(UiText.StealPrompt, Tone.Warning);   // not that card: the pick stays open
+                return;
+            }
+            _seizing = false;
+            _discards.Remove(index);
+            if (theft.CaughtThisHand)
+            {
+                LogNote($"theft: CAUGHT giving {given} (hand {_game.RoundNumber}, fine {theft.Fine}{(theft.AtDemonsTable ? " on the bar" : " coins")})");
+                _view.PlaySfx(SfxIds.Cheat);
+                Refresh();
+                _view.SetMessage(theft.AtDemonsTable ? string.Format(UiText.CaughtBarFormat, TheftPowers.FineBarPercent)
+                    : string.Format(UiText.CaughtCoinsFormat, theft.Fine), Tone.Bad);
+                return;
+            }
+            LogNote($"theft: {theft.Taken} stolen for {given} (hand {_game.RoundNumber})");
+            _view.PlaySfx(SfxIds.Seize);
+            Refresh();
+            _view.SetMessage(string.Format(UiText.StolenFormat, theft.Taken.Value, given), Tone.Good);
+        }
+
         private int[] SeizablePlayerCards()
         {
+            if (_kit?.Theft != null && KitGame != null)
+                return Enumerable.Range(0, Hand.Size).Where(i => _kit.Theft.CanGive(KitGame, i)).ToArray();
             if (_kit?.Summon != null && KitGame != null)
                 return Enumerable.Range(0, Hand.Size).Where(i => _kit.Summon.CanGive(KitGame, i)).ToArray();
             if (_kit?.Treasury == null || KitGame == null) return null;
@@ -419,6 +476,11 @@ namespace HellPoker.Presentation
 
         private void SeizeWith(int index)
         {
+            if (_kit?.Theft != null)
+            {
+                StealWith(index);
+                return;
+            }
             if (_kit?.Summon != null)
             {
                 SwapWith(index);
@@ -466,7 +528,7 @@ namespace HellPoker.Presentation
         private string KitHint()
         {
             if (_kit == null) return null;
-            if (_seizing) return _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
+            if (_seizing) return _kit.Theft != null ? UiText.StealPrompt : _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
             if (_kit.Prophecy != null && _kit.Prophecy.RearrangesLeft > 0)
                 return BendPrompt(_kit.Prophecy);
             if (_kit.Rule is BelialRoleSwap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && BelialRoleSwap.ComingIn(KitGame))
@@ -520,6 +582,11 @@ namespace HellPoker.Presentation
                         ProphecyHint, waiting: rearranging));
                     return;
                 }
+                case TheftPowers theft:
+                    _view.SetKit(new KitDisplay(UiText.KitThiefTitle, null,
+                        new[] { new KitButton(UiText.StealButton, theft.WhyNoSteal(game) != KitRefusal.None && !_seizing) },
+                        string.Format(UiText.KitThiefHintFormat, kit.ThiefCaughtPercent, TheftPowers.FineBarPercent), waiting: _seizing));
+                    return;
                 case SummonPowers summon:
                 {
                     string Price(SummonAct act) => summon.LegionFreeLeft > 0 ? UiText.KitFree : summon.AtDemonsTable

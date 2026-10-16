@@ -49,6 +49,7 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest, Timeout(3600000)] public IEnumerator Jester_Turkish() => Run(3, "Turkish", 0);
         [UnityTest, Timeout(3600000)] public IEnumerator Summoner_English() => Run(4, "English", 0);
         [UnityTest, Timeout(3600000)] public IEnumerator Peasant_FifthCircle_Turkish() => Run(0, "Turkish", 5);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_English() => Run(5, "English", 0);
 
         private static ChapterPresenter Chapters => ChapterJourneyTests.Chapters;
         private static TablePresenter Table => (TablePresenter)Chapters.Table;
@@ -396,7 +397,7 @@ namespace HellPoker.PlayMode.Tests
         {
             ClassKit kit = Chapters?.Journey?.Kit;
             if (kit == null) return 0;
-            return kit.Harvests + kit.Rearranges + kit.Reveals + kit.FreeRaises + kit.Seizures + kit.Summons + kit.PowerUses + JesterK;
+            return kit.Harvests + kit.Rearranges + kit.Reveals + kit.FreeRaises + kit.Seizures + kit.Summons + kit.Steals + kit.Caught + kit.PowerUses + JesterK;
         }
 
         private static int JesterK;
@@ -429,6 +430,14 @@ namespace HellPoker.PlayMode.Tests
                     break;
                 case Core.Sinners.Summoner.ClassId:
                     if (hooks?.Summon != null && game.Phase == GamePhase.PlayerReveal) table.PressKitButton(0);
+                    break;
+                case Core.Sinners.Thief.ClassId:
+                    if (hooks?.Theft != null && game.Phase == GamePhase.PlayerReveal && hooks.Theft.WhyNoSteal(game) == KitRefusal.None)
+                    {
+                        table.UsePower();   // the pick opens
+                        int give = Enumerable.Range(0, 5).FirstOrDefault(i => hooks.Theft.CanGive(game, i));
+                        table.ToggleDiscard(give);   // the card given
+                    }
                     break;
                 default:
                     if (game.Phase == GamePhase.PlayerReveal)

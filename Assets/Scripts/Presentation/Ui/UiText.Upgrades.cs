@@ -25,6 +25,10 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.DoubleLaugh: return L("DOUBLE LAUGH", "ÇİFT KAHKAHA");
                 case UpgradeIds.JokerPurse: return L("JOKER PURSE", "JOKER KESESİ");
                 case UpgradeIds.Buffoon: return L("BUFFOON", "ŞAKLABAN");
+                case UpgradeIds.LightFingers: return L("LIGHT FINGERS", "HAFİF PARMAKLAR");
+                case UpgradeIds.NightEye: return L("NIGHT EYE", "GECE GÖZÜ");
+                case UpgradeIds.MasterThief: return L("MASTER THIEF", "USTA HIRSIZ");
+                case UpgradeIds.LootSack: return L("LOOT SACK", "GANİMET ÇUVALI");
                 default: return (id ?? "").ToUpperInvariant();
             }
         }
@@ -52,6 +56,11 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.DoubleLaugh: return L("A draw that brings you two jokers throws one back for the next card.",
                     "Sana iki joker getiren değiş birini geri atar, yerine sıradaki kart gelir.");
                 case UpgradeIds.JokerPurse: return L("The black market's joker service costs half.", "Kara Pazar'ın joker hizmeti yarı fiyat.");
+                case UpgradeIds.LightFingers: return L("Caught one time in ten, not one in four.", "Dörtte bir değil, onda bir yakalanırsın.");
+                case UpgradeIds.NightEye: return L("Two of the demon's closed cards show from the deal.", "Şeytanın iki kapalı kartı dağıtımdan açık gelir.");
+                case UpgradeIds.MasterThief: return L("STEAL takes the demon's best open card when he shows one.",
+                    "ÇAL, şeytanın açık kartı varsa en iyisini alır.");
+                case UpgradeIds.LootSack: return string.Format(L("A steal on the floors brings {0} coins too.", "Katta her çalış {0} coin de getirir."), TheftPowers.LootCoins);
                 case UpgradeIds.Buffoon: return L("With one joker in your hand the demon re-raises half as often.",
                     "Elinde tek joker varken şeytan yarı yarıya daha az artırır.");
                 default: return "";

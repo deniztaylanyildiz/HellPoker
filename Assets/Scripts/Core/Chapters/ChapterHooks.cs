@@ -37,6 +37,7 @@ namespace HellPoker.Core.Chapters
         public ProphecyPowers Prophecy => Powers as ProphecyPowers;
         public TreasuryPowers Treasury => Powers as TreasuryPowers;
         public SummonPowers Summon => Powers as SummonPowers;
+        public TheftPowers Theft => Powers as TheftPowers;
 
         /// <summary>The hooks of a table: <paramref name="bossId"/> null for a floor's (no rule), the boss's id at the demon's table.</summary>
         /// <param name="mirrorsTwo">Lucifer copies a second mechanic too (the fifth circle).</param>
@@ -51,6 +52,7 @@ namespace HellPoker.Core.Chapters
                 case KitKind.Prophecy: powers = new ProphecyPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
                 case KitKind.Treasury: powers = new TreasuryPowers(kit, Dice(2), bossId != null); break;
                 case KitKind.Summon: powers = new SummonPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
+                case KitKind.Theft: powers = new TheftPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
                 default: powers = null; break;
             }
             return new ChapterHooks(kit, rule, powers, new UpgradeHooks(kit, Dice(3)));
@@ -61,6 +63,8 @@ namespace HellPoker.Core.Chapters
         {
             ChapterHooks hooks = For(kit, bossId, barStart, seed, mirrorsTwo);
             game.UseHooks(hooks);
+            // The Thief's glance: one of the demon's face-down cards (the Night Eye: two) plays face up from the deal.
+            if (kit.GlanceCards > 0) game.HouseCardsOpenAtDeal = System.Math.Max(game.HouseCardsOpenAtDeal, kit.GlanceCards);
             return hooks;
         }
     }

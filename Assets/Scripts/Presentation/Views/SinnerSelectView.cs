@@ -135,15 +135,19 @@ namespace HellPoker.Presentation.Views
             int shift = Shift;
             UiFactory.CreateText("Name", card, sinner.Name, 8, sinner.Locked ? Palette.BoneDark : Palette.GoldLight, style: FontStyle.Bold).WithOutline()
                 .rectTransform.PlaceTL(0, 110 - shift, CardWidth, 8);
-            UiFactory.CreateText("Title", card, sinner.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter)
-                .rectTransform.PlaceTL(4, 120 - shift, CardWidth - 8, 18);
+            Text title = UiFactory.CreateText("Title", card, sinner.Title, 8, Palette.BoneMid, TextAnchor.UpperCenter);
+            title.rectTransform.PlaceTL(4, 120 - shift, CardWidth - 8, 18);
+            // Demo 2.2: six narrow cards — a title that wraps to a third line pushes the start line down, not under it.
+            int titleHeight = Math.Max(18, Mathf.CeilToInt(title.preferredHeight));
+            title.rectTransform.PlaceTL(4, 120 - shift, CardWidth - 8, titleHeight);
+            int startTop = 120 - shift + titleHeight + 2;
             Text start = UiFactory.CreateText("Start", card, sinner.Locked ? UiText.LockedLabel : sinner.Start, 8, Palette.Ember, TextAnchor.UpperCenter);
-            start.rectTransform.PlaceTL(2, 140 - shift, CardWidth - 4, 9);
+            start.rectTransform.PlaceTL(2, startTop, CardWidth - 4, 9);
             int startHeight = Math.Max(9, Mathf.CeilToInt(start.preferredHeight));
-            start.rectTransform.PlaceTL(2, 140 - shift, CardWidth - 4, startHeight);
+            start.rectTransform.PlaceTL(2, startTop, CardWidth - 4, startHeight);
             // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE (and the
             // circle row). A locked class says what opens it in place of its price. A start line that wraps pushes them down.
-            int top = Math.Max(AbilityTop - shift, 140 - shift + startHeight + 3);
+            int top = Math.Max(AbilityTop - shift, startTop + startHeight + 3);
             Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, sinner.Locked ? Palette.BoneDark : Palette.Bone, TextAnchor.UpperLeft);
             ability.rectTransform.PlaceTL(TextX, top, CardWidth - 2 * TextX, 9);
             int abilityHeight = Mathf.CeilToInt(ability.preferredHeight);

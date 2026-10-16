@@ -236,15 +236,14 @@ namespace HellPoker.Core.Tests
             var book = new ChapterRecords();
             Assert.AreEqual(24, ChapterUnlocks.OpenRelics(book).Count(), "Demo 2.1: 39 relics, 15 locked");
             Assert.AreEqual(16, ChapterUnlocks.Relics.Count, "2.1.1: the compass is locked too");
-            Assert.IsFalse(ChapterUnlocks.IsClassOpen(Summoner.ClassId, book));
-            Assert.IsTrue(SinnerRoster.All.All(c => ChapterUnlocks.IsClassOpen(c.Id, book)));
+            Assert.IsTrue(SinnerRoster.PhaseTwo.All(c => ChapterUnlocks.IsClassOpen(c.Id, book)), "Demo 2.2: every class open");
 
             ChapterRecords before = ChapterRecords.Decode(book.Encode());
             book.WardenBeaten();
             book.TributePaidInFull();
             book.BossBeaten(DealerRoster.BelialId);
             book.RunEnded(JourneyEnd.Freed, 4, King.ClassId, 120);
-            CollectionAssert.IsSubsetOf(new[] { Summoner.ClassId, ChapterRelicIds.SaltCircle, ChapterRelicIds.SilverBell, ChapterRelicIds.RavenFeather,
+            CollectionAssert.IsSubsetOf(new[] { ChapterRelicIds.SaltCircle, ChapterRelicIds.SilverBell, ChapterRelicIds.RavenFeather,
                 ChapterRelicIds.LilithsTear, ChapterRelicIds.AbyssCoin }, ChapterUnlocks.Opened(before, book));
             ChapterRecords read = ChapterRecords.Decode(book.Encode());
             Assert.AreEqual(1, read.WardensBeaten);

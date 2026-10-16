@@ -13,14 +13,16 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("Satchel: keep a thrown card (3 at most) and draw it back. Power: harvest unseen.",
-                    "Heybe: attığın bir kartı sakla (en çok 3), sonra ondan çek. Güç: gizli hasat.");
-                case Warlock.ClassId: return string.Format(L("FORESIGHT: the {0} cards your draw takes, and the lies. Power: BEND FATE, a seen card up or down.",
-                    "ÖNSEZİ: draw'da gelecek {0} kartı ve yalanları görür. Güç: KADERİ BÜK, gördüğün bir kart üste ya da dibe."), ClassKit.ForesightCards);
+                case Peasant.ClassId: return L("SATCHEL: keep 3 thrown cards to draw later. Power: HARVEST, unseen.",
+                    "HEYBE: attığın bir kartı sakla (en çok 3), sonra çek. Güç: gizli HASAT.");
+                case Warlock.ClassId: return string.Format(L("FORESIGHT: your next {0} cards, and the lies. Power: BEND FATE, one up or down.",
+                    "ÖNSEZİ: gelecek {0} kart ve yalanlar. Güç: KADERİ BÜK, biri üste ya da dibe."), ClassKit.ForesightCards);
                 case King.ClassId: return L("A tax per win: open a card 1, free raise 2, seize 4. No cheat touches his J Q K.",
                     "Kazanç başına vergi: kart aç 1, bedava artır 2, müsadere 4. J Q K'sına hile işlemez.");
-                case Summoner.ClassId: return L("Imps: EYE a closed card 5, HAND a swap 15, WHISPER the next cheat 8. Power: the first imp free.",
-                    "İblisler: GÖZ kapalı kart 5, EL takas 15, FISILTI sıradaki hile 8. Güç: ilk iblis bedava.");
+                case Summoner.ClassId: return L("IMPS: EYE 5, HAND 15, WHISPER 8 coins. Power: one imp free.",
+                    "İBLİSLER: GÖZ 5, EL 15, FISILTI 8 coin. Güç: bir iblis bedava.");
+                case Thief.ClassId: return L("GLANCE: one closed card of the demon's shows. Power: STEAL one, blind.",
+                    "GÖZ UCU: şeytanın bir kapalı kartı açık. Güç: ÇAL, körlemesine.");
                 case Jester.ClassId: return L("Jokers in the deck: one is any card, two lose. A win adds one; at twenty they fall to ten.",
                     "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir ekler; yirmide sayı ona iner.");
                 default: return SinnerAbility(id);
@@ -32,11 +34,12 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("Dip into the satchel and the demon re-raises more.", "Heybeye uzanırsan şeytan daha çok artırır.");
-                case Warlock.ClassId: return L("MIRROR CURSE: the demon knows one of your cards.", "AYNA LANETİ: şeytan kartlarından birini bilir.");
-                case King.ClassId: return L("A demon's hand lost halves the taxes.", "Kaybedilen boss eli vergiyi yarıya indirir.");
-                case Summoner.ClassId: return L("At a demon's table the imps cost bar. One in ten runs wild.",
-                    "Şeytan masasında iblisler bar ister. Onda biri azar.");
+                case Peasant.ClassId: return L("Draw from it: he raises more.", "Kullanırsan şeytan çok artırır.");
+                case Warlock.ClassId: return L("MIRROR CURSE: the demon knows a card.", "AYNA LANETİ: şeytan bir kartını bilir.");
+                case King.ClassId: return L("A boss's hand lost halves the taxes.", "Boss eli kaybı vergiyi yarılar.");
+                case Thief.ClassId: return L("CAUGHT 1 in 4: a fine.", "4'te 1 YAKALANIR: ceza.");
+                case Summoner.ClassId: return L("Imps cost bar at a boss. 1 in 10 runs wild.",
+                    "Boss'ta iblis bar ister. 10'da 1 azar.");
                 default: return SinnerDetail(id);
             }
         }
@@ -54,7 +57,9 @@ namespace HellPoker.Presentation.Ui
             "KING, TREASURY: a tax for every hand won (at most {2}). Before the draw: OPEN {3}, FREE raise {4}, SEIZE {5}. No cheat " +
             "touches his J, Q or K. A demon's hand lost halves the taxes. K, before the draw: a seizure at half price.\n" +
             "JESTER: his jokers, as ever. SUMMONER, IMPS: EYE (a closed card) 5, HAND (yours for an open one) 15, WHISPER (the next cheat, " +
-            "true) 8 coins — at a demon's table the bar grows 2 / 5 / 3%; one imp in ten runs wild and lowers a card. K, before the draw: the LEGION, the hand's first imp free.\n\n" +
+            "true) 8 coins — at a demon's table the bar grows 2 / 5 / 3%; one imp in ten runs wild and lowers a card. K, before the draw: the LEGION, the hand's first imp free.\n" +
+            "THIEF, QUICK HAND: one of the demon's face-down cards plays face up. K, before the draw: STEAL, a card of yours for one of his face-down ones, " +
+            "blind; caught ({10}%) no swap and a fine (an ante's coins, at a demon's {11}% of the bar).\n\n" +
             "THE DEMONS' RULES (their own tables): MAMMON, INTEREST: every hand you do not win, the bar grows {6}%. BELIAL, ROLE SWAP: " +
             "every 4th hand one of his face-down cards trades places with one of yours. LILITH, TEMPTATION: a card you throw that betters " +
             "her hand, she may keep ({7}%). LUCIFER, MIRROR: he copies your class. Under {8}% of the bar a demon cheats faster.",
@@ -66,7 +71,9 @@ namespace HellPoker.Presentation.Ui
             "KRAL, HAZİNE: kazandığı her elde vergi (en çok {2}). Draw'dan önce: AÇ {3}, BEDAVA artırma {4}, MÜSADERE {5}. J, Q ve " +
             "K'sına hile işlemez. Kaybedilen boss eli vergiyi yarıya indirir. K, draw'dan önce: yarı vergiye müsadere.\n" +
             "SOYTARI: jokerleri, her zamanki gibi. ÇAĞIRICI, İBLİSLER: GÖZ (kapalı bir kart) 5, EL (seninki açık biriyle) 15, FISILTI " +
-            "(sıradaki hile, doğrusu) 8 coin — şeytan masasında bar %2 / 5 / 3 uzar; onda bir iblis azar ve bir kartını düşürür. K, draw'dan önce: LEJYON, elin ilk iblisi bedava.\n\n" +
+            "(sıradaki hile, doğrusu) 8 coin — şeytan masasında bar %2 / 5 / 3 uzar; onda bir iblis azar ve bir kartını düşürür. K, draw'dan önce: LEJYON, elin ilk iblisi bedava.\n" +
+            "HIRSIZ, EL ÇABUKLUĞU: şeytanın kapalı kartlarından biri açık gelir. K, draw'dan önce: ÇAL, bir kartını onun kapalı biriyle körlemesine " +
+            "değiş; yakalanırsan (%{10}) takas yok, ceza var (bir ante coin, şeytan masasında barın %{11} kadarı).\n\n" +
             "ŞEYTANLARIN KURALLARI (kendi masalarında): MAMMON, FAİZ: kazanamadığın her elde bar %{6} uzar. BELIAL, ROL TAKASI: her " +
             "4. elde kapalı kartlarından biri seninkiyle yer değiştirir. LILITH, BAŞTAN ÇIKARMA: attığın kart elini iyileştiriyorsa " +
             "alabilir (%{7}). LUCIFER, AYNA: sınıfını kopyalar. Bar %{8} altına inince şeytan daha hızlı hile yapar.");
@@ -74,7 +81,7 @@ namespace HellPoker.Presentation.Ui
         public static string ChapterRulesPage() =>
             string.Format(ChapterRulesPageFormat, ClassKit.SatchelSize, ClassKit.SatchelReRaisePercent, ClassKit.TaxMax, ClassKit.RevealPrice,
                 ClassKit.FreeRaisePrice, ClassKit.SeizePrice, MammonInterest.InterestPercent, LilithTemptation.TakePercent, DemonRule.CorneredPercent,
-                ClassKit.RearrangesPerUse, ClassKit.ForesightCards);
+                ClassKit.RearrangesPerUse, ClassKit.ForesightCards, ClassKit.CaughtPercent, TheftPowers.FineBarPercent);
         // ------------------------------------------------------------------ the panel under the dialog box
 
         /// <summary>{0} cards in the satchel, {1} its size.</summary>
@@ -252,6 +259,9 @@ namespace HellPoker.Presentation.Ui
                 case KitKind.Treasury:
                     return string.Format(L("My rule is the MIRROR: a tax for every hand I win; at {0} I seize one of your cards.",
                         "Kuralım AYNA: kazandığım her elde vergi alırım; {0} vergide kartlarından birine el koyarım."), ClassKit.SeizePrice);
+                case KitKind.Theft:
+                    return string.Format(L("My rule is the MIRROR: I steal too; once every {0} hands, as the draw begins, a card of yours for my worst.",
+                        "Kuralım AYNA: ben de çalarım; her {0} elde bir, draw başlarken kartlarından birini en kötü kartımla."), LuciferMirror.StealEveryHands);
                 case KitKind.Summon:
                     return string.Format(L("My rule is the MIRROR: I have an Eye too; once every {0} hands it shows me one of your cards.",
                         "Kuralım AYNA: benim de bir Gözüm var; her {0}. elde kartlarından birini bana gösterir."), LuciferMirror.EyeEveryHands);

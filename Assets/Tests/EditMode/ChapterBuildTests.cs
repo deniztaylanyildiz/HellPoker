@@ -172,7 +172,7 @@ namespace HellPoker.Core.Tests
                 string other = ClassUpgrades.All.First(u => ClassUpgrades.ClassOf(u) != cls.Id);
                 Assert.IsFalse(kit.AddUpgrade(other), "another class's");
             }
-            Assert.AreEqual(16, ClassUpgrades.All.Distinct().Count());
+            Assert.AreEqual(20, ClassUpgrades.All.Distinct().Count(), "Demo 2.2: the Thief's four too");
         }
 
         [Test]

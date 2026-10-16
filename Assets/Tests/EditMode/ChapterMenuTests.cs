@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
@@ -233,23 +234,15 @@ private MainMenuPresenterTests.FakeMenuView _menu;
         // ------------------------------------------------------------------ the Summoner's lock and the circles of Hell
 
         [Test]
-        public void TheGamesClassChoice_HasTheSummoner_LockedUntilTheFirstFreedom()
+        public void TheGamesClassChoice_HasSixClasses_AllOpenFromTheStart()
         {
             _menu.PressNewGame();
-            Assert.AreEqual(5, _sinners.Cards.Count, "the four and the Summoner");
-            SinnerCard summoner = _sinners.Cards[4];
-            Assert.AreEqual(Summoner.ClassId, summoner.Id);
-            Assert.IsTrue(summoner.Locked);
-            Assert.AreEqual(Presentation.Ui.UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone), summoner.LockNote);
-            _sinners.Choose(4);
-            Assert.IsNull(_chapters.Started, "a locked class is not chosen");
-
-            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100);
-            _sinners.Back();
-            _menu.PressNewGame();
-            Assert.IsFalse(_sinners.Cards[4].Locked, "free once: the Summoner opens");
-            _sinners.Choose(4);
-            Assert.AreEqual(Summoner.ClassId, _chapters.Started.Id);
+            Assert.AreEqual(6, _sinners.Cards.Count, "the four, the Summoner and the Thief");
+            Assert.IsTrue(_sinners.Cards.All(c => !c.Locked), "Demo 2.2: every class open, to try them all");
+            Assert.AreEqual(Summoner.ClassId, _sinners.Cards[4].Id);
+            Assert.AreEqual(Thief.ClassId, _sinners.Cards[5].Id);
+            _sinners.Choose(5);
+            Assert.AreEqual(Thief.ClassId, _chapters.Started.Id);
         }
 
         [Test]

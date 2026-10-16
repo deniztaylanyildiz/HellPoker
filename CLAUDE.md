@@ -126,6 +126,11 @@ draw ile kapanır, Ayna metinleri (`LuciferMirror.DrewTop / UsedBag`), ipuçlar�
 `MapSpacingTests` (180.000 harita, ~2 dk), PlayMode `HowToPlayTests`, [Explicit] `FullRunTests` (her sınıf tam koşu + 5. daire + kaos;
 her biri ~1.5 dk, tek tek çalıştır). Son simülasyon (daire 0, 2000): Köylü %51.3, Kâhin %29.8, Kral %31.7, Soytarı %13.6, Çağırıcı %36.9.
 
+**Demo 2.2 sonrası:** altıncı sınıf **HIRSIZ** (`Thief`, id `thief`, `KitKind.Theft`, `TheftPowers`: GÖZ UCU `ClassKit.GlanceCards`, ÇAL elde bir kez
+körlemesine, YAKALANMA %25 → takas yok + ceza: katta 1 ante coin, boss'ta bar %3; yükseltmeler `light_fingers / night_eye / master_thief / loot_sack`;
+Lucifer her 3 elde bir çalar `LuciferMirror.StealEveryHands`; 140 coin, 6500 yıl; simülasyon %29.2). **Bütün sınıflar açık** (`ChapterUnlocks.IsClassOpen` hep
+true). Sınıf kartı düzeni başlık yüksekliğine göre akar. Köylü ölçümü: `SatchelPowers.HarvestsPerTable` (0 = her el; masa başı sınır kurtuluşu düşürmedi).
+
 ## Oyun
 
 Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasaya (House)** karşı oynar.

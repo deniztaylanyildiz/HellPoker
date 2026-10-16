@@ -88,7 +88,7 @@ namespace HellPoker.Core.Tests
             Assert.Less(SinnerRoster.King.StartingYears, DealerRoster.Lilith.SoulThreshold, "The King starts below every soul line.");
             Assert.AreSame(SinnerRoster.King, SinnerRoster.Find("king"));
             Assert.AreSame(SinnerRoster.Jester, SinnerRoster.Find("jester"));
-            Assert.IsNull(SinnerRoster.Find("thief"));
+            Assert.IsNull(SinnerRoster.Find("bandit"));
             Assert.AreEqual(750, SinnerRoster.Jester.StartingYears);
             CollectionAssert.AreEqual(new[] { SinnerAbility.FreeFold, SinnerAbility.Ward, SinnerAbility.Protect, SinnerAbility.None },
                 SinnerRoster.All.Select(c => c.Ability));

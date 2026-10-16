@@ -39,7 +39,10 @@ namespace HellPoker.Core.Chapters
         CannotRaise,
 
         /// <summary>The seen cards may not go to the bottom (the Seer's Spectacles are worn).</summary>
-        NoBottom
+        NoBottom,
+
+        /// <summary>Done at this table already (the Peasant's harvest, once a table): ready again at the next.</summary>
+        UsedAtTable
     }
 
     /// <summary>
@@ -64,7 +67,7 @@ namespace HellPoker.Core.Chapters
         public bool UsedThisHand { get; private set; }
 
         /// <summary>The K power can be paid for: not used yet this hand (the simulation's old rule: the full gauge).</summary>
-        public bool IsReady => ChapterTuning.PowersEveryHand ? !UsedThisHand : Kit.Sinner.Charge >= Kit.Sinner.Rules.Full;
+        public virtual bool IsReady => ChapterTuning.PowersEveryHand ? !UsedThisHand : Kit.Sinner.Charge >= Kit.Sinner.Rules.Full;
 
         /// <summary>Why the K power is not ready: used this hand (the old rule: the gauge not full).</summary>
         protected static KitRefusal NotReady => ChapterTuning.PowersEveryHand ? KitRefusal.AlreadyUsed : KitRefusal.NotCharged;
@@ -121,6 +124,16 @@ namespace HellPoker.Core.Chapters
         {
         }
 
+        /// <summary>Demo 2.2: harvests a table allows (a new table, a new one); 0: every hand, as 2.1.1.</summary>
+        public static int HarvestsPerTable = 0;
+
+        private int _harvestsHere;
+
+        /// <summary>The harvests this table still allows (int.MaxValue without a limit).</summary>
+        public int HarvestsLeftHere => HarvestsPerTable <= 0 ? int.MaxValue : Math.Max(0, HarvestsPerTable - _harvestsHere);
+
+        public override bool IsReady => base.IsReady && HarvestsLeftHere > 0;
+
         public override IEnumerable<Card> CardsOutOfDeck => Kit.Satchel;
 
         /// <summary>The cards thrown in this hand's draw that may still go into the satchel (one of them, until the next deal).</summary>
@@ -171,6 +184,7 @@ namespace HellPoker.Core.Chapters
         public KitRefusal WhyNoHarvest(HellPokerGame game, IReadOnlyCollection<int> discards)
         {
             if (game.Phase != GamePhase.Drawing || !game.HandInPlay) return KitRefusal.NotNow;
+            if (HarvestsLeftHere <= 0) return KitRefusal.UsedAtTable;
             if (!IsReady) return NotReady;
             if (Kit.Satchel.Count == 0) return KitRefusal.Empty;
             if (discards == null || discards.Count == 0) return KitRefusal.NothingThrown;
@@ -188,6 +202,7 @@ namespace HellPoker.Core.Chapters
             try
             {
                 Kit.Harvests++;
+                _harvestsHere++;
                 return game.Draw(discards, fill);
             }
             finally
@@ -722,4 +737,108 @@ namespace HellPoker.Core.Chapters
             WildImps++;
             Kit.WildImps++;
         }
-    }}
+    }
+
+    /// <summary>
+    /// The Thief's quick hand (Demo 2.2). His glance (one of the demon's face-down cards plays face up from the deal) is set as the table
+    /// opens (<see cref="ChapterHooks.Attach"/>). The hand's K power, the STEAL, before the draw: one of his cards for one of the demon's
+    /// face-down ones, blind (the Master Thief takes the best open one when there is one). Caught (<see cref="ClassKit.ThiefCaughtPercent"/>)
+    /// nothing changes hands and he pays a fine: an ante's coins on the floors (never the purse's last), <see cref="FineBarPercent"/> of the
+    /// bar at a demon's table (written on as the hand is settled).
+    /// </summary>
+    public sealed class TheftPowers : ClassPowers
+    {
+        /// <summary>A demon's fine for a caught Thief, in percent of his bar's start; the Loot Sack's coins for a steal on the floors.</summary>
+        public static int FineBarPercent = 3, LootCoins = 5;
+
+        private readonly int _barStart;
+        private int _barCost;
+
+        public TheftPowers(ClassKit kit, IRandomSource random, int barStart) : base(kit, random)
+        {
+            _barStart = Math.Max(0, barStart);
+        }
+
+        /// <summary>The run's purse (the floors' fines and loot); set by the chapter as the table opens.</summary>
+        public CoinPurse Purse { get; set; }
+
+        public bool AtDemonsTable => _barStart > 0;
+
+        /// <summary>This hand's steal: the card taken and the card given; null when none was made.</summary>
+        public Card? Taken { get; private set; }
+        public Card? Given { get; private set; }
+
+        /// <summary>Caught this hand, and the fine paid (coins on the floors, bar years at a demon's).</summary>
+        public bool CaughtThisHand { get; private set; }
+        public int Fine { get; private set; }
+
+        protected override void Dealt(HellPokerGame game)
+        {
+            Taken = Given = null;
+            CaughtThisHand = false;
+            Fine = 0;
+        }
+
+        public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => _barCost;
+
+        protected override void Settled(HellPokerGame game, RoundResult round) => _barCost = 0;
+
+        /// <summary>A card of the Thief's he may give (one he sees, not chained, not a joker).</summary>
+        public bool CanGive(HellPokerGame game, int index) =>
+            index >= 0 && index < Hand.Size && index < game.PlayerCardsRevealed && !game.IsPlayerCardHidden(index) && !game.IsPlayerCardChained(index)
+            && !game.PlayerHand[index].IsJoker;
+
+        /// <summary>The demon's cards a steal may take: his face-down ones (and, for the Master Thief, his open ones) — never a false face or a
+        /// card beyond cheats.</summary>
+        private IEnumerable<int> Targets(HellPokerGame game, bool open) =>
+            Enumerable.Range(0, Hand.Size).Where(i => (open ? i < game.HouseCardsRevealed : i >= game.HouseCardsRevealed)
+                && !game.IsHouseCardFalse(i) && !Cheats.CheatRules.IsImmune(game.HouseHand[i]));
+
+        public KitRefusal WhyNoSteal(HellPokerGame game)
+        {
+            if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
+            if (!IsReady) return NotReady;
+            if (!Targets(game, false).Any() && !(Kit.Has(UpgradeIds.MasterThief) && Targets(game, true).Any())) return KitRefusal.NoCard;
+            if (!Enumerable.Range(0, Hand.Size).Any(i => CanGive(game, i))) return KitRefusal.NoCard;
+            return KitRefusal.None;
+        }
+
+        /// <summary>The fine a caught Thief pays here.</summary>
+        public int FineNow(HellPokerGame game) => AtDemonsTable ? Math.Max(1, _barStart * FineBarPercent / 100) : Math.Max(1, game.Ante);
+
+        /// <summary>The STEAL: the card at <paramref name="give"/> for one of the demon's. True when the hand's power was spent (look at
+        /// <see cref="CaughtThisHand"/>: caught, nothing changed hands); false when it could not be done.</summary>
+        public bool Steal(HellPokerGame game, int give)
+        {
+            if (WhyNoSteal(game) != KitRefusal.None || !CanGive(game, give) || !SpendPower()) return false;
+            if (Random.Next(100) < Kit.ThiefCaughtPercent)
+            {
+                CaughtThisHand = true;
+                Fine = FineNow(game);
+                if (AtDemonsTable) _barCost += Fine;
+                else if (Purse != null)
+                {
+                    Fine = Math.Min(Fine, Math.Max(0, Purse.Coins - 1));   // never the purse's last coin
+                    Purse.TrySpend(Fine);
+                }
+                Kit.Caught++;
+                return true;
+            }
+            int[] open = Kit.Has(UpgradeIds.MasterThief) ? Targets(game, true).ToArray() : Array.Empty<int>();
+            int take;
+            if (open.Length > 0)
+                take = open.OrderByDescending(h => game.Evaluator.Evaluate(game.PlayerHand.With(give, game.HouseHand[h])), Comparer<HandEvaluation>.Default).First();
+            else
+            {
+                int[] blind = Targets(game, false).ToArray();
+                take = blind[Random.Next(blind.Length)];
+            }
+            Taken = game.HouseHand[take];
+            Given = game.PlayerHand[give];
+            game.SetHands(game.PlayerHand.With(give, Taken.Value), game.HouseHand.With(take, Given.Value));
+            Kit.Steals++;
+            if (!AtDemonsTable && Kit.Has(UpgradeIds.LootSack)) Purse?.Add(LootCoins);
+            return true;
+        }
+    }
+}

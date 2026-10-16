@@ -613,11 +613,39 @@ namespace HellPoker.Core.Tests
             TestContext.Out.WriteLine(report.ToString());
         }
 
+        /// <summary>Demo 2.2: the Peasant's harvest limited per table. HELLPOKER_HARVEST_GRID = "0;1;2" (0: every hand); freed per setting.</summary>
+        [Test, Timeout(3600000)]
+        public void PeasantTuning()
+        {
+            string grid = Environment.GetEnvironmentVariable("HELLPOKER_HARVEST_GRID") ?? "0;1;2";
+            int runs = EnvInt("HELLPOKER_RUNS", 500);
+            int keep = SatchelPowers.HarvestsPerTable;
+            var report = new StringBuilder($"The Peasant, {runs} whole runs a setting (circle 0)\nharvests a table   reached Lucifer   freed   harvests a run\n");
+            try
+            {
+                foreach (string setting in grid.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    ChapterTuning.Reset();
+                    SatchelPowers.HarvestsPerTable = int.Parse(setting.Trim());
+                    var tally = new RunTally();
+                    var all = new RunTally();
+                    for (int run = 0; run < runs; run++) PlayWholeRun(SinnerRoster.Peasant, run * 7919 + 29, tally, all);
+                    report.AppendLine($"{setting.Trim(),17}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}   {Avg((int)tally.Harvests, tally.Runs)}");
+                }
+            }
+            finally
+            {
+                ChapterTuning.Reset();
+                SatchelPowers.HarvestsPerTable = keep;
+            }
+            TestContext.Out.WriteLine(report.ToString());
+        }
+
         private void WholeRunReport()
         {
             int runs = EnvInt("HELLPOKER_RUNS", 1000);
             int seedShift = EnvInt("HELLPOKER_SEED", 0);
-            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner")
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner,thief")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
             var report = new StringBuilder();
             report.AppendLine($"Phase 2 whole runs: {runs} per class, circle {EnvInt("HELLPOKER_CIRCLE", 0)}. Player: the chapter simulation's on the floors, the balance " +

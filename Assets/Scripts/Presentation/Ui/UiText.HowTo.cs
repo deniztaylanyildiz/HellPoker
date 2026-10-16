@@ -98,9 +98,9 @@ namespace HellPoker.Presentation.Ui
                 case 6:
                     return new[]
                     {
-                        L("Five sinners; K uses the class's power, once a hand.", "Beş günahkâr; K sınıfın gücünü kullanır, elde bir kez."),
+                        L("Six sinners; K uses the class's power, once a hand.", "Altı günahkâr; K sınıfın gücünü kullanır, elde bir kez."),
                         L("PEASANT: a satchel of thrown cards. ORACLE: foresight, bends fate.", "KÖYLÜ: atılan kartların heybesi. KÂHİN: önsezi, kaderi büker."),
-                        L("KING: taxes for acts. JESTER: jokers. SUMMONER: imps.", "KRAL: vergiyle eylemler. SOYTARI: jokerler. ÇAĞIRICI: iblisler."),
+                        L("KING: taxes for acts. JESTER: jokers. SUMMONER: imps. THIEF: steals.", "KRAL: vergiyle eylemler. SOYTARI: jokerler. ÇAĞIRICI: iblisler. HIRSIZ: çalar."),
                         L("Every class pays a price, and has four upgrades to win.", "Her sınıfın bir bedeli ve kazanılacak dört yükseltmesi var."),
                         L("Hover over the badge: what the power does now.", "Rozetin üzerine gel: gücün şimdi ne yaptığı.")
                     };

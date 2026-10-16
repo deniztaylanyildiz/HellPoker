@@ -16,7 +16,10 @@ namespace HellPoker.Core.Chapters
         Treasury,
 
         /// <summary>The Summoner's imps (the Eye, the Hand, the Whisper).</summary>
-        Summon
+        Summon,
+
+        /// <summary>The Thief's quick hand (a glance, a steal).</summary>
+        Theft
     }
 
     /// <summary>
@@ -74,6 +77,7 @@ namespace HellPoker.Core.Chapters
                 case Warlock.ClassId: return KitKind.Prophecy;
                 case King.ClassId: return KitKind.Treasury;
                 case Summoner.ClassId: return KitKind.Summon;
+                case Thief.ClassId: return KitKind.Theft;
                 default: return KitKind.None;
             }
         }
@@ -123,6 +127,14 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>How often (percent) the demon learns one of the Oracle's cards in a hand (the Mirror Curse; the Blind Mirror: half the hands).</summary>
         public int DemonKnowsPercent => ChapterTuning.DemonKnowsPercent * (Has(UpgradeIds.BlindMirror) ? 50 : 100) / 100;
+
+        /// <summary>The Thief is caught this often (percent; Light Fingers: ten).</summary>
+        public static int CaughtPercent = 25;
+
+        public int ThiefCaughtPercent => Has(UpgradeIds.LightFingers) ? 10 : CaughtPercent;
+
+        /// <summary>The demon's face-down cards the Thief glances at from the deal (the Night Eye: two).</summary>
+        public int GlanceCards => Kind != KitKind.Theft ? 0 : Has(UpgradeIds.NightEye) ? 2 : 1;
 
         /// <summary>The treasury holds this many taxes (the Overflowing Treasury: fifteen).</summary>
         public int TaxCapacity => (Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax) + Mark(HellPoker.Core.Relics.RelicExtras.TaxCap);
@@ -227,6 +239,10 @@ namespace HellPoker.Core.Chapters
         public int PalaceGuards { get; set; }
         public int Summons { get; set; }
         public int WildImps { get; set; }
+
+        /// <summary>The Thief's steals, and the times he was caught.</summary>
+        public int Steals { get; set; }
+        public int Caught { get; set; }
 
         /// <summary>How many hands the K power was used in (2.1.1: once a hand).</summary>
         public int PowerUses { get; set; }

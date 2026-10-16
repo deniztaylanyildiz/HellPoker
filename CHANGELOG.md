@@ -1,5 +1,15 @@
 # Hell Poker — değişiklikler
 
+## Sonraki sürüm (henüz yayınlanmadı)
+
+### Yeni
+- **Hırsız (HIRSIZ):** altıncı sınıf. GÖZ UCU: şeytanın kapalı kartlarından biri açık gelir. ÇAL (K ya da düğme, elde bir kez): bir kartını
+  şeytanın kapalı kartlarından biriyle körlemesine değiş. Dörtte bir yakalanırsın: takas olmaz, ceza ödersin. Dört yükseltme; Lucifer de çalar.
+
+### Değişen
+- Bütün sınıflar baştan oynanabilir (Çağırıcı'nın kilidi kalktı).
+- Sınıf kartları altı sınıfa göre yeniden düzenlendi, metinler kısaldı.
+
 ## Demo 2.2 (2.2.0-demo) — 2026-10-16
 
 ### Yeni

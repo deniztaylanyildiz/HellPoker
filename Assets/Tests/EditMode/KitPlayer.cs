@@ -19,6 +19,13 @@ namespace HellPoker.Core.Tests
         public static void BeforeDraw(HellPokerGame game, ChapterHooks kit)
         {
             if (kit?.Summon != null && game.Phase == GamePhase.Drawing) Summon(game, kit.Summon);
+            // The Thief: a steal with less than two pair, his loneliest low card for one of the demon's face-down ones.
+            if (kit?.Theft != null && game.Phase == GamePhase.Drawing && kit.Theft.WhyNoSteal(game) == KitRefusal.None
+                && game.Evaluator.Evaluate(game.PlayerHand).Category < HandCategory.TwoPair)
+            {
+                int lone = WorstCard(game, i => kit.Theft.CanGive(game, i));
+                if (lone >= 0) kit.Theft.Steal(game, lone);
+            }
             TreasuryPowers treasury = kit?.Treasury;
             if (treasury == null || game.Phase != GamePhase.Drawing) return;
             int give = WorstCard(game, i => treasury.CanGive(game, i));

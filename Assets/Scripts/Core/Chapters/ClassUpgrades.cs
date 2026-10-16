@@ -34,6 +34,16 @@ namespace HellPoker.Core.Chapters
         public const string DoubleLaugh = "double_laugh";
         public const string JokerPurse = "joker_purse";
         public const string Buffoon = "buffoon";
+
+        // The Thief's quick hand (Demo 2.2).
+        /// <summary>Light Fingers: caught one time in ten, not one in four.</summary>
+        public const string LightFingers = "light_fingers";
+        /// <summary>The Night Eye: two of the demon's face-down cards glanced at.</summary>
+        public const string NightEye = "night_eye";
+        /// <summary>The Master Thief: the best of the demon's open cards is taken when there is one (else a face-down one, blind).</summary>
+        public const string MasterThief = "master_thief";
+        /// <summary>The Loot Sack: a steal on the floors brings coins too.</summary>
+        public const string LootSack = "loot_sack";
     }
 
     /// <summary>
@@ -49,6 +59,7 @@ namespace HellPoker.Core.Chapters
             [Warlock.ClassId] = new[] { UpgradeIds.DeepProphecy, UpgradeIds.BlindMirror, UpgradeIds.Thrice, UpgradeIds.EyeOfTruth },
             [King.ClassId] = new[] { UpgradeIds.OverflowingTreasury, UpgradeIds.CheapSeizure, UpgradeIds.CrownGuard, UpgradeIds.RoyalDecree },
             [Jester.ClassId] = new[] { UpgradeIds.ControlledChaos, UpgradeIds.DoubleLaugh, UpgradeIds.JokerPurse, UpgradeIds.Buffoon },
+            [Thief.ClassId] = new[] { UpgradeIds.LightFingers, UpgradeIds.NightEye, UpgradeIds.MasterThief, UpgradeIds.LootSack },
         };
 
         /// <summary>Every upgrade, class by class (the icon strip's order).</summary>

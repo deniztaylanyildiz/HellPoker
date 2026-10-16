@@ -42,7 +42,7 @@ namespace HellPoker.Presentation.Ui
             "coins go on both. The bets stay a share of the bar as it began: at its end one win is THE LAST BLOW. Empty his bar and he is " +
             "beaten; let it reach the mark at its end and your soul goes on the table.\n" +
             "LUCIFER waits after Lilith: empty his bar and you are FREE — what is left of your sentence is your score.\n" +
-            "FREEDOM opens things: the Summoner, locked relics (see RECORDS), and for that class the next CIRCLE of Hell. {CIRCLES}\n" +
+            "FREEDOM opens things: locked relics (see RECORDS), and for that class the next CIRCLE of Hell. {CIRCLES}\n" +
             "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
             "Hand (the black aces and eights) beats everything.",
             "HELL POKER: kasaya karşı Beş Kart Poker, Lucifer'e kadar. Kim olduğunu seç (bir sınıf), sonra üç bölüm in: Mammon'un " +
@@ -60,7 +60,7 @@ namespace HellPoker.Presentation.Ui
             "barın başlangıcının payı kalır: sonunda tek kazanç SON DARBE'dir. Barı boşaltırsan yenilir; sonundaki işarete ulaşırsa ruhun " +
             "masaya konur.\n" +
             "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır.\n" +
-            "KURTULUŞ kilit açar: Çağırıcı, kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ. {CIRCLES}\n" +
+            "KURTULUŞ kilit açar: kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ. {CIRCLES}\n" +
             "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
             "(siyah aslar ve sekizler) her eli yener.");
 

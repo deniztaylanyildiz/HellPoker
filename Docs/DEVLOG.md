@@ -3534,3 +3534,41 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 
 ### Açık (kullanıcıda)
 - Köylü %51 ve Soytarı %14 hedefin dışında; sınıf farkı olarak mı kalsın?
+
+## 2026-10-16 — Köylü dengesi denemesi, altıncı sınıf HIRSIZ, bütün sınıflar açık (v2.2-demo'dan sonra)
+
+### İstek (kullanıcı)
+"Köylünün kazanma oranı çok yüksek" → "hasat her masada sıfırlanırsa nasıl olur" → "tief diye bir karakter daha ekleyelim, özelliklerini adına
+göre dizayn edip oyuna getir" → "karakter denemeleri için bütün karakterler oynanabilir olsun, şart olmasın".
+
+### Köylü: hasat masa başına (ölçüm, oyun değişmedi)
+- `SatchelPowers.HarvestsPerTable` (0 = her elde, oyunun ayarı), `KitRefusal.UsedAtTable`, `ChapterSimulation.PeasantTuning`
+  (`HELLPOKER_HARVEST_GRID`). 500 koşu: her el %49.2 (hasat 20.6 / koşu), masada 1 %50.6 (12.6), masada 2 %51.4 (17.4) — fark yok.
+  Köylü'nün gücü heybeden normal çekişte (koşu başına 57 kart). Açık: heybe riski / heybe boyutu denenebilir (kullanıcıya sorulacak).
+
+### HIRSIZ (THIEF, id "thief"; yalnız Phase 2, simülatöre girmez)
+- Pasif GÖZ UCU: şeytanın kapalı kartlarından biri dağıtımdan açık (`ClassKit.GlanceCards`, `ChapterHooks.Attach` →
+  `HouseCardsOpenAtDeal`). Güç ÇAL (K ya da panelin ÇAL düğmesi, elde bir kez, draw'dan önce): kartlarından birine tıkla, şeytanın kapalı
+  kartlarından biriyle körlemesine yer değişir (`TheftPowers.Steal`). Bedel YAKALANMA %25 (`ClassKit.CaughtPercent`): takas olmaz, ceza katta
+  bir ante coin (kesenin son coin'i değil), şeytan masasında bar %3 (`TheftPowers.FineBarPercent`, el kapanınca).
+- Yükseltmeler: Hafif Parmaklar (`light_fingers`, %10), Gece Gözü (`night_eye`, iki kart açık), Usta Hırsız (`master_thief`, açık kart varsa
+  en iyisini alır), Ganimet Çuvalı (`loot_sack`, katta çalış +5 coin).
+- Lucifer'in Aynası: her 3 elde bir draw başlarken oyuncunun hanesini en kötü kapalı kartıyla değişir (`LuciferMirror.StealEveryHands`;
+  "el koydu" satırı).
+- 140 coin, 6500 yıl (Köylü'nün payları). Portre / ikon `pixel_sinners.thief()` (kapüşon, maske, elde çalınmış kart). Panel: EL ÇABUKLUĞU + ÇAL.
+- Simülasyon (500 koşu): kurtuluş **%29.2** (hedef içinde), Lucifer'e %45.0; ayar gerekmedi.
+
+### Bütün sınıflar açık
+- `ChapterUnlocks.IsClassOpen` hep true (Çağırıcı kilidi kalktı; daireler aynı). "KURTULUŞ kilit açar" metninden Çağırıcı çıktı.
+
+### Sınıf kartları (6 kart)
+- Kart düzeni başlığın gerçek yüksekliğine göre akıyor (`SinnerSelectView`); bütün sınıfların bölüm metinleri kısaldı (Kâhin "Geleceği satmış").
+  Ekran görüntüsü iki dilde kontrol edildi, çakışma yok.
+
+### Testler
+- EditMode 1107 (1101 geçti, 6 explicit). Yeni `ThiefTests` (8). Eski kadro / kilit testleri güncellendi (6 sınıf, hepsi açık; bilinmeyen id
+  örneği "bandit"). PlayMode: FullRunTests.Thief_English geçti (KURTULUŞ, 7 düğüm türü, 3 yeniden yükleme, 3 bölümde güç), HellPokerScene 10,
+  ChapterJourney 5, HowToPlay 2.
+
+### Not
+- `v2.2-demo` etiketi ve `HellPoker-Demo-2.2-win64.zip` bu işten önceki halde. Hırsız'lı bir test build'i için yeni sürüm (ör. 2.2.1) gerekir.

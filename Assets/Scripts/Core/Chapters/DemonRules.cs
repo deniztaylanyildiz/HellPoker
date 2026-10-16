@@ -342,8 +342,38 @@ namespace HellPoker.Core.Chapters
                 _kit.LuciferTaxes = Math.Min(ClassKit.TaxMax, _kit.LuciferTaxes + 1);
         }
 
+        /// <summary>Against the Thief he steals too: every this many hands, as the draw begins, one of the player's cards for his worst.</summary>
+        public const int StealEveryHands = 3;
+
+        private int _thiefHands;
+
         public override void DrawBegins(HellPokerGame game)
         {
+            if (Copies(KitKind.Theft) && ++_thiefHands % StealEveryHands == 0)
+            {
+                Hand his = game.HouseHand;
+                int mine = -1, at = -1;
+                HandEvaluation best = game.Evaluator.Evaluate(his);
+                for (int p = 0; p < Hand.Size; p++)
+                {
+                    if (!Movable(game, p)) continue;
+                    int place = BestPlaceFor(game, his, game.PlayerHand[p], i => i >= game.HouseCardsRevealed);
+                    if (place < 0) continue;
+                    HandEvaluation eval = game.Evaluator.Evaluate(his.With(place, game.PlayerHand[p]));
+                    if (eval.CompareTo(best) <= 0) continue;
+                    best = eval;
+                    mine = p;
+                    at = place;
+                }
+                if (mine >= 0)
+                {
+                    Seized = game.PlayerHand[mine];
+                    GivenBack = his[at];
+                    game.SetHands(game.PlayerHand.With(mine, GivenBack.Value), his.With(at, Seized.Value));
+                    StruckThisHand = true;
+                    Triggers++;
+                }
+            }
             if (!Copies(KitKind.Treasury) || _kit.LuciferTaxes < ClassKit.SeizePrice) return;
             Hand house = game.HouseHand;
             int bestMine = -1, bestHis = -1;

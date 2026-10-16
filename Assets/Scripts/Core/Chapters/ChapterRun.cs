@@ -121,7 +121,8 @@ namespace HellPoker.Core.Chapters
         private FloorTable Hooked(FloorTable table)
         {
             Hooks = ChapterHooks.Attach(table.Game, Kit, null, 0, RandomSeeds.Derive(_seed, MatchStream + 100 + _matches));
-            if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;   // the Summoner's imps cost coins on the floors
+            if (Hooks.Summon != null) Hooks.Summon.Purse = Purse;
+            if (Hooks.Theft != null) Hooks.Theft.Purse = Purse;   // the Thief's fines and loot   // the Summoner's imps cost coins on the floors
             if (Hooks.Prophecy != null) Hooks.Prophecy.Purse = Purse;   // and the Warlock's sending down (2.1.1)
             return table;
         }

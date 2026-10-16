@@ -8,7 +8,7 @@ from pixel import C, Img, RAMP_BONE, RAMP_GOLD, RAMP_LILAC, RAMP_RED, sheet
 
 SIZE = 48
 ICON = 16
-ORDER = ["peasant", "warlock", "king", "jester", "summoner"]
+ORDER = ["peasant", "warlock", "king", "jester", "summoner", "thief"]
 
 
 def _backdrop(img, glow):
@@ -194,6 +194,42 @@ def summoner():
     img.outline(C.BLACK, mask=img.px != C.NIGHT)
     return img
 
+def thief():
+    """The Thief: a dark hood and a mask over the eyes, a sly smile, a stolen card between two fingers."""
+    img = Img(SIZE, SIZE)
+    _backdrop(img, C.DUSK)
+    # A dark cloak, a belt with a little purse.
+    cloak = img.m_poly([(7, 47), (12, 31), (24, 28), (36, 31), (41, 47)])
+    img.shade(cloak, [C.BLACK, C.NIGHT, C.DUSK], light=(-1, -1))
+    img.paint(img.m_rect(13, 41, 35, 42), C.BONE_SHADE)
+    img.paint(img.m_ellipse(30, 44, 2.5, 2), C.GOLD_MID)
+    img.put(30, 43, C.GOLD_LIGHT)
+    # The hood over the head.
+    hood = img.m_ellipse(24, 21, 11, 13) & img.m_rect(0, 0, SIZE, 33)
+    img.shade(hood, [C.BLACK, C.NIGHT, C.PLUM], light=(-1, -1))
+    _face(img, 24, 23, C.BONE_MID, C.BONE_SHADE)
+    # The mask: a black band with two eye holes, a glint in each.
+    img.paint(img.m_rect(16, 20, 32, 24), C.BLACK)
+    for ex in (20, 28):
+        img.paint(img.m_rect(ex - 1, 21, ex + 1, 23), C.BONE_MID)
+        img.put(ex, 22, C.BLACK)
+        img.put(ex + 1, 21, C.WHITE)
+    # A crooked grin.
+    img.paint(img.m_line([(21, 28), (27, 27)], 1), C.BONE_SHADE)
+    img.put(27, 26, C.BONE_SHADE)
+    # A hand raised at the shoulder, a card between its fingers.
+    img.paint(img.m_ellipse(38, 34, 2.4, 2.4), C.BONE_MID)
+    card = img.m_rect(37, 23, 43, 32)
+    img.paint(card, C.BONE)
+    img.inner_outline(card, C.BONE_SHADE)
+    img.put(40, 27, C.RED)
+    img.put(39, 26, C.RED)
+    img.put(41, 26, C.RED)
+    img.put(40, 28, C.RED)
+    img.outline(C.BLACK, mask=img.px != C.NIGHT)
+    return img
+
+
 def icon(class_id):
     """The 16x16 badge: a pitchfork, a glowing eye, a crown, a fool's cap."""
     img = Img(ICON, ICON)
@@ -229,11 +265,20 @@ def icon(class_id):
         ring = img.m_ellipse(8, 12, 7, 3) & ~img.m_ellipse(8, 12, 5, 1.6)
         img.paint(ring, C.EMBER)
         _imp(img, 8, 6, C.RED, C.AMBER)
+    elif class_id == "thief":
+        # A mask with two eye holes over a card held aslant.
+        card = img.m_poly([(9, 5), (15, 7), (12, 15), (6, 13)])
+        img.paint(card, C.BONE)
+        img.put(11, 10, C.RED)
+        img.put(10, 10, C.RED)
+        img.paint(img.m_rect(1, 3, 10, 6), C.BLACK)
+        img.paint(img.m_rect(2, 4, 3, 5), C.BONE_MID)
+        img.paint(img.m_rect(7, 4, 8, 5), C.BONE_MID)
     img.outline(C.BLACK)
     return img
 
 
-PORTRAITS = {"peasant": peasant, "warlock": oracle, "king": king, "jester": jester, "summoner": summoner}
+PORTRAITS = {"peasant": peasant, "warlock": oracle, "king": king, "jester": jester, "summoner": summoner, "thief": thief}
 
 
 def write_all(art_dir):
