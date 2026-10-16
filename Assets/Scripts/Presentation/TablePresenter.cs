@@ -208,9 +208,16 @@ namespace HellPoker.Presentation
 
         private void LogNote(string text) => _log?.Note(text);
 
+        /// <summary>
+        /// A chapter's run log (the chapter presenter's): its tables write their hands, the class's acts and the K refusals into it (Demo 2.2:
+        /// before, a chapter's table logged nothing — its own log only exists at the demo's tables). The chapter ends and writes it.
+        /// </summary>
+        public RunLog ChapterLog { get; set; }
+
         /// <summary>The run is over (or left): the log says how, and is written.</summary>
         private void EndLog(string result)
         {
+            if (_seat != null) return;   // a chapter's log is the chapter's to end
             if (_log == null || _log.IsEnded) return;
             _log.End(result, _game.Years, _stats?.HandsPlayed ?? _game.RoundNumber);
             WriteLog();
@@ -227,7 +234,7 @@ namespace HellPoker.Presentation
         /// <summary>The game is closing: a run still being played is written as it stands (a resumed run starts a new log).</summary>
         public void CloseLog()
         {
-            if (_log == null || _log.IsEnded || _abandoned || _game == null || _game.IsGameOver) return;
+            if (_seat != null || _log == null || _log.IsEnded || _abandoned || _game == null || _game.IsGameOver) return;
             EndLog("UNFINISHED: the game was closed" + (_game.CurrentHand != null ? " mid-hand" : ""));
         }
 
@@ -790,6 +797,7 @@ namespace HellPoker.Presentation
         {
             if (_view.IsBusy) _view.SkipAnimations();
             _seat = seat;
+            _log = ChapterLog;
             _sinner = seat.Run.Sinner;
             _effects = seat.Run.Effects;
             _loggedJokers = _sinner.Jokers;
@@ -838,6 +846,16 @@ namespace HellPoker.Presentation
             _seat.SettledRound = _game.RoundNumber;
             if (_seat.Floor != null)
                 _seat.LastHand = _seat.Floor.Settle();
+            // The chapter's diary: the hand (coins on a floor, the bar at a demon's), its cheats and jokers, the class's K that hand.
+            RoundResult round = _game.LastRound;
+            _log?.Hand(_game.RoundNumber, _dealer.Id, CoinMode ? _seat.Run.Purse.Coins - (_seat.LastHand?.Coins ?? 0) : round.YearsBefore,
+                CoinMode ? _seat.Run.Purse.Coins : round.YearsAfter,
+                round.Folded || round.Showdown == null ? null : round.Showdown.Player.Category + " " + round.Showdown.Outcome,
+                round.Folded || round.Showdown == null ? null : round.Showdown.House.Category.ToString(), round.Stake, _game.IsCommitted, _game.IsSoulHand,
+                round.FreeFold);
+            foreach (CheatResult cheat in _game.CheatsThisHand)
+                _log?.Cheat(_game.RoundNumber, cheat.Backfired ? "BACKFIRED" : cheat.Outcome.ToString().ToLowerInvariant(), cheat.CheatId, cheat.ShownId);
+            LogJokerOutcome(round);
         }
 
         /// <summary>The last hand of the chapter's table has been played (the demon's: unless the soul keeps the player there).</summary>
@@ -1828,6 +1846,10 @@ namespace HellPoker.Presentation
             // or when its moment has gone. The Bone Die's pick goes when no card may be rolled any more (the draw passed, the hand ended).
             if (_redrawing && !Enumerable.Range(0, Hand.Size).Any(_game.CanRedraw))
                 _redrawing = false;
+            // A seizure's (or the imp's Hand's) pick is made before the draw: once the draw is done (or the hand over) it closes
+            // (Demo 2.2: it stayed open, and every card clicked after the draw only repeated its prompt).
+            if (_seizing && (KitGame == null || !KitGame.HandInPlay || KitGame.IsAfterDraw))
+                _seizing = false;
             // The joker picker lives only while the showdown waits for the joker's name.
             if (_game.Phase != GamePhase.NamingJoker)
                 _view.ShowJokerPicker(null);

@@ -100,10 +100,11 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ K: the class's charged power
 
-        /// <summary>Why K cannot be used now, in a few words (2.1.1: once a hand, at the class's moment).</summary>
+        /// <summary>Why K cannot be used now, in a few words (2.1.1: once a hand, at the class's moment). The refusal goes into the log.</summary>
         private string PowerRefusalText(KitRefusal why)
         {
             HellPokerGame game = KitGame;
+            LogNote($"K refused: {why} (hand {_game.RoundNumber + (_game.Phase == GamePhase.Betting && !game.HandInPlay ? 1 : 0)}, {_game.Phase})");
             switch (why)
             {
                 case KitRefusal.AlreadyUsed: return UiText.KitUsedThisHand;
@@ -134,7 +135,12 @@ namespace HellPoker.Presentation
                     TableState before = CaptureState();
                     _view.PlaySfx(SfxIds.Deal);
                     Hand playerBefore = _game.PlayerHand, houseBefore = _game.HouseHand;
-                    satchel.Harvest(game, _discards.OrderBy(i => i).ToArray());
+                    if (satchel.Harvest(game, _discards.OrderBy(i => i).ToArray()) == null)
+                    {
+                        // The draw could not be made with these cards (Demo 2.2: it was announced as done all the same).
+                        _view.SetMessage(PowerRefusalText(KitRefusal.NotNow), Tone.Warning);
+                        return;
+                    }
                     LogNote($"power: HARVEST (hand {_game.RoundNumber})");
                     _view.PlaySfx(SfxIds.SatchelTake);
                     _discards.Clear();
@@ -241,7 +247,7 @@ namespace HellPoker.Presentation
                 ProphecyPowers prophecy = _kit.Prophecy;
                 if (prophecy.RearrangesLeft <= 0)
                 {
-                    _view.SetMessage(UiText.KitProphecyHint, Tone.Neutral);
+                    _view.SetMessage(ProphecyHint, Tone.Neutral);
                     return;
                 }
                 // A click on the card itself while bending: down when it may go down, else up (the Seer's Spectacles).
@@ -287,6 +293,9 @@ namespace HellPoker.Presentation
             _view.SetMessage(string.Format(toTop ? UiText.BentUpFormat : UiText.RearrangedFormat, card)
                 + (prophecy.RearrangesLeft > 0 ? "\n" + BendPrompt(prophecy) : ""), Tone.Good);
         }
+
+        /// <summary>The Oracle's hover text with his own numbers (the Fate Weaver moves two).</summary>
+        private string ProphecyHint => string.Format(UiText.KitProphecyHintFormat, _kit?.Kit.RearrangesPerCharge ?? ClassKit.RearrangesPerUse);
 
         private static string BendPrompt(ProphecyPowers prophecy) => string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft);
 
@@ -497,7 +506,7 @@ namespace HellPoker.Presentation
                     if (!ProphecyPowers.IsOpen(game))
                     {
                         bool afterDraw = game.IsAfterDraw && game.HandInPlay;
-                        _view.SetKit(new KitDisplay(UiText.KitProphecyShutTitle, null, null, UiText.KitProphecyHint,
+                        _view.SetKit(new KitDisplay(UiText.KitProphecyShutTitle, null, null, ProphecyHint,
                             note: afterDraw ? UiText.KitProphecyNextDeal : UiText.KitProphecyAfterDeal));
                         return;
                     }
@@ -508,13 +517,13 @@ namespace HellPoker.Presentation
                     IReadOnlyList<Card> seen = prophecy.TopCards(game);
                     _view.SetKit(new KitDisplay(title, seen.Select((c, i) => new KitCard(c, clickable: rearranging, arrows: arrows,
                             canTop: i > 0, canBottom: kit.CanSendToBottom)).ToArray(), null,
-                        UiText.KitProphecyHint, waiting: rearranging));
+                        ProphecyHint, waiting: rearranging));
                     return;
                 }
                 case SummonPowers summon:
                 {
                     string Price(SummonAct act) => summon.LegionFreeLeft > 0 ? UiText.KitFree : summon.AtDemonsTable
-                        ? string.Format(UiText.KitBarPriceFormat, SummonPowers.BarPercents[(int)act]) : summon.PriceOf(act).ToString();
+                        ? string.Format(UiText.KitBarPriceFormat, summon.BarPercentOf(act)) : summon.PriceOf(act).ToString();
                     KitButton Button(SummonAct act, string format) =>
                         new KitButton(string.Format(format, Price(act)), summon.WhyNot(game, act) != KitRefusal.None);
                     _view.SetKit(new KitDisplay(summon.Legion ? UiText.KitSummonLegionTitle : UiText.KitSummonTitle, null, new[]
@@ -533,7 +542,8 @@ namespace HellPoker.Presentation
                     {
                         Button(TaxAct.Reveal, UiText.KitRevealButtonFormat), Button(TaxAct.FreeRaise, UiText.KitFreeRaiseButtonFormat),
                         Button(TaxAct.Seize, UiText.KitSeizeButtonFormat)
-                    }, UiText.KitTreasuryHint, waiting: _seizing));
+                    }, string.Format(UiText.KitTreasuryHintFormat, kit.TaxCapacity, treasury.PriceOf(TaxAct.Reveal), treasury.PriceOf(TaxAct.FreeRaise),
+                        treasury.PriceOf(TaxAct.Seize)), waiting: _seizing));
                     return;
                 }
                 default:
@@ -569,8 +579,13 @@ namespace HellPoker.Presentation
                 case LilithTemptation temptation when temptation.Tempted.HasValue:
                     lines.Add(string.Format(UiText.TemptedFormat, temptation.Tempted.Value));
                     break;
-                case LuciferMirror mirror when mirror.StruckThisHand && !mirror.Seized.HasValue:
-                    lines.Add(mirror.Mirrors == KitKind.Satchel ? UiText.MirrorSatchel : mirror.SentDown ? UiText.MirrorSentDown : UiText.MirrorTopCard);
+                case LuciferMirror mirror when mirror.StruckThisHand:
+                    // What his mirror really did this hand (Demo 2.2: the line followed the class, not the act — the Summoner's
+                    // Eye and the fifth circle's second copy were told as "he drew the top card").
+                    if (mirror.EyeSaw.HasValue) lines.Add(UiText.MirrorEye);
+                    if (mirror.UsedBag) lines.Add(UiText.MirrorSatchel);
+                    if (mirror.DrewTop) lines.Add(UiText.MirrorTopCard);
+                    if (mirror.SentDown) lines.Add(UiText.MirrorSentDown);
                     break;
             }
             if (_kit.Treasury != null && _kit.Kit.TaxesLost > _taxesLostAtDeal)
@@ -616,7 +631,7 @@ namespace HellPoker.Presentation
             switch (_kit.Rule)
             {
                 case LilithTemptation t when t.Tempted.HasValue: _view.PlaySfx(SfxIds.RuleTemptation); break;
-                case LuciferMirror m when m.StruckThisHand && !m.Seized.HasValue: _view.PlaySfx(SfxIds.RuleMirror); break;
+                case LuciferMirror m when m.StruckThisHand && (m.EyeSaw.HasValue || m.UsedBag || m.DrewTop || m.SentDown): _view.PlaySfx(SfxIds.RuleMirror); break;
             }
             if (_kit.Treasury != null && round.Showdown?.Outcome == ShowdownOutcome.PlayerWins && !round.Folded) _view.PlaySfx(SfxIds.TaxGain);
             if (!BarMode || round.YearsChange == 0) return;

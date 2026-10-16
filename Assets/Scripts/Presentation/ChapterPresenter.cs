@@ -1251,6 +1251,7 @@ namespace HellPoker.Presentation
             _bossGame = null;
             _atTable = true;
             _map.Hide();
+            _table.ChapterLog = _log;
             _table.SitAtFloor(table, _run);
             if (_visible) _tableView.SetVisible(true);
             Curtain();
@@ -1420,6 +1421,7 @@ namespace HellPoker.Presentation
             _match = null;
             _atTable = true;
             _map.Hide();
+            _table.ChapterLog = _log;
             _table.SitAtBoss(_bossGame, _run, _run.BossBarStart);
             if (_visible) _tableView.SetVisible(true);
             Curtain();
@@ -1553,6 +1555,7 @@ namespace HellPoker.Presentation
             _match = null;
             _atTable = true;
             _map.Hide();
+            _table.ChapterLog = _log;
             _table.SitAtLucifer(_bossGame, _run, _journey.LuciferBarStart, BossTable.LuciferGate(_journey.LuciferBarStart), _journey.IsCastDown);
             if (_visible) _tableView.SetVisible(true);
             Curtain();

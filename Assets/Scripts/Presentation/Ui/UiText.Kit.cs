@@ -232,18 +232,40 @@ namespace HellPoker.Presentation.Ui
                     return string.Format(L("My rule is TEMPTATION: what you throw away, I may keep ({0}%).",
                         "Kuralım BAŞTAN ÇIKARMA: attığın kartı alabilirim (%{0})."), LilithTemptation.TakePercent);
                 case LuciferMirror mirror:
-                    switch (mirror.Mirrors)
-                    {
-                        case KitKind.Satchel: return L("My rule is the MIRROR: I too keep a thrown card, and play it.",
-                            "Kuralım AYNA: ben de attığım bir kartı saklar, sonra oynarım.");
-                        case KitKind.Prophecy: return L("My rule is the MIRROR: I too see the deck's top card, and draw by it.",
-                            "Kuralım AYNA: ben de destenin üstündeki kartı görür, ona göre çekerim.");
-                        case KitKind.Treasury:
-                            return string.Format(L("My rule is the MIRROR: a tax for every hand I win; at {0} I seize one of your cards.",
-                                "Kuralım AYNA: kazandığım her elde vergi alırım; {0} vergide kartlarından birine el koyarım."), ClassKit.SeizePrice);
-                        default: return L("My rule is the MIRROR: your jokers are mine as well.", "Kuralım AYNA: jokerlerin benim de jokerim.");
-                    }
+                {
+                    string line = MirrorLine(mirror.Mirrors);
+                    // The fifth circle: a second mechanic too.
+                    return mirror.Second.HasValue ? line + " " + string.Format(L("And {0}", "Ve {0}"), MirrorSecondLine(mirror.Second.Value)) : line;
+                }
                 default: return null;
+            }
+        }
+
+        private static string MirrorLine(KitKind kind)
+        {
+            switch (kind)
+            {
+                case KitKind.Satchel: return L("My rule is the MIRROR: I too keep a thrown card, and play it.",
+                    "Kuralım AYNA: ben de attığım bir kartı saklar, sonra oynarım.");
+                case KitKind.Prophecy: return L("My rule is the MIRROR: I too see the deck's top card, and draw by it.",
+                    "Kuralım AYNA: ben de destenin üstündeki kartı görür, ona göre çekerim.");
+                case KitKind.Treasury:
+                    return string.Format(L("My rule is the MIRROR: a tax for every hand I win; at {0} I seize one of your cards.",
+                        "Kuralım AYNA: kazandığım her elde vergi alırım; {0} vergide kartlarından birine el koyarım."), ClassKit.SeizePrice);
+                case KitKind.Summon:
+                    return string.Format(L("My rule is the MIRROR: I have an Eye too; once every {0} hands it shows me one of your cards.",
+                        "Kuralım AYNA: benim de bir Gözüm var; her {0}. elde kartlarından birini bana gösterir."), LuciferMirror.EyeEveryHands);
+                default: return L("My rule is the MIRROR: your jokers are mine as well.", "Kuralım AYNA: jokerlerin benim de jokerim.");
+            }
+        }
+
+        /// <summary>The fifth circle's second copy, after "And": the satchel or the prophecy.</summary>
+        private static string MirrorSecondLine(KitKind kind)
+        {
+            switch (kind)
+            {
+                case KitKind.Prophecy: return L("I see the deck's top card.", "destenin üstündeki kartı görürüm.");
+                default: return L("I keep a thrown card in a satchel of my own.", "attığım bir kartı kendi heybemde saklarım.");
             }
         }
 
@@ -261,6 +283,7 @@ namespace HellPoker.Presentation.Ui
         public static string MirrorSeizedFormat => L("The mirror: Lucifer seized your {0} for his {1}.", "Ayna: Lucifer {1} karşılığında {0} kartına el koydu.");
         public static string MirrorSatchel => L("The mirror: Lucifer drew from his own satchel.", "Ayna: Lucifer kendi heybesinden çekti.");
         public static string MirrorTopCard => L("The mirror: Lucifer saw the top card and drew it.", "Ayna: Lucifer üstteki kartı görüp çekti.");
+        public static string MirrorEye => L("The mirror: Lucifer's eye saw one of your cards.", "Ayna: Lucifer'in gözü kartlarından birini gördü.");
         public static string MirrorSentDown => L("The mirror: Lucifer saw the top card and sent it to the bottom.", "Ayna: Lucifer üstteki kartı görüp destenin dibine yolladı.");
         public static string CorneredLine => L("Cornered. Now I cheat faster.", "Köşeye sıkıştım. Artık daha hızlı hile yaparım.");
 

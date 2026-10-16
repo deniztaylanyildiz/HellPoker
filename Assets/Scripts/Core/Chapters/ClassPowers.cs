@@ -591,8 +591,11 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>What an imp costs here: coins on the floors, years on the bar at a demon's table (0 under the Legion).</summary>
         public int PriceOf(SummonAct act) =>
-            Legion && _legionFree > 0 ? 0 : AtDemonsTable ? Math.Max(1, _barStart * (BarPercents[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpBarPrice)) / 100)
+            Legion && _legionFree > 0 ? 0 : AtDemonsTable ? Math.Max(1, _barStart * BarPercentOf(act) / 100)
             : CoinPrices[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpPrice);
+
+        /// <summary>An imp's price at a demon's table, in percent of the bar's start (the relics' marks counted: what the button says).</summary>
+        public int BarPercentOf(SummonAct act) => BarPercents[(int)act] + Kit.Mark(HellPoker.Core.Relics.RelicExtras.ImpBarPrice);
 
         protected override void Dealt(HellPokerGame game)
         {
@@ -612,7 +615,10 @@ namespace HellPoker.Core.Chapters
         {
             if (!BeforeTheDraw(game)) return KitRefusal.NotNow;
             if (_done.Contains(act)) return KitRefusal.AlreadyUsed;
-            if (!AtDemonsTable && !Legion && (Purse == null || Purse.Coins <= PriceOf(act))) return KitRefusal.NoTaxes;
+            // On the floors an imp the Legion does not free costs coins (Demo 2.2: once the Legion's free imp was spent, the next imp
+            // skipped this check and could come for nothing).
+            int price = PriceOf(act);
+            if (!AtDemonsTable && price > 0 && (Purse == null || Purse.Coins <= price)) return KitRefusal.NoTaxes;
             switch (act)
             {
                 case SummonAct.Eye:

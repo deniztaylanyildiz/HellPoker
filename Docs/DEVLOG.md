@@ -3378,3 +3378,40 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 ### Açık / sıradaki
 - Belial'de 2 kasa kartı görme (Warlock'un eski pasifi) Phase 2'de de duruyor; Oracle metninde yazmıyor (karar listesine).
 - Sıradaki: 2) sınıf güçleri hata avı.
+
+## 2026-10-16 — Demo 2.2, iş 2: sınıf güçlerinde hata avı
+
+### Koşu günlükleri (bu bilgisayar, `runs/` 50 dosya)
+- Çoğu `-fpstour` duman turları ve demo / simülatör koşuları; hata ya da uyarı yok (Player.log temiz).
+- **Bulgu 1 — bölüm masaları günlüğe hiçbir şey yazmıyordu.** Phase 2 günlüklerinde yalnız "kat N: masa, X el, ±coin" özetleri var; el
+  satırı, hile, K kullanımı, reddedilen K basışı yok. Neden: bölümün kendi `TablePresenter`'ı günlüksüz kuruluyor (`_log` null), bütün
+  `LogNote` / `Hand` çağrıları boşa gidiyordu. Düzeltme: `TablePresenter.ChapterLog` (bölümün `RunLog`'u, her oturuşta verilir); el
+  `SettleChapterHand`'de yazılır (katta coin, boss'ta bar), hileler ve jokerler de; reddedilen K `K refused: <neden> (hand n, faz)`.
+  Bölüm masası günlüğü bitirmez / kapatmaz (onu bölüm yazar).
+- **Bulgu 2 — aynı koşu iki dosyada (`-2`).** Kod hatası değil: Player-prev.log'un varlığı ve aynı saniyedeki iki "resumed" günlük oyunun
+  iki kez açıldığını gösteriyor (iki kopya aynı PlayerPrefs kaydına yazar). Önlem: Player Settings `forceSingleInstance: 1`.
+
+### Kod incelemesi (kontrol listesi) — bulgular
+3. **Çağırıcı:** LEJYON'un tek bedava iblisi harcandıktan sonra katta sıradaki iblisin coin kontrolü atlanıyordu (`!Legion` koşulu);
+   kese yetmezse `TrySpend` sessizce başarısız olup iblis bedava geliyordu. `SummonPowers.WhyNot` artık fiyata bakar.
+4. **Kral / Çağırıcı:** MÜSADERE (ya da EL) seçimi açıkken draw yapılırsa seçim açık kalıyordu; draw'dan sonra her kart tıklaması
+   "Müsadere: vereceğin karta tıkla" diye takılıyordu. `Refresh` seçimi el oynanmıyor ya da draw yapılmışsa kapatır.
+5. **Lucifer'in Aynası, metinler:** Çağırıcı'ya karşı açılış repliği "jokerlerin benim de jokerim" diyordu; Göz vurduğunda ve 5. dairenin
+   ikinci kopyası (heybe) çalıştığında sonuç satırı "üstteki kartı görüp çekti" diyordu. `LuciferMirror.DrewTop / UsedBag` (+ var olan
+   `EyeSaw`, `SentDown`) neyin olduğunu söyler; Çağırıcı repliği "benim de bir Gözüm var" ve 5. dairede "Ve …" ile ikinci kopya; yeni
+   `UiText.MirrorEye`. Ses de yalnız gerçek vuruşta.
+6. **Köylü HASAT:** `Harvest` null dönerse (draw yapılamazsa) sunum yine "Hasat: heybe attığın yerleri doldurdu" diyordu; artık nedeni söyler.
+7. **Panel ipuçları yükseltmeleri bilmiyordu:** Kral'ın ipucu sabit fiyatlar (Ucuz Müsadere 3 iken "4"), Kâhin'inki Dokumacı'yı, Çağırıcı
+   düğmesi şeytan masasında emanet işaretini (`ImpBarPrice`) yok sayıyordu. Gerçek değerlerle yazılıyor (`SummonPowers.BarPercentOf`).
+- Temiz çıkanlar (testle sabitlendi ya da okundu): heybe + Rehin zinciri + draw aynı elde (her kart yerinde, kart iki yerde değil; yeni test);
+  sarayın (J Q K) bütün hilelere ve kurallara kapalı oluşu (`PlayerTargets` / `Movable`); vergi tavanı, fiyatlar, boss kaybında yarı;
+  Kontrollü Kaos'un sınıfın kendi kuralıyla çift saymaması (sıra: `Sinner.HandSettled` önce); bedava artırmanın kayıpta / çekilmede sayılmaması;
+  ÖNSEZİ zamanı, destede 1 kart, draw sonrası (iş 1'in testleri).
+- Not: `ClassKit.PalaceGuards` hiç artmıyor (yalnız istatistik; dokunulmadı).
+
+### Testler
+- EditMode 1096 (1091 geçti, 5 explicit). Yeni `PowerHuntTests` (6): Çağırıcı LEJYON sonrası ücret, müsadere seçimi draw ile kapanır,
+  Ayna repliği (EN / TR, 5. daire), Aynanın bayrakları (Göz / üst kart), heybe + zincir + draw kart bütünlüğü, bölüm masası günlüğü (#1 ve K reddi).
+
+### Sıradaki
+- 3) haritada art arda pazar / kamp yok.

@@ -252,6 +252,12 @@ namespace HellPoker.Core.Chapters
         /// <summary>Against the Warlock: this hand he sent the top card to the bottom (rather than drawing it).</summary>
         public bool SentDown { get; private set; }
 
+        /// <summary>Against the Oracle: this hand, standing pat, he drew the top card he saw.</summary>
+        public bool DrewTop { get; private set; }
+
+        /// <summary>His satchel of one gave him a card this hand.</summary>
+        public bool UsedBag { get; private set; }
+
         public override IEnumerable<Card> CardsOutOfDeck => Copies(KitKind.Satchel) && _kit.LuciferBag.HasValue
             ? new[] { _kit.LuciferBag.Value } : Enumerable.Empty<Card>();
 
@@ -259,7 +265,7 @@ namespace HellPoker.Core.Chapters
         {
             base.HandDealt(game);
             Seized = GivenBack = null;
-            SentDown = false;
+            SentDown = DrewTop = UsedBag = false;
             EyeSaw = null;
             if (Copies(KitKind.Summon) && ++_hands % EyeEveryHands == 0)
             {
@@ -286,6 +292,7 @@ namespace HellPoker.Core.Chapters
             int at = BestPlaceFor(game, game.HouseHand, bag, discards.Contains);
             if (at < 0) return null;
             _kit.LuciferBag = null;
+            UsedBag = true;
             StruckThisHand = true;
             Triggers++;
             return new Dictionary<int, Card> { [at] = bag };
@@ -310,6 +317,7 @@ namespace HellPoker.Core.Chapters
             {
                 // Standing pat, he draws the top card when it serves him.
                 if (at < 0) return discards;
+                DrewTop = true;
                 StruckThisHand = true;
                 Triggers++;
                 return new[] { at };
