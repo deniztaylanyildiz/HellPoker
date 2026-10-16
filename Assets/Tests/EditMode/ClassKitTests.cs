@@ -149,17 +149,72 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the Warlock's prophecy
 
         [Test]
-        public void TheProphecy_SeesOneCardMoreForEveryDemonBeaten()
+        public void TheOraclesForesight_SeesTwoCardsInEveryChapter()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
-            Assert.AreEqual(1, kit.ProphecyCards);
+            Assert.AreEqual(2, kit.ProphecyCards);
             kit.EnterChapter(2);
             Assert.AreEqual(2, kit.ProphecyCards);
             kit.EnterChapter(3);
-            Assert.AreEqual(3, kit.ProphecyCards);
+            Assert.AreEqual(2, kit.ProphecyCards);
             kit.EnterLucifer();
-            Assert.AreEqual(3, kit.ProphecyCards);
+            Assert.AreEqual(2, kit.ProphecyCards);
             Assert.AreEqual(0, new ClassKit(new Sinner(SinnerRoster.Peasant)).ProphecyCards);
+        }
+
+        [Test]
+        public void BendFate_BringsASeenCardToTheTop_TheDrawTakesItFirst()
+        {
+            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
+            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
+            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            game.PlaceBet();
+            CollectionAssert.AreEqual(new[] { C("6H"), C("10C") }, hooks.Prophecy.TopCards(game));
+            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: true), "the top card is already on top: the power is not spent on it");
+            Assert.IsFalse(hooks.Prophecy.UsedThisHand);
+            Assert.IsTrue(hooks.Prophecy.Bend(game, 1, toTop: true));
+            Assert.IsTrue(hooks.Prophecy.UsedThisHand, "the hand's K power");
+            CollectionAssert.AreEqual(new[] { C("10C"), C("6H") }, hooks.Prophecy.TopCards(game));
+            Assert.IsFalse(hooks.Prophecy.Bend(game, 1, toTop: false), "once a hand");
+            Assert.AreEqual(1, kit.PulledUp);
+            game.CheckToDraw();
+            game.Draw(new[] { 3, 4 });
+            Assert.AreEqual(C("10C"), game.PlayerHand[3], "the card brought up comes first");
+            Assert.AreEqual(C("6H"), game.PlayerHand[4]);
+        }
+
+        [Test]
+        public void BendFate_WithTheSeersSpectacles_OnlyBringsUp_AndWithTheWeaverMovesTwo()
+        {
+            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
+            kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.SeersSpectacles });
+            kit.AddUpgrade(UpgradeIds.Thrice);
+            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
+            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            game.PlaceBet();
+            Assert.AreEqual(3, hooks.Prophecy.TopCards(game).Count, "the spectacles: one card more");
+            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: false), "nothing goes down");
+            Assert.IsFalse(hooks.Prophecy.UsedThisHand);
+            Assert.IsTrue(hooks.Prophecy.Bend(game, 2, toTop: true));
+            Assert.AreEqual(1, hooks.Prophecy.RearrangesLeft, "the Fate Weaver: a second move");
+            Assert.IsTrue(hooks.Prophecy.PullToTop(game, 2));
+            CollectionAssert.AreEqual(new[] { C("10C"), C("JH"), C("6H") }, hooks.Prophecy.TopCards(game));
+        }
+
+        [Test]
+        public void BendFate_WithOneCardLeftInTheDeck_AndAfterTheDraw_IsRefused()
+        {
+            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
+            // Eleven cards: one stays in the deck after the deal.
+            HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H", kit.Sinner);
+            ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
+            game.PlaceBet();
+            Assert.AreEqual(1, hooks.Prophecy.TopCards(game).Count);
+            Assert.IsFalse(hooks.Prophecy.Bend(game, 0, toTop: true), "a single card cannot come up");
+            Assert.IsTrue(hooks.Prophecy.Bend(game, 0, toTop: false), "it may go down (and stays the only card)");
+            game.CheckToDraw();
+            game.Draw(new[] { 4 });
+            Assert.AreEqual(KitRefusal.NotNow, hooks.Prophecy.WhyNoRearrange(game));
         }
 
         [Test]

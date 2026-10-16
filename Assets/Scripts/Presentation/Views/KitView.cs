@@ -20,8 +20,15 @@ namespace HellPoker.Presentation.Views
         public const int Width = 104, Height = 38;
         private const int CardWidth = 18, CardHeight = 22, CardStep = 20, MaxCards = 5;
 
+        /// <summary>With the Oracle's arrows a card and its ▲ / ▼ column take this much room (four cards still fit the panel).</summary>
+        private const int ArrowCardStep = 25, ArrowWidth = 5, ArrowHeight = 10;
+
         private AnimationSequencer _sequencer;
         private Action<int> _cardPressed, _buttonPressed;
+        private Action<int, bool> _arrowPressed;
+
+        /// <summary>Each card's ▲ and ▼: the button and the pixels of its triangle.</summary>
+        private readonly List<(Button up, Image[] upInk, Button down, Image[] downInk)> _arrows = new List<(Button, Image[], Button, Image[])>();
         private Image _frame;
         private Text _title;
         private Text _note;
@@ -38,13 +45,15 @@ namespace HellPoker.Presentation.Views
         /// <summary>What the panel shows (for tests and screenshots).</summary>
         public KitDisplay Shown => _shown;
 
-        public static KitView Create(Transform screen, int x, int y, AnimationSequencer sequencer, Action<int> cardPressed, Action<int> buttonPressed)
+        public static KitView Create(Transform screen, int x, int y, AnimationSequencer sequencer, Action<int> cardPressed, Action<int> buttonPressed,
+            Action<int, bool> arrowPressed = null)
         {
             RectTransform root = UiFactory.CreateRect("ClassKit", screen).PlaceTL(x, y, Width, Height);
             var view = root.gameObject.AddComponent<KitView>();
             view._sequencer = sequencer;
             view._cardPressed = cardPressed;
             view._buttonPressed = buttonPressed;
+            view._arrowPressed = arrowPressed;
             view.Build(root);
             view.Apply(KitDisplay.Hidden);
             return view;
@@ -100,6 +109,7 @@ namespace HellPoker.Presentation.Views
                 big.raycastTarget = false;
                 _cards.Add((border, face, rank, suit));
                 _cardParts.Add((rim, big));
+                _arrows.Add((Arrow(index, true, out Image[] upInk), upInk, Arrow(index, false, out Image[] downInk), downInk));
             }
 
             (int x, int y, int w)[] places = { (4, 13, 47), (53, 13, 47), (4, 25, 96) };
@@ -121,6 +131,31 @@ namespace HellPoker.Presentation.Views
             _tooltipText.raycastTarget = false;
             _tooltip = tip.gameObject;
             _tooltip.SetActive(false);
+        }
+
+        /// <summary>A card's ▲ or ▼ (the Oracle's BEND FATE): a small dark button with a 5-pixel triangle drawn in rows (no glyph: the fonts
+        /// have none).</summary>
+        private Button Arrow(int index, bool up, out Image[] ink)
+        {
+            Image back = UiFactory.CreateImage(up ? "Up" + index : "Down" + index, _frame.transform, Palette.Black);
+            back.rectTransform.PlaceTL(0, 0, ArrowWidth, ArrowHeight);
+            back.raycastTarget = true;
+            var button = back.gameObject.AddComponent<Button>();
+            button.targetGraphic = back;
+            button.transition = Selectable.Transition.None;
+            UiFactory.MakeClickOnly(button);
+            button.onClick.AddListener(() => _arrowPressed?.Invoke(index, up));
+            ink = new Image[3];
+            for (int row = 0; row < 3; row++)
+            {
+                int width = up ? 1 + row * 2 : 5 - row * 2;
+                Image line = UiFactory.CreateImage("Ink" + row, back.transform, Palette.GoldLight);
+                line.rectTransform.PlaceTL((ArrowWidth - width) / 2, 3 + row + (up ? 0 : 1), width, 1);
+                line.raycastTarget = false;
+                ink[row] = line;
+            }
+            back.gameObject.SetActive(false);
+            return button;
         }
 
         private static void AddTrigger(EventTrigger trigger, EventTriggerType type, Action action)
@@ -157,11 +192,26 @@ namespace HellPoker.Presentation.Views
             }
             _title.text = kit.Title;
             _note.text = kit.Note ?? "";
+            bool arrows = false;
+            foreach (KitCard c in kit.Cards) arrows |= c.Arrows;
+            int step = arrows ? ArrowCardStep : CardStep;
             for (int i = 0; i < _cards.Count; i++)
             {
                 bool on = i < kit.Cards.Count && kit.Buttons.Count == 0;
                 _cards[i].border.gameObject.SetActive(on);
+                bool showArrows = on && kit.Cards[i].Arrows && 4 + i * step + CardWidth + 1 + ArrowWidth <= Width;
+                _arrows[i].up.gameObject.SetActive(showArrows);
+                _arrows[i].down.gameObject.SetActive(showArrows);
                 if (!on) continue;
+                _cards[i].border.rectTransform.PlaceTL(4 + i * step, 13, CardWidth, CardHeight);
+                if (showArrows)
+                {
+                    int ax = 4 + i * step + CardWidth + 1;
+                    ((RectTransform)_arrows[i].up.transform).PlaceTL(ax, 13, ArrowWidth, ArrowHeight);
+                    ((RectTransform)_arrows[i].down.transform).PlaceTL(ax, 13 + CardHeight - ArrowHeight, ArrowWidth, ArrowHeight);
+                    Paint(_arrows[i].upInk, kit.Cards[i].CanTop ? Palette.GoldLight : Palette.MutedText);
+                    Paint(_arrows[i].downInk, kit.Cards[i].CanBottom ? Palette.GoldLight : Palette.MutedText);
+                }
                 Card card = kit.Cards[i].Card;
                 Color ink = card.IsJoker ? Palette.Crimson : Palette.SuitInk(card.Suit, SuitColors.FourColor);
                 _cards[i].rank.text = card.IsJoker ? "JK" : RankText(card.Rank);
@@ -192,6 +242,14 @@ namespace HellPoker.Presentation.Views
             }
             if (_tooltip.activeSelf) ShowTip();
         }
+
+        private static void Paint(Image[] ink, Color colour)
+        {
+            foreach (Image line in ink) line.color = colour;
+        }
+
+        /// <summary>Whether card <paramref name="index"/>'s arrows show (for tests and screenshots).</summary>
+        public bool ArrowsShown(int index) => index >= 0 && index < _arrows.Count && _arrows[index].up.gameObject.activeSelf;
 
         /// <summary>The deck's colours changed: the cards on show take the new ink.</summary>
         private void Repaint()
@@ -224,6 +282,10 @@ namespace HellPoker.Presentation.Views
                 KitCard card = _shown.Cards[i];
                 if (card.Picked) continue;
                 _cards[i].border.color = card.Clickable && beat ? Palette.Gold : Palette.Black;
+                if (!card.Arrows) continue;
+                // A usable arrow blinks between gold and its brighter tone.
+                if (card.CanTop) Paint(_arrows[i].upInk, beat ? Palette.Gold : Palette.GoldLight);
+                if (card.CanBottom) Paint(_arrows[i].downInk, beat ? Palette.Gold : Palette.GoldLight);
             }
         }
     }

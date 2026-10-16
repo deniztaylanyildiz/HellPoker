@@ -222,14 +222,14 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheWarlocksUpgrades_DeeperSight_ThreeSentDown_ABlindMirror()
+        public void TheOraclesUpgrades_ThirdEye_FateWeaver_ABlindMirror()
         {
             var kit = new ClassKit(new Sinner(SinnerRoster.Warlock, charge: 5));
             kit.AddUpgrade(UpgradeIds.DeepProphecy);
             kit.AddUpgrade(UpgradeIds.Thrice);
-            Assert.AreEqual(2, kit.ProphecyCards, "one more in the first chapter");
+            Assert.AreEqual(3, kit.ProphecyCards, "the Third Eye: one more");
             kit.EnterLucifer();
-            Assert.AreEqual(4, kit.ProphecyCards);
+            Assert.AreEqual(3, kit.ProphecyCards);
             kit.EnterChapter(1);
             HellPokerGame game = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
             ChapterHooks hooks = ChapterHooks.Attach(game, kit, null, 0, 1);
@@ -251,17 +251,44 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheEyeOfTruth_OpensOneOfTheDemonsCardsFromTheDeal()
+        public void AWarlocksSave_OpensAsTheOracle_WithItsUpgrades()
         {
-            var kit = new ClassKit(new Sinner(SinnerRoster.Warlock));
-            HellPokerGame floor = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
-            kit.AddUpgrade(UpgradeIds.EyeOfTruth);
-            ChapterHooks.Attach(floor, kit, null, 0, 1);
-            Assert.AreEqual(0, floor.HouseCardsOpenAtDeal, "a floor's table: no");
-            HellPokerGame boss = Stacked("AH KD 7C 4S 2D  QS 9H 8D 5C 3H  6H 10C JH 5D 2C 3S 4H", kit.Sinner);
-            ChapterHooks.Attach(boss, kit, DealerRoster.MammonId, 1000, 1);
-            boss.PlaceBet();
-            Assert.GreaterOrEqual(boss.HouseCardsRevealed, 1);
+            // A 2.1.1 save: the class id and the upgrade ids are the Warlock's (Demo 2.2 kept them).
+            ChapterJourney old = ChapterJourney.Begin(SinnerRoster.Warlock, 5);
+            old.Kit.AddUpgrade(UpgradeIds.DeepProphecy);
+            old.Kit.AddUpgrade(UpgradeIds.EyeOfTruth);
+            string text = old.Capture().Encode();
+            StringAssert.Contains("warlock", text);
+            Assert.IsTrue(ChapterSave.TryDecode(text, out ChapterSave read));
+            ChapterJourney back = ChapterJourney.Restore(read);
+            Assert.AreEqual(Warlock.ClassId, back.Sinner.Id);
+            Assert.AreEqual(KitKind.Prophecy, back.Kit.Kind);
+            CollectionAssert.AreEqual(new[] { UpgradeIds.DeepProphecy, UpgradeIds.EyeOfTruth }, back.Kit.Upgrades);
+            Assert.AreEqual(3, back.Kit.ProphecyCards);
+            Assert.AreEqual("ORACLE", HellPoker.Presentation.Ui.UiText.SinnerName(Warlock.ClassId));
+        }
+
+        [Test]
+        public void TheProphecySeal_PaysForASwindlerWalkedAwayFrom_NotForAnHonestOffer()
+        {
+            ChapterJourney journey = ChapterJourney.Begin(SinnerRoster.Warlock, 3);
+            ChapterRun run = journey.Run;
+            int purse = run.Purse.Coins;
+            EventOutcome passed = new FakePardon().Choose(run, EventChoices.Pass);
+            Assert.AreEqual("pass", passed.Result, "without the seal: nothing");
+            Assert.AreEqual(purse, run.Purse.Coins);
+
+            run.Kit.AddUpgrade(UpgradeIds.EyeOfTruth);
+            EventOutcome sealedOne = new SoulInsurance().Choose(run, EventChoices.Pass);
+            Assert.AreEqual("sealed", sealedOne.Result);
+            Assert.AreEqual(ClassKit.SealCoins, sealedOne.Coins);
+            Assert.AreEqual(purse + ClassKit.SealCoins, run.Purse.Coins);
+            Assert.AreEqual(ClassKit.SealCoins, run.Kit.SealCoinsEarned);
+
+            new ChainedSoul().Choose(run, EventChoices.Pass);
+            Assert.AreEqual(purse + ClassKit.SealCoins, run.Purse.Coins, "a soul asking for help is no swindler");
+            new FakePardon().Choose(run, "buy");
+            Assert.AreEqual(ClassKit.SealCoins, run.Kit.SealCoinsEarned, "taken, it pays nothing");
         }
 
         [Test]

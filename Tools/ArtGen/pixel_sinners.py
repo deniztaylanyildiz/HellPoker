@@ -53,29 +53,35 @@ def peasant():
     return img
 
 
-def warlock():
+def oracle():
+    """The Oracle (id "warlock", kept for the saves): eyes bound with a cloth, a third eye open and glowing on the brow, an open hood."""
     img = Img(SIZE, SIZE)
     _backdrop(img, C.VIOLET)
-    # A deep hood and robe: only the eyes and the chin catch the light.
-    robe = img.m_poly([(6, 47), (12, 26), (24, 8), (36, 26), (42, 47)])
+    # A lilac robe and an open hood framing the face.
+    robe = img.m_poly([(6, 47), (12, 30), (24, 27), (36, 30), (42, 47)])
     img.shade(robe, RAMP_LILAC[:3], light=(-1, -1))
-    hood_in = img.m_ellipse(24, 24, 7, 9)
-    img.paint(hood_in, C.BLACK)
-    img.put(21, 23, C.EMBER)
-    img.put(22, 23, C.AMBER)
-    img.put(26, 23, C.AMBER)
-    img.put(27, 23, C.EMBER)
-    img.paint(img.m_rect(22, 29, 26, 31), C.BONE_DARK)
-    # Runes along the hem.
+    hood = img.m_ellipse(24, 21, 12, 14) & img.m_rect(0, 0, SIZE, 34)
+    img.shade(hood, [C.BLACK, C.VIOLET, C.LILAC], light=(-1, -1))
+    _face(img, 24, 22, C.BONE, C.BONE_DARK)
+    # The blindfold: a dark band over the eyes, its knot's tails falling to the left.
+    img.paint(img.m_rect(16, 21, 32, 23), C.PLUM)
+    img.paint(img.m_rect(16, 23, 32, 23), C.BLACK)
+    img.paint(img.m_line([(16, 22), (12, 27)], 1), C.PLUM)
+    img.paint(img.m_line([(16, 23), (13, 29)], 1), C.PLUM)
+    # The third eye on the brow: open, lit, a halo of dithered light around it.
+    img.dither(img.m_ellipse(24, 16, 5, 3), C.BONE, C.LILAC_LIGHT, 0.5)
+    third = img.m_ellipse(24, 16, 2.6, 1.6)
+    img.paint(third, C.WHITE)
+    img.put(24, 16, C.VIOLET)
+    img.put(23, 16, C.LILAC)
+    img.inner_outline(third, C.LILAC)
+    img.put(24, 13, C.LILAC_LIGHT)
+    # A calm, thin mouth.
+    img.paint(img.m_rect(22, 27, 26, 27), C.BONE_SHADE)
+    # Runes of fate along the hem.
     for x in range(10, 40, 5):
         img.put(x, 44, C.LILAC_LIGHT)
         img.put(x + 1, 43, C.LILAC_LIGHT)
-    # A staff with a glowing orb.
-    img.paint(img.m_line([(40, 47), (40, 12)], 1), C.BONE_SHADE)
-    orb = img.m_ellipse(40, 9, 3.5, 3.5)
-    img.paint(orb, C.LILAC)
-    img.put(39, 8, C.WHITE)
-    img.inner_outline(orb, C.VIOLET)
     img.outline(C.BLACK, mask=img.px != C.NIGHT)
     return img
 
@@ -197,12 +203,15 @@ def icon(class_id):
             img.paint(img.m_line([(8 + dx, 5), (8 + dx, 1)], 1), C.SILVER)
         img.paint(img.m_rect(5, 5, 11, 5), C.SILVER)
     elif class_id == "warlock":
-        eye = img.m_ellipse(8, 8, 6.5, 3.5)
-        img.paint(eye, C.LILAC)
-        img.paint(img.m_ellipse(8, 8, 2.5, 2.5), C.VIOLET)
-        img.put(8, 8, C.BLACK)
-        img.put(7, 7, C.WHITE)
-        img.inner_outline(eye, C.LILAC_LIGHT)
+        # The Oracle: a blindfold band, the third eye open above it.
+        img.paint(img.m_rect(1, 10, 14, 12), C.PLUM)
+        img.paint(img.m_rect(1, 12, 14, 12), C.VIOLET)
+        eye = img.m_ellipse(8, 5, 5.5, 3)
+        img.paint(eye, C.WHITE)
+        img.paint(img.m_ellipse(8, 5, 2, 2), C.VIOLET)
+        img.put(8, 5, C.BLACK)
+        img.put(7, 4, C.LILAC_LIGHT)
+        img.inner_outline(eye, C.LILAC)
     elif class_id == "king":
         img.paint(img.m_rect(2, 9, 13, 12), C.GOLD)
         for px in (2, 7, 12):
@@ -224,7 +233,7 @@ def icon(class_id):
     return img
 
 
-PORTRAITS = {"peasant": peasant, "warlock": warlock, "king": king, "jester": jester, "summoner": summoner}
+PORTRAITS = {"peasant": peasant, "warlock": oracle, "king": king, "jester": jester, "summoner": summoner}
 
 
 def write_all(art_dir):

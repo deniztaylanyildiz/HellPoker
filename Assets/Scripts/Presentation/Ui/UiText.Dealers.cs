@@ -216,7 +216,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "A deal struck. I do love a signature.", "Accepted. The terms will find you." },
             EventDeclined = new[] { "Prudent. Unprofitable, but prudent.", "No? The offer goes back in the drawer." },
             GreetingAsPeasant = "A peasant. Nothing to your name but the debt. Sit, let us count it.",
-            GreetingAsWarlock = "A warlock. Keep your little signs off my ledger. Sit.",
+            GreetingAsWarlock = "An oracle. Keep your little visions off my ledger. Sit.",
             GreetingAsKing = "A king! How fortunate. A crown counts as collateral.",
             GreetingAsJester = "A jester. Your jokes are not in my ledger — but your jokers are. Sit.",
             Farewell = new[]
@@ -298,7 +298,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "Bravo! A player who says yes.", "Oh, this will be a lovely scene." },
             EventDeclined = new[] { "No? You disappoint the audience, darling.", "Cautious. How very... dull." },
             GreetingAsPeasant = "A peasant in the front row! Do try to keep up, darling.",
-            GreetingAsWarlock = "A warlock. How tiresome — you will see through my lines.",
+            GreetingAsWarlock = "An oracle. How tiresome — you will see through my lines.",
             GreetingAsKing = "A king! Finally, an audience worthy of the show.",
             GreetingAsJester = "A fellow performer! Bring your jokers, darling — two in a hand and the joke is on you.",
             Farewell = new[]
@@ -379,7 +379,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "Mm. You reach for what the dark offers.", "Yes. Let the night take its share." },
             EventDeclined = new[] { "You fear the gift. Wise, little soul.", "No? The night will ask again." },
             GreetingAsPeasant = "A peasant, all calloused hands. Come, rest them in the dark.",
-            GreetingAsWarlock = "A warlock. You know a little of the night. Not enough.",
+            GreetingAsWarlock = "An oracle. You know a little of what is coming. Not enough.",
             GreetingAsKing = "A king. Crowns slip so easily in the dark.",
             GreetingAsJester = "A jester. Let us see who laughs last in the dark.",
             Farewell = new[]
@@ -566,7 +566,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "Anlaşma tamam. İmzaya bayılırım.", "Kabul edildi. Şartlar seni bulur." },
             EventDeclined = new[] { "Tedbirli. Kârsız, ama tedbirli.", "Hayır mı? Teklif çekmeceye geri döner." },
             GreetingAsPeasant = "Bir köylü. Adına borçtan başka bir şey yok. Otur, sayalım.",
-            GreetingAsWarlock = "Bir büyücü. İşaretlerini defterimden uzak tut. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Kehanetlerini defterimden uzak tut. Otur.",
             GreetingAsKing = "Bir kral! Ne şans. Taç da teminat sayılır.",
             GreetingAsJester = "Bir soytarı. Şakaların defterimde yok — ama jokerlerin var. Otur.",
             Farewell = new[]
@@ -651,7 +651,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "Bravo! Evet diyen bir oyuncu.", "Ah, bu çok güzel bir sahne olacak." },
             EventDeclined = new[] { "Hayır mı? Seyirciyi hayal kırıklığına uğratıyorsun, canım.", "Temkinli. Ne kadar da... sıkıcı." },
             GreetingAsPeasant = "Ön sırada bir köylü! Yetişmeye çalış, canım.",
-            GreetingAsWarlock = "Bir büyücü. Ne yorucu — repliklerimin içini göreceksin.",
+            GreetingAsWarlock = "Bir kâhin. Ne yorucu — repliklerimin içini göreceksin.",
             GreetingAsKing = "Bir kral! Sonunda gösteriye layık bir seyirci.",
             GreetingAsJester = "Bir meslektaş! Jokerlerini getir, canım — elde iki tane olursa şaka sana döner.",
             Farewell = new[]
@@ -735,7 +735,7 @@ namespace HellPoker.Presentation.Ui
             EventAccepted = new[] { "Mm. Karanlığın sunduğuna uzanıyorsun.", "Evet. Bırak gece payını alsın." },
             EventDeclined = new[] { "Hediyeden korkuyorsun. Akıllıca, küçük ruh.", "Hayır mı? Gece yine soracak." },
             GreetingAsPeasant = "Bir köylü, nasırlı ellerle. Gel, onları karanlıkta dinlendir.",
-            GreetingAsWarlock = "Bir büyücü. Geceden biraz anlarsın. Yetmez.",
+            GreetingAsWarlock = "Bir kâhin. Geleceği biraz bilirsin. Yetmez.",
             GreetingAsKing = "Bir kral. Taçlar karanlıkta ne kolay kayar.",
             GreetingAsJester = "Bir soytarı. Bakalım karanlıkta son gülen kim olacak.",
             Farewell = new[]

@@ -137,6 +137,7 @@ namespace HellPoker.Presentation
             _view.JokerConfirmPressed += ConfirmJoker;
             _view.KitCardPressed += PressKitCard;
             _view.KitButtonPressed += PressKitButton;
+            _view.KitArrowPressed += PressKitArrow;
             Lang.Changed += OnLanguageChanged;
         }
 
@@ -940,6 +941,7 @@ namespace HellPoker.Presentation
             _view.JokerConfirmPressed -= ConfirmJoker;
             _view.KitCardPressed -= PressKitCard;
             _view.KitButtonPressed -= PressKitButton;
+            _view.KitArrowPressed -= PressKitArrow;
             Lang.Changed -= OnLanguageChanged;
         }
 

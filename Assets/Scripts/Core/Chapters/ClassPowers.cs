@@ -249,9 +249,10 @@ namespace HellPoker.Core.Chapters
     }
 
     /// <summary>
-    /// The Warlock's prophecy: he sees the deck's top cards (<see cref="ClassKit.ProphecyCards"/>). The price: every hand the demon knows
-    /// one of his cards, and bets and draws by it. The charged power rearranges the deck: up to <see cref="ClassKit.RearrangesPerUse"/> of the
-    /// seen cards go to the bottom.
+    /// The Oracle's sight (the class id is still "warlock"). FORESIGHT: after the deal he sees the deck's top cards
+    /// (<see cref="ClassKit.ProphecyCards"/>), the ones his draw will take. The price, the MIRROR CURSE: every hand the demon knows one of
+    /// his cards, and bets and draws by it. The hand's K power, BEND FATE: <see cref="ClassKit.RearrangesPerCharge"/> of the seen cards
+    /// go to the top (<see cref="PullToTop"/>: the draw takes it first) or to the bottom (<see cref="SendToBottom"/>).
     /// </summary>
     public sealed class ProphecyPowers : ClassPowers
     {
@@ -263,9 +264,10 @@ namespace HellPoker.Core.Chapters
             _barStart = Math.Max(0, barStart);
         }
 
-        /// <summary>The K power's price (2.1.1: once every hand, so not for nothing): at a demon's table his bar grows this share of where it
-        /// began (written on as the hand is settled); on the floors these coins (never the purse's last).</summary>
-        public static int RearrangeBarPercent = 1, RearrangeCoins = 2;
+        /// <summary>BEND FATE's price: at a demon's table his bar grows this share of where it began (written on as the hand is settled); on
+        /// the floors these coins (never the purse's last). Demo 2.2: none — the Oracle's price is the Mirror Curse (2.1.1's 1% / 2 coins
+        /// left him at 20.6% freed; without it 28.2%, 500 whole runs).</summary>
+        public static int RearrangeBarPercent = 0, RearrangeCoins = 0;
 
         private readonly int _barStart;
         private int _barCost;
@@ -275,7 +277,7 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>What sending cards down costs this hand: bar years at a demon's table, coins on the floors (0: the old gauge's rule).</summary>
         public int RearrangePrice => !ChapterTuning.PowersEveryHand ? 0
-            : _barStart > 0 ? Math.Max(1, _barStart * RearrangeBarPercent / 100) : RearrangeCoins;
+            : _barStart > 0 ? (RearrangeBarPercent > 0 ? Math.Max(1, _barStart * RearrangeBarPercent / 100) : 0) : RearrangeCoins;
 
         public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded) => _barCost;
 
@@ -314,12 +316,14 @@ namespace HellPoker.Core.Chapters
             if (RearrangesLeft > 0) return KitRefusal.AlreadyUsed;
             if (!IsReady) return NotReady;
             if (_barStart == 0 && RearrangePrice > 0 && Purse != null && Purse.Coins <= RearrangePrice) return KitRefusal.NoTaxes;
-            if (!Kit.CanSendToBottom) return KitRefusal.NoBottom;
-            if (TopCards(game).Count == 0) return KitRefusal.NoCard;
+            int seen = TopCards(game).Count;
+            if (seen == 0) return KitRefusal.NoCard;
+            // The Seer's Spectacles: nothing goes down — a card may still come up, if there is one under the top to bring.
+            if (!Kit.CanSendToBottom && seen < 2) return KitRefusal.NoBottom;
             return KitRefusal.None;
         }
 
-        /// <summary>The hand's K power: up to <see cref="ClassKit.RearrangesPerCharge"/> seen cards may now go to the bottom.</summary>
+        /// <summary>The hand's K power, BEND FATE: up to <see cref="ClassKit.RearrangesPerCharge"/> seen cards may now move.</summary>
         public bool StartRearranging(HellPokerGame game)
         {
             if (WhyNoRearrange(game) != KitRefusal.None || !SpendPower()) return false;
@@ -330,19 +334,52 @@ namespace HellPoker.Core.Chapters
             return true;
         }
 
+        /// <summary>The seen card at <paramref name="index"/> may go to the top now (bending: a card under the top).</summary>
+        public bool CanPullToTop(HellPokerGame game, int index) => RearrangesLeft > 0 && IsOpen(game) && index > 0 && index < TopCards(game).Count;
+
+        /// <summary>The seen card at <paramref name="index"/> may go to the bottom now (bending, and no Seer's Spectacles).</summary>
+        public bool CanSendToBottom(HellPokerGame game, int index) =>
+            RearrangesLeft > 0 && IsOpen(game) && Kit.CanSendToBottom && index >= 0 && index < TopCards(game).Count;
+
         /// <summary>The seen card at <paramref name="index"/> (0: the top) goes to the bottom of the deck.</summary>
         public bool SendToBottom(HellPokerGame game, int index)
         {
-            if (RearrangesLeft <= 0 || !IsOpen(game)) return false;
-            List<Card> order = game.Deck.Remaining.Reverse().ToList();
-            if (index < 0 || index >= Math.Min(Kit.ProphecyCards, order.Count)) return false;
+            if (!CanSendToBottom(game, index)) return false;
+            Move(game, index, toTop: false);
+            return true;
+        }
+
+        /// <summary>The seen card at <paramref name="index"/> goes to the top of the deck: the draw takes it first.</summary>
+        public bool PullToTop(HellPokerGame game, int index)
+        {
+            if (!CanPullToTop(game, index)) return false;
+            Move(game, index, toTop: true);
+            return true;
+        }
+
+        /// <summary>BEND FATE in one go (the K power and the card's move): false when either cannot be done.</summary>
+        public bool Bend(HellPokerGame game, int index, bool toTop)
+        {
+            if (RearrangesLeft <= 0)
+            {
+                // Check the move before paying for it: the power is not spent on a move that cannot be made.
+                bool possible = index >= 0 && index < TopCards(game).Count && (toTop ? index > 0 : Kit.CanSendToBottom);
+                if (!possible || !StartRearranging(game)) return false;
+            }
+            return toTop ? PullToTop(game, index) : SendToBottom(game, index);
+        }
+
+        private void Move(HellPokerGame game, int index, bool toTop)
+        {
+            List<Card> order = game.Deck.Remaining.Reverse().ToList();   // the top first
             Card card = order[index];
             order.RemoveAt(index);
-            order.Add(card);
+            if (toTop) order.Insert(0, card);
+            else order.Add(card);
             game.Deck.Restore(order);
             RearrangesLeft--;
             Kit.Rearranges++;
-            return true;
+            if (toTop) Kit.PulledUp++;
         }
 
         /// <summary>The demon knows a high card: with less than two pair he does not raise back; a low one: he bullies.</summary>

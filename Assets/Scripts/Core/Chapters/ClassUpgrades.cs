@@ -13,10 +13,14 @@ namespace HellPoker.Core.Chapters
         public const string Seed = "seed";
         public const string Abundance = "abundance";
 
-        // The Warlock's prophecy.
+        // The Oracle's sight (Demo 2.2: the ids are the old Warlock's, kept for the saves).
+        /// <summary>The Third Eye: FORESIGHT sees one card more.</summary>
         public const string DeepProphecy = "deep_prophecy";
+        /// <summary>The Blind Mirror: half the hands the demon learns none of the Oracle's cards.</summary>
         public const string BlindMirror = "blind_mirror";
+        /// <summary>The Fate Weaver: BEND FATE moves two cards.</summary>
         public const string Thrice = "thrice";
+        /// <summary>The Prophecy Seal: a swindler's offer walked away from pays <see cref="ClassKit.SealCoins"/> coins.</summary>
         public const string EyeOfTruth = "eye_of_truth";
 
         // The King's treasury.

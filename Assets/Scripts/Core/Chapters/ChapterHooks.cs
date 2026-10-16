@@ -61,8 +61,6 @@ namespace HellPoker.Core.Chapters
         {
             ChapterHooks hooks = For(kit, bossId, barStart, seed, mirrorsTwo);
             game.UseHooks(hooks);
-            // The Eye of Truth: at a demon's table one of his cards plays face up from the deal.
-            if (bossId != null && kit.Has(UpgradeIds.EyeOfTruth)) game.HouseCardsOpenAtDeal = Math.Max(game.HouseCardsOpenAtDeal, 1);
             return hooks;
         }
     }

@@ -576,6 +576,43 @@ namespace HellPoker.Core.Tests
             }
         }
 
+        /// <summary>
+        /// Demo 2.2: the Oracle's numbers tried side by side in one run of Unity. HELLPOKER_ORACLE_GRID = "foresight,bar%,coins,knows%;…"
+        /// (the cards seen, BEND FATE's price at a demon's and on the floors, how often the demon knows a card); freed per setting.
+        /// </summary>
+        [Test, Timeout(3600000)]
+        public void OracleTuning()
+        {
+            string grid = Environment.GetEnvironmentVariable("HELLPOKER_ORACLE_GRID") ?? "2,1,2,100;3,1,2,100;2,0,0,100;2,1,2,50";
+            int runs = EnvInt("HELLPOKER_RUNS", 500);
+            int cards = ClassKit.ForesightCards, bar = ProphecyPowers.RearrangeBarPercent, coins = ProphecyPowers.RearrangeCoins;
+            var report = new StringBuilder($"The Oracle, {runs} whole runs a setting (circle 0)\nforesight bar% coins knows%   reached Lucifer   freed\n");
+            try
+            {
+                foreach (string setting in grid.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    int[] n = setting.Split(',').Select(s => int.Parse(s.Trim())).ToArray();
+                    ChapterTuning.Reset();
+                    ClassKit.ForesightCards = n[0];
+                    ProphecyPowers.RearrangeBarPercent = n[1];
+                    ProphecyPowers.RearrangeCoins = n[2];
+                    ChapterTuning.DemonKnowsPercent = n.Length > 3 ? n[3] : 100;
+                    var tally = new RunTally();
+                    var all = new RunTally();
+                    for (int run = 0; run < runs; run++) PlayWholeRun(SinnerRoster.Warlock, run * 7919 + 29, tally, all);
+                    report.AppendLine($"{n[0],9} {n[1],4} {n[2],5} {(n.Length > 3 ? n[3] : 100),6}   {Pct(tally.ReachedLucifer, tally.Runs),15}  {Pct(tally.Freed, tally.Runs),6}");
+                }
+            }
+            finally
+            {
+                ChapterTuning.Reset();
+                ClassKit.ForesightCards = cards;
+                ProphecyPowers.RearrangeBarPercent = bar;
+                ProphecyPowers.RearrangeCoins = coins;
+            }
+            TestContext.Out.WriteLine(report.ToString());
+        }
+
         private void WholeRunReport()
         {
             int runs = EnvInt("HELLPOKER_RUNS", 1000);

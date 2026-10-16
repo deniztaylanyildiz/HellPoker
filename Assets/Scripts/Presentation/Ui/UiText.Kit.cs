@@ -15,8 +15,8 @@ namespace HellPoker.Presentation.Ui
             {
                 case Peasant.ClassId: return L("Satchel: keep a thrown card (3 at most) and draw it back. Power: harvest unseen.",
                     "Heybe: attığın bir kartı sakla (en çok 3), sonra ondan çek. Güç: gizli hasat.");
-                case Warlock.ClassId: return L("Sees lies and the deck's top 1-3 cards. Power: send seen cards to the bottom.",
-                    "Yalanları ve destenin üstündeki 1-3 kartı görür. Güç: gördüğünü dibe yolla.");
+                case Warlock.ClassId: return string.Format(L("FORESIGHT: the {0} cards your draw takes, and the lies. Power: BEND FATE, a seen card up or down.",
+                    "ÖNSEZİ: draw'da gelecek {0} kartı ve yalanları görür. Güç: KADERİ BÜK, gördüğün bir kart üste ya da dibe."), ClassKit.ForesightCards);
                 case King.ClassId: return L("A tax per win: open a card 1, free raise 2, seize 4. No cheat touches his J Q K.",
                     "Kazanç başına vergi: kart aç 1, bedava artır 2, müsadere 4. J Q K'sına hile işlemez.");
                 case Summoner.ClassId: return L("Imps: EYE a closed card 5, HAND a swap 15, WHISPER the next cheat 8. Power: the first imp free.",
@@ -33,7 +33,7 @@ namespace HellPoker.Presentation.Ui
             switch (id)
             {
                 case Peasant.ClassId: return L("Dip into the satchel and the demon re-raises more.", "Heybeye uzanırsan şeytan daha çok artırır.");
-                case Warlock.ClassId: return L("The demon knows one of your cards.", "Şeytan kartlarından birini bilir.");
+                case Warlock.ClassId: return L("MIRROR CURSE: the demon knows one of your cards.", "AYNA LANETİ: şeytan kartlarından birini bilir.");
                 case King.ClassId: return L("A demon's hand lost halves the taxes.", "Kaybedilen boss eli vergiyi yarıya indirir.");
                 case Summoner.ClassId: return L("At a demon's table the imps cost bar. One in ten runs wild.",
                     "Şeytan masasında iblisler bar ister. Onda biri azar.");
@@ -49,8 +49,8 @@ namespace HellPoker.Presentation.Ui
             "POWERS AND RULES. K (or the badge): the class's power, once every hand, whenever it makes sense.\n" +
             "PEASANT, SATCHEL: after the draw keep one thrown card ({0} at most). In the draw click it to take it, but the demon sees: " +
             "his re-raise comes {1}% more often. K, in the draw: HARVEST, every thrown place from the satchel, unseen.\n" +
-            "WARLOCK, PROPHECY: once the cards are dealt, sees the cards his draw will take (1; 2 after Mammon, 3 from Lilith on) and the " +
-            "lies. The demon knows one of his cards every hand. K, before the draw: send up to {9} seen cards to the bottom (the bar grows 1%; on the floors 2 coins).\n" +
+            "ORACLE, FORESIGHT: once the cards are dealt, sees the {10} cards his draw will take, and the lies. MIRROR CURSE: the demon " +
+            "knows one of his cards every hand. K, before the draw: BEND FATE, {9} seen card to the top (the draw takes it first) or to the bottom.\n" +
             "KING, TREASURY: a tax for every hand won (at most {2}). Before the draw: OPEN {3}, FREE raise {4}, SEIZE {5}. No cheat " +
             "touches his J, Q or K. A demon's hand lost halves the taxes. K, before the draw: a seizure at half price.\n" +
             "JESTER: his jokers, as ever. SUMMONER, IMPS: EYE (a closed card) 5, HAND (yours for an open one) 15, WHISPER (the next cheat, " +
@@ -61,8 +61,8 @@ namespace HellPoker.Presentation.Ui
             "GÜÇLER VE KURALLAR. K (ya da rozet): sınıfın gücü, her elde bir kez, anlamlı olduğu her an.\n" +
             "KÖYLÜ, HEYBE: draw'dan sonra attığın bir kartı sakla (en çok {0}). Draw'da ona tıklayıp al, ama şeytan görür: artırması " +
             "%{1} daha sık gelir. K, draw'da: HASAT, atılan her yer heybeden, gizlice.\n" +
-            "BÜYÜCÜ, KEHANET: kartlar dağıtılınca draw'da gelecek kartları (1; Mammon'dan sonra 2, Lilith'ten itibaren 3) ve yalanları " +
-            "görür. Şeytan her elde kartlarından birini bilir. K, draw'dan önce: gördüğü en çok {9} kartı dibe yollar (bar %1 uzar; katlarda 2 coin).\n" +
+            "KÂHİN, ÖNSEZİ: kartlar dağıtılınca draw'da gelecek {10} kartı ve yalanları görür. AYNA LANETİ: şeytan her elde " +
+            "kartlarından birini bilir. K, draw'dan önce: KADERİ BÜK, gördüğü {9} kartı en üste (draw'da ilk o gelir) ya da dibe yollar.\n" +
             "KRAL, HAZİNE: kazandığı her elde vergi (en çok {2}). Draw'dan önce: AÇ {3}, BEDAVA artırma {4}, MÜSADERE {5}. J, Q ve " +
             "K'sına hile işlemez. Kaybedilen boss eli vergiyi yarıya indirir. K, draw'dan önce: yarı vergiye müsadere.\n" +
             "SOYTARI: jokerleri, her zamanki gibi. ÇAĞIRICI, İBLİSLER: GÖZ (kapalı bir kart) 5, EL (seninki açık biriyle) 15, FISILTI " +
@@ -74,16 +74,16 @@ namespace HellPoker.Presentation.Ui
         public static string ChapterRulesPage() =>
             string.Format(ChapterRulesPageFormat, ClassKit.SatchelSize, ClassKit.SatchelReRaisePercent, ClassKit.TaxMax, ClassKit.RevealPrice,
                 ClassKit.FreeRaisePrice, ClassKit.SeizePrice, MammonInterest.InterestPercent, LilithTemptation.TakePercent, DemonRule.CorneredPercent,
-                ClassKit.RearrangesPerUse);
+                ClassKit.RearrangesPerUse, ClassKit.ForesightCards);
         // ------------------------------------------------------------------ the panel under the dialog box
 
         /// <summary>{0} cards in the satchel, {1} its size.</summary>
         public static string KitSatchelTitleFormat => L("SATCHEL {0}/{1}", "HEYBE {0}/{1}");
         public static string KitKeepTitle => L("KEEP ONE?", "BİRİNİ SAKLA?");
-        public static string KitProphecyTitle => L("TOP OF THE DECK", "DESTENİN ÜSTÜ");
+        public static string KitProphecyTitle => L("FORESIGHT", "ÖNSEZİ");
 
         /// <summary>{0} cards that may still go to the bottom.</summary>
-        public static string KitRearrangeTitleFormat => L("TO THE BOTTOM: {0}", "DİBE YOLLA: {0}");
+        public static string KitRearrangeTitleFormat => L("BEND FATE: {0}", "KADERİ BÜK: {0}");
         public static string KitShuffleComing => L("SHUFFLE COMING", "DESTE KARILACAK");
 
         /// <summary>{0} the taxes, {1} the most.</summary>
@@ -102,15 +102,17 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>{0}: the cards K may send down.</summary>
         public static string KitProphecyHintFormat => L(
-            "Once the cards are dealt: the cards your draw will take, the first on the left (shut between hands and after the draw). " +
-            "The demon knows one of your cards each hand. K, once a hand before the draw: send up to {0} of them to the bottom (click them; the bar grows 1%, on the floors 2 coins).",
-            "Kartlar dağıtılınca: draw'da gelecek kartlar, ilki solda (eller arasında ve draw'dan sonra kapalı). Şeytan her elde " +
-            "kartlarından birini bilir. K, elde bir kez draw'dan önce: en çok {0} tanesini dibe yolla (tıkla; bar %1 uzar, katlarda 2 coin).");
+            "FORESIGHT, once the cards are dealt: the cards your draw will take, the first on the left (shut between hands and after the draw). " +
+            "MIRROR CURSE: the demon knows one of your cards each hand. BEND FATE (K or an arrow, once a hand before the draw): {0} seen card " +
+            "to the top (up arrow: the draw takes it first) or to the bottom (down arrow).",
+            "ÖNSEZİ, kartlar dağıtılınca: draw'da gelecek kartlar, ilki solda (eller arasında ve draw'dan sonra kapalı). AYNA LANETİ: " +
+            "şeytan her elde kartlarından birini bilir. KADERİ BÜK (K ya da bir ok, elde bir kez draw'dan önce): gördüğün {0} kartı en üste " +
+            "(yukarı ok: draw'da ilk o gelir) ya da dibe (aşağı ok) yolla.");
 
         public static string KitProphecyHint => string.Format(KitProphecyHintFormat, ClassKit.RearrangesPerUse);
 
         /// <summary>The prophecy's panel while it is shut: its title and its line (between hands; after the draw).</summary>
-        public static string KitProphecyShutTitle => L("PROPHECY", "KEHANET");
+        public static string KitProphecyShutTitle => L("FORESIGHT", "ÖNSEZİ");
         public static string KitProphecyAfterDeal => L("Shows after the deal.", "Dağıtımdan sonra görünür.");
         public static string KitProphecyNextDeal => L("Shut until the next deal.", "Sonraki dağıtıma kadar kapalı.");
 
@@ -120,7 +122,7 @@ namespace HellPoker.Presentation.Ui
         public static string KitAfterTheDeal => L("After the deal.", "Dağıtımdan sonra.");
         public static string KitNotAfterDraw => L("Not after the draw.", "Draw'dan sonra olmaz.");
         public static string KitHarvestInDraw => L("The harvest is made in the draw.", "Hasat draw'da yapılır.");
-        public static string KitNoBottom => L("The Seer's Spectacles: seen cards cannot go to the bottom.", "Kâhinin Gözlüğü: görülen kartlar dibe yollanamaz.");
+        public static string KitNoBottom => L("The Seer's Spectacles: no card goes to the bottom.", "Kâhinin Gözlüğü: hiçbir kart dibe gidemez.");
 
         /// <summary>The class badge's line over it in Phase 2: the power ready (K), or spent for this hand.</summary>
         public static string PowerUsedThisHand => L("USED THIS HAND", "BU ELDE KULLANILDI");
@@ -151,7 +153,16 @@ namespace HellPoker.Presentation.Ui
         public static string HarvestDone => L("Harvest: the satchel fills your thrown places, unseen.", "Hasat: heybe attığın yerleri doldurdu, kimse görmedi.");
 
         /// <summary>{0} cards that may still go to the bottom.</summary>
-        public static string RearrangePromptFormat => L("Click a top card: it goes to the bottom ({0} left).", "Üstteki bir karta tıkla: dibe gider ({0} kaldı).");
+        public static string RearrangePromptFormat => L("Bend fate: the up arrow brings a card to the top, the down arrow sends it to the bottom ({0} left).",
+            "Kaderi bük: yukarı ok kartı en üste çeker, aşağı ok dibe yollar ({0} kaldı).");
+
+        /// <summary>{0} the card brought to the top.</summary>
+        public static string BentUpFormat => L("{0} comes to the top: your draw takes it first.", "{0} en üste çıktı: draw'da ilk o gelir.");
+        public static string BendAlreadyOnTop => L("That card is already on top.", "O kart zaten en üstte.");
+
+        /// <summary>The Prophecy Seal paid for a swindler walked away from: {0} the coins (signed).</summary>
+        public static string ProphecySealFormat => L("Prophecy Seal: you saw the swindle and walked away. {0} coins.",
+            "Kehanet Mührü: dolandırıcılığı görüp yürüdün. {0} coin.");
 
         /// <summary>{0} the card.</summary>
         public static string RearrangedFormat => L("{0} goes to the bottom of the deck.", "{0} destenin dibine gitti.");
@@ -241,7 +252,7 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>{0} the card given, {1} the card got.</summary>
         public static string RoleSwapFormat => L("Role swap: your {0} went, {1} came.", "Rol takası: {0} gitti, {1} geldi.");
-        public static string RoleSwapComing => L("The prophecy: next hand, Belial's role swap.", "Kehanet: sonraki el Belial'in rol takası.");
+        public static string RoleSwapComing => L("Foresight: next hand, Belial's role swap.", "Önsezi: sonraki el Belial'in rol takası.");
 
         /// <summary>{0} the card she kept.</summary>
         public static string TemptedFormat => L("Temptation: Lilith kept your {0}.", "Baştan çıkarma: Lilith attığın {0} kartını aldı.");

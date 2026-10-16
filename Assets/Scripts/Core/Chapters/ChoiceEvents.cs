@@ -113,6 +113,13 @@ namespace HellPoker.Core.Chapters
                 int letter = run.Effects.CombinedRelics.Extra(RelicExtras.EventYears);
                 if (letter > 0 && !choice.StartsWith(EventChoices.TakePrefix, StringComparison.Ordinal)) YearsOn(run, letter, outcome);
             }
+            else if (Family == EventFamily.Scam && run.Kit.Has(UpgradeIds.EyeOfTruth))
+            {
+                // The Prophecy Seal: the Oracle walks away from a swindler, and is paid for seeing it.
+                run.Purse.Add(ClassKit.SealCoins);
+                run.Kit.SealCoinsEarned += ClassKit.SealCoins;
+                outcome.Result = "sealed";
+            }
             outcome.Coins = run.Purse.Coins - coins;
             return outcome;
         }

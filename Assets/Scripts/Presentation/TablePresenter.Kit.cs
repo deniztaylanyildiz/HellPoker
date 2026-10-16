@@ -155,9 +155,9 @@ namespace HellPoker.Presentation
                         return;
                     }
                     if (!prophecy.StartRearranging(game)) return;
-                    LogNote($"power: the Warlock rearranges the deck (hand {_game.RoundNumber})");
+                    LogNote($"power: the Oracle bends fate (hand {_game.RoundNumber})");
                     Refresh();
-                    _view.SetMessage(string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft), Tone.Good);
+                    _view.SetMessage(BendPrompt(prophecy), Tone.Good);
                     return;
                 }
                 case SummonPowers summon:
@@ -244,16 +244,51 @@ namespace HellPoker.Presentation
                     _view.SetMessage(UiText.KitProphecyHint, Tone.Neutral);
                     return;
                 }
-                IReadOnlyList<Card> top = prophecy.TopCards(game);
-                if (index < 0 || index >= top.Count) return;
-                Card card = top[index];
-                if (!prophecy.SendToBottom(game, index)) return;
-                LogNote($"prophecy: {card} to the bottom (hand {_game.RoundNumber})");
-                _view.PlaySfx(SfxIds.ProphecyBottom);
-                Refresh();
-                _view.SetMessage(string.Format(UiText.RearrangedFormat, card), Tone.Good);
+                // A click on the card itself while bending: down when it may go down, else up (the Seer's Spectacles).
+                Bend(index, prophecy.CanSendToBottom(game, index) ? false : true);
             }
         }
+
+        /// <summary>A small card's ▲ / ▼: the Oracle's BEND FATE (the hand's K power is spent on the first move).</summary>
+        public void PressKitArrow(int index, bool toTop)
+        {
+            if (!Playing || _kit?.Prophecy == null || _pendingEvent != null || Hurry()) return;
+            Bend(index, toTop);
+        }
+
+        private void Bend(int index, bool toTop)
+        {
+            HellPokerGame game = KitGame;
+            ProphecyPowers prophecy = _kit.Prophecy;
+            IReadOnlyList<Card> top = prophecy.TopCards(game);
+            if (index < 0 || index >= top.Count) return;
+            if (prophecy.RearrangesLeft <= 0)
+            {
+                KitRefusal why = prophecy.WhyNoRearrange(game);
+                if (why != KitRefusal.None)
+                {
+                    _view.SetMessage(PowerRefusalText(why), Tone.Warning);
+                    return;
+                }
+            }
+            bool possible = toTop ? index > 0 : _kit.Kit.CanSendToBottom;
+            if (!possible)
+            {
+                _view.SetMessage(toTop ? UiText.BendAlreadyOnTop : UiText.KitNoBottom, Tone.Warning);
+                return;
+            }
+            bool started = prophecy.RearrangesLeft <= 0;
+            Card card = top[index];
+            if (!prophecy.Bend(game, index, toTop)) return;
+            if (started) LogNote($"power: the Oracle bends fate (hand {_game.RoundNumber})");
+            LogNote($"bend fate: {card} to the {(toTop ? "top" : "bottom")} (hand {_game.RoundNumber})");
+            _view.PlaySfx(SfxIds.ProphecyBottom);
+            Refresh();
+            _view.SetMessage(string.Format(toTop ? UiText.BentUpFormat : UiText.RearrangedFormat, card)
+                + (prophecy.RearrangesLeft > 0 ? "\n" + BendPrompt(prophecy) : ""), Tone.Good);
+        }
+
+        private static string BendPrompt(ProphecyPowers prophecy) => string.Format(UiText.RearrangePromptFormat, prophecy.RearrangesLeft);
 
         public void PressKitButton(int index)
         {
@@ -424,7 +459,7 @@ namespace HellPoker.Presentation
             if (_kit == null) return null;
             if (_seizing) return _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
             if (_kit.Prophecy != null && _kit.Prophecy.RearrangesLeft > 0)
-                return string.Format(UiText.RearrangePromptFormat, _kit.Prophecy.RearrangesLeft);
+                return BendPrompt(_kit.Prophecy);
             if (_kit.Rule is BelialRoleSwap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && BelialRoleSwap.ComingIn(KitGame))
                 return UiText.RoleSwapComing;
             return null;
@@ -467,8 +502,12 @@ namespace HellPoker.Presentation
                         return;
                     }
                     bool rearranging = prophecy.RearrangesLeft > 0;
+                    // The arrows show while fate may be bent: the power ready this hand, or a bend under way.
+                    bool arrows = rearranging || prophecy.WhyNoRearrange(game) == KitRefusal.None;
                     string title = rearranging ? string.Format(UiText.KitRearrangeTitleFormat, prophecy.RearrangesLeft) : UiText.KitProphecyTitle;
-                    _view.SetKit(new KitDisplay(title, prophecy.TopCards(game).Select(c => new KitCard(c, clickable: rearranging)).ToArray(), null,
+                    IReadOnlyList<Card> seen = prophecy.TopCards(game);
+                    _view.SetKit(new KitDisplay(title, seen.Select((c, i) => new KitCard(c, clickable: rearranging, arrows: arrows,
+                            canTop: i > 0, canBottom: kit.CanSendToBottom)).ToArray(), null,
                         UiText.KitProphecyHint, waiting: rearranging));
                     return;
                 }

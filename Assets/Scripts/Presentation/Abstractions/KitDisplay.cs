@@ -14,11 +14,19 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A click does something now (the frame blinks).</summary>
         public bool Clickable { get; }
 
-        public KitCard(Card card, bool picked = false, bool clickable = false)
+        /// <summary>The Oracle's BEND FATE: the card's ▲ (to the top) and ▼ (to the bottom) show; a dimmed arrow cannot be used now.</summary>
+        public bool Arrows { get; }
+        public bool CanTop { get; }
+        public bool CanBottom { get; }
+
+        public KitCard(Card card, bool picked = false, bool clickable = false, bool arrows = false, bool canTop = false, bool canBottom = false)
         {
             Card = card;
             Picked = picked;
             Clickable = clickable;
+            Arrows = arrows;
+            CanTop = canTop;
+            CanBottom = canBottom;
         }
     }
 

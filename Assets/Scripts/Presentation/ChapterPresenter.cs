@@ -940,6 +940,7 @@ namespace HellPoker.Presentation
             }
             if (choice == EventChoices.Pass)
             {
+                if (outcome.Result == "sealed") _mapNotice = string.Format(UiText.ProphecySealFormat, outcome.Coins);
                 Onward();
                 return;
             }

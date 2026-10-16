@@ -24,7 +24,7 @@ namespace HellPoker.Presentation.Ui
                 case ChoiceEventIds.Confession: return L("THE CONFESSION CELL", "İTİRAF HÜCRESİ");
                 case ChoiceEventIds.FireRain: return L("RAIN OF FIRE", "ATEŞ YAĞMURU");
                 case ChoiceEventIds.SinSwap: return L("THE SIN SWAP", "GÜNAH TAKASI");
-                default: return L("THE BLIND SEER", "KÖR KÂHİN");
+                default: return L("THE BLIND SEER", "KÖR FALCI");
             }
         }
 
@@ -47,7 +47,7 @@ namespace HellPoker.Presentation.Ui
                 case ChoiceEventIds.Confession: return L("A confessor", "Günah çıkaran");
                 case ChoiceEventIds.FireRain: return L("The sky", "Gökyüzü");
                 case ChoiceEventIds.SinSwap: return L("A sin trader", "Günah tüccarı");
-                default: return L("A blind seer", "Kör bir kâhin");
+                default: return L("A blind seer", "Kör bir falcı");
             }
         }
 
@@ -140,7 +140,7 @@ namespace HellPoker.Presentation.Ui
         }
 
         /// <summary>{0} the trap's words: the Warlock sees them in his prophecy.</summary>
-        public static string ProphecyTrapFormat => L("PROPHECY: {0}", "KEHANET: {0}");
+        public static string ProphecyTrapFormat => L("TRUE SIGHT: {0}", "GERÇEĞİ GÖRÜR: {0}");
 
         /// <summary>{0} the trap's words: the Summoner's imp saw them.</summary>
         public static string EyeTrapFormat => L("THE IMP'S EYE: {0}", "İBLİSİN GÖZÜ: {0}");

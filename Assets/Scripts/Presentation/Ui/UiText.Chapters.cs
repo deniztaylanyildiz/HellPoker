@@ -159,8 +159,8 @@ namespace HellPoker.Presentation.Ui
         {
             switch (bossId)
             {
-                case DealerRoster.BelialId: return L("Every hand one of the warden's open cards is a lie. A warlock sees it.",
-                    "Her elde açık kartlarından biri yalandır. Büyücü yalanı görür.");
+                case DealerRoster.BelialId: return L("Every hand one of the warden's open cards is a lie. The Oracle sees it.",
+                    "Her elde açık kartlarından biri yalandır. Kâhin yalanı görür.");
                 case DealerRoster.LilithId: return L("One of the cards you draw comes face down; you see it at the showdown.",
                     "Değiştirdiğin kartlardan biri kapalı gelir; showdown'da açılır.");
                 default: return L("The warden plays Mammon's minor cheats.", "Mammon'un küçük hileleriyle oynar.");
@@ -590,7 +590,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two of them?! Who put two in?" },
             JokerJackpot = new[] { "Twenty?! I can't count that high!" },
             GreetingAsPeasant = "A peasant! Still has coins, though. Sit.",
-            GreetingAsWarlock = "A warlock. Don't hex my purse. Sit.",
+            GreetingAsWarlock = "An oracle. Don't read my purse's fortune. Sit.",
             GreetingAsKing = "A king! Kings have the most coins. Sit, Your Majesty!",
             GreetingAsJester = "A jester! I like jokers. I like coins more. Sit."
         };
@@ -616,7 +616,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "İki tane mi?! İki tane kim koydu?" },
             JokerJackpot = new[] { "Yirmi mi?! O kadar sayamam!" },
             GreetingAsPeasant = "Bir köylü! Yine de coini var. Otur.",
-            GreetingAsWarlock = "Bir büyücü. Keseme büyü yapma. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Kesemin falına bakma. Otur.",
             GreetingAsKing = "Bir kral! Krallarda en çok coin olur. Buyrun Majesteleri!",
             GreetingAsJester = "Bir soytarı! Jokerleri severim. Coinleri daha çok. Otur."
         };
@@ -639,7 +639,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two fools in my hand. That is not in the regulations." },
             JokerJackpot = new[] { "Twenty jokers. Unregistered. Irregular." },
             GreetingAsPeasant = "A peasant. Small purse, small share. Sit.",
-            GreetingAsWarlock = "A warlock. Your signs do not exempt you. Sit.",
+            GreetingAsWarlock = "An oracle. Your visions do not exempt you. Sit.",
             GreetingAsKing = "A king. The crown is taxable. Sit.",
             GreetingAsJester = "A jester. Your jokers are declared, I trust. Sit."
         };
@@ -665,7 +665,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Elimde iki soytarı. Bu yönetmelikte yok." },
             JokerJackpot = new[] { "Yirmi joker. Kayıt dışı. Usulsüz." },
             GreetingAsPeasant = "Bir köylü. Küçük kese, küçük pay. Otur.",
-            GreetingAsWarlock = "Bir büyücü. İşaretlerin seni vergiden muaf tutmaz. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Kehanetlerin seni vergiden muaf tutmaz. Otur.",
             GreetingAsKing = "Bir kral. Taç da vergiye tabidir. Otur.",
             GreetingAsJester = "Bir soytarı. Jokerlerini beyan ettin, umarım. Otur."
         };
@@ -688,7 +688,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two fools on my stage? I was miscast!" },
             JokerJackpot = new[] { "Twenty jokers! Now that is a show." },
             GreetingAsPeasant = "A peasant in the front row! Free seats for the poor. Sit.",
-            GreetingAsWarlock = "A warlock. No tricks from the audience, please. Sit.",
+            GreetingAsWarlock = "An oracle. No spoiling the ending from the audience, please. Sit.",
             GreetingAsKing = "A king in the royal box! Sit, Majesty, the play is for you.",
             GreetingAsJester = "A jester! Finally, a colleague. Sit."
         };
@@ -714,7 +714,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Sahnemde iki soytarı mı? Yanlış rol verilmiş!" },
             JokerJackpot = new[] { "Yirmi joker! İşte buna gösteri denir." },
             GreetingAsPeasant = "Ön sırada bir köylü! Yoksullara bedava koltuk. Otur.",
-            GreetingAsWarlock = "Bir büyücü. Seyirciden numara istemeyiz. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Seyircinin sonu söylemesini istemeyiz. Otur.",
             GreetingAsKing = "Kraliyet locasında bir kral! Buyrun Majesteleri, oyun sizin için.",
             GreetingAsJester = "Bir soytarı! Sonunda bir meslektaş. Otur."
         };
@@ -737,7 +737,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two fools. I did not foresee that." },
             JokerJackpot = new[] { "Twenty jokers. The end of days." },
             GreetingAsPeasant = "A peasant. Your faith is simple. Your purse, simpler. Sit.",
-            GreetingAsWarlock = "A warlock. You will see my lies. Seeing is not winning. Sit.",
+            GreetingAsWarlock = "An oracle. You will see my lies. Seeing is not winning. Sit.",
             GreetingAsKing = "A king. Kings have always loved a prophet. Sit.",
             GreetingAsJester = "A jester. Finally, someone who lies as well as I do. Sit."
         };
@@ -763,7 +763,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "İki soytarı. Bunu görmemiştim." },
             JokerJackpot = new[] { "Yirmi joker. Kıyamet günü." },
             GreetingAsPeasant = "Bir köylü. İmanın sade. Kesen daha da sade. Otur.",
-            GreetingAsWarlock = "Bir büyücü. Yalanlarımı göreceksin. Görmek kazanmak değildir. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Yalanlarımı göreceksin. Görmek kazanmak değildir. Otur.",
             GreetingAsKing = "Bir kral. Krallar peygamberleri hep sevmiştir. Otur.",
             GreetingAsJester = "Bir soytarı. Sonunda benim kadar iyi yalan söyleyen biri. Otur."
         };
@@ -786,7 +786,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two fools in the dark. Embarrassing." },
             JokerJackpot = new[] { "Twenty jokers. What a night." },
             GreetingAsPeasant = "A peasant. Calloused hands. Warm, though. Sit.",
-            GreetingAsWarlock = "A warlock. Your candles burn brighter than mine. Sit.",
+            GreetingAsWarlock = "An oracle. Your third eye burns brighter than my candles. Sit.",
             GreetingAsKing = "A king, alone at night. Sit, Majesty. I will keep you company.",
             GreetingAsJester = "A jester. Make me laugh, then lose. Sit."
         };
@@ -812,7 +812,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Karanlıkta iki soytarı. Utanç verici." },
             JokerJackpot = new[] { "Yirmi joker. Ne gece ama." },
             GreetingAsPeasant = "Bir köylü. Nasırlı eller. Yine de sıcak. Otur.",
-            GreetingAsWarlock = "Bir büyücü. Mumların benimkilerden parlak yanıyor. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Üçüncü gözün mumlarımdan parlak yanıyor. Otur.",
             GreetingAsKing = "Gece yalnız bir kral. Otur Majesteleri. Sana eşlik ederim.",
             GreetingAsJester = "Bir soytarı. Önce güldür, sonra kaybet. Otur."
         };
@@ -835,7 +835,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Two fools in one bed. Unhygienic." },
             JokerJackpot = new[] { "Twenty jokers. Delirium." },
             GreetingAsPeasant = "A peasant. You have slept on worse. Sit.",
-            GreetingAsWarlock = "A warlock. Your eyes are open; your cards will not be. Sit.",
+            GreetingAsWarlock = "An oracle. Your third eye is open; your cards will not be. Sit.",
             GreetingAsKing = "A king who cannot sleep. Sit, Majesty. The night is mine.",
             GreetingAsJester = "A jester. Laughter keeps them awake. Sit."
         };
@@ -861,7 +861,7 @@ namespace HellPoker.Presentation.Ui
             JokerBust = new[] { "Bir yatakta iki soytarı. Hijyenik değil." },
             JokerJackpot = new[] { "Yirmi joker. Sayıklama." },
             GreetingAsPeasant = "Bir köylü. Daha kötüsünde de uyudun. Otur.",
-            GreetingAsWarlock = "Bir büyücü. Gözlerin açık; kartların olmayacak. Otur.",
+            GreetingAsWarlock = "Bir kâhin. Üçüncü gözün açık; kartların olmayacak. Otur.",
             GreetingAsKing = "Uyuyamayan bir kral. Otur Majesteleri. Gece benim.",
             GreetingAsJester = "Bir soytarı. Kahkaha onları uyanık tutar. Otur."
         };

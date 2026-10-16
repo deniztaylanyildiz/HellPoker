@@ -13,10 +13,10 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.QuietSatchel: return L("QUIET SATCHEL", "SESSİZ HEYBE");
                 case UpgradeIds.Seed: return L("SEED", "TOHUM");
                 case UpgradeIds.Abundance: return L("ABUNDANCE", "BEREKET");
-                case UpgradeIds.DeepProphecy: return L("DEEP PROPHECY", "DERİN KEHANET");
+                case UpgradeIds.DeepProphecy: return L("THIRD EYE", "ÜÇÜNCÜ GÖZ");
                 case UpgradeIds.BlindMirror: return L("BLIND MIRROR", "KÖR AYNA");
-                case UpgradeIds.Thrice: return L("ARRANGE THRICE", "ÜÇ KEZ DİZ");
-                case UpgradeIds.EyeOfTruth: return L("EYE OF TRUTH", "GERÇEĞİN GÖZÜ");
+                case UpgradeIds.Thrice: return L("FATE WEAVER", "KADER DOKUMACISI");
+                case UpgradeIds.EyeOfTruth: return L("PROPHECY SEAL", "KEHANET MÜHRÜ");
                 case UpgradeIds.OverflowingTreasury: return L("OVERFLOWING TREASURY", "TAŞAN HAZİNE");
                 case UpgradeIds.CheapSeizure: return L("CHEAP SEIZURE", "UCUZ MÜSADERE");
                 case UpgradeIds.CrownGuard: return L("CROWN GUARD", "TAÇ MUHAFIZI");
@@ -37,11 +37,11 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.QuietSatchel: return L("The demon notices the satchel half as often.", "Şeytan heybeyi yarı yarıya daha az fark eder.");
                 case UpgradeIds.Seed: return L("Every new chapter puts a ten or better in your satchel.", "Her yeni bölüm heybene onlu ya da daha iyi bir kart koyar.");
                 case UpgradeIds.Abundance: return L("After a draw two thrown cards may go into the satchel.", "Değişten sonra atılan iki kart heybeye girebilir.");
-                case UpgradeIds.DeepProphecy: return L("You see one card deeper into the deck.", "Destenin bir kart daha derinini görürsün.");
+                case UpgradeIds.DeepProphecy: return L("FORESIGHT sees one card more.", "ÖNSEZİ bir kart fazla görür.");
                 case UpgradeIds.BlindMirror: return L("Half the hands the demon learns none of your cards.", "Ellerin yarısında şeytan kartlarından hiçbirini öğrenemez.");
-                case UpgradeIds.Thrice: return L("The charged prophecy sends three cards down.", "Dolu kehanet üç kartı dibe yollar.");
-                case UpgradeIds.EyeOfTruth: return L("At a demon's table one of his cards plays face up from the deal.",
-                    "Şeytanın masasında kartlarından biri dağıtımdan itibaren açık oynanır.");
+                case UpgradeIds.Thrice: return L("BEND FATE moves two cards.", "KADERİ BÜK iki kart oynatır.");
+                case UpgradeIds.EyeOfTruth: return string.Format(L("Walk away from a swindler's offer: +{0} coins.",
+                    "Bir dolandırıcının teklifini geri çevir: +{0} coin."), ClassKit.SealCoins);
                 case UpgradeIds.OverflowingTreasury: return L("The treasury holds fifteen taxes.", "Hazine on beş vergi alır.");
                 case UpgradeIds.CheapSeizure: return L("A seizure costs 3 taxes.", "Müsadere 3 vergi.");
                 case UpgradeIds.CrownGuard: return L("A demon's hand lost takes a quarter of your taxes, not half.",

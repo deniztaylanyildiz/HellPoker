@@ -38,7 +38,8 @@ namespace HellPoker.Core.Game
             header.AppendLine("language: " + (language ?? "?"));
             header.AppendLine("started:  " + started.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
             header.AppendLine("demon:    " + (dealerId ?? "?"));
-            header.AppendLine("class:    " + (classId ?? "?"));
+            // Demo 2.2: the Warlock is the Oracle on screen; the id stays for the saves.
+            header.AppendLine("class:    " + (classId == Sinners.Warlock.ClassId ? "oracle (id warlock)" : classId ?? "?"));
             header.AppendLine((resumedAtHand > 0 ? "resumed:  from a save after hand " + resumedAtHand + ", at " : "start:    ") +
                               startingYears.ToString(CultureInfo.InvariantCulture) + " years");
             _header = header.ToString();

@@ -42,8 +42,12 @@ namespace HellPoker.Core.Chapters
         /// (HELLPOKER_POWER_HAND=0).</summary>
         public static bool PowersEveryHand = true;
 
+        /// <summary>How often (percent) the demon learns one of the Oracle's cards without the Blind Mirror (Demo 2.2's tuning; 100: always).</summary>
+        public static int DemonKnowsPercent = 100;
+
         public static void Reset()
         {
+            DemonKnowsPercent = 100;
             FixedBossStakes = true;
             PowersEveryHand = true;
             StartingCoins.Clear();

@@ -94,7 +94,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.LostSoulsLetter: return L("A helper's good turn is a fifth better.", "Yardımcıların iyiliği beşte bir fazla.");
                 case ChapterRelicIds.TwinDice: return L("Once at each table, before the draw, redraw a card.", "Her masada bir kez, değişten önce bir kartı yeniden çek.");
                 case ChapterRelicIds.JestersHat: return L("A hand won with a joker in it: +25%.", "Jokerle kazanılan el: +%25.");
-                case ChapterRelicIds.SeersSpectacles: return L("The prophecy sees one card more.", "KEHANET bir kart fazla görür.");
+                case ChapterRelicIds.SeersSpectacles: return L("FORESIGHT sees one card more.", "ÖNSEZİ bir kart fazla görür.");
                 case ChapterRelicIds.PeasantsScythe: return L("The satchel holds one card more.", "HEYBE bir kart fazla taşır.");
                 case ChapterRelicIds.KingsSignet: return L("The treasury holds five taxes more.", "Hazine beş vergi fazla tutar.");
                 case ChapterRelicIds.SummonersLeash: return L("An imp runs wild half as often.", "İblis yarı yarıya daha az azar.");
@@ -144,7 +144,7 @@ namespace HellPoker.Presentation.Ui
                 case ChapterRelicIds.LostSoulsLetter: return L("Every offer taken: +20 years on your sentence.", "Kabul edilen her teklif: cezana +20 yıl.");
                 case ChapterRelicIds.TwinDice: return L("The demon's malice grows one more every hand.", "Şeytanın kötülüğü her el bir fazla dolar.");
                 case ChapterRelicIds.JestersHat: return L("A hand lost to two jokers: +25%.", "İki jokerle kaybedilen el: +%25.");
-                case ChapterRelicIds.SeersSpectacles: return L("Seen cards can no longer go to the bottom.", "Görülen kartlar artık dibe yollanamaz.");
+                case ChapterRelicIds.SeersSpectacles: return L("BEND FATE can no longer send a card to the bottom.", "KADERİ BÜK artık kartı dibe yollayamaz.");
                 case ChapterRelicIds.PeasantsScythe: return L("A satchel hand: the demon re-raises 5% more often.", "Heybe eli: şeytan %5 daha sık artırır.");
                 case ChapterRelicIds.KingsSignet: return L("A seizure costs one tax more.", "MÜSADERE bir vergi fazla.");
                 case ChapterRelicIds.SummonersLeash: return L("Imps cost 2 coins more (a demon's table: 1% more).", "İblis bedeli 2 coin fazla (şeytan masasında %1).");

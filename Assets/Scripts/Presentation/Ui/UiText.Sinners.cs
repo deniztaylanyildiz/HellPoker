@@ -10,7 +10,7 @@ namespace HellPoker.Presentation.Ui
             switch (id)
             {
                 case Peasant.ClassId: return L("PEASANT", "KÖYLÜ");
-                case Warlock.ClassId: return L("WARLOCK", "BÜYÜCÜ");
+                case Warlock.ClassId: return L("ORACLE", "KÂHİN");
                 case King.ClassId: return L("KING", "KRAL");
                 case Jester.ClassId: return L("JESTER", "SOYTARI");
                 case Summoner.ClassId: return L("SUMMONER", "ÇAĞIRICI");
@@ -24,7 +24,7 @@ namespace HellPoker.Presentation.Ui
             switch (id)
             {
                 case Peasant.ClassId: return L("Who never had much to lose", "Kaybedecek pek bir şeyi olmamış");
-                case Warlock.ClassId: return L("Who dabbled in the dark arts", "Karanlık sanatlarla oynamış");
+                case Warlock.ClassId: return L("Who read the fates, and sold them", "Kaderi okumuş, sonra satmış");
                 case King.ClassId: return L("Who ruled, and sinned in proportion", "Hüküm sürmüş, günahı da ona göre");
                 case Jester.ClassId: return L("Who made a joke of everything", "Her şeyi şakaya vurmuş");
                 case Summoner.ClassId: return L("Who called up what should sleep", "Uyuması gerekeni uyandırmış");
@@ -122,7 +122,7 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        /// <summary>One line for every class: {0} = "PEASANT 2 · WARLOCK 0 · KING 1".</summary>
+        /// <summary>One line for every class: {0} = "PEASANT 2 · ORACLE 0 · KING 1".</summary>
         public static string RecordsClassesFormat => L("Freed as: {0}", "Sınıfa göre aklanma: {0}");
 
         public static string SinnersButton => L("SINNERS", "GÜNAHKÂRLAR");

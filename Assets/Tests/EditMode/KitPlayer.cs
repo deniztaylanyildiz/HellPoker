@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HellPoker.Core.Cards;
@@ -93,24 +94,32 @@ namespace HellPoker.Core.Tests
             return VisibleHandReader.Read(kept, game.Evaluator) ?? HandCategory.HighCard;
         }
 
-        /// <summary>The Warlock, charged: a top card that would not better the kept cards goes to the bottom (twice at most).</summary>
+        /// <summary>The Oracle's BEND FATE: when the top card would not better the kept cards, a deeper seen card that would comes up;
+        /// with none, the top card goes down (as many moves as the power gives).</summary>
         private static void Rearrange(HellPokerGame game, ProphecyPowers prophecy, int[] discards)
         {
-            if (!TopHelps(game, prophecy, discards) && prophecy.WhyNoRearrange(game) == KitRefusal.None)
+            if (TopHelps(game, prophecy, discards) || prophecy.WhyNoRearrange(game) != KitRefusal.None) return;
+            for (int k = 0; k < prophecy.Kit.RearrangesPerCharge && !TopHelps(game, prophecy, discards); k++)
             {
-                prophecy.StartRearranging(game);
-                for (int k = 0; k < 2 && !TopHelps(game, prophecy, discards); k++)
-                    if (!prophecy.SendToBottom(game, 0)) break;
+                IReadOnlyList<Card> top = prophecy.TopCards(game);
+                int up = Enumerable.Range(1, Math.Max(0, top.Count - 1)).FirstOrDefault(i => Helps(game, top[i], discards));
+                bool moved = up > 0 ? prophecy.Bend(game, up, toTop: true) : prophecy.Kit.CanSendToBottom && prophecy.Bend(game, 0, toTop: false);
+                if (!moved) break;
             }
         }
 
         private static bool TopHelps(HellPokerGame game, ProphecyPowers prophecy, int[] discards)
         {
             IReadOnlyList<Card> top = prophecy.TopCards(game);
-            if (top.Count == 0) return true;
+            return top.Count == 0 || Helps(game, top[0], discards);
+        }
+
+        /// <summary>The card, drawn into the first thrown place, betters what the kept cards make.</summary>
+        private static bool Helps(HellPokerGame game, Card card, int[] discards)
+        {
             int place = discards.OrderBy(i => i).First();
             int[] rest = discards.Where(d => d != place).ToArray();
-            return Kept(game, game.PlayerHand.With(place, top[0]), rest) > Kept(game, game.PlayerHand, discards);
+            return Kept(game, game.PlayerHand.With(place, card), rest) > Kept(game, game.PlayerHand, discards);
         }
 
         /// <summary>

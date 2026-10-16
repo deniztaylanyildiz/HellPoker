@@ -3327,3 +3327,54 @@ build, duman turu, commit + `v2.1.1-demo` (push yok). Boss Simülatörü ve demo
 - Bulgu: önceki eski kurallar tablosu (Köylü 49.6) eski oyuncu modelindendi. Aynı modelle Köylü G+H'de −10.2 (G −2.6, H −3.2 tek başına).
   Kral −4.8, Büyücü −3.6. PHASE2_CHAPTERS on dördüncü tura tablo eklendi.
 - Açık (kullanıcıda): Köylü'ye telafi yapılsın mı (ör. hasat gücü ya da başlangıç kesesi), yoksa sınıf farkı olarak kalsın mı.
+
+## 2026-10-16 — Demo 2.2, iş 0–1: durum ve Warlock → Oracle (KÂHİN)
+
+### İstek (kullanıcı)
+"Baştan sona build": 0) iki eski prompt uygulandı mı bak; 1) Warlock → ORACLE / KÂHİN (id "warlock" aynı), ÖNSEZİ / GERÇEĞİ GÖRÜR /
+KADERİ BÜK / Ayna Laneti, yeni portre, dört yükseltme, Kör Kâhin olayı → Kör Falcı, simülasyonda %25-40; 2) sınıf güçlerinde tam hata
+avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5) her sınıfla otomatik tam koşu + kaos turu; 6) kapanış,
+2.2.0-demo, build, `v2.2-demo`. Simülatöre ve demo kurallarına dokunma; Unity'ler tek tek; her iş sonunda EditMode + DEVLOG + ara commit.
+
+### 0) Durum
+- Demo 2.1 (A–G) ve playtest düzeltmeleri (2.1.1, A–J) uygulanmış ve etiketlenmiş (`v2.1-demo`, `v2.1.1-demo`; DEVLOG kayıtları
+  2026-10-13 / 14-15). Prompt dosyaları bu bilgisayarda bulunamadı (Masaüstünde yalnız 2.0.1 promptu var); kanıt DEVLOG + etiketler.
+  Yeniden uygulanacak bir şey yok.
+
+### 1) Oracle (yapılanlar)
+- **Ad:** ekranda her yerde ORACLE / KÂHİN (sınıf kartı, rozet, rekorlar, How to Play, şeytanların "Bir kâhin." selamları, Phase 2
+  bekçi metni); koşu günlüğünde `class: oracle (id warlock)`. C# sınıfı `Warlock` ve id "warlock" aynı (kayıtlar, rekorlar, yükseltme
+  id'leri değişmedi; test: 2.1.1 kaydı Oracle olarak açılır, yükseltmeleriyle).
+- **Güçler (Phase 2):** ÖNSEZİ dağıtımdan sonra draw'da gelecek **2** kartı görür (`ClassKit.ForesightCards`; eski 1/2/3 bölüm kuralı
+  kalktı). GERÇEĞİ GÖRÜR: yalanlar + tuzak ipuçları (aynı). KADERİ BÜK (K ya da kartın oku, elde bir kez): gördüğü bir kart en üste
+  (`ProphecyPowers.PullToTop`) ya da dibe (`SendToBottom`); `Bend` tek adımda gücü harcar + kartı oynatır, yapılamayacak hamlede güç
+  harcanmaz. Panelde her kartın sağında piksel üçgenli ▲ / ▼ düğmeleri (`KitView`, `KitCard.Arrows / CanTop / CanBottom`,
+  `ITableView.KitArrowPressed`); kullanılabilen ok yanıp söner. Bedel: AYNA LANETİ (şeytan bir kartını bilir, aynı kural).
+- **Yükseltmeler (id'ler aynı):** Üçüncü Göz (`deep_prophecy`: ÖNSEZİ +1 kart), Kör Ayna (`blind_mirror`: %50), Kader Dokumacısı
+  (`thrice`: KADERİ BÜK iki kart), Kehanet Mührü (`eye_of_truth`: dolandırıcı teklifini GEÇ → +10 coin, `ChoiceEvent.Choose`,
+  sonuç "sealed", haritada bir satır). Eski "Gerçeğin Gözü" (boss kartı açık) kalktı.
+- Kâhinin Gözlüğü (emanet): artık "dibe yollanamaz" yalnız ▼'yi kapatır, ▲ çalışır.
+- **Kör Kâhin** olayı Türkçede **KÖR FALCI** (İngilizce THE BLIND SEER kaldı).
+- Portre / ikon yeniden (`pixel_sinners.py` `oracle()`: gözleri bağlı, alnında açık, parlayan üçüncü göz; tek kare — sınıf
+  portrelerinin durum kareleri yok).
+- Simülatördeki Warlock'un gücü (koruma) ve metni aynı; sadece adı ORACLE (ekranda her yerde kuralı).
+
+### Simülasyon (WholeRun, Oracle, 500 koşu; yeni `ChapterSimulation.OracleTuning` ızgarası tek Unity'de)
+| ÖNSEZİ | bedel (bar% / coin) | şeytan bilir | Lucifer'e | kurtuluş |
+|---|---|---|---|---|
+| 2 | 1 / 2 (2.1.1) | %100 | %35.0 | %20.6 |
+| 3 | 1 / 2 | %100 | %38.0 | %23.8 |
+| **2** | **0 / 0** | **%100** | **%47.4** | **%28.2** |
+| 3 | 0 / 0 | %100 | %49.0 | %32.0 |
+| 2 | 1 / 2 | %50 | %34.2 | %19.0 |
+| 3 | 0 / 0 | %50 | %51.4 | %32.4 |
+- Karar: ÖNSEZİ 2 kart (promptun sayısı), KADERİ BÜK bedelsiz (bedel = Ayna Laneti, promptun tanımı) → %28.2. `ChapterTuning.DemonKnowsPercent`
+  ızgara düğmesi (oyunda 100).
+
+### Testler
+- EditMode 1090 (1085 geçti, 5 explicit). Yeni: `OracleTests` (oklar, ▲ / ▼, dil değişimi, adlar), `ClassKitTests` (ÖNSEZİ 2, ▲ ile draw,
+  Gözlük + Dokumacı, destede 1 kart / draw sonrası), `ChapterBuildTests` (eski kayıt Oracle olarak, Kehanet Mührü).
+
+### Açık / sıradaki
+- Belial'de 2 kasa kartı görme (Warlock'un eski pasifi) Phase 2'de de duruyor; Oracle metninde yazmıyor (karar listesine).
+- Sıradaki: 2) sınıf güçleri hata avı.

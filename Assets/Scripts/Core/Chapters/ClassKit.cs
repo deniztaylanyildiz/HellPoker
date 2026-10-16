@@ -36,14 +36,14 @@ namespace HellPoker.Core.Chapters
         /// <summary>The King's treasury holds at most this many taxes; the prices of its three acts.</summary>
         public const int TaxMax = 10, RevealPrice = 1, FreeRaisePrice = 2, SeizePrice = 4;
 
-        /// <summary>The Warlock's K power sends up to this many seen cards to the bottom in a hand (2.1.1: once every hand, so one, not two).</summary>
+        /// <summary>The Oracle's K power (BEND FATE) moves this many seen cards in a hand, each to the top or to the bottom.</summary>
         public static int RearrangesPerUse = 1;
+
+        /// <summary>The Oracle's FORESIGHT: the cards of the deck's top he sees after the deal (Demo 2.2: two in every chapter).</summary>
+        public static int ForesightCards = 2;
 
         /// <summary>The King's K power: a seizure for this share (percent) of its price in taxes (2.1.1: once every hand, so not for nothing).</summary>
         public static int PowerSeizePercent = 50;
-
-        /// <summary>The prophecy at Lilith's and Lucifer's tables (and its most).</summary>
-        public const int ProphecyMost = 3;
 
         private readonly List<Card> _satchel = new List<Card>();
 
@@ -115,11 +115,14 @@ namespace HellPoker.Core.Chapters
         /// <summary>How much more often the demon re-raises a hand drawn from the satchel (the Quiet Satchel: half).</summary>
         public int SatchelRisk => (Has(UpgradeIds.QuietSatchel) ? SatchelReRaisePercent / 2 : SatchelReRaisePercent) + Mark(HellPoker.Core.Relics.RelicExtras.SatchelRisk);
 
-        /// <summary>Seen cards the charged prophecy sends down (Thrice: three).</summary>
+        /// <summary>Seen cards BEND FATE moves in a hand (the Fate Weaver: two).</summary>
         public int RearrangesPerCharge => RearrangesPerUse + (Has(UpgradeIds.Thrice) ? 1 : 0);
 
-        /// <summary>How often (percent) the demon learns one of the Warlock's cards in a hand (the Blind Mirror: half the hands).</summary>
-        public int DemonKnowsPercent => Has(UpgradeIds.BlindMirror) ? 50 : 100;
+        /// <summary>The Prophecy Seal: coins for every swindler's offer the Oracle walks away from.</summary>
+        public const int SealCoins = 10;
+
+        /// <summary>How often (percent) the demon learns one of the Oracle's cards in a hand (the Mirror Curse; the Blind Mirror: half the hands).</summary>
+        public int DemonKnowsPercent => ChapterTuning.DemonKnowsPercent * (Has(UpgradeIds.BlindMirror) ? 50 : 100) / 100;
 
         /// <summary>The treasury holds this many taxes (the Overflowing Treasury: fifteen).</summary>
         public int TaxCapacity => (Has(UpgradeIds.OverflowingTreasury) ? 15 : TaxMax) + Mark(HellPoker.Core.Relics.RelicExtras.TaxCap);
@@ -188,12 +191,12 @@ namespace HellPoker.Core.Chapters
 
         // ------------------------------------------------------------------ the Warlock's prophecy
 
-        /// <summary>How many cards of the deck's top the Warlock sees: one in the first chapter, one more for every demon beaten (Mammon,
-        /// Belial), three at Lilith's and Lucifer's tables.</summary>
+        /// <summary>How many cards of the deck's top the Oracle sees (FORESIGHT): <see cref="ForesightCards"/> in every chapter, one more
+        /// with the Third Eye (and the Seer's Spectacles).</summary>
         public int ProphecyCards => Kind != KitKind.Prophecy ? 0
-            : (AtLucifer ? ProphecyMost : Math.Min(ProphecyMost, Chapter)) + (Has(UpgradeIds.DeepProphecy) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.ProphecyCards);
+            : ForesightCards + (Has(UpgradeIds.DeepProphecy) ? 1 : 0) + Mark(HellPoker.Core.Relics.RelicExtras.ProphecyCards);
 
-        /// <summary>The seen cards may go to the bottom (not with the Seer's Spectacles worn).</summary>
+        /// <summary>The seen cards may go to the bottom (not with the Seer's Spectacles worn: they may still go to the top).</summary>
         public bool CanSendToBottom => Mark(HellPoker.Core.Relics.RelicExtras.ProphecyNoBottom) == 0;
 
         // ------------------------------------------------------------------ Lucifer's mirror (his own copy of the class's mechanic)
@@ -210,6 +213,12 @@ namespace HellPoker.Core.Chapters
         public int TakenFromSatchel { get; set; }
         public int Harvests { get; set; }
         public int Rearranges { get; set; }
+
+        /// <summary>Of the Oracle's bends, those that brought a card to the top.</summary>
+        public int PulledUp { get; set; }
+
+        /// <summary>Coins the Prophecy Seal paid (swindlers walked away from).</summary>
+        public int SealCoinsEarned { get; set; }
         public int Reveals { get; set; }
         public int FreeRaises { get; set; }
         public int Seizures { get; set; }
