@@ -33,8 +33,15 @@ namespace HellPoker.Core.Chapters
         /// <summary>The floors (0-based, inclusive) of the chapter's middle third, where the treasures lie.</summary>
         public static (int from, int to) TreasureWindow(int floors) => (floors / 3, 2 * floors / 3 - 1);
 
-        public static ChapterMap Make(ChapterRules rules, IRandomSource random)
+        /// <summary>Demo 2.2 (version 3): on a path two markets, or two camps, have at least this many floors between them.</summary>
+        public const int FloorsBetween = 2;
+
+        /// <summary>Demo 2.2: a path holds at most this many black markets (the unknowns' counted).</summary>
+        public const int MostMarketsOnAPath = 2;
+
+        public static ChapterMap Make(ChapterRules rules, IRandomSource random, int version = ChapterMap.CurrentVersion)
         {
+            bool spaced = version >= 3;
             int floors = Math.Max(4, rules.Floors);
 
             // The floors' sizes: three first, one camp last, 2-5 between (never the floor above's).
@@ -90,7 +97,7 @@ namespace HellPoker.Core.Chapters
 
             // The middle camp: every start reaches one; never next to another camp.
             var (cFrom, cTo) = CampWindow(floors);
-            Cover(kinds, next, sizes, NodeKind.PurgatoryFire, f => f >= cFrom && f <= cTo, random, int.MaxValue);
+            Cover(kinds, next, sizes, NodeKind.PurgatoryFire, f => f >= cFrom && f <= cTo, random, int.MaxValue, spaced ? FloorsBetween : 0);
 
             // The wardens: from the fourth floor on (never the last), every start reaches one, then more up to the chapter's number.
             int wardenLimit = Math.Max(1, rules.MaxWardens);
@@ -112,12 +119,63 @@ namespace HellPoker.Core.Chapters
                         foreach (int j in next[f][l])
                             if (kinds[f + 1][j] == NodeKind.BlackMarket) kinds[f + 1][j] = NodeKind.Event;
 
+            // The unknowns' contents, rolled in the nodes' order (as Demo 2.1 rolled them while building the nodes).
+            var hidden = new NodeKind?[floors][];
+            for (int f = 0; f < floors; f++)
+            {
+                hidden[f] = new NodeKind?[sizes[f]];
+                for (int l = 0; l < sizes[f]; l++)
+                    if (kinds[f][l] == NodeKind.Unknown) hidden[f][l] = HiddenAt(f, random);
+            }
+            if (spaced) SpaceTheMarkets(kinds, hidden, next, sizes, random);
+
             var map = new MapNode[floors][];
             for (int f = 0; f < floors; f++)
                 map[f] = Enumerable.Range(0, sizes[f]).Select(l => new MapNode(f, l, kinds[f][l], next[f][l].OrderBy(x => x).ToArray(),
-                    kinds[f][l] == NodeKind.Unknown ? HiddenAt(f, random) : (NodeKind?)null)).ToArray();
-            return ChapterMap.Of(map, ChapterMap.CurrentVersion);
+                    hidden[f][l])).ToArray();
+            return ChapterMap.Of(map, Math.Max(2, version));
         }
+
+        /// <summary>
+        /// Demo 2.2: walking the floors down, a market (or an unknown holding one) that some path reaches with another market fewer than
+        /// <see cref="FloorsBetween"/> floors above it — or with <see cref="MostMarketsOnAPath"/> behind it — becomes something else: a plain
+        /// node an event, an unknown's content rolled again without the market. What every path carries is kept per node (the floor of its
+        /// last market and how many it passed), so no path is missed.
+        /// </summary>
+        private static void SpaceTheMarkets(NodeKind[][] kinds, NodeKind?[][] hidden, List<int>[][] next, int[] sizes, IRandomSource random)
+        {
+            const int none = -100;
+            var states = new HashSet<(int last, int count)>[kinds.Length][];
+            for (int f = 0; f < kinds.Length; f++)
+            {
+                states[f] = new HashSet<(int, int)>[sizes[f]];
+                for (int l = 0; l < sizes[f]; l++)
+                {
+                    var arriving = new HashSet<(int last, int count)>();
+                    if (f == 0) arriving.Add((none, 0));
+                    else
+                        for (int p = 0; p < sizes[f - 1]; p++)
+                            if (next[f - 1][p].Contains(l)) arriving.UnionWith(states[f - 1][p]);
+                    bool market = IsMarket(kinds[f][l], hidden[f][l]);
+                    if (market && arriving.Any(s => f - s.last <= FloorsBetween || s.count >= MostMarketsOnAPath))
+                    {
+                        if (kinds[f][l] == NodeKind.BlackMarket) kinds[f][l] = NodeKind.Event;
+                        else
+                        {
+                            NodeKind again;
+                            do again = HiddenAt(f, random);
+                            while (again == NodeKind.BlackMarket);
+                            hidden[f][l] = again;
+                        }
+                        market = false;
+                    }
+                    states[f][l] = market ? new HashSet<(int, int)>(arriving.Select(s => (f, s.count + 1))) : arriving;
+                }
+            }
+        }
+
+        /// <summary>A node that is a black market, open or behind a "?".</summary>
+        public static bool IsMarket(NodeKind kind, NodeKind? hidden) => kind == NodeKind.BlackMarket || (kind == NodeKind.Unknown && hidden == NodeKind.BlackMarket);
 
         /// <summary>A plain node's kind on <paramref name="floor"/>: tables and events early, the market from the third floor, more of the
         /// market and the unknown late. The treasures, the camps and the wardens are placed apart.</summary>
@@ -163,7 +221,8 @@ namespace HellPoker.Core.Chapters
         /// the most starts still without one reach (ties at random), never on a treasure, a camp or a warden, never (a camp) next to a camp.
         /// Returns how many there are.
         /// </summary>
-        private static int Cover(NodeKind[][] kinds, List<int>[][] next, int[] sizes, NodeKind kind, Func<int, bool> allowed, IRandomSource random, int limit)
+        private static int Cover(NodeKind[][] kinds, List<int>[][] next, int[] sizes, NodeKind kind, Func<int, bool> allowed, IRandomSource random, int limit,
+            int spacing = 0)
         {
             int floors = kinds.Length;
             int count = 0;
@@ -174,7 +233,8 @@ namespace HellPoker.Core.Chapters
                 var uncovered = Enumerable.Range(0, sizes[0]).Where(s => !reach[s].Any(n => allowed(n.f) && kinds[n.f][n.l] == kind)).ToList();
                 if (uncovered.Count == 0) break;
                 var candidates = reach[uncovered[0]].Where(n => allowed(n.f) && Replaceable(kinds[n.f][n.l]) &&
-                                                                (kind != NodeKind.PurgatoryFire || !NextToA(kinds, next, n, kind))).ToList();
+                                                                (kind != NodeKind.PurgatoryFire || !NextToA(kinds, next, n, kind)) &&
+                                                                (spacing == 0 || !NearA(kinds, next, n, kind, spacing))).ToList();
                 if (candidates.Count == 0) break;
                 int best = candidates.Max(n => uncovered.Count(s => reach[s].Contains(n)));
                 var top = candidates.Where(n => uncovered.Count(s => reach[s].Contains(n)) == best).ToList();
@@ -196,6 +256,27 @@ namespace HellPoker.Core.Chapters
                 foreach (int l in here) all.Add((f + 1, l));
             }
             return all;
+        }
+
+        /// <summary>A path joins the node to one of <paramref name="kind"/> within <paramref name="span"/> floors above or below it.</summary>
+        private static bool NearA(NodeKind[][] kinds, List<int>[][] next, (int f, int l) node, NodeKind kind, int span)
+        {
+            // Down: the nodes the node leads to, floor by floor.
+            var here = new HashSet<int> { node.l };
+            for (int f = node.f; f < node.f + span && f + 1 < kinds.Length; f++)
+            {
+                here = new HashSet<int>(here.SelectMany(l => next[f][l]));
+                if (here.Any(l => kinds[f + 1][l] == kind)) return true;
+            }
+            // Up: the nodes that lead to it.
+            here = new HashSet<int> { node.l };
+            for (int f = node.f; f > node.f - span && f > 0; f--)
+            {
+                var above = new HashSet<int>(Enumerable.Range(0, kinds[f - 1].Length).Where(p => next[f - 1][p].Any(here.Contains)));
+                if (above.Any(p => kinds[f - 1][p] == kind)) return true;
+                here = above;
+            }
+            return false;
         }
 
         /// <summary>A path joins the node to one of <paramref name="kind"/> just above or below it.</summary>

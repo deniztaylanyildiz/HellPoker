@@ -81,8 +81,10 @@ namespace HellPoker.Core.Chapters
         /// run's map comes back from its own generator.</summary>
         public int Version { get; }
 
-        /// <summary>1: Demo 2.0's map (every floor <see cref="ChapterRules.Lanes"/> nodes, straight paths); 2: Demo 2.1's.</summary>
-        public const int CurrentVersion = 2;
+        /// <summary>1: Demo 2.0's map (every floor <see cref="ChapterRules.Lanes"/> nodes, straight paths); 2: Demo 2.1's; 3: Demo 2.2's
+        /// (on any path two black markets — the unknowns' too — or two camps have at least two floors between them, and a path has at most
+        /// two markets).</summary>
+        public const int CurrentVersion = 3;
 
         private ChapterMap(MapNode[][] floors, int version)
         {
@@ -101,7 +103,7 @@ namespace HellPoker.Core.Chapters
         {
             if (rules == null) throw new ArgumentNullException(nameof(rules));
             if (random == null) throw new ArgumentNullException(nameof(random));
-            return version <= 1 ? GenerateEven(rules, random) : MapMaker.Make(rules, random);
+            return version <= 1 ? GenerateEven(rules, random) : MapMaker.Make(rules, random, version);
         }
 
         /// <summary>Demo 2.0's map: every floor <see cref="ChapterRules.Lanes"/> nodes, the first all tables, the

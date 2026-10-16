@@ -3415,3 +3415,29 @@ avı; 3) haritada art arda pazar / kamp yok; 4) sayfalı, resimli How to Play; 5
 
 ### Sıradaki
 - 3) haritada art arda pazar / kamp yok.
+
+## 2026-10-16 — Demo 2.2, iş 3: haritada art arda pazar / kamp yok
+
+### Yapılanlar
+- Harita üreticisi **sürüm 3** (`ChapterMap.CurrentVersion = 3`; kayıt haritayı tohum + sürümden yeniden ürettiği için 2.1 kayıtlarının
+  haritası sürüm 2 ile aynen döner — test).
+- Bir yol boyunca iki Kara Pazar arasında en az 2 kat (`MapMaker.FloorsBetween`), bir yolda en çok 2 pazar (`MostMarketsOnAPath`); "?"
+  düğümünün içeriği pazarsa o da sayılır. `SpaceTheMarkets`: katlar yukarıdan aşağı gezilir, her düğüm kendisine gelen bütün yolların
+  (son pazar katı, pazar sayısı) durumlarını taşır; kuralı bozan pazar olaya döner, "?" ise içeriği pazarsız yeniden zarlanır. Böylece
+  hiçbir yol atlanmaz (yolları tek tek saymadan).
+- Kamp için aynı aralık: orta kamp yerleştirilirken (`Cover`) 2 kat içinde başka kampa yol ile bağlı düğüm aday olmaz (`NearA`); son katın
+  kampına pencereler zaten ≥ 3 kat uzak.
+- Pusula'nın yan atlaması (oyuncunun seçimi) kurala dahil değil.
+
+### Test
+- `MapSpacingTests`: 10.000 tohum × 3 bölüm × 6 daire = 180.000 haritada yolların hiçbiri kuralı bozmuyor; ortalama 2.75 açık pazar + 0.22
+  "?" pazarı, orta kampa ulaşamayan başlangıç %0.00 (~2 dk sürüyor). Sürüm 2 haritası aynı tohumla aynı.
+- EditMode 1098 (1093 geçti, 5 explicit).
+
+### Simülasyon (WholeRun, sınıf başına 500, daire 0; eski harita `HELLPOKER_MAP=2` → yeni)
+- Kese boşalan / tam haraç farkları hep ±5 puan içinde (en büyük: Soytarı 2. bölüm tam haraç 23.4 → 25.5, Köylü 2. bölüm 37.6 → 39.4).
+- Pazara uğrama 3. bölümde 0.9 → 0.6, olay 1.8 → 2.1. Kurtuluş: Köylü 47.2 → 49.2, Kâhin 28.4 → 30.8, Kral 33.0 → 32.8, Soytarı 16.2 →
+  14.6, Çağırıcı 35.6 → 36.4 (500 koşunun gürültüsü içinde).
+
+### Sıradaki
+- 4) sayfalı, resimli How to Play.
