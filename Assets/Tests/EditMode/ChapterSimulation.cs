@@ -607,7 +607,7 @@ namespace HellPoker.Core.Tests
         private static readonly int[] PowerDefaults =
         {
             ChapterRelics.ClassRelicChance, ClassKit.SatchelStart, ClassKit.ForesightStart, ClassKit.TaxStart, ClassKit.TaxStep,
-            ClassKit.CaughtStart, ClassKit.CaughtStep, ClassKit.SatchelReRaisePercent
+            ClassKit.CaughtStart, ClassKit.CaughtStep, ClassKit.SatchelReRaisePercent, ProphecyPowers.BullyPercent, ChapterTuning.DemonKnowsPercent
         };
 
         /// <summary>"chance=35,satchel=1,foresight=1,tax=5,taxstep=5,caught=40,caughtstep=10,risk=30": the knobs named are set, the rest kept.</summary>
@@ -628,6 +628,8 @@ namespace HellPoker.Core.Tests
                     case "caught": ClassKit.CaughtStart = v; break;
                     case "caughtstep": ClassKit.CaughtStep = v; break;
                     case "risk": ClassKit.SatchelReRaisePercent = v; break;
+                    case "bully": ProphecyPowers.BullyPercent = v; break;
+                    case "knows": ChapterTuning.DemonKnowsPercent = v; break;
                 }
             }
         }
@@ -642,6 +644,8 @@ namespace HellPoker.Core.Tests
             ClassKit.CaughtStart = PowerDefaults[5];
             ClassKit.CaughtStep = PowerDefaults[6];
             ClassKit.SatchelReRaisePercent = PowerDefaults[7];
+            ProphecyPowers.BullyPercent = PowerDefaults[8];
+            ChapterTuning.DemonKnowsPercent = PowerDefaults[9];
         }
 
         /// <summary>

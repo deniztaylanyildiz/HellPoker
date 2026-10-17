@@ -21,11 +21,17 @@ namespace HellPoker.Presentation.Views
         public const int Width = 104;
 
         /// <summary>The panel's height with a row of cards, and with buttons (or a note) only.</summary>
-        public const int CardsHeight = 52, ButtonsHeight = 38;
+        public const int CardsHeight = 47, ButtonsHeight = 38;
+
+        /// <summary>With cards the panel rises this much over the dialog box's bottom border (never its words: they end above it), so its
+        /// cards end over the MENU and HANDS buttons.</summary>
+        public const int CardsLift = 7;
 
         /// <summary>The cards (Demo 2.3: 24×36, up from 18×22): four fit side by side; a fifth closes them up.</summary>
         public const int CardWidth = 24, CardHeight = 36;
-        private const int CardStep = 25, TightStep = 20, MaxCards = 5, CardsTop = 13;
+        private const int CardStep = 25, TightStep = 20, MaxCards = 5, CardsTop = 10;
+
+        private int _x, _y;
 
         private AnimationSequencer _sequencer;
         private Action<int> _cardPressed, _buttonPressed;
@@ -55,6 +61,8 @@ namespace HellPoker.Presentation.Views
             RectTransform root = UiFactory.CreateRect("ClassKit", screen).PlaceTL(x, y, Width, ButtonsHeight);
             var view = root.gameObject.AddComponent<KitView>();
             view._root = root;
+            view._x = x;
+            view._y = y;
             view._sequencer = sequencer;
             view._cardPressed = cardPressed;
             view._buttonPressed = buttonPressed;
@@ -74,7 +82,7 @@ namespace HellPoker.Presentation.Views
             AddTrigger(hover, EventTriggerType.PointerExit, () => _tooltip.SetActive(false));
 
             _title = UiFactory.CreateText("Title", _frame.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft);
-            _title.rectTransform.PlaceTL(4, 2, Width - 8, 9);
+            _title.rectTransform.PlaceTL(4, 1, Width - 8, 9);
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
             _title.raycastTarget = false;
 
@@ -170,8 +178,8 @@ namespace HellPoker.Presentation.Views
             }
             bool cards = kit.Cards.Count > 0 && kit.Buttons.Count == 0;
             Height = cards ? CardsHeight : ButtonsHeight;
+            _root.PlaceTL(_x, cards ? _y - CardsLift : _y, Width, Height);
             _frame.rectTransform.PlaceTL(0, 0, Width, Height);
-            _root.sizeDelta = new Vector2(Width, Height);
             _title.text = kit.Title;
             _note.text = kit.Note ?? "";
             int step = kit.Cards.Count > 4 ? TightStep : CardStep;

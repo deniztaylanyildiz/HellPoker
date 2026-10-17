@@ -41,9 +41,12 @@ Poker biliyor musun? (hiç / biraz / iyi):
    >
 
 
-6. SINIF VE GÜÇ
-   Hangi sınıfı seçtin (Köylü / Kâhin / Kral / Soytarı / Çağırıcı)? Paneldeki gücü (Heybe / Önsezi ve Kaderi Bük / Hazine /
-   jokerler / iblisler) anladın mı, ne sıklıkla işine yaradı? K'yi her elde kullandın mı? Hangi YÜKSELTMELERİ aldın, fark ettin mi?
+6. SINIF, GÜÇ VE PASİF
+   Hangi sınıfı seçtin (Köylü / Kâhin / Kral / Soytarı / Çağırıcı / Hırsız)? Paneldeki ana gücü (Heybe / Önsezi / Hazine / jokerler /
+   iblisler / Çal) anladın mı? Kendiliğinden çalışan PASİFİ (Sessiz Tarla, Gerçeği Görür, Kraliyet İndirimi, Sadık İblis, Göz Ucu) fark
+   ettin mi — rozet parladığında ne olduğunu anladın mı? K tuşunu özlediğin oldu mu?
+   Sınıf zayıf başlayıp SINIF EMANETLERİYLE büyüyor: gücün yolda büyüdüğünü hissettin mi? Kaç sınıf emaneti buldun, hangi bölümde?
+   Hırsız oynadıysan: kart değiştirdikten sonra çalmayı denedin mi? Hangi YÜKSELTMELERİ aldın?
 
    >
 
@@ -97,8 +100,10 @@ Poker biliyor musun? (hiç / biraz / iyi):
     >
 
 
-14. SES, MÜZİK VE DİL
+14. SES, MÜZİK, DİL VE KARTLAR
     Rahatsız eden ya da çok sessiz kalan bir şey var mıydı? Hangi dilde oynadın, garip okunan bir cümle gördün mü?
+    Kartlar artık klasik iki renkte (Ayarlar > OYUN > DÖRT RENKLİ DESTE ile değişir): hangisini tercih ettin? Paneldeki büyük kartlar
+    (Önsezi, heybe) okunaklı mıydı?
 
     >
 

@@ -39,7 +39,7 @@ namespace HellPoker.PlayMode.Tests
             [3] = new RectInt(135, 104, 200, 112),   // a hand at the draw: two cards to throw
             [4] = new RectInt(0, 20, 200, 112),     // the demon's bar under him, glowing: the last blow
             [5] = new RectInt(0, 0, 200, 112),      // the cheat announced over the demon, his gauge
-            [6] = new RectInt(44, 28, 200, 112),    // the class cards, the Oracle's in the middle
+            [6] = new RectInt(4, 120, 200, 112),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
             [7] = new RectInt(100, 50, 200, 112),   // the relics: worn and in the bag
             [8] = new RectInt(140, 62, 200, 112),   // a market's seller
         };
@@ -105,6 +105,51 @@ namespace HellPoker.PlayMode.Tests
                 yield return Settle(0.8f);
                 yield return HellPokerScreenshots.Shot($"165_boss_sentence_bar_last_blow_{l}");
             }
+        }
+
+        /// <summary>Demo 2.3's screens (170–178), in both languages: the class cards (power and PASSIVE), every class's badge hover and panel at a
+        /// demon's table, the Oracle's four big FORESIGHT cards at the highest level.</summary>
+        [UnityTest, Timeout(900000)]
+        public IEnumerator CaptureDemoTwoThree()
+        {
+            foreach (string language in new[] { "English", "Turkish" })
+            {
+                string l = language == "Turkish" ? "tr" : "en";
+                yield return Load(language);
+                HellPokerScreenshots.Press("NewGameButton");
+                yield return new WaitForSeconds(0.8f);
+                yield return HellPokerScreenshots.Shot($"170_class_cards_{l}");
+
+                var classes = Core.Sinners.SinnerRoster.PhaseTwo;
+                for (int i = 0; i < classes.Count; i++)
+                {
+                    yield return Load(language, Boss(classes[i], 1600, 1600));
+                    yield return Settle();
+                    ChapterJourneyTests.Chapters.Table.PerformAction();   // the deal: the panel at work
+                    yield return Settle(0.8f);
+                    ShowBadgeHover();
+                    yield return null;
+                    yield return HellPokerScreenshots.Shot($"{171 + i}_{classes[i].Id}_badge_panel_{l}");
+                }
+
+                ChapterSave seer = Boss(Core.Sinners.SinnerRoster.Warlock, 1600, 1600);
+                seer.Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.Warlock.ClassId).ToList();
+                seer.Upgrades.Add(UpgradeIds.DeepProphecy);
+                yield return Load(language, seer);
+                yield return Settle();
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle(0.8f);
+                yield return HellPokerScreenshots.Shot($"177_oracle_four_cards_{l}");
+            }
+        }
+
+        /// <summary>The class badge's hover box, opened as the pointer would.</summary>
+        private static void ShowBadgeHover()
+        {
+            var badge = Object.FindObjectsByType<Presentation.Views.SinnerBadgeView>(FindObjectsSortMode.None)
+                .FirstOrDefault(b => b.isActiveAndEnabled && b.Badge.Visible);
+            Transform tip = badge == null ? null : badge.transform.Find("SinnerTip");
+            if (tip != null) tip.gameObject.SetActive(true);
         }
 
         private static IEnumerator Load(string language, ChapterSave save = null)

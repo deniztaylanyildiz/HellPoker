@@ -47,9 +47,12 @@ başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne oldu
 
 EMANETLER: en çok 5'i takılı (masada sadece onlar etki eder), 5'i de çantada bekler. Takılı ve çantadakileri kampta (EMANET DÜZENİ)
 değiştirirsin; haritadaki EMANETLER düğmesi hepsini gösterir. Her emanetin bir lütfu, bir laneti vardır; çerçevesinin rengi
-nadirliğidir. Bazı emanetler bir sınıfa aittir, yalnız o sınıfta çıkar.
-Şeytanı yenince ganimetinde onun iki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin). Yükseltmeler sınıfının gücünü kalıcı
-olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
+nadirliğidir.
+SINIF EMANETLERİ: her sınıfın üç emaneti var (yaygın, nadir, efsanevi); sırayla gelirler. Pazarda bazen tezgâhta, bazen bekçinin
+ödülü olarak, her zaman da ganimette. Takılıyken her biri sınıfının ana gücünü bir adım büyütür (çantadayken etkisizdir); kampta
+DÖVÜLÜRSE bir adım daha. Sınıf zayıf başlar, gücü yolda büyür: haritanın sağında "ÖNSEZİ 2/4" gibi yazar.
+Şeytanı yenince ganimetinde onun iki emaneti, sınıfının sıradaki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin).
+Yükseltmeler sınıfını kalıcı olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
 
 KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür, kazanç en çok ×3 öder. Bir bölüm başlarken kesen
 sınıfının başlangıç kesesinin altındaysa ona tamamlanır.
@@ -62,26 +65,30 @@ yok). Kazandığın el yıllarını hem bardan hem cezandan siler; kaybettiğin 
 LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır (REKORLAR'da sınıf ve daire başına en
 düşüğü); barı sonundaki işareti geçerse düşersin (koşu biter).
 
-SINIF GÜÇLERİ (K ya da rozet: her elde bir kez; rozetin üstünde HAZIR / BU ELDE KULLANILDI yazar). Masada diyalog kutusunun
-altındaki panelde:
-  - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (en çok 2). Sonraki kart değiştirmelerde heybedeki
-    karta tıklarsan desteden çekmek yerine o gelir; ama şeytan görür, o el daha sık artırır. K: HASAT, atılan her yer heybeden, gizlice.
-  - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek 2 kartı görür. GERÇEĞİ
-    GÖRÜR — şeytanın yalanlarını ve dolandırıcıların tuzağını açıkça görür. K ya da kartın üstündeki oklar: KADERİ BÜK, gördüğün
-    kartlardan birini en üste çek (kart değiştirirken ilk o gelir) ya da dibe yolla. Bedeli, AYNA LANETİ: şeytan her elde kartlarından
-    birini bilir.
-  - Kral, HAZİNE: kazandığın her elde 1 vergi. Kart değiştirmeden önce: AÇ (şeytanın bir kartı açılır), BEDAVA (sıradaki artırman
-    şeytanın parasıyla), MÜSADERE (bir kartını ver, şeytanın en iyi açık kartını al). J, Q, K'na hiçbir hile dokunamaz. Şeytanın
-    masasında kaybedilen el vergilerin yarısını götürür. K: bedava müsadere.
+SINIF GÜÇLERİ: her sınıfın bir ana gücü ve bir PASİFİ var; ikisi de kendiliğinden çalışır (K tuşu yalnız Hırsız'da ÇAL'dır, diğer
+sınıflarda ne yaptığını söyler). Ana güç masada diyalog kutusunun altındaki panelde; pasif çalıştığında sınıf rozeti kısa parlar.
+Rozetin yanındaki noktalar gücün seviyesi (0-3); üzerine gelince gücün şu anki ve en yüksek değeri yazar.
+  - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (1 kart; sınıf emanetleriyle 4'e kadar). Sonraki
+    kart değiştirmelerde heybedeki karta tıklarsan desteden çekmek yerine o gelir. PASİF, SESSİZ TARLA: elin ilk heybe kartını şeytan
+    görmez; ikincisini görür ve o el daha sık artırır.
+  - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek kartı görür (1 kart; 4'e kadar).
+    PASİF, GERÇEĞİ GÖRÜR: şeytanın yalanlarını ve dolandırıcıların tuzağını açıkça görür. Bedeli, AYNA LANETİ: şeytan her elde
+    kartlarından birini bilir.
+  - Kral, HAZİNE: kazandığın her elde 1 vergi (en çok 5; 20'ye kadar). Kart değiştirmeden önce: AÇ (şeytanın bir kartı açılır),
+    BEDAVA (sıradaki artırman şeytanın parasıyla), MÜSADERE (bir kartını ver, şeytanın en iyi açık kartını al). J, Q, K'na hiçbir hile
+    dokunamaz. Şeytanın masasında kaybedilen el vergilerin yarısını götürür. PASİF, KRALİYET İNDİRİMİ: müsadere yarı fiyata (2 vergi).
   - Soytarı: destede joker var (2 ile başlar, kazandıkça artar). Tek joker el sonunda istediğin karta döner; elinde 2 joker varsa
     kaybedersin, fazlasını kart değiştirirken at. Şeytan da joker çekebilir. 20 jokerde sayı 10'a iner: ilk seferde Soytarı'nın
-    Çıngırağı, sonrakilerde bir emanet ya da 30 coin.
+    Çıngırağı, sonrakilerde bir emanet ya da 30 coin. Sınıf emanetleri KALKAN verir: her masada kendi iki jokerinle kaybettiğin
+    bir el (emanet başına) berabere sayılır.
   - Çağırıcı, İBLİSLER: kart değiştirmeden önce GÖZ (şeytanın kapalı bir kartını aç, 5 coin), EL (bir kartını onun açık bir kartıyla
-    değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını
-    düşürür. K: LEJYON, o elin ilk iblisi bedava.
-  - Hırsız, EL ÇABUKLUĞU: GÖZ UCU — şeytanın kapalı kartlarından biri dağıtımdan açık gelir. K ya da ÇAL düğmesi (elde bir kez,
-    kart değiştirmeden önce): bir kartına tıkla, şeytanın kapalı kartlarından biriyle körlemesine yer değişir. Dörtte bir
-    yakalanırsın: takas olmaz, ceza ödersin (katta bir ante coin, şeytan masasında bar %3).
+    değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Başta yalnız GÖZ açık; EL ve FISILTI sınıf emanetleriyle açılır, üçüncü
+    adımda hepsi yarı fiyat. Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını düşürür. PASİF, SADIK İBLİS:
+    elin ilk iblisi bedava.
+  - Hırsız, EL ÇABUKLUĞU: PASİF, GÖZ UCU — şeytanın kapalı kartlarından biri dağıtımdan açık gelir. K ya da ÇAL düğmesi (elde bir kez,
+    dağıtımdan showdown'a kadar; kart değiştirdikten sonra da, şeytanın artırmasına cevap verirken de): bir kartına tıkla, şeytanın
+    kapalı kartlarından biriyle körlemesine yer değişir. Yakalanırsan (%45; sınıf emanetleriyle %15'e kadar iner) takas olmaz, ceza
+    ödersin (katta bir ante coin, şeytan masasında bar %3).
 
 ŞEYTAN KURALLARI (sadece şeytanların kendi masalarında; masa açılırken söylerler):
   - Mammon, FAİZ: kazanamadığın her elde bar biraz uzar.
@@ -113,14 +120,15 @@ KONTROLLER
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
   H               el sıralaması
-  K               sınıfının gücü (her elde bir kez)
+  K               Hırsız: ÇAL · diğer sınıflar: sınıfının ne yaptığı (güçler kendiliğinden çalışır)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
 
   Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
   Ayarlarda (SETTINGS / AYARLAR) üç sekme var, Q / E ya da ok tuşlarıyla geçersin:
-    OYUN: animasyon hızı, el rehberi, ipuçları, dil · GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği,
+    OYUN: animasyon hızı, el rehberi, ipuçları, dil, dört renkli deste (kartlar varsayılan olarak klasik iki renk) ·
+    GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği,
     dikey senkron · SES: ana ses, müzik, efektler.
   Fareyle de oynanır: butonlara, kartlara ve haritadaki düğümlere tıkla.
 

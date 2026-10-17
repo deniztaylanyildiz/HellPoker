@@ -719,3 +719,41 @@ Daireler (sınıf başına 500 koşu; Köylü / Kâhin / Kral / Soytarı / Çağ
 - 3: 43.4 / 19.2 / 20.4 / 8.0 / 19.4 → 22.1
 - 4: 39.6 / 15.6 / 17.4 / 10.4 / 16.0 → 19.8
 - 5: 33.0 / 12.0 / 14.8 / 6.4 / 8.0 → 14.8
+
+## On altıncı tur — Demo 2.3: pasif sınıf güçleri, seviye ve sınıf emanetleri (2026-10-17)
+
+Kurallar: Phase 2'de K güçleri yok (HASAT, KADERİ BÜK, LEJYON, şarjlı müsadere silindi); her sınıfın ana gücü + kendiliğinden çalışan pasifi:
+Köylü SESSİZ TARLA, Kâhin GERÇEĞİ GÖRÜR, Kral KRALİYET İNDİRİMİ (müsadere yarı), Çağırıcı SADIK İBLİS (elin ilk iblisi bedava), Hırsız
+GÖZ UCU + ÇAL draw'dan sonra da. Ana güç seviyesi 0-3 = takılı sınıf emanetleri (dövülen 2 adım) + adım yükseltmesi: heybe / ÖNSEZİ
+1 → 4, hazine 5 → 20, Hırsız yakalanma %45 → %15, iblisler GÖZ → +EL → +FISILTI → yarı fiyat, Soytarı masa başına 0 → 3 kalkan. Sınıf
+emanetleri (6 × 3) sırayla gelir: pazar ve bekçi %35, ganimet her zaman. Simülasyon oyuncusu pazarda / ganimette önce sınıf emanetini
+alır, ÖNSEZİ'nin gösterdiği kartlara göre değişir, ÇAL'ı draw'dan sonra (trips ve altı) yapar.
+
+### Ayar
+- Hırsız (500 koşu): yakalanma başı %40 → kurtuluş %43.2 (2.2.1: %30.0); %45 → %37.2; %50 → %31.6; %55 adım 12 → %28.6; %60 adım 15 →
+  %29.0. Seçim: **%45** (adım 10, en az 5).
+- Kâhin (500 koşu, aynı tohumlar; temel %42.4): Ayna Laneti zorbalığı %35 → %42.6, %50 → %43.2; sınıf emaneti şansı %25 → %41.8 —
+  düğmeler etkisiz, oyun ayarı değişmedi (2000 koşuda %47.4: hedefin 2.4 puan üstünde).
+
+### Son simülasyon (WholeRun)
+Daire 0, sınıf başına 2000 koşu (Demo 2.2.1'e göre; Kâhin / Kral / Soytarı / Çağırıcı'nın 2.2.1 değeri Demo 2.2 koşusundan):
+
+| sınıf | Lucifer'e | kurtuluş (2.2.1) | 1. böl. kese boşalan / tam haraç | 2. böl. | 3. böl. | Lucifer'de düşüş |
+|---|---|---|---|---|---|---|
+| Köylü | %57.1 | **%39.8** (41.1) | 10.1 / 69.2 | 8.6 / 33.1 | 6.9 / 50.9 | %30.2 |
+| Kâhin | %61.6 | **%47.4** (29.8) | 15.5 / 63.8 | 3.5 / 44.2 | 0.4 / 65.5 | %23.1 |
+| Kral | %41.5 | **%24.6** (31.7) | 4.7 / 62.0 | 8.3 / 23.1 | 7.9 / 36.6 | %40.8 |
+| Soytarı | %22.5 | **%16.0** (13.6) | 28.7 / 57.4 | 24.8 / 28.2 | 25.3 / 39.9 | %28.7 |
+| Çağırıcı | %44.1 | **%30.7** (36.9) | 8.1 / 55.4 | 9.2 / 16.8 | 8.4 / 29.6 | %30.5 |
+| Hırsız | %57.3 | **%36.3** (30.0) | 10.5 / 47.7 | 11.4 / 21.3 | 7.6 / 40.4 | %36.6 |
+| hepsi | %47.3 | **%32.4** | | | | |
+
+Gücün yolda büyümesi: koşu başına alınan sınıf emaneti Köylü 2.3, Kâhin 2.1, Kral 2.3, Soytarı 1.5, Çağırıcı 2.2, Hırsız 2.3. Ana gücün
+seviyesi (değeri) 1. / 2. / 3. bölüm / Lucifer başında: hepsinde 0.0 / 1.6 / 2.8 / 3.0 (Köylü ve Kâhin 1 / 2.6 / 3.8 / 4 kart, Kral 5 /
+12.9 / 19.1 / 19.9 vergi, Çağırıcı 1 / 2.5 / 3.0 / 3.0 iblis, Hırsız %45 / 29.1 / 16.7 / 15.2, Soytarı 0 / 1.6 / 2.8 / 3.0 kalkan).
+Pasifler koşu başına: Köylü 20.9 elde, Kral 18.1, Çağırıcı 98.2 (iblis 107); Hırsız 59 çalış (50'si draw'dan sonra), 18 yakalanma;
+Soytarı 5.4 kalkan.
+
+Hedef %20-45: Köylü, Kral, Çağırıcı, Hırsız içinde; **Kâhin üstünde (%47.4)** — simülasyon oyuncusu artık ÖNSEZİ'nin kartlarını bilerek
+değişiyor (2.2'de bilgiyi yalnız KADERİ BÜK'te kullanıyordu), gerçek oyuncu bu kadar kesin oynamaz; **Soytarı altında (%16.0, 2.2'de
+13.6)** — kalkanlar biraz yardım ediyor, kullanıcı kararıyla zorlanmadı.

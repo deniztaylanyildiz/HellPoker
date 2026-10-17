@@ -140,6 +140,82 @@ namespace HellPoker.PlayMode.Tests
             Assert.LessOrEqual(view.MessageShown.Split('\n').Length, 2, "under the band the message keeps to two lines");
         }
 
+        [UnityTest, Timeout(300000)]
+        public IEnumerator EveryClassesPanel_AtItsLargest_KeepsOffTheHandAndTheWords()
+        {
+            foreach (bool turkish in new[] { false, true })
+            foreach (Core.Sinners.SinnerClass cls in Core.Sinners.SinnerRoster.PhaseTwo)
+            {
+                // The power at its highest level (the class's three relics and its step upgrade): four cards for FORESIGHT and the satchel.
+                string step = ClassKit.StepUpgradeOf(cls.Id);
+                var save = new ChapterSave
+                {
+                    ClassId = cls.Id, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600, BossBar = 1600, NodeDone = false,
+                    Relics = Core.Relics.ChapterRelics.ClassChain(cls.Id).ToList(), Taxes = 20,
+                    Satchel = Core.Cards.CardCodes.TryParseDeck("AS,KH,QD,JC").ToList()
+                };
+                if (step != null) save.Upgrades.Add(step);
+                yield return Load(turkish, save);
+                yield return Settle();
+                TableView view = ChapterJourneyTests.ChapterTableView;
+                ChapterJourneyTests.Chapters.Table.PerformAction();   // the deal: FORESIGHT opens
+                yield return Settle();
+                string where = cls.Id + (turkish ? " (tr)" : " (en)");
+                AssertNothingOverlaps(view, where + ", the class panel in a hand");
+                AssertPanelKeepsClear(view, where);
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheGamesClassCards_TheirWordsFitAboveTheCircleAndChoose_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            {
+                yield return Load(turkish, null);
+                HellPokerScreenshots.Press("NewGameButton");
+                yield return new WaitForSeconds(0.6f);
+                var classes = Core.Sinners.SinnerRoster.PhaseTwo;
+                for (int index = 0; index < classes.Count; index++)
+                {
+                    string id = classes[index].Id, what = $"{id} ({(turkish ? "tr" : "en")})";
+                    Transform card = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                        .Single(t => t.name == "Sinner_" + id);
+                    var ability = (RectTransform)card.Find("Ability");
+                    var detail = (RectTransform)card.Find("Detail");
+                    var choose = (RectTransform)card.Find("ChooseSinner" + index);
+                    var circle = (RectTransform)card.Find("Circle");
+                    float Top(RectTransform r) => -r.anchoredPosition.y;
+                    float Bottom(RectTransform r) => Top(r) + r.rect.height;
+                    Assert.LessOrEqual(ability.GetComponent<Text>().preferredHeight, ability.rect.height + 0.5f, $"{what}: the power fits its box");
+                    Assert.LessOrEqual(detail.GetComponent<Text>().preferredHeight, detail.rect.height + 0.5f, $"{what}: the price fits its box");
+                    Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price under the power");
+                    Assert.LessOrEqual(Bottom(detail), circle != null ? Top(circle) : Top(choose), $"{what}: the words end above the circle's row");
+                    Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: and above CHOOSE");
+                }
+            }
+        }
+
+        /// <summary>The class panel's frame touches no card of the player's hand, no text and no button outside it.</summary>
+        internal static void AssertPanelKeepsClear(TableView view, string where)
+        {
+            Canvas.ForceUpdateCanvases();
+            KitView kit = view.GetComponentInChildren<KitView>(false);
+            if (kit == null || kit.Shown.IsHidden) return;
+            Rect panel = Box((RectTransform)kit.transform.Find("Frame"));
+            var problems = new List<string>();
+            Transform hand = view.transform.GetComponentsInChildren<Transform>(false).FirstOrDefault(t => t.name == "PlayerHand");
+            if (hand != null)
+                foreach (Image card in hand.GetComponentsInChildren<Image>(false).Where(i => i.isActiveAndEnabled && i.color.a > 0.01f))
+                    if (Overlaps(panel, Box(card.rectTransform))) problems.Add("a card of the hand: " + card.name);
+            foreach (Text text in view.GetComponentsInChildren<Text>(false).Where(t => t.isActiveAndEnabled && !string.IsNullOrWhiteSpace(t.text)
+                         && t.color.a > 0.01f && !Under(t.transform, "ClassKit") && t.name != "ResultFloat" && t.name != "HandFlare"))
+                if (Overlaps(panel, Glyphs(text))) problems.Add($"the words '{Short(text)}' ({text.name})");
+            foreach (Button button in view.GetComponentsInChildren<Button>(false).Where(b => b.isActiveAndEnabled && !Under(b.transform, "ClassKit")))
+                if (Overlaps(panel, Box((RectTransform)button.transform))) problems.Add("the button " + button.name);
+            Assert.AreEqual(kit.Shown.Cards.Count > 0 ? KitView.CardsHeight : KitView.ButtonsHeight, kit.Height, where + ": the panel's height");
+            Assert.IsEmpty(problems, where + ": the class panel over\n" + string.Join("\n", problems));
+        }
+
         /// <summary>A long line of the language on show (a hand's result as the floors word it).</summary>
         private static string Long(int n) => string.Format(UiText.CoinLossFormat, LongestHand(), LongestHand(), 100 + n);
 

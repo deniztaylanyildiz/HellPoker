@@ -47,7 +47,8 @@ namespace HellPoker.Core.Chapters
         public static int TaxStart = 5, TaxStep = 5;
 
         /// <summary>The Thief is caught this often (percent) at level 0, this much less a level, never under the least.</summary>
-        public static int CaughtStart = 40, CaughtStep = 10, CaughtLeast = 5;
+        /// <remarks>Demo 2.3: 40 → 45 (the steal after the draw lifted him 30.0% → 43.2% at 40; 45: 37.2%, 50: 31.6%; 500 whole runs).</remarks>
+        public static int CaughtStart = 45, CaughtStep = 10, CaughtLeast = 5;
 
         /// <summary>A hand the Peasant draws two satchel cards in or more the demon sees it: his re-raise comes this much (percent) more often
         /// (the first card is never seen: the Silent Field).</summary>

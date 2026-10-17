@@ -166,7 +166,7 @@ namespace HellPoker.Core.Chapters
     public sealed class ProphecyPowers : ClassPowers
     {
         /// <summary>The demon knowing a low card bullies: his re-raise comes this much (percent) more often (the Seer's Spectacles: more).</summary>
-        public const int BullyPercent = 20;
+        public static int BullyPercent = 20;   // a tuning knob
 
         public ProphecyPowers(ClassKit kit, IRandomSource random) : base(kit, random)
         {

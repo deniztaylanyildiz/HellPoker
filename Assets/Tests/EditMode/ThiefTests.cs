@@ -136,7 +136,7 @@ namespace HellPoker.Core.Tests
             kit.AddUpgrade(UpgradeIds.LightFingers);
             Assert.AreEqual(ClassKit.CaughtStart - ClassKit.CaughtStep, kit.ThiefCaughtPercent, "Light Fingers: a level");
             kit.AddUpgrade(UpgradeIds.LootSack);
-            var (game, theft, purse) = AtTheDraw(35, kit: kit);   // 35: caught at 40%, not at 30%
+            var (game, theft, purse) = AtTheDraw(ClassKit.CaughtStart - ClassKit.CaughtStep, kit: kit);   // caught at the start, not a level up
             Assert.IsTrue(theft.Steal(game, 0));
             Assert.IsFalse(theft.CaughtThisHand);
             Assert.AreEqual(100 + TheftPowers.LootCoins, purse.Coins);

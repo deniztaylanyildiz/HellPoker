@@ -28,7 +28,7 @@ namespace HellPoker.PlayMode.Tests
         public void BackToTheUsualMenu()
         {
             HellPokerBootstrap.ForceSimulator = null;
-            SuitColors.Set(true);
+            SuitColors.Set(false);   // Demo 2.3: the two colours are the default
         }
 
         private static TableView View => ChapterJourneyTests.ChapterTableView;
@@ -105,6 +105,8 @@ namespace HellPoker.PlayMode.Tests
             satchel.Satchel = new[] { new Card(Rank.Ten, Suit.Clubs), new Card(Rank.Queen, Suit.Diamonds), new Card(Rank.Ace, Suit.Spades) }.ToList();
             yield return ChapterJourneyTests.LoadWithSave(satchel);
             yield return Settle();
+            SuitColors.Set(true);
+            yield return Settle(0.2f);
             yield return HellPokerScreenshots.Shot("146_small_cards_four_colours");
             SuitColors.Set(false);
             yield return Settle(0.2f);

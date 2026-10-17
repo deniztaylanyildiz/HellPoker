@@ -435,9 +435,15 @@ namespace HellPoker.PlayMode.Tests
                     // Demo 2.3: the steal after the draw (its bet), K opening the pick, the card clicked given.
                     if (hooks?.Theft != null && game.IsAfterDraw && hooks.Theft.WhyNoSteal(game) == KitRefusal.None)
                     {
-                        table.UsePower();   // the pick opens
-                        int give = Enumerable.Range(0, 5).FirstOrDefault(i => hooks.Theft.CanGive(game, i));
-                        table.ToggleDiscard(give);   // the card given
+                        // A card that makes nothing (the lowest in no pair), as a player gives: never a card of a pair to the demon.
+                        Core.Cards.Hand mine = game.PlayerHand;
+                        int give = Enumerable.Range(0, 5).Where(i => hooks.Theft.CanGive(game, i) && mine.Count(c => c.Rank == mine[i].Rank) == 1)
+                            .OrderBy(i => mine[i].Rank).DefaultIfEmpty(-1).First();
+                        if (give >= 0)
+                        {
+                            table.UsePower();   // the pick opens
+                            table.ToggleDiscard(give);   // the card given
+                        }
                     }
                     break;
                 default:

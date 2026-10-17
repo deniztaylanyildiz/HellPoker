@@ -1,5 +1,30 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.3 (2.3.0-demo) — 2026-10-17 — Sınıf güçleri pasif, sınıflar emanetlerle güçlenir, iki renkli kartlar
+
+### Yeni
+- **Sınıf güçleri pasif:** K'ye basılan güç yok; her sınıfın ana gücü ve kendiliğinden çalışan bir PASİFİ var (rozet o an kısa parlar).
+  Köylü SESSİZ TARLA (elin ilk heybe kartını şeytan görmez), Kâhin GERÇEĞİ GÖRÜR (yalanlar ve tuzaklar), Kral KRALİYET İNDİRİMİ (müsadere
+  yarı fiyat), Çağırıcı SADIK İBLİS (elin ilk iblisi bedava), Hırsız GÖZ UCU. Soytarı aynı. K tuşu Hırsız'da ÇAL, diğerlerinde ne
+  yaptığını söyler.
+- **Hırsız kart değiştirdikten sonra da çalabilir:** dağıtımdan showdown'a kadar, şeytanın artırmasına cevap verirken bile (elde bir kez).
+- **Sınıflar zayıf başlar, emanetlerle büyür:** her sınıfın üç sınıf emaneti var (yaygın, nadir, efsanevi; 13 yeni emanet), sırayla
+  gelir: pazarda bazen tezgâhta, bazen bekçi ödülü, ganimette her zaman. Takılı her biri ana gücü bir adım büyütür, kampta dövülen bir
+  adım daha: heybe ve ÖNSEZİ 1 → 4 kart, hazine 5 → 20 vergi, Hırsız %45 → %15 yakalanma, Çağırıcı önce yalnız GÖZ (EL ve FISILTI
+  açılır, sonra yarı fiyat), Soytarı her masada kendi iki jokerinin kaybını berabere sayan kalkanlar. Rozetin noktaları gücün
+  seviyesi; haritada "ÖNSEZİ 2/4" yazar, güç büyüyünce söylenir.
+- Çağırıcı'nın dört yükseltmesi: İki Sadık İblis, Evcil İblisler, Keskin Göz, Kan Yemini.
+
+### Değişen
+- KADERİ BÜK (Kâhin'in okları), HASAT, LEJYON ve yarı fiyat K müsaderesi kalktı. Kader Dokumacısı artık şeytanın bildiği kartı
+  gösterir; Ucuz Müsadere indirimi dörtte bire indirir; Geniş Heybe, Üçüncü Göz, Taşan Hazine, Hafif Parmaklar gücü bir adım büyütür.
+  Kâhinin Gözlüğü'nün laneti: şeytan düşük kartınla daha sık zorbalık yapar. Lucifer'in Aynası Kâhin'e karşı desteyi dibe yollamaz.
+- **Kartlar klasik iki renk** (kupa / karo kırmızı, maça / sinek siyah); dört renk Ayarlar > OYUN'da. Eski oyuncularda bir kez iki renge döner.
+- Kâhin'in ÖNSEZİ ve Köylü'nün heybe kartları büyüdü (24×36): değer ve renk masadaki gibi okunur.
+- Rozetin ve sınıf kartının metni aynı: ana güç, PASİF, yükseltmeler; HAZIR / BU ELDE KULLANILDI yazısı kalktı.
+- How to Play: "Günahkârlar ve Güçler" sayfası ve resimleri yenilendi.
+- Denge (simülasyon, sınıf başına 2000 koşu): Köylü %40, Kâhin %47, Kral %25, Soytarı %16, Çağırıcı %31, Hırsız %36.
+
 ## Demo 2.2.1 (2.2.1-demo) — 2026-10-17
 
 ### Yeni

@@ -33,23 +33,18 @@ namespace HellPoker.Presentation.Ui
             ClassKit k = kit ?? KitOf(id);
             if (k == null) return null;
             int now = k.PowerValue, most = k.PowerMax;
+            // Short: six class cards side by side leave about thirteen letters a line and six lines for both sentences (the price below).
             switch (id)
             {
-                case Peasant.ClassId: return string.Format(L("SATCHEL: keep a thrown card, draw it later ({0} cards, at most {1}).",
-                    "HEYBE: attığın kartı sakla, sonra çek ({0} kart, en çok {1})."), now, most);
-                case Warlock.ClassId: return string.Format(L("FORESIGHT: after the deal, see the next {0} cards (at most {1}).",
-                    "ÖNSEZİ: dağıtımdan sonra gelecek {0} kartı gör (en çok {1})."), now, most);
-                case King.ClassId: return string.Format(L("TREASURY: a tax per win ({0}, at most {1}): OPEN {2}, FREE {3}, SEIZE {4}. His J Q K are safe.",
-                    "HAZİNE: kazanç başına vergi ({0}, en çok {1}): AÇ {2}, BEDAVA {3}, MÜSADERE {4}. J Q K'sı güvende."), now, most,
-                    k.PriceOf(TaxAct.Reveal), k.PriceOf(TaxAct.FreeRaise), k.PriceOf(TaxAct.Seize));
-                case Summoner.ClassId: return string.Format(L("IMPS: EYE {1}, HAND {2}, WHISPER {3} coins; {0} of 3 open (his relics open the rest).",
-                    "İBLİSLER: GÖZ {1}, EL {2}, FISILTI {3} coin; açık {0}/3 (gerisini emanetleri açar)."), now,
+                case Peasant.ClassId: return string.Format(L("SATCHEL: keep a thrown card ({0}, max {1}).", "HEYBE: atılan kartı sakla ({0}, en çok {1})."), now, most);
+                case Warlock.ClassId: return string.Format(L("FORESIGHT: see {0} next cards (max {1}).", "ÖNSEZİ: gelecek {0} kart (en çok {1})."), now, most);
+                case King.ClassId: return string.Format(L("TREASURY: taxes ({0}, max {1}).", "HAZİNE: vergi ({0}, en çok {1})."), now, most);
+                case Summoner.ClassId: return string.Format(L("IMPS: EYE {1}, HAND {2}, WHISPER {3}; {0}/3 open.",
+                    "İBLİS: GÖZ {1}, EL {2}, FISILTI {3}; {0}/3 açık."), now,
                     SummonPowers.CoinPrices[0], SummonPowers.CoinPrices[1], SummonPowers.CoinPrices[2]);
-                case Thief.ClassId: return string.Format(L("STEAL: once a hand, until the showdown, a card for a closed one of his, blind (caught {0}%, at best {1}%).",
-                    "ÇAL: elde bir kez, showdown'a kadar, bir kartını onun kapalı biriyle körlemesine değiş (yakalanma %{0}, en iyi %{1})."), now, most);
-                case Jester.ClassId: return string.Format(L("Jokers in the deck: one is any card, two lose. A win adds one; at twenty they fall to ten. " +
-                    "Shields: {0} a table (at most {1}).", "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir ekler; yirmide sayı ona iner. " +
-                    "Kalkan: masada {0} (en çok {1})."), now, most);
+                case Thief.ClassId: return string.Format(L("STEAL: caught {0}% (best {1}%).", "ÇAL: %{0} yakalanır (en iyi %{1})."), now, most);
+                case Jester.ClassId: return string.Format(L("Jokers: one is any card, two lose; a win adds one. Shields {0}/{1}.",
+                    "Joker: biri her kart, ikisi kayıp; kazanınca artar. Kalkan {0}/{1}."), now, most);
                 default: return null;
             }
         }
@@ -59,16 +54,12 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("PASSIVE: SILENT FIELD, a hand's first satchel card goes unseen by the demon.",
-                    "PASİF: SESSİZ TARLA, elin ilk heybe kartını şeytan görmez.");
-                case Warlock.ClassId: return L("PASSIVE: SEES THE TRUTH, the demons' lies and the swindlers' traps.",
-                    "PASİF: GERÇEĞİ GÖRÜR, şeytanın yalanlarını ve dolandırıcıların tuzaklarını görür.");
-                case King.ClassId: return string.Format(L("PASSIVE: ROYAL DISCOUNT, a hand's seizure costs half ({0} of {1}).",
-                    "PASİF: KRALİYET İNDİRİMİ, elin müsaderesi yarı fiyata ({0} / {1})."), (kit ?? KitOf(id)).PriceOf(TaxAct.Seize),
-                    (kit ?? KitOf(id)).SeizeFullPrice);
-                case Summoner.ClassId: return L("PASSIVE: LOYAL IMP, a hand's first imp is free.", "PASİF: SADIK İBLİS, elin ilk iblisi bedava.");
-                case Thief.ClassId: return L("PASSIVE: GLANCE, one of the demon's closed cards shows from the deal.",
-                    "PASİF: GÖZ UCU, şeytanın kapalı kartlarından biri dağıtımdan açık gelir.");
+                case Peasant.ClassId: return L("PASSIVE: SILENT FIELD, 1st card unseen.", "PASİF: SESSİZ TARLA, ilk kart gizli.");
+                case Warlock.ClassId: return L("PASSIVE: SEES THE TRUTH, lies, traps.", "PASİF: GERÇEĞİ GÖRÜR, yalan, tuzak.");
+                case King.ClassId: return string.Format(L("PASSIVE: ROYAL DISCOUNT, seize for {0}.", "PASİF: KRALİYET İNDİRİMİ, müsadere {0}."),
+                    (kit ?? KitOf(id)).PriceOf(TaxAct.Seize));
+                case Summoner.ClassId: return L("PASSIVE: LOYAL IMP, 1st imp free.", "PASİF: SADIK İBLİS, ilki bedava.");
+                case Thief.ClassId: return L("PASSIVE: GLANCE, a closed card shows.", "PASİF: GÖZ UCU, bir kartı açık.");
                 default: return null;
             }
         }
@@ -89,12 +80,11 @@ namespace HellPoker.Presentation.Ui
         {
             switch (id)
             {
-                case Peasant.ClassId: return L("The second satchel card: he raises more.", "İkinci heybe kartı: şeytan çok artırır.");
-                case Warlock.ClassId: return L("MIRROR CURSE: the demon knows a card.", "AYNA LANETİ: şeytan bir kartını bilir.");
-                case King.ClassId: return L("A boss's hand lost halves the taxes.", "Boss eli kaybı vergiyi yarılar.");
-                case Thief.ClassId: return L("CAUGHT: no swap, a fine.", "YAKALANIRSAN: takas yok, ceza.");
-                case Summoner.ClassId: return L("Imps cost bar at a boss. 1 in 10 runs wild.",
-                    "Boss'ta iblis bar ister. 10'da 1 azar.");
+                case Peasant.ClassId: return L("2nd card: he raises more.", "2. kart: çok artırır.");
+                case Warlock.ClassId: return L("MIRROR CURSE: he knows a card.", "AYNA LANETİ: bir kartını bilir.");
+                case King.ClassId: return L("Boss loss: half the taxes.", "Boss kaybı: vergi yarıya.");
+                case Thief.ClassId: return L("Caught: no swap, a fine.", "Yakalanırsan: takas yok, ceza.");
+                case Summoner.ClassId: return L("Boss: bar. 1 in 10 runs wild.", "Boss'ta bar. 10'da 1 azar.");
                 default: return SinnerDetail(id);
             }
         }

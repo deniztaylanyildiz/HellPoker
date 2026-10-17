@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.2.1-win64.zip` (bundleVersion **2.2.1-demo**: menüde "Demo 2.2.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.3-win64.zip` (bundleVersion **2.3.0-demo**: menüde "Demo 2.3" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -51,7 +51,8 @@ oyununa varsayılan kapalı kanca (`HellPokerGame.UseHooks`, `Draw(discards, fro
 `CheatTable.Guarded`); `Core/Chapters`: `ClassKit` (koşunun heybesi, vergileri, kehanet sayısı, Lucifer'in kopyaları; kayıtta `kit.*`),
 `ClassPowers` (`SatchelPowers` Köylü HEYBE: 3 kart, heybeden çekilen elde re-raise +%30, K: Hasat; `ProphecyPowers` Büyücü KEHANET:
 üstteki 1/2/3 kart, şeytan bir kartını bilir, K: 2 kart dibe; `TreasuryPowers` Kral HAZİNE: vergi en çok 10, AÇ 1 / BEDAVA 2 / MÜSADERE 4,
-Saray J Q K, boss kaybı yarıya indirir, K: bedava müsadere), `DemonRules` (`MammonInterest` %2, `BelialRoleSwap` 4 elde bir,
+Saray J Q K, boss kaybı yarıya indirir, K: bedava müsadere — **Demo 2.3'te bütün K güçleri kalktı, sayılar seviyeye bağlandı: aşağıdaki
+Demo 2.3 paragrafı**), `DemonRules` (`MammonInterest` %2, `BelialRoleSwap` 4 elde bir,
 `LilithTemptation` %50, `LuciferMirror` sınıfa göre, köşeye sıkışma %25), `ChapterHooks` (ChapterRun her masaya, ChapterJourney Lucifer'e
 bağlar). Sunum: `KitView` (diyaloğun altında panel), `TablePresenter.Kit.cs`, `UiText.Kit.cs`, `CardMark.Tempted`, How to Play'da PHASE 2 sayfası.
 Simülasyon: `Tests/EditMode/BossSimulation` (Explicit; `HELLPOKER_KIT=0` kancasız), `ChapterSimulation` (`WholeRun` + teşhis satırları; düğmeler `ChapterTuning`: `HELLPOKER_JESTER_PURSE`, `_JESTER_TOTAL`, `HELLPOKER_TRIBUTE2/3`, `HELLPOKER_SATCHEL_RISK`; `HELLPOKER_REFILL=0`
@@ -94,12 +95,12 @@ yenileme), emanet fiyatı 55 / 65 / 75; Mammon'un Altın Dişi kapıya getirilen
 dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
 **Demo 2.1.1** (oyun testi düzeltmeleri; tablolar PHASE2_CHAPTERS on dördüncü tur; bundleVersion **2.1.1-demo**, zip
 `HellPoker-Demo-2.1.1-win64.zip`): **Kehanet** yalnız dağıtımdan sonra, draw'dan önce açık (`ProphecyPowers.IsOpen`; panelde "Dağıtımdan
-sonra görünür"). **Sınıf güçleri elde bir kez** (Phase 2'de şarj yok; `ClassPowers.IsReady / UsedThisHand / SpendPower`, `KitRefusal.NoBottom`;
+sonra görünür"). **Sınıf güçleri elde bir kez** (Demo 2.3'te K güçleriyle birlikte silindi; Phase 2'de şarj yok; `ClassPowers.IsReady / UsedThisHand / SpendPower`, `KitRefusal.NoBottom`;
 rozet `SinnerBadge.PowerState` HAZIR / BU ELDE KULLANILDI; demo'nun şarjı aynı; simülasyon düğmesi `HELLPOKER_POWER_HAND=0`). Denge kısmaları:
 Büyücü dibe 1 kart (`ClassKit.RearrangesPerUse`) + bedel bar %1 / katta 2 coin (`ProphecyPowers.RearrangeBarPercent / RearrangeCoins`), Kral K
 müsaderesi yarı vergiye (`ClassKit.PowerSeizePercent`, `TreasuryPowers.PowerSeizePrice`), Lejyon elin ilk iblisi (`SummonPowers.LegionImps`).
 **Boss bahsi sabit** (`HellPokerGame.FixedStakeYears` = barın başlangıcı, `BossTable.Create`; `NextWinEndsIt` → masada SON DARBE, bar parlar
-`BossBarDisplay.LastBlow`; düğme `HELLPOKER_FIXED_STAKES=0`). **Dört renkli deste** (`settings.fourcolor`, varsayılan açık; `SuitColors`,
+`BossBarDisplay.LastBlow`; düğme `HELLPOKER_FIXED_STAKES=0`). **Dört renkli deste** (`settings.fourcolor`, varsayılan açık — Demo 2.3: `settings.fourcolor.v2`, varsayılan kapalı; `SuitColors`,
 `Palette.SuitInk`, paletin 32. rengi mavi `#2a4aa0`, sprite'lar `suit_<renk>[_small]_four`; küçük kartlarda değerin yanında sembol + renkli
 kenar; Ayarlar satırları 30 px). **Sonuç bandı** (`ITableView.SetResultBand / FloatAmount / SetRecentHands`, `TableMoment.WinGlow / LossGlow`,
 `TablePresenter.Results.cs`; sadece bölüm masalarında). **Masa düzeni** (`TableView` sabitleri: mesaj 91 / 3 satır, pot 119, outlook 128,
@@ -112,7 +113,7 @@ solunda `DeckX/DeckY`; başlık sığmazsa dar yazıya geçer; PlayMode `TableLa
 **Demo 2.2** (etiket `v2.2-demo`; DEVLOG 2026-10-16, PHASE2_CHAPTERS on beşinci tur): **Büyücü → KÂHİN / ORACLE** — C# sınıfı `Warlock`,
 id `"warlock"` ve yükseltme id'leri aynı (kayıtlar, rekorlar); ekranda her yerde ORACLE / KÂHİN (simülatörde de; simülatördeki
 Warlock'un koruma gücü ve metni aynı). Phase 2: ÖNSEZİ `ClassKit.ForesightCards` = 2 (Üçüncü Göz `deep_prophecy` +1, Kâhinin Gözlüğü +1),
-KADERİ BÜK `ProphecyPowers.Bend / PullToTop / SendToBottom` (elde bir kez, bedelsiz: `RearrangeBarPercent / RearrangeCoins` 0; Kader
+KADERİ BÜK (Demo 2.3'te kalktı) `ProphecyPowers.Bend / PullToTop / SendToBottom` (elde bir kez, bedelsiz: `RearrangeBarPercent / RearrangeCoins` 0; Kader
 Dokumacısı `thrice` iki kart; Gözlük yalnız ▼'yi kapatır), panelde kartın sağında piksel ▲ / ▼ (`KitCard.Arrows / CanTop / CanBottom`,
 `ITableView.KitArrowPressed`), Ayna Laneti (şeytan bir kartı bilir; Kör Ayna %50), Kehanet Mührü `eye_of_truth` (dolandırıcıyı GEÇ → +10
 coin, `ClassKit.SealCoins`, sonuç "sealed"). Kör Kâhin olayı Türkçede KÖR FALCI. Portre `pixel_sinners.oracle()`.
@@ -128,8 +129,29 @@ her biri ~1.5 dk, tek tek çalıştır). Son simülasyon (daire 0, 2000): Köyl�
 
 **Demo 2.2 sonrası:** altıncı sınıf **HIRSIZ** (`Thief`, id `thief`, `KitKind.Theft`, `TheftPowers`: GÖZ UCU `ClassKit.GlanceCards`, ÇAL elde bir kez
 körlemesine, YAKALANMA %25 → takas yok + ceza: katta 1 ante coin, boss'ta bar %3; yükseltmeler `light_fingers / night_eye / master_thief / loot_sack`;
-Lucifer her 3 elde bir çalar `LuciferMirror.StealEveryHands`; 140 coin, 6500 yıl; simülasyon %29.2). **Bütün sınıflar açık** (`ChapterUnlocks.IsClassOpen` hep
-true). Sınıf kartı düzeni başlık yüksekliğine göre akar. Köylü: heybe `ClassKit.SatchelSize` = **2** (Demo 2.2.1; %49 → %41), `SatchelPowers.HarvestsPerTable` (0 = her el; masa başı sınır işe yaramadı).
+Lucifer her 3 elde bir çalar `LuciferMirror.StealEveryHands`; 140 coin, 6500 yıl; simülasyon %29.2). **Bütün sınıflar açık** (`ChapterUnlocks.AllClassesOpen`
+= true; false eski kural: Çağırıcı ilk kurtuluşla). Sınıf kartı düzeni başlık yüksekliğine göre akar. (Demo 2.2.1'in heybe 2 / HASAT sınırı Demo 2.3'te kalktı.)
+
+**Demo 2.3** (etiket `v2.3-demo`, bundleVersion **2.3.0-demo**, zip `HellPoker-Demo-2.3-win64.zip`; DEVLOG 2026-10-17, PHASE2_CHAPTERS on altıncı tur):
+**Phase 2'de K güçleri yok, pasifler var** (demo / simülatör aynen): `ClassPowers` ana güç + kendiliğinden çalışan pasif (`PassiveThisHand`,
+`ClassKit.Passives`): Köylü SESSİZ TARLA (elin ilk heybe kartı görünmez, ikincisi `SatchelRisk`), Kâhin GERÇEĞİ GÖRÜR (yalan + tuzak; KADERİ BÜK
+ve oklar kalktı), Kral KRALİYET İNDİRİMİ (müsadere yarı, `ClassKit.RoyalDiscountPercent`; Ucuz Müsadere dörtte bir), Çağırıcı SADIK İBLİS
+(`FreeImpsPerHand`), Hırsız GÖZ UCU + **ÇAL draw'dan sonra da** (`TheftPowers.InTheHand`; mühürlü elde draw'dan sonra kapalı). K: Hırsız'da ÇAL,
+diğerlerinde `UiText.ClassPassiveInfo`. **Seviye** `ClassKit.Level` 0-3 = takılı sınıf emanetlerinin `RelicExtras.ClassStep`'i (dövülmüş: 2) + adım
+yükseltmesi (`StepUpgradeOf`: Geniş Heybe, Üçüncü Göz, Taşan Hazine, Hafif Parmaklar): heybe / ÖNSEZİ 1→4 (`SatchelStart`, `ForesightStart`),
+hazine 5→20 (`TaxStart/TaxStep`), yakalanma %45→15 (`CaughtStart/CaughtStep`), iblisler GÖZ→+EL→+FISILTI→yarı fiyat (`ImpsOpen`,
+`ImpsHalfPrice`, `KitRefusal.Locked`), Soytarı masa başına 0-3 kalkan (`UpgradeHooks.SparesLoss`, `TableHooks.SparesLoss`). `ValueAt / PowerValue
+/ PowerMax`. **Sınıf emanetleri** `ChapterRelics.ClassChain` (6 × yaygın / nadir / efsanevi, 13 yeni; emanetler 53): genel çekilişe girmez,
+sırayla gelir (`NextClassRelic`): pazar ve bekçi %35 (`ClassRelicChance`, `BlackMarket.ClassRelic`, `ChapterRun.RollClassRelic`), ganimette hep.
+Çağırıcı'ya 4 yükseltme (İki Sadık İblis, Evcil İblisler, Keskin Göz, Kan Yemini); Kader Dokumacısı = şeytanın bildiği kart görünür. Rozet:
+pipler = seviye, pasifte parlama (`SinnerBadge.Passive / PassiveFlashes`), hover = `UiText.ChapterSinnerAbility(id, kit)` (sınıf kartıyla aynı).
+Kit kartları 24×36 (`KitView`, panel 52 px). Haritada "ÖNSEZİ 2/4", güç büyüyünce bir kez haber. **İki renkli deste varsayılan**
+(`settings.fourcolor.v2`; eski "açık" bir kez kapanır). Simülasyon: `ChapterSimulation.PowerTuning` (`HELLPOKER_POWER_GRID`, `HELLPOKER_POWERS`),
+WholeRun sınıf emaneti sayısı ve bölüm başı seviye tablosu; `KitPlayer` ÖNSEZİ'ye göre değişir, ÇAL'ı draw'dan sonra yapar.
+Son simülasyon (daire 0, 2000): Köylü %39.8, Kâhin %47.4 (hedefin üstünde; simülasyon oyuncusu artık ÖNSEZİ'yi kullanıyor),
+Kral %24.6, Soytarı %16.0 (altında), Çağırıcı %30.7, Hırsız %36.3 (yakalanma başı 40 → 45: %43.2 → %37.2, 500 koşu); seviye bölüm başında
+0 / 1.6 / 2.8 / Lucifer 3.0, koşu başına ~2.1 sınıf emaneti. Sınıf kartı metinleri kısa tutulmalı (altı kart: satır ~13 harf; PlayMode
+`TableLayoutTests.TheGamesClassCards...` ölçer); kit paneli kartla 47 px ve `KitView.CardsLift` 7 px yukarı (diyalog kenarına).
 
 ## Oyun
 

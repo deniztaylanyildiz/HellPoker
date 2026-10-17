@@ -3658,3 +3658,41 @@ güncelle, K güçlerinin eskimiş resimleri var".
 ### Sıradaki
 - Simülasyon ve ayar (E), ekran görüntüleri + HowToShots (C, guide resimleri), PlayMode / FullRun (Thief_Turkish), sürüm ve build (F).
 
+
+## 2026-10-17 — Demo 2.3, iş 2: denge, guide (How to Play) resimleri, sınıf kartları, PlayMode ve belgeler
+
+### Kullanıcının ara isteği
+"Bunları yaptıktan sonra guide ekranını da güncelle; orada birkaç resimde eskimiş K güçleri var" → How to Play'in 7. sayfası
+"GÜNAHKÂRLAR VE GÜÇLER" oldu (her sınıf: ana güç + pasif, "Sınıf zayıf başlar..." satırı); 8. sayfaya sınıf emaneti satırı; HowToShots ile
+bütün resimler yeniden çekildi; 7. sayfanın resmi artık sınıf kartlarının yazısını (ana güç + PASİF) gösteriyor (kırpma aşağı alındı).
+
+### Denge (E)
+- İlk ölçüm (500): Köylü 42.6, Kâhin 42.4, Kral 24.4, Soytarı 15.4, Çağırıcı 28.8, Hırsız 43.2. Hırsız 2.2.1'e göre +13 → kural gereği
+  önce yakalanma: başı 40 → **45** (45: %37.2, 50: %31.6; draw sonrası ÇAL kalıyor).
+- Kâhin için bedel düğmeleri (zorbalık %35 / %50, emanet şansı %25) etkisiz çıktı; oyun ayarı değişmedi.
+- Son (2000, daire 0): Köylü %39.8, Kâhin %47.4, Kral %24.6, Soytarı %16.0, Çağırıcı %30.7, Hırsız %36.3 (hepsi %32.4). Seviye bölüm başında
+  0 / 1.6 / 2.8 / 3.0, koşu başına ~2.1 sınıf emaneti. Ayrıntı: PHASE2_CHAPTERS on altıncı tur.
+- Yeni simülasyon düğmeleri: `ChapterSimulation.PowerTuning` (`HELLPOKER_POWER_GRID`), WholeRun'da `HELLPOKER_POWERS` (chance, satchel,
+  foresight, tax, taxstep, caught, caughtstep, risk, bully, knows). Eski OracleTuning / PeasantTuning silindi. `ProphecyPowers.BullyPercent`
+  artık ayar değişkeni (20).
+
+### Sunum düzeltmeleri
+- Kit paneli kartla 24×36 kart + başlık için 47 px; altındaki MENÜ / ELLER düğmelerine binmesin diye kart gösterirken 7 px yukarı
+  (`KitView.CardsLift`), diyalog kutusunun alt kenarına (yazısı onun üstünde biter).
+- Altı sınıf kartında metin taşıyordu (DAİRE satırının ve SEÇ'in altına giriyordu): `ChapterSinnerAbility` (kart ve rozet hover'ı aynı) ve
+  `ChapterSinnerDetail` kısaltıldı (satır ~13 harf, ana güç + PASİF ~6 satır). Kralın kartından "J Q K güvende" çıktı (panel ipucunda duruyor);
+  Hırsız'ın "draw'dan sonra da" bilgisi panel ipucunda.
+
+### Testler
+- EditMode 1110 (1105 geçti, 5 explicit). PlayMode (explicit olmayanlar tek seferde) 39/39; yeni `TableLayoutTests`:
+  `EveryClassesPanel_AtItsLargest_KeepsOffTheHandAndTheWords` (6 sınıf × 2 dil, panel en büyük seviyede) ve
+  `TheGamesClassCards_TheirWordsFitAboveTheCircleAndChoose_InBothLanguages`.
+- FullRunTests tek tek: Köylü EN, Kâhin TR, Kral EN, Soytarı TR, Çağırıcı EN, Köylü 5. daire TR, Hırsız EN, **Hırsız TR (yeni)** + kaos
+  turu geçti. Hırsız TR iki kez lanetle bitti: test draw'dan sonra ilk kartını (çoğu zaman bir çiftin parçası) veriyordu; artık oyuncu gibi
+  çifte girmeyen en düşük kartı veriyor (yoksa çalmıyor) → geçti.
+- Ekran görüntüleri (Screenshots/, iki dil): 170 sınıf kartları, 171-176 her sınıfın rozet hover'ı ve paneli, 177 Kâhin'in dört büyük
+  ÖNSEZİ kartı; howto_<dil>_01/04/07/10; 161 artık ÖNSEZİ (162 kalktı). PlaytestScreenshots iki rengi varsayılan sayıyor.
+
+### Belgeler
+- bundleVersion 2.3.0-demo; CHANGELOG Demo 2.3; OKUBENI (sınıf güçleri pasif, sınıf emanetleri, K, dört renk); GERI_BILDIRIM (pasif,
+  büyüme, kartlar); CLAUDE.md (Demo 2.3 paragrafı, eski K satırlarına not); PHASE2_CHAPTERS on altıncı tur.
