@@ -3696,3 +3696,16 @@ bütün resimler yeniden çekildi; 7. sayfanın resmi artık sınıf kartların�
 ### Belgeler
 - bundleVersion 2.3.0-demo; CHANGELOG Demo 2.3; OKUBENI (sınıf güçleri pasif, sınıf emanetleri, K, dört renk); GERI_BILDIRIM (pasif,
   büyüme, kartlar); CLAUDE.md (Demo 2.3 paragrafı, eski K satırlarına not); PHASE2_CHAPTERS on altıncı tur.
+
+## 2026-10-17 — Demo 2.3, iş 3: build ve kapanış
+- `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.3-win64.zip` (37 MB; içinde OKUBENI "HELL POKER Demo 2.3", GERI_BILDIRIM, CHANGELOG).
+- Kayıtlar (PlayerPrefs, LocalLow: runs/, Player.log) yedeklendi; zip'ten 3 × `-fpstour`: çıkış 0, Player.log'da hata yok, 19 FPS satırı;
+  yedek geri kondu.
+- Commit "Demo 2.3: pasif sınıf güçleri, iki renkli kartlar" + annotated etiket `v2.3-demo`. Push yok (push ederken etiketleri de gönder).
+
+### Açık (kullanıcıda)
+- Kâhin %47.4 (hedef %20-45'in üstünde): bırakılsın mı, yoksa ÖNSEZİ'nin üst sınırı 3 kart mı olsun / sınıf emaneti şansı mı düşsün?
+- Soytarı %16.0 (altında): sınıf farkı olarak kalsın mı?
+- Sınıf kartı metinleri sığsın diye kısaldı; Kral'ın "J Q K güvende" ve Hırsız'ın "draw'dan sonra da" bilgisi yalnız panel ipucunda / How to
+  Play'de. Kart düzeni (ör. daha uzun kart) istenirse metinler uzatılabilir.
+- Sınıf seviyesi 3. bölüm başında ortalama 2.8 (en çok 3): büyüme hızlı; emanet şansı (%35) ve dövme kuralı bunu belirliyor.
