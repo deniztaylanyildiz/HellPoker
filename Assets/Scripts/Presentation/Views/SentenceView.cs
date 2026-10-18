@@ -133,6 +133,7 @@ namespace HellPoker.Presentation.Views
             // Under the counter, reaching left (the counter sits at the screen's right edge).
             Image tip = UiFactory.CreateImage("RecentTip", root, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _recentTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _recentTipText.rectTransform.PlaceTL(4, 3, 152, 9);

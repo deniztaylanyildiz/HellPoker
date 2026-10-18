@@ -27,7 +27,7 @@ namespace HellPoker.Core.Tests
         private static RoundResult PlayOne(HellPokerGame game, string cards)
         {
             if (game.Phase == GamePhase.RoundOver) game.NextRound();
-            game.RestoreDeck(DeckStarting(cards));
+            game.StackTheDeal(DeckStarting(cards));
             game.PlaceBet();
             if (game.Phase == GamePhase.PlayerReveal && game.CanCheckToDraw(out _)) game.CheckToDraw();
             while (game.Phase != GamePhase.RoundOver && !game.IsGameOver)
@@ -167,7 +167,7 @@ namespace HellPoker.Core.Tests
             run.Effects.Give(ChapterRelicIds.AshPurse);
             FloorTable table = FloorTable.Imp(run.Rules, run.Sinner, run.Effects, run.Purse, 1);
             Assert.AreEqual(run.Rules.AnteAt(1) + 1, table.AnteNow);
-            table.Game.RestoreDeck(DeckStarting("AS KS QS JS 10S 2D 4H 6S 8C 10D"));
+            table.Game.StackTheDeal(DeckStarting("AS KS QS JS 10S 2D 4H 6S 8C 10D"));
             int coins = run.Purse.Coins;
             table.Deal();
             HellPokerGame game = table.Game;

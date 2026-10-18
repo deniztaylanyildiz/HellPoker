@@ -247,7 +247,7 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(15, table.HouseStart, "the first floor's imp: half a purse");
             for (int i = 0; i < 3 && !table.IsOver; i++)
             {
-                table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
+                table.Game.StackTheDeal(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
                 PlayOne(table);
             }
             Assert.AreEqual(30, table.HousePurse.Coins, "capped at twice its start");

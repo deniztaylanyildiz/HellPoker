@@ -594,6 +594,8 @@ namespace HellPoker.Core.Tests
                 if (EnvInt("HELLPOKER_SATCHEL_RISK", 0) > 0) ClassKit.SatchelReRaisePercent = EnvInt("HELLPOKER_SATCHEL_RISK", 0);
                 // 2.1.1: the demons' fixed stakes (0: measured against the bar left).
                 ChapterTuning.FixedBossStakes = EnvInt("HELLPOKER_FIXED_STAKES", 1) != 0;
+                // Phase 3: every hand a fresh deck (0: the counted deck of Phase 2).
+                ChapterTuning.FreshDeckEveryHand = EnvInt("HELLPOKER_CHAPTER_DECK", 1) != 0;
                 // Demo 2.3: the class powers' starting values and the class relics' chance (HELLPOKER_POWERS = "name=value,...").
                 ApplyPowers(Environment.GetEnvironmentVariable("HELLPOKER_POWERS"));
                 WholeRunReport();

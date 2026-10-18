@@ -635,6 +635,7 @@ namespace HellPoker.Presentation
 
             _view.Dealer.SetDealer(DealerCards.Describe(dealer), change);
             _view.Payouts.SetTable(dealer.Payouts);
+            _view.SetPayoutTableShown(true);
             _view.SetSoul(SoulGauge.Hidden);
             if (!_game.IsSoulAtStake)
             {
@@ -823,6 +824,7 @@ namespace HellPoker.Presentation
             _view.SetCurrency(CoinMode ? Currency.Coins : Currency.Bar);
             _view.Dealer.SetDealer(SeatCard());
             _view.Payouts.SetTable(seat.Payouts);
+            _view.SetPayoutTableShown(false);
             _view.SetSoul(SoulGauge.Hidden);
             if (!_game.IsSoulAtStake)
             {
@@ -1504,7 +1506,8 @@ namespace HellPoker.Presentation
         /// <summary>S or SHUFFLE: between hands, the years paid and all 52 shuffled — or the reason it cannot be done now.</summary>
         public void ShuffleDeck()
         {
-            if (!Playing || _pendingEvent != null || CoinMode || Hurry()) return;
+            // Phase 3: a chapter's table deals every hand from a fresh deck — nothing to shuffle, S says nothing there.
+            if (!Playing || _pendingEvent != null || _seat != null || Hurry()) return;
             ShuffleRefusal refusal = _game.WhyNoShuffle();
             if (refusal != ShuffleRefusal.None)
             {
@@ -1700,7 +1703,7 @@ namespace HellPoker.Presentation
             if (_view.HandRanksOpen)
                 _view.HideHandRanks();
             else
-                _view.ShowHandRanks(ShownPayouts, IntentFootnote());
+                _view.ShowHandRanks(ShownPayouts, IntentFootnote(), PayoutNotes());
         }
 
         public bool CloseOverlay()
@@ -1783,7 +1786,7 @@ namespace HellPoker.Presentation
             }
 
             if (_view.HandRanksOpen)
-                _view.ShowHandRanks(ShownPayouts, IntentFootnote());
+                _view.ShowHandRanks(ShownPayouts, IntentFootnote(), PayoutNotes());
             if (_lastLine != null)
                 _view.Dealer.SetLine(_lastLine());
             if (_pendingEvent != null)

@@ -342,7 +342,16 @@ namespace HellPoker.PlayMode.Tests
                 case GamePhase.DrawReveal:
                 case GamePhase.HouseReveal:
                     if (game.Phase == GamePhase.PlayerReveal && game.PlayerCardsRevealed == 2)
-                        TableLayoutTests.AssertNothingOverlaps(view, $"{classId} ch{story.Chapter} {(boss ? "boss" : "floor")} hand {game.RoundNumber}");
+                    {
+                        string where = $"{classId} ch{story.Chapter} {(boss ? "boss" : "floor")} hand {game.RoundNumber}";
+                        TableLayoutTests.AssertNothingOverlaps(view, where);
+                        // Phase 3: every hand a fresh deck — no counter, no SHUFFLE at a chapter's table.
+                        Assert.AreEqual("", view.DeckCountText, where + ": no deck counter");
+                        Assert.IsFalse(view.GetComponentsInChildren<UnityEngine.UI.Button>(false).Any(b => b.name == "ShuffleButton"), where + ": no SHUFFLE");
+                        // A whole deck less the two hands (and at most the satchel's few cards, a cheat's card) — a counted deck runs far lower.
+                        int jokers = game.Sinner?.Jokers ?? 0;   // the Jester's deck holds his jokers too
+                        Assert.That(game.DeckCount, Is.InRange(HellPokerGame.FullDeck - 10 - 6, HellPokerGame.FullDeck + jokers - 10), where + ": a fresh deck");
+                    }
                     TryPower(classId, table, game, story);
                     if (game.Phase == GamePhase.Drawing || !game.HandInPlay) break;
                     KeepFromTheSatchel(table, game);

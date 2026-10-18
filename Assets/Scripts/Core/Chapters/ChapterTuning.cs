@@ -41,8 +41,13 @@ namespace HellPoker.Core.Chapters
         /// <summary>How often (percent) the demon learns one of the Oracle's cards without the Blind Mirror (Demo 2.2's tuning; 100: always).</summary>
         public static int DemonKnowsPercent = 100;
 
+        /// <summary>Phase 3, the game's: every hand at a chapter's table is dealt from a fresh, shuffled deck (52, the Jester's jokers in it)
+        /// and no deck goes from table to table; false: the counted deck of Phase 2 (HELLPOKER_CHAPTER_DECK=0).</summary>
+        public static bool FreshDeckEveryHand = true;
+
         public static void Reset()
         {
+            FreshDeckEveryHand = true;
             DemonKnowsPercent = 100;
             FixedBossStakes = true;
             StartingCoins.Clear();

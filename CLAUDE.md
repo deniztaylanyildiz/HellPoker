@@ -164,6 +164,18 @@ Simülasyon düğmeleri (`HELLPOKER_POWER_GRID`): chance, warden, later, loot, f
 FullRunTests şeytan masasında barı eller arasında başlangıcın yarısında tutar. Son simülasyon (daire 0, 2000): Köylü %36.7, Kâhin %41.4,
 Kral %28.9, Soytarı %21.7, Çağırıcı %32.2, Hırsız %37.4.
 
+**Phase 3 (1)** (DEVLOG 2026-10-19): **hover kutuları** `Ui/HoverTip` (kendi Canvas'ı, overrideSorting = ekranın sırası + 15, her karede ekrana
+geri iter; yeni ipucu `HoverTip.Make(tip.gameObject)` ile kurulur; PlayMode `TableLayoutTests.EveryHoverBox...`). **Ödemeler H panelinde:**
+bölüm masalarında `ITableView.SetPayoutTableShown(false)` (PAYOUTS gizli, düğme ELLER / ÖDEMELER, bahis satırı sağ sütuna uzar), notlar
+`HandRanksPanel.Show(payouts, footnote, notes)` ← `TablePresenter.PayoutNotes` (oyunun kendi tablosu `HellPokerGame.Payouts`: şeytanın ölçeği,
+katın kazancı, Mammon'un faizi); simülatör aynen. **Her el taze deste:** `ChapterTuning.FreshDeckEveryHand` (bölüm masalarında
+`continuousDeck` false: sayaç / KARIŞTIR / S / "deste bitti" yok; `ChapterSave` `deck` yazmaz, okumaz; testlerin yığılmış destesi
+`HellPokerGame.StackTheDeal`, `RestoreDeck` demo için aynen; simülasyon `HELLPOKER_CHAPTER_DECK=0` eski). Denge (500, aynı tohum): Köylü −9.2,
+Kral +4.8, diğerleri ±3 içinde (karar bekliyor). **Müzik:** kat ve harita döngüleri 32+ ölçü (~2 dk), A / B / nefes, üçgen bas, pes ve seyrek
+örs; `generate_audio.py` dikiş denetimi. **Ana menü** 8 px ızgarada, ekran boyundan hesaplanır (`MainMenuView` W / H / `Snap`, düğme 128×24,
+satır 32; PlayMode `MenuGridTests`); `pixel_menu.py` sadeleşti, `MENU_TEXT` = `BackdropMotionTests.MenuText`. [Explicit] `PhaseThreeShots`
+(menü, harita, kat, şeytan, How to Play; `HELLPOKER_SHOT_SIZE`, `HELLPOKER_SHOTS`).
+
 ## Oyun
 
 Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasaya (House)** karşı oynar.

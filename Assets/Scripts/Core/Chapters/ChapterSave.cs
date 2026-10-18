@@ -51,7 +51,6 @@ namespace HellPoker.Core.Chapters
         public bool Breaker;
         public bool Rested;
         public List<string> EventsSeen = new List<string>();
-        public List<Card> Deck = new List<Card>();
         public int Matches;
         public string WardenRelic;
         public int BossBarStart;
@@ -169,7 +168,6 @@ namespace HellPoker.Core.Chapters
                 "breaker=" + B(Breaker),
                 "rested=" + B(Rested),
                 "events=" + string.Join(",", EventsSeen),
-                "deck=" + CardCodes.FormatAll(Deck),
                 "matches=" + Matches,
                 "warden.relic=" + (WardenRelic ?? ""),
                 "boss.start=" + BossBarStart,
@@ -278,7 +276,7 @@ namespace HellPoker.Core.Chapters
                     Breaker = Bool("breaker"),
                     Rested = Bool("rested"),
                     EventsSeen = Ids("events"),
-                    Deck = (CardCodes.TryParseDeck(S("deck") ?? "") ?? Array.Empty<Card>()).ToList(),
+                    // Phase 3: "deck" is no longer written (every hand at a chapter's table is a fresh deck); an old save's is ignored.
                     Matches = I("matches"),
                     WardenRelic = S("warden.relic"),
                     BossBarStart = I("boss.start"),

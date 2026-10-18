@@ -403,6 +403,9 @@ namespace HellPoker.Core.Game
 
         public int DeckCount => _deck.Count;
 
+        /// <summary>The table's own payout table (Phase 3: the hands' panel tells how a chapter's table pays from it).</summary>
+        public IPayoutTable Payouts => _payouts;
+
         /// <summary>A whole deck (the 52; the Jester's jokers are never counted).</summary>
         public const int FullDeck = 52;
 
@@ -421,6 +424,25 @@ namespace HellPoker.Core.Game
             KeepHookCardsOut();
             return true;
         }
+
+        /// <summary>
+        /// Phase 3: the coming deal's deck, as given (a stacked hand). A counted deck simply goes on from these cards (<see cref="RestoreDeck"/>);
+        /// a table that deals every hand from a fresh deck deals them once — between hands for the next deal, in a hand for the rest of it.
+        /// Never an empty deck, never the Jester's.
+        /// </summary>
+        public bool StackTheDeal(IReadOnlyList<Card> cardsInDrawOrder)
+        {
+            if (cardsInDrawOrder == null || cardsInDrawOrder.Count == 0 || JokerDeck) return false;
+            if (Rules.ContinuousDeck) return RestoreDeck(cardsInDrawOrder);
+            if (cardsInDrawOrder.Any(c => c.IsJoker) || cardsInDrawOrder.Distinct().Count() != cardsInDrawOrder.Count) return false;
+            _deck.Restore(cardsInDrawOrder);
+            KeepHookCardsOut();
+            if (Phase == GamePhase.Betting || Phase == GamePhase.RoundOver) _stackedForTheDeal = true;
+            return true;
+        }
+
+        /// <summary>A fresh-deck table was handed the next deal's deck (<see cref="StackTheDeal"/>): the coming deal keeps it.</summary>
+        private bool _stackedForTheDeal;
 
         /// <summary>True when this hand began with the demon shuffling a deck run too thin.</summary>
         public bool DeckShuffledThisHand { get; private set; }
@@ -462,6 +484,12 @@ namespace HellPoker.Core.Game
             if (_deck is IJokerDeck jokerDeck) jokerDeck.SetJokers(Sinner?.Jokers ?? 0);
             if (!Rules.ContinuousDeck || JokerDeck)
             {
+                if (_stackedForTheDeal && !JokerDeck)
+                {
+                    _stackedForTheDeal = false;
+                    KeepHookCardsOut();
+                    return;
+                }
                 _deck.Reset();
                 KeepHookCardsOut();
                 return;

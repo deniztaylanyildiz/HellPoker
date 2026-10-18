@@ -1,0 +1,423 @@
+﻿Phase 2 whole runs: 500 per class, circle 0. Player: the chapter simulation's on the floors, the balance simulation's at the tables; a demon's spoils: a relic while a slot is free, else the coins.
+Targets: purse emptied 10-25% a chapter; tribute paid in full 40-60%; Mammon 15-25 hands / 10-20% damned, Belial 15-25 / 15-25%, Lilith 20-30 / 20-30%, Lucifer 15-25 / cast down 30-50%.
+
+class     ch  reached  purse emptied  coins at gate (p10/p50/p90)  paid full  boss hands (p50)  boss damned
+peasant    1      500           9,6%   204,5 (133/207/270)            71,2%    9,9 (7)              8,2%
+peasant    2      415          11,1%   268,3 (161/265/346)            33,3%    6,7 (5)              8,9%
+peasant    3      336           6,5%   389,2 (245/389/498)            51,6%    6,8 (5)             13,1%
+peasant   lucifer: sat 273, hands 6,3 (5), cast down 28,6%, soul lost 0,0%
+warlock    1      500          15,0%   223,7 (150/226/291)            61,4%   10,3 (7)              7,1%
+warlock    2      395           8,4%   306,1 (188/308/396)            35,6%    6,8 (5)             11,6%
+warlock    3      320           5,0%   429,3 (293/430/530)            56,3%    7,3 (5)              9,9%
+warlock   lucifer: sat 274, hands 6,1 (5), cast down 25,9%, soul lost 0,0%
+king       1      500           6,2%   272,9 (174/279/355)            64,4%   10,9 (9)             11,1%
+king       2      417           6,7%   318,6 (179/317/419)            24,4%    7,5 (6)             19,3%
+king       3      314           5,4%   438,2 (258/445/558)            43,1%   10,2 (8)             27,6%
+king      lucifer: sat 215, hands 7,9 (6), cast down 36,3%, soul lost 0,0%
+jester     1      500          26,0%   204,1 (133/205/273)            62,2%    9,0 (7)             14,9%
+jester     2      315          20,3%   264,2 (172/259/353)            26,3%    6,9 (5)             16,3%
+jester     3      210          14,8%   380,7 (246/392/487)            48,0%    7,3 (6)             12,3%
+jester    lucifer: sat 157, hands 5,8 (5), cast down 26,8%, soul lost 0,0%
+summoner   1      500           8,8%   260,9 (156/269/338)            56,8%   10,9 (8)             10,1%
+summoner   2      410           9,8%   299,5 (165/302/400)            16,5%    8,1 (6)             18,1%
+summoner   3      303          11,2%   408,0 (246/408/536)            28,3%    9,6 (7)             21,2%
+summoner  lucifer: sat 212, hands 12,0 (9), cast down 28,3%, soul lost 0,0%
+thief      1      500           9,6%   194,2 (126/199/262)            50,9%    9,9 (8)              7,1%
+thief      2      420          11,2%   269,8 (158/279/361)            24,7%    7,5 (6)              8,3%
+thief      3      342           5,0%   407,9 (254/409/548)            52,0%    7,9 (6)              8,9%
+thief     lucifer: sat 296, hands 6,4 (5), cast down 34,1%, soul lost 0,0%
+
+the way down, a run on average per chapter (the nodes stepped on; ? = unknown, what it held after the arrow)
+  ch1: Table 2,7  Event 0,8  BlackMarket 0,4  Warden 1,2  Treasure 0,7  PurgatoryFire 1,3  Unknown 0,4   ? -> Table 0,1 Event 0,2 BlackMarket 0,0 Treasure 0,1
+  ch2: Table 3,7  Event 1,4  BlackMarket 0,5  Warden 1,1  Treasure 0,7  PurgatoryFire 1,3  Unknown 0,7   ? -> Table 0,2 Event 0,4 BlackMarket 0,1 Warden 0,0 Treasure 0,1
+  ch3: Table 4,7  Event 2,1  BlackMarket 0,6  Warden 1,1  Treasure 0,7  PurgatoryFire 1,2  Unknown 1,0   ? -> Table 0,2 Event 0,6 BlackMarket 0,1 Warden 0,1 Treasure 0,1
+the camps, all chapters: SilenceCurse 3,5%  RestByTheFire 60,3%  WhetSoul 2,2%  Forge 33,9%;  at a camp worn 2,4, bag 0,1
+
+class     reached Lucifer   freed   sentence left when freed: avg (p10/p50/p90), spotless   (bar heal 50%)
+peasant             54,6%   39,0%   3566,6 (738/2615/7279), 3,1%
+warlock             54,8%   40,6%   3392,0 (383/2536/7287), 3,0%
+king                43,0%   27,4%   5117,1 (527/3516/10970), 2,2%
+jester              31,4%   23,0%   3111,8 (478/2041/7141), 4,3%
+summoner            42,4%   30,4%   4334,7 (886/3549/9893), 0,7%
+thief               59,2%   39,0%   3681,5 (596/2766/8153), 1,5%
+all                 47,6%   33,2%   3831,2 (582/2717/8262), 2,4%
+
+demons' rules, a table on average (struck / hands cornered): interest, role swap, temptation, mirror
+peasant   6,0 / 1,1   0,9 / 0,7   2,8 / 0,6   4,6 / 0,9
+warlock   6,2 / 1,1   0,8 / 0,7   2,7 / 0,7   0,0 / 1,0
+king      6,8 / 1,2   0,9 / 0,6   4,3 / 0,7   0,7 / 1,1
+jester    5,9 / 0,9   0,9 / 0,7   2,7 / 0,8   0,0 / 1,1
+summoner  6,8 / 1,2   1,1 / 0,7   4,0 / 0,8   3,7 / 1,6
+thief     5,9 / 1,2   0,9 / 0,7   3,3 / 1,0   1,7 / 0,8
+all       6,3 / 1,1   0,9 / 0,7   3,3 / 0,8   1,9 / 1,0
+
+where runs end (per 100 runs): purse emptied in ch1/ch2/ch3 (avg floor), soul lost at Mammon/Belial/Lilith, cast down, soul at Lucifer
+peasant   purse 9,6 (3,7) / 9,2 (4,2) / 4,4 (2,9);  soul 7,4 / 6,6 / 8,2;  cast down 15,6, soul at Lucifer 0,0;  freed 39,0
+warlock   purse 15,0 (4,2) / 6,6 (4,8) / 3,2 (3,9);  soul 6,0 / 8,4 / 6,0;  cast down 14,2, soul at Lucifer 0,0;  freed 40,6
+king      purse 6,2 (5,1) / 5,6 (4,7) / 3,4 (4,8);  soul 10,4 / 15,0 / 16,4;  cast down 15,6, soul at Lucifer 0,0;  freed 27,4
+jester    purse 26,0 (4,6) / 12,8 (4,3) / 6,2 (3,5);  soul 11,0 / 8,2 / 4,4;  cast down 8,4, soul at Lucifer 0,0;  freed 23,0
+summoner  purse 8,8 (4,6) / 8,0 (5,0) / 6,8 (4,9);  soul 9,2 / 13,4 / 11,4;  cast down 12,0, soul at Lucifer 0,0;  freed 30,4
+thief     purse 9,6 (4,8) / 9,4 (4,3) / 3,4 (4,8);  soul 6,4 / 6,2 / 5,8;  cast down 20,2, soul at Lucifer 0,0;  freed 39,0
+
+jester: twenty jokers 0,5 times a run (Phase 2: the count falls to 10), freed 23,0%
+jokers (the Jester's deck) at the end of ch1/ch2/ch3/Lucifer (avg), and hands lost to the player's two jokers / won by the house's two jokers, floors (all chapters) and each boss
+jester    jokers 12,7 / 14,1 / 13,0 / 13,2;  floors 18,6% / 23,9%;  bosses 17,9% / 18,6%  18,0% / 21,8%  18,0% / 32,0%  18,2% / 31,5%
+
+class powers, a run on average: satchel kept / taken; passives worked; taxes earned / lost, reveals, free raises, seizures; imps (wild); steals (after the draw) / caught; shields
+peasant   79,1 / 20,3;  passives 19,0;  0,0 / 0,0, 0,0, 0,0, 0,0;  imps 0,0 (wild 0,0);  steals 0,0 (0,0) / 0,0;  shields 0,0;  compass steps 0,0
+warlock   0,0 / 0,0;  passives 0,0;  0,0 / 0,0, 0,0, 0,0, 0,0;  imps 0,0 (wild 0,0);  steals 0,0 (0,0) / 0,0;  shields 0,0;  compass steps 0,0
+king      0,0 / 0,0;  passives 25,6;  47,7 / 2,2, 0,1, 0,0, 25,6;  imps 0,0 (wild 0,0);  steals 0,0 (0,0) / 0,0;  shields 0,0;  compass steps 0,0
+jester    0,0 / 0,0;  passives 0,0;  0,0 / 0,0, 0,0, 0,0, 0,0;  imps 0,0 (wild 0,0);  steals 0,0 (0,0) / 0,0;  shields 4,6;  compass steps 0,0
+summoner  0,0 / 0,0;  passives 95,8;  0,0 / 0,0, 0,0, 0,0, 0,0;  imps 114,5 (wild 7,5);  steals 0,0 (0,0) / 0,0;  shields 0,0;  compass steps 0,0
+thief     0,0 / 0,0;  passives 0,0;  0,0 / 0,0, 0,0, 0,0, 0,0;  imps 0,0 (wild 0,0);  steals 52,3 (44,5) / 25,2;  shields 0,0;  compass steps 0,0
+all       13,2 / 3,4;  passives 23,4;  8,0 / 0,4, 0,0, 0,0, 4,3;  imps 19,1 (wild 1,2);  steals 8,7 (7,4) / 4,2;  shields 0,8;  compass steps 0,0
+
+Demo 2.3: the class relics taken a run, and the main power's level (value) on average as chapter 1 / 2 / 3 / Lucifer began
+peasant   class relics 1,2;  level 0,0 (1,0) / 1,2 (2,2) / 2,0 (3,0) / 2,4 (3,4)
+warlock   class relics 1,1;  level 0,0 (1,0) / 1,2 (1,8) / 2,1 (2,4) / 2,4 (2,6)
+king      class relics 1,2;  level 0,0 (5,0) / 1,1 (10,6) / 2,0 (14,8) / 2,3 (16,3)
+jester    class relics 0,9;  level 0,0 (0,0) / 1,0 (1,9) / 1,8 (3,6) / 2,3 (4,6)
+summoner  class relics 1,2;  level 0,0 (1,0) / 1,0 (1,9) / 1,6 (2,4) / 2,0 (2,6)
+thief     class relics 1,2;  level 0,0 (45,0) / 1,2 (33,5) / 2,0 (24,8) / 2,3 (22,1)
+all       class relics 1,1;  level 0,0 (8,8) / 1,1 (9,1) / 1,9 (9,0) / 2,3 (9,1)
+
+relics and upgrades: taken (market + wardens + spoils; the fire's upgrades), and freedom of the runs that began chapter 2 holding it against those that did not (a gap past 10 points is marked !)
+peasant: chapter 2 begun by 415 runs, 47,0% freed
+  rope_belt              taken   361   held at ch2   302: freed  49,7% vs  39,8% (+9,8)
+  quiet_satchel          taken   211   held at ch2   112: freed  50,0% vs  45,9% (+4,1)
+  wide_satchel           taken   194   held at ch2    95: freed  50,5% vs  45,9% (+4,6)
+  abundance              taken   193   held at ch2   105: freed  44,8% vs  47,7% (-3,0)
+  seed                   taken   188   held at ch2   103: freed  42,7% vs  48,4% (-5,7)
+  peasants_scythe        taken   165   held at ch2    87: freed  48,3% vs  46,6% (+1,6)
+  ash_ledger             taken    47   held at ch2    10: freed  40,0% vs  47,2% (-7,2)
+  raven_feather          taken    46   held at ch2     9: freed  44,4% vs  47,0% (-2,6)
+  ash_purse              taken    44   held at ch2    13: freed  61,5% vs  46,5% (+15,0)
+  devils_compass         taken    43   held at ch2     8: freed  37,5% vs  47,2% (-9,7)
+  harvest_moon           taken    42   held at ch2     5: freed  60,0% vs  46,8% (+13,2)
+  lead_seal              taken    41   held at ch2    12: freed  50,0% vs  46,9% (+3,1)
+  rusted_chain           taken    41   held at ch2    14: freed  71,4% vs  46,1% (+25,3)
+  rusty_crown            taken    39   held at ch2    13: freed  61,5% vs  46,5% (+15,0)
+  thorned_rosary         taken    38   held at ch2    12: freed  66,7% vs  46,4% (+20,3)
+  candle_stub            taken    36   held at ch2    10: freed  60,0% vs  46,7% (+13,3)
+  ferrymans_lantern      taken    36   held at ch2     7: freed  57,1% vs  46,8% (+10,3)
+  blood_ring             taken    34   held at ch2    11: freed  54,5% vs  46,8% (+7,8)
+  bone_die               taken    33   held at ch2     9: freed  33,3% vs  47,3% (-14,0)
+  lucifers_feather       taken    33   held at ch2     9: freed  55,6% vs  46,8% (+8,8)
+  bloody_die             taken    33   held at ch2    11: freed  54,5% vs  46,8% (+7,8)
+  twin_dice              taken    33   held at ch2    15: freed  33,3% vs  47,5% (-14,2)
+  old_map                taken    32   held at ch2    10: freed  40,0% vs  47,2% (-7,2)
+  lead_purse             taken    32   held at ch2    12: freed  58,3% vs  46,7% (+11,7)
+  rat_tooth              taken    32   held at ch2     5: freed  60,0% vs  46,8% (+13,2)
+  blood_pact             taken    30   held at ch2    11: freed  72,7% vs  46,3% (+26,4)
+  black_book             taken    30   held at ch2    11: freed  36,4% vs  47,3% (-10,9)
+  ferrymans_coin         taken    27   held at ch2     7: freed  57,1% vs  46,8% (+10,3)
+  liliths_tear           taken    27   held at ch2    10: freed  60,0% vs  46,7% (+13,3)
+  salt_circle            taken    27   held at ch2    11: freed  45,5% vs  47,0% (-1,6)
+  iron_vow               taken    26   held at ch2    10: freed  80,0% vs  46,2% (+33,8)
+  hangmans_rope          taken    26   held at ch2     7: freed  28,6% vs  47,3% (-18,7)
+  pilgrims_lantern       taken    26   held at ch2     9: freed  22,2% vs  47,5% (-25,3)
+  silver_bell            taken    24   held at ch2     4: freed  25,0% vs  47,2% (-22,2)
+  liars_tongue           taken    23   held at ch2     8: freed  50,0% vs  46,9% (+3,1)
+  abyss_coin             taken    23   held at ch2    11: freed  45,5% vs  47,0% (-1,6)
+  lost_souls_letter      taken    23   held at ch2     8: freed  37,5% vs  47,2% (-9,7)
+  mammons_gold_tooth     taken    19   held at ch2     7: freed  57,1% vs  46,8% (+10,3)
+warlock: chapter 2 begun by 395 runs, 51,4% freed
+  cracked_orb            taken   328   held at ch2   287: freed  57,1% vs  36,1% (+21,0) !
+  blind_mirror           taken   198   held at ch2   106: freed  50,9% vs  51,6% (-0,6)
+  thrice                 taken   192   held at ch2   109: freed  42,2% vs  54,9% (-12,7) !
+  eye_of_truth           taken   185   held at ch2    95: freed  51,6% vs  51,3% (+0,2)
+  deep_prophecy          taken   177   held at ch2    85: freed  63,5% vs  48,1% (+15,5) !
+  seers_spectacles       taken   173   held at ch2    86: freed  62,8% vs  48,2% (+14,6) !
+  star_chart             taken    50   held at ch2     4: freed  75,0% vs  51,2% (+23,8)
+  lead_seal              taken    45   held at ch2    11: freed  72,7% vs  50,8% (+21,9)
+  rusted_chain           taken    41   held at ch2    17: freed  64,7% vs  50,8% (+13,9)
+  devils_compass         taken    41   held at ch2    11: freed  36,4% vs  51,8% (-15,5)
+  ferrymans_lantern      taken    41   held at ch2     3: freed  66,7% vs  51,3% (+15,4)
+  ash_ledger             taken    40   held at ch2     7: freed  28,6% vs  51,8% (-23,2)
+  twin_dice              taken    39   held at ch2    15: freed  46,7% vs  51,6% (-4,9)
+  thorned_rosary         taken    38   held at ch2     8: freed  50,0% vs  51,4% (-1,4)
+  raven_feather          taken    38   held at ch2     8: freed  25,0% vs  51,9% (-26,9)
+  ash_purse              taken    37   held at ch2    11: freed  27,3% vs  52,1% (-24,8)
+  lead_purse             taken    36   held at ch2     9: freed  55,6% vs  51,3% (+4,3)
+  rusty_crown            taken    36   held at ch2    10: freed  60,0% vs  51,2% (+8,8)
+  ferrymans_coin         taken    35   held at ch2     8: freed  25,0% vs  51,9% (-26,9)
+  candle_stub            taken    35   held at ch2    10: freed  70,0% vs  50,9% (+19,1)
+  bloody_die             taken    34   held at ch2    11: freed  63,6% vs  51,0% (+12,6)
+  rat_tooth              taken    34   held at ch2     5: freed  20,0% vs  51,8% (-31,8)
+  old_map                taken    33   held at ch2    12: freed  41,7% vs  51,7% (-10,0)
+  lost_souls_letter      taken    31   held at ch2     5: freed  20,0% vs  51,8% (-31,8)
+  black_book             taken    30   held at ch2    10: freed  50,0% vs  51,4% (-1,4)
+  pilgrims_lantern       taken    28   held at ch2     9: freed  44,4% vs  51,6% (-7,1)
+  bone_die               taken    27   held at ch2     5: freed  40,0% vs  51,5% (-11,5)
+  silver_bell            taken    26   held at ch2     5: freed  40,0% vs  51,5% (-11,5)
+  iron_vow               taken    26   held at ch2    11: freed  54,5% vs  51,3% (+3,2)
+  blood_pact             taken    26   held at ch2     8: freed  62,5% vs  51,2% (+11,3)
+  salt_circle            taken    26   held at ch2     8: freed  62,5% vs  51,2% (+11,3)
+  lucifers_feather       taken    25   held at ch2     7: freed  57,1% vs  51,3% (+5,9)
+  abyss_coin             taken    25   held at ch2    11: freed  27,3% vs  52,1% (-24,8)
+  liliths_tear           taken    23   held at ch2     9: freed  33,3% vs  51,8% (-18,5)
+  liars_tongue           taken    21   held at ch2     9: freed  33,3% vs  51,8% (-18,5)
+  hangmans_rope          taken    20   held at ch2     5: freed   0,0% vs  52,1% (-52,1)
+  blood_ring             taken    19   held at ch2     7: freed  71,4% vs  51,0% (+20,4)
+  mammons_gold_tooth     taken    18   held at ch2     5: freed  40,0% vs  51,5% (-11,5)
+king: chapter 2 begun by 417 runs, 32,9% freed
+  tax_ledger             taken   379   held at ch2   290: freed  30,7% vs  37,8% (-7,1)
+  crown_guard            taken   203   held at ch2   109: freed  28,4% vs  34,4% (-6,0)
+  cheap_seizure          taken   197   held at ch2   113: freed  33,6% vs  32,6% (+1,1)
+  royal_decree           taken   187   held at ch2   104: freed  40,4% vs  30,4% (+10,0) !
+  overflowing_treasury   taken   179   held at ch2    91: freed  28,6% vs  34,0% (-5,5)
+  kings_signet           taken   168   held at ch2    85: freed  25,9% vs  34,6% (-8,8)
+  lead_seal              taken    47   held at ch2     9: freed  33,3% vs  32,8% (+0,5)
+  rusty_crown            taken    46   held at ch2    11: freed  27,3% vs  33,0% (-5,7)
+  raven_feather          taken    44   held at ch2     8: freed  37,5% vs  32,8% (+4,7)
+  ash_ledger             taken    43   held at ch2     8: freed  75,0% vs  32,0% (+43,0)
+  lead_purse             taken    41   held at ch2    13: freed  23,1% vs  33,2% (-10,1)
+  ash_purse              taken    39   held at ch2    14: freed  35,7% vs  32,8% (+3,0)
+  thorned_rosary         taken    39   held at ch2    13: freed  30,8% vs  32,9% (-2,2)
+  rusted_chain           taken    39   held at ch2    15: freed  20,0% vs  33,3% (-13,3)
+  ferrymans_lantern      taken    39   held at ch2     8: freed  12,5% vs  33,3% (-20,8)
+  devils_compass         taken    38   held at ch2    12: freed  33,3% vs  32,8% (+0,5)
+  golden_scepter         taken    37   held at ch2     3: freed   0,0% vs  33,1% (-33,1)
+  candle_stub            taken    36   held at ch2     9: freed  44,4% vs  32,6% (+11,8)
+  blood_ring             taken    36   held at ch2    10: freed  60,0% vs  32,2% (+27,8)
+  rat_tooth              taken    35   held at ch2     6: freed  16,7% vs  33,1% (-16,4)
+  old_map                taken    33   held at ch2    13: freed  15,4% vs  33,4% (-18,0)
+  iron_vow               taken    33   held at ch2    13: freed  38,5% vs  32,7% (+5,8)
+  bloody_die             taken    33   held at ch2    11: freed  27,3% vs  33,0% (-5,7)
+  twin_dice              taken    33   held at ch2    10: freed  40,0% vs  32,7% (+7,3)
+  salt_circle            taken    33   held at ch2    11: freed  54,5% vs  32,3% (+22,3)
+  lucifers_feather       taken    32   held at ch2     9: freed  22,2% vs  33,1% (-10,9)
+  ferrymans_coin         taken    30   held at ch2     9: freed  44,4% vs  32,6% (+11,8)
+  bone_die               taken    30   held at ch2     9: freed  55,6% vs  32,4% (+23,2)
+  black_book             taken    30   held at ch2     9: freed  44,4% vs  32,6% (+11,8)
+  lost_souls_letter      taken    30   held at ch2     7: freed  42,9% vs  32,7% (+10,2)
+  abyss_coin             taken    27   held at ch2    12: freed  25,0% vs  33,1% (-8,1)
+  liliths_tear           taken    27   held at ch2     8: freed  25,0% vs  33,0% (-8,0)
+  blood_pact             taken    27   held at ch2     9: freed  55,6% vs  32,4% (+23,2)
+  hangmans_rope          taken    27   held at ch2     6: freed  16,7% vs  33,1% (-16,4)
+  liars_tongue           taken    26   held at ch2    12: freed  16,7% vs  33,3% (-16,7)
+  pilgrims_lantern       taken    24   held at ch2     8: freed  25,0% vs  33,0% (-8,0)
+  mammons_gold_tooth     taken    22   held at ch2     6: freed  33,3% vs  32,8% (+0,5)
+  silver_bell            taken    19   held at ch2     4: freed   0,0% vs  33,2% (-33,2)
+jester: chapter 2 begun by 315 runs, 36,5% freed
+  bell_collar            taken   296   held at ch2   228: freed  42,1% vs  21,8% (+20,3) !
+  double_laugh           taken   140   held at ch2    85: freed  42,4% vs  34,3% (+8,0)
+  controlled_chaos       taken   139   held at ch2    73: freed  30,1% vs  38,4% (-8,3)
+  joker_purse            taken   136   held at ch2    82: freed  41,5% vs  34,8% (+6,7)
+  buffoon                taken   133   held at ch2    75: freed  30,7% vs  38,3% (-7,7)
+  jesters_hat            taken   131   held at ch2    74: freed  55,4% vs  30,7% (+24,7) !
+  mocking_mask           taken    31   held at ch2     5: freed  60,0% vs  36,1% (+23,9)
+  rusty_crown            taken    29   held at ch2    12: freed  66,7% vs  35,3% (+31,4)
+  rusted_chain           taken    27   held at ch2    11: freed  27,3% vs  36,8% (-9,6)
+  thorned_rosary         taken    27   held at ch2     5: freed  40,0% vs  36,5% (+3,5)
+  twin_dice              taken    27   held at ch2    13: freed  23,1% vs  37,1% (-14,0)
+  devils_compass         taken    27   held at ch2     9: freed  11,1% vs  37,3% (-26,1)
+  bone_die               taken    26   held at ch2     7: freed  57,1% vs  36,0% (+21,1)
+  candle_stub            taken    26   held at ch2     8: freed   0,0% vs  37,5% (-37,5)
+  ash_purse              taken    25   held at ch2     7: freed  28,6% vs  36,7% (-8,1)
+  raven_feather          taken    25   held at ch2     3: freed  33,3% vs  36,5% (-3,2)
+  lead_seal              taken    25   held at ch2     7: freed  71,4% vs  35,7% (+35,7)
+  ferrymans_lantern      taken    25   held at ch2     6: freed   0,0% vs  37,2% (-37,2)
+  black_book             taken    25   held at ch2     9: freed  33,3% vs  36,6% (-3,3)
+  blood_ring             taken    25   held at ch2     9: freed   0,0% vs  37,6% (-37,6)
+  old_map                taken    24   held at ch2    13: freed  23,1% vs  37,1% (-14,0)
+  ash_ledger             taken    24   held at ch2     9: freed  11,1% vs  37,3% (-26,1)
+  rat_tooth              taken    23   held at ch2     4: freed   0,0% vs  37,0% (-37,0)
+  lead_purse             taken    22   held at ch2     6: freed  66,7% vs  35,9% (+30,7)
+  iron_vow               taken    21   held at ch2     8: freed  12,5% vs  37,1% (-24,6)
+  bloody_die             taken    21   held at ch2     9: freed  11,1% vs  37,3% (-26,1)
+  salt_circle            taken    21   held at ch2     6: freed  16,7% vs  36,9% (-20,2)
+  lucifers_feather       taken    20   held at ch2     5: freed  80,0% vs  35,8% (+44,2)
+  liars_tongue           taken    19   held at ch2     6: freed  66,7% vs  35,9% (+30,7)
+  lost_souls_letter      taken    19   held at ch2     4: freed  50,0% vs  36,3% (+13,7)
+  blood_pact             taken    19   held at ch2     3: freed   0,0% vs  36,9% (-36,9)
+  liliths_tear           taken    18   held at ch2     6: freed  66,7% vs  35,9% (+30,7)
+  pilgrims_lantern       taken    18   held at ch2     8: freed   0,0% vs  37,5% (-37,5)
+  ferrymans_coin         taken    17   held at ch2     3: freed  33,3% vs  36,5% (-3,2)
+  abyss_coin             taken    17   held at ch2     7: freed   0,0% vs  37,3% (-37,3)
+  hangmans_rope          taken    16   held at ch2     4: freed  50,0% vs  36,3% (+13,7)
+  silver_bell            taken    14   held at ch2     3: freed  66,7% vs  36,2% (+30,4)
+  mammons_gold_tooth     taken    14   held at ch2     7: freed  42,9% vs  36,4% (+6,5)
+  jesters_rattle         taken     0   held at ch2     4: freed   0,0% vs  37,0% (-37,0)
+summoner: chapter 2 begun by 410 runs, 37,1% freed
+  chalk_circle           taken   359   held at ch2   298: freed  38,6% vs  33,0% (+5,6)
+  tame_imps              taken   201   held at ch2   112: freed  34,8% vs  37,9% (-3,1)
+  keen_eye               taken   186   held at ch2   105: freed  40,0% vs  36,1% (+3,9)
+  blood_oath             taken   183   held at ch2   101: freed  36,6% vs  37,2% (-0,6)
+  loyal_pair             taken   179   held at ch2    92: freed  37,0% vs  37,1% (-0,2)
+  summoners_leash        taken   171   held at ch2    89: freed  42,7% vs  35,5% (+7,2)
+  lead_seal              taken    42   held at ch2     9: freed  55,6% vs  36,7% (+18,9)
+  raven_feather          taken    41   held at ch2     5: freed  40,0% vs  37,0% (+3,0)
+  ash_ledger             taken    41   held at ch2     9: freed  44,4% vs  36,9% (+7,5)
+  ferrymans_lantern      taken    40   held at ch2     7: freed  42,9% vs  37,0% (+5,9)
+  rusted_chain           taken    39   held at ch2    15: freed  53,3% vs  36,5% (+16,9)
+  black_grimoire         taken    39   held at ch2     5: freed  20,0% vs  37,3% (-17,3)
+  candle_stub            taken    38   held at ch2    11: freed  18,2% vs  37,6% (-19,4)
+  devils_compass         taken    36   held at ch2     9: freed  44,4% vs  36,9% (+7,5)
+  thorned_rosary         taken    35   held at ch2    10: freed  20,0% vs  37,5% (-17,5)
+  rusty_crown            taken    35   held at ch2    11: freed  27,3% vs  37,3% (-10,1)
+  twin_dice              taken    34   held at ch2    12: freed  66,7% vs  36,2% (+30,5)
+  iron_vow               taken    33   held at ch2    11: freed  18,2% vs  37,6% (-19,4)
+  lead_purse             taken    33   held at ch2    14: freed  42,9% vs  36,9% (+6,0)
+  bloody_die             taken    33   held at ch2    12: freed   8,3% vs  37,9% (-29,6)
+  ash_purse              taken    32   held at ch2    10: freed  50,0% vs  36,8% (+13,3)
+  rat_tooth              taken    32   held at ch2     5: freed   0,0% vs  37,5% (-37,5)
+  old_map                taken    31   held at ch2    12: freed   8,3% vs  37,9% (-29,6)
+  blood_ring             taken    31   held at ch2    10: freed  40,0% vs  37,0% (+3,0)
+  black_book             taken    31   held at ch2    11: freed  54,5% vs  36,6% (+18,0)
+  lucifers_feather       taken    31   held at ch2     7: freed  71,4% vs  36,5% (+35,0)
+  salt_circle            taken    30   held at ch2    13: freed  61,5% vs  36,3% (+25,3)
+  blood_pact             taken    29   held at ch2    10: freed  90,0% vs  35,8% (+54,3)
+  ferrymans_coin         taken    25   held at ch2     9: freed  33,3% vs  37,2% (-3,8)
+  bone_die               taken    25   held at ch2     8: freed  50,0% vs  36,8% (+13,2)
+  abyss_coin             taken    25   held at ch2    10: freed  10,0% vs  37,8% (-27,8)
+  liliths_tear           taken    25   held at ch2    10: freed  30,0% vs  37,3% (-7,3)
+  lost_souls_letter      taken    25   held at ch2     9: freed  44,4% vs  36,9% (+7,5)
+  liars_tongue           taken    24   held at ch2    12: freed  33,3% vs  37,2% (-3,9)
+  hangmans_rope          taken    24   held at ch2     3: freed  33,3% vs  37,1% (-3,8)
+  pilgrims_lantern       taken    24   held at ch2     6: freed  16,7% vs  37,4% (-20,7)
+  mammons_gold_tooth     taken    23   held at ch2     5: freed  40,0% vs  37,0% (+3,0)
+  silver_bell            taken    19   held at ch2     5: freed  60,0% vs  36,8% (+23,2)
+thief: chapter 2 begun by 420 runs, 46,4% freed
+  worn_gloves            taken   372   held at ch2   299: freed  49,2% vs  39,7% (+9,5)
+  night_eye              taken   212   held at ch2   109: freed  41,3% vs  48,2% (-6,9)
+  master_thief           taken   201   held at ch2   115: freed  41,7% vs  48,2% (-6,5)
+  light_fingers          taken   195   held at ch2    95: freed  50,5% vs  45,2% (+5,3)
+  loot_sack              taken   191   held at ch2   101: freed  53,5% vs  44,2% (+9,3)
+  lockpick               taken   167   held at ch2    86: freed  51,2% vs  45,2% (+6,0)
+  thorned_rosary         taken    45   held at ch2    11: freed  36,4% vs  46,7% (-10,3)
+  ash_ledger             taken    44   held at ch2    11: freed  45,5% vs  46,5% (-1,0)
+  devils_compass         taken    44   held at ch2    12: freed  33,3% vs  46,8% (-13,5)
+  lead_seal              taken    43   held at ch2    12: freed  58,3% vs  46,1% (+12,3)
+  ferrymans_lantern      taken    43   held at ch2     9: freed  44,4% vs  46,5% (-2,0)
+  shadow_cloak           taken    43   held at ch2     3: freed   0,0% vs  46,8% (-46,8)
+  raven_feather          taken    42   held at ch2     9: freed  33,3% vs  46,7% (-13,4)
+  rusted_chain           taken    42   held at ch2    15: freed  46,7% vs  46,4% (+0,2)
+  ash_purse              taken    41   held at ch2    10: freed  40,0% vs  46,6% (-6,6)
+  rusty_crown            taken    38   held at ch2    14: freed  50,0% vs  46,3% (+3,7)
+  lead_purse             taken    37   held at ch2    11: freed  45,5% vs  46,5% (-1,0)
+  twin_dice              taken    37   held at ch2    16: freed  50,0% vs  46,3% (+3,7)
+  candle_stub            taken    35   held at ch2    10: freed  40,0% vs  46,6% (-6,6)
+  lucifers_feather       taken    34   held at ch2     9: freed  77,8% vs  45,7% (+32,0)
+  rat_tooth              taken    34   held at ch2     4: freed  25,0% vs  46,6% (-21,6)
+  bloody_die             taken    33   held at ch2    10: freed  20,0% vs  47,1% (-27,1)
+  salt_circle            taken    33   held at ch2    10: freed  60,0% vs  46,1% (+13,9)
+  lost_souls_letter      taken    32   held at ch2     7: freed  57,1% vs  46,2% (+10,9)
+  iron_vow               taken    31   held at ch2    12: freed  33,3% vs  46,8% (-13,5)
+  black_book             taken    31   held at ch2    11: freed  63,6% vs  46,0% (+17,7)
+  liliths_tear           taken    30   held at ch2    10: freed  30,0% vs  46,8% (-16,8)
+  blood_pact             taken    30   held at ch2     9: freed  88,9% vs  45,5% (+43,4)
+  blood_ring             taken    30   held at ch2     9: freed  55,6% vs  46,2% (+9,3)
+  old_map                taken    28   held at ch2    15: freed  40,0% vs  46,7% (-6,7)
+  bone_die               taken    28   held at ch2     8: freed  37,5% vs  46,6% (-9,1)
+  ferrymans_coin         taken    27   held at ch2     7: freed  28,6% vs  46,7% (-18,2)
+  abyss_coin             taken    26   held at ch2     9: freed  33,3% vs  46,7% (-13,4)
+  mammons_gold_tooth     taken    25   held at ch2     7: freed  57,1% vs  46,2% (+10,9)
+  silver_bell            taken    24   held at ch2     4: freed  50,0% vs  46,4% (+3,6)
+  hangmans_rope          taken    24   held at ch2     5: freed  60,0% vs  46,3% (+13,7)
+  pilgrims_lantern       taken    24   held at ch2     9: freed  33,3% vs  46,7% (-13,4)
+  liars_tongue           taken    23   held at ch2     9: freed  33,3% vs  46,7% (-13,4)
+all: chapter 2 begun by 2372 runs, 42,0% freed
+  tax_ledger             taken   379   held at ch2   290: freed  30,7% vs  43,6% (-12,9) !
+  worn_gloves            taken   372   held at ch2   299: freed  49,2% vs  41,0% (+8,2)
+  rope_belt              taken   361   held at ch2   302: freed  49,7% vs  40,9% (+8,8)
+  chalk_circle           taken   359   held at ch2   298: freed  38,6% vs  42,5% (-3,9)
+  cracked_orb            taken   328   held at ch2   287: freed  57,1% vs  40,0% (+17,2) !
+  bell_collar            taken   296   held at ch2   228: freed  42,1% vs  42,0% (+0,1)
+  lead_seal              taken   243   held at ch2    60: freed  56,7% vs  41,7% (+15,0) !
+  ash_ledger             taken   239   held at ch2    54: freed  40,7% vs  42,1% (-1,3)
+  raven_feather          taken   236   held at ch2    42: freed  35,7% vs  42,1% (-6,4)
+  rusted_chain           taken   229   held at ch2    87: freed  48,3% vs  41,8% (+6,5)
+  devils_compass         taken   229   held at ch2    61: freed  32,8% vs  42,3% (-9,5)
+  ferrymans_lantern      taken   224   held at ch2    40: freed  35,0% vs  42,2% (-7,2)
+  rusty_crown            taken   223   held at ch2    71: freed  49,3% vs  41,8% (+7,5)
+  thorned_rosary         taken   222   held at ch2    59: freed  40,7% vs  42,1% (-1,4)
+  ash_purse              taken   218   held at ch2    65: freed  41,5% vs  42,0% (-0,5)
+  night_eye              taken   212   held at ch2   109: freed  41,3% vs  42,1% (-0,8)
+  quiet_satchel          taken   211   held at ch2   112: freed  50,0% vs  41,6% (+8,4)
+  candle_stub            taken   206   held at ch2    58: freed  39,7% vs  42,1% (-2,4)
+  twin_dice              taken   203   held at ch2    81: freed  43,2% vs  42,0% (+1,2)
+  crown_guard            taken   203   held at ch2   109: freed  28,4% vs  42,7% (-14,2) !
+  lead_purse             taken   201   held at ch2    65: freed  46,2% vs  41,9% (+4,2)
+  tame_imps              taken   201   held at ch2   112: freed  34,8% vs  42,4% (-7,6)
+  master_thief           taken   201   held at ch2   115: freed  41,7% vs  42,0% (-0,3)
+  blind_mirror           taken   198   held at ch2   106: freed  50,9% vs  41,6% (+9,3)
+  cheap_seizure          taken   197   held at ch2   113: freed  33,6% vs  42,5% (-8,8)
+  light_fingers          taken   195   held at ch2    95: freed  50,5% vs  41,7% (+8,8)
+  wide_satchel           taken   194   held at ch2    95: freed  50,5% vs  41,7% (+8,8)
+  abundance              taken   193   held at ch2   105: freed  44,8% vs  41,9% (+2,9)
+  thrice                 taken   192   held at ch2   109: freed  42,2% vs  42,0% (+0,2)
+  loot_sack              taken   191   held at ch2   101: freed  53,5% vs  41,5% (+11,9) !
+  rat_tooth              taken   190   held at ch2    29: freed  20,7% vs  42,3% (-21,6)
+  seed                   taken   188   held at ch2   103: freed  42,7% vs  42,0% (+0,7)
+  bloody_die             taken   187   held at ch2    64: freed  31,3% vs  42,3% (-11,1) !
+  royal_decree           taken   187   held at ch2   104: freed  40,4% vs  42,1% (-1,7)
+  keen_eye               taken   186   held at ch2   105: freed  40,0% vs  42,1% (-2,1)
+  eye_of_truth           taken   185   held at ch2    95: freed  51,6% vs  41,6% (+9,9)
+  blood_oath             taken   183   held at ch2   101: freed  36,6% vs  42,3% (-5,6)
+  old_map                taken   181   held at ch2    75: freed  28,0% vs  42,5% (-14,5) !
+  overflowing_treasury   taken   179   held at ch2    91: freed  28,6% vs  42,6% (-14,0) !
+  loyal_pair             taken   179   held at ch2    92: freed  37,0% vs  42,2% (-5,3)
+  black_book             taken   177   held at ch2    61: freed  47,5% vs  41,9% (+5,7)
+  deep_prophecy          taken   177   held at ch2    85: freed  63,5% vs  41,2% (+22,3) !
+  lucifers_feather       taken   175   held at ch2    46: freed  58,7% vs  41,7% (+17,0) !
+  blood_ring             taken   175   held at ch2    56: freed  46,4% vs  41,9% (+4,5)
+  seers_spectacles       taken   173   held at ch2    86: freed  62,8% vs  41,3% (+21,5) !
+  summoners_leash        taken   171   held at ch2    89: freed  42,7% vs  42,0% (+0,7)
+  iron_vow               taken   170   held at ch2    65: freed  40,0% vs  42,1% (-2,1)
+  salt_circle            taken   170   held at ch2    59: freed  52,5% vs  41,8% (+10,8) !
+  bone_die               taken   169   held at ch2    46: freed  45,7% vs  42,0% (+3,7)
+  kings_signet           taken   168   held at ch2    85: freed  25,9% vs  42,6% (-16,7) !
+  lockpick               taken   167   held at ch2    86: freed  51,2% vs  41,7% (+9,5)
+  peasants_scythe        taken   165   held at ch2    87: freed  48,3% vs  41,8% (+6,5)
+  ferrymans_coin         taken   161   held at ch2    43: freed  37,2% vs  42,1% (-4,9)
+  blood_pact             taken   161   held at ch2    50: freed  70,0% vs  41,4% (+28,6) !
+  lost_souls_letter      taken   160   held at ch2    40: freed  42,5% vs  42,0% (+0,5)
+  liliths_tear           taken   150   held at ch2    53: freed  39,6% vs  42,1% (-2,5)
+  pilgrims_lantern       taken   144   held at ch2    49: freed  24,5% vs  42,4% (-17,9) !
+  abyss_coin             taken   143   held at ch2    60: freed  25,0% vs  42,5% (-17,5) !
+  double_laugh           taken   140   held at ch2    85: freed  42,4% vs  42,0% (+0,3)
+  controlled_chaos       taken   139   held at ch2    73: freed  30,1% vs  42,4% (-12,3) !
+  hangmans_rope          taken   137   held at ch2    30: freed  30,0% vs  42,2% (-12,2) !
+  liars_tongue           taken   136   held at ch2    56: freed  35,7% vs  42,2% (-6,5)
+  joker_purse            taken   136   held at ch2    82: freed  41,5% vs  42,1% (-0,6)
+  buffoon                taken   133   held at ch2    75: freed  30,7% vs  42,4% (-11,7) !
+  jesters_hat            taken   131   held at ch2    74: freed  55,4% vs  41,6% (+13,8) !
+  silver_bell            taken   126   held at ch2    25: freed  40,0% vs  42,1% (-2,1)
+  mammons_gold_tooth     taken   121   held at ch2    37: freed  45,9% vs  42,0% (+4,0)
+  star_chart             taken    50   held at ch2     4: freed  75,0% vs  42,0% (+33,0)
+  shadow_cloak           taken    43   held at ch2     3: freed   0,0% vs  42,1% (-42,1)
+  harvest_moon           taken    42   held at ch2     5: freed  60,0% vs  42,0% (+18,0)
+  black_grimoire         taken    39   held at ch2     5: freed  20,0% vs  42,1% (-22,1)
+  golden_scepter         taken    37   held at ch2     3: freed   0,0% vs  42,1% (-42,1)
+  mocking_mask           taken    31   held at ch2     5: freed  60,0% vs  42,0% (+18,0)
+  jesters_rattle         taken     0   held at ch2     4: freed   0,0% vs  42,1% (-42,1)
+
+Demo 2.1's offers (all classes): offered, the choices, coins / years an offer moved on average, freed when taken vs when seen and passed (both got that far; a gap past 5 points is marked !; an encounter cannot be passed)
+  chained_soul        offered   627  [pass 627]  coins    0,0  years     0,0  freed taken      - / passed  46,6% (+0,0)
+  fallen_angel        offered   601  [relic 601]  coins    0,0  years   130,4  freed taken  47,9% / passed      - (+0,0)
+  hungry_gambler      offered   549  [pass 549]  coins    0,0  years     0,0  freed taken      - / passed  49,5% (+0,0)
+  debtor_imp          offered   576  [lend 571 pass 5]  coins  -37,3  years     0,4  freed taken  46,2% / passed   0,0% (+0,0)
+  lost_soul           offered   477  [pass 477]  coins    0,0  years     0,0  freed taken      - / passed  50,3% (+0,0)
+  mammons_accountant  offered   623  [report 623]  coins   50,8  years     0,9  freed taken  43,0% / passed      - (+0,0)
+  three_cups          offered   587  [pass 490 bet2 97]  coins    8,6  years     0,1  freed taken  57,7% / passed  48,8% (+0,0)
+  fake_pardon         offered   624  [buy 371 pass 253]  coins  -36,9  years   -73,3  freed taken  45,0% / passed  47,4% (+21,4)
+  soul_insurance      offered   619  [pass 399 buy 220]  coins   -9,5  years     0,1  freed taken  40,0% / passed  53,6% (-18,3) !
+  pickpocket          offered   677  [chase 677]  coins   39,2  years     0,5  freed taken  48,0% / passed      - (+0,0)
+  lava_ferryman       offered   497  [pass 497]  coins    0,0  years     0,0  freed taken      - / passed  44,1% (+0,0)
+  hell_lottery        offered   587  [ticket 586 pass 1]  coins    3,4  years    10,9  freed taken  49,8% / passed   0,0% (+0,0)
+  confession_cell     offered   627  [confess 627]  coins    0,0  years  -190,9  freed taken  49,3% / passed      - (+0,0)
+  fire_rain           offered   661  [coins 660 years 1]  coins  -12,2  years     1,0  freed taken  43,3% / passed      - (+0,0)
+  sin_swap            offered   456  [give 353 take 353 pass 103]  coins    0,0  years     0,4  freed taken  52,7% / passed  47,6% (+4,4)
+  blind_seer          offered   636  [pass 636]  coins    0,0  years     0,0  freed taken      - / passed  46,4% (+0,0)
+
+the black market's vendors (all classes): visits, things bought, freed when something was bought vs met and left (within classes; ! past 5)
+  Smuggler       visits   690  bought   372  gap -7,7 !
+  Pawnshop       visits   576  bought   878  gap +0,0
+  BoneMerchant   visits   665  bought   332  gap -7,5 !
+  Alchemist      visits   547  bought   283  gap -15,7 !
+  GamblersStall  visits   659  bought    48  gap -5,7
+  Tailor         visits   669  bought   106  gap +2,9
+
+Saving results to: C:/Users/Deniz/AppData/LocalLow/Deniz/Hell Poker\TestResults.xml
+

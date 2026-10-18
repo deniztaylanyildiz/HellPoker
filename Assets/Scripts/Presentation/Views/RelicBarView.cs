@@ -71,6 +71,7 @@ namespace HellPoker.Presentation.Views
         {
             Image tip = UiFactory.CreateImage("RelicTip", root, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             tip.rectTransform.PlaceTL(Tile + 6, 0, 196, 38);
             UiFactory.AddBorder(tip.gameObject, Palette.Lilac, 1f);
             _tooltipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);

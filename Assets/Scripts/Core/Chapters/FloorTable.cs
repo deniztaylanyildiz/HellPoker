@@ -232,7 +232,8 @@ namespace HellPoker.Core.Chapters
                 effects.SitAt(SeatId, fresh: true);
                 Game.UseEffects(effects);
             }
-            if (deck != null && deck.Count > 0) Game.RestoreDeck(deck);
+            // The run's deck goes on (Phase 2's counted deck); a fresh-deck table takes it as its first deal (a stacked hand).
+            if (deck != null && deck.Count > 0) Game.StackTheDeal(deck);
             SetStakes();
         }
 
@@ -255,7 +256,7 @@ namespace HellPoker.Core.Chapters
         private static GameRules FloorRules(Dealer boss, int ante, int cap, bool hidesAll) =>
             new GameRules(startingYears: Purse, soulThreshold: 2 * Purse, maxDiscards: boss.MaxDiscards, forcedRaiseYears: 0,
                 houseCardsShown: hidesAll ? 0 : boss.HouseCardsShown, stakes: StakeScale.Fixed(ante, cap), luciferGateYears: 0,
-                maliceLowSentenceBonus: 0, majorCheatYears: 0, eventChancePercent: 0);
+                maliceLowSentenceBonus: 0, majorCheatYears: 0, eventChancePercent: 0, continuousDeck: !ChapterTuning.FreshDeckEveryHand);
 
         /// <summary>A table's imp on <paramref name="floor"/> (<see cref="ChapterRules.ImpCoinsAt"/>): the chapter demon's table rules,
         /// a weak temper, no cheats.</summary>

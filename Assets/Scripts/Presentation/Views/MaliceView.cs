@@ -84,6 +84,7 @@ namespace HellPoker.Presentation.Views
             // What the cheat does, beside the portrait, while the sign is hovered.
             Image tip = UiFactory.CreateImage("IntentTip", root, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             tip.rectTransform.PlaceTL(_size + 2, 2, 188, 30);
             UiFactory.AddBorder(tip.gameObject, Palette.Hell, 1f);
             _tooltipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);

@@ -13,12 +13,34 @@ namespace HellPoker.Presentation.Views
     public sealed class MainMenuView : MonoBehaviour, IMainMenuView
     {
         private const int SortingOrder = 100;
+
+        // Phase 3: the title screen on the 8 px grid, measured from the screen's size (the same code lays out 480×270 and 640×360).
+        private const int Grid = 8;
         private const int ButtonWidth = 128;
-        private const int ButtonHeight = 20;
+        private const int ButtonHeight = 24;
+        private const int GridGap = 16;                   // between the two columns
+        private const int RowStep = ButtonHeight + Grid;  // a row and the gap under it
+        private const int CornerHeight = 16;
+        private const int RulesButtonHeight = 20;          // How to Play's pager (its pages are laid out round it)              // BUG / IDEA and the language, in the top corners
+        private static int W => PixelScreen.Width;
+        private static int H => PixelScreen.Height;
+
+        /// <summary>Down to the 8 px grid.</summary>
+        private static int Snap(int v) => v / Grid * Grid;
+
+        /// <summary>The logo's whole-number scale: the largest that keeps it within four fifths of the screen's width.</summary>
+        private static int LogoScale(int width) => Mathf.Max(1, W * 4 / 5 / Mathf.Max(1, width));
+
+        private static int LogoTop => Snap(H / 10);
+        private int _logoBottom;
+        // Under the logo, each on the grid: DEMO, the two lines of the tagline, the divider, the subtagline, the buttons.
+        private int DemoTop => Snap(_logoBottom + Grid - 1);
+        private int TaglineTop => DemoTop + 2 * Grid;
+        private int DividerTop => TaglineTop + 20;
+        private int SubtaglineTop => DividerTop + Grid;
+        private int GridTop => Snap(SubtaglineTop + 3 * Grid - 1);
 
         private Canvas _canvas;
-        private const int GridTop = 132;
-        private const int GridGap = 6;
 
         private GameObject _continueButton;
         private GameObject _changeTableButton;
@@ -114,34 +136,38 @@ namespace HellPoker.Presentation.Views
             _logo = logo.rectTransform;
             if (logo.sprite != null)
             {
-                Vector2 size = logo.sprite.rect.size * 2f;
-                _logo.PlaceTL((PixelScreen.Width - (int)size.x) / 2, 30, (int)size.x, (int)size.y);
+                int scale = LogoScale((int)logo.sprite.rect.width);
+                Vector2Int size = new Vector2Int((int)logo.sprite.rect.width * scale, (int)logo.sprite.rect.height * scale);
+                _logo.PlaceTL((W - size.x) / 2, LogoTop, size.x, size.y);
+                _logoBottom = LogoTop + size.y;
             }
             else
             {
                 logo.enabled = false;
                 UiFactory.CreateText("TitleText", front, "", 32, Palette.Hell, style: FontStyle.Bold).WithOutline().Localized(() => UiText.Title)
-                    .rectTransform.PlaceTL(0, 34, PixelScreen.Width, 32);
+                    .rectTransform.PlaceTL(0, LogoTop, W, 32);
+                _logoBottom = LogoTop + 32;
             }
 
             // A demo build says so, small, under the title (the same word in both languages).
             if (HellPoker.Core.Game.ReleaseVersion.IsDemo(Application.version))
                 UiFactory.CreateText("DemoLabel", front, UiText.DemoLabel, 8, Palette.Ember, style: FontStyle.Bold).WithOutline()
-                    .rectTransform.PlaceTL((PixelScreen.Width - 64) / 2, 72, 64, 9);
+                    .rectTransform.PlaceTL((W - 64) / 2, DemoTop, 64, Grid);
 
             // The game's words — or, in the Boss Simulator, the old demo's (its sentence of years).
+            int textWidth = W - 10 * Grid;
             _tagline = UiFactory.CreateText("Tagline", front, "", 8, Palette.Bone, TextAnchor.UpperCenter).WithOutline()
                 .Localized(() => _simulator ? tagline() : UiText.GameTagline);
-            _tagline.rectTransform.PlaceTL(40, 88, PixelScreen.Width - 80, 18);
-            UiFactory.CreateSprite("Divider", front, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 110, 48, 3);
+            _tagline.rectTransform.PlaceTL((W - textWidth) / 2, TaglineTop, textWidth, 18);
+            UiFactory.CreateSprite("Divider", front, UiArt.Divider).rectTransform.PlaceTL((W - 48) / 2, DividerTop, 48, 3);
             _subtagline = UiFactory.CreateText("Subtagline", front, "", 8, Palette.BoneMid).WithOutline()
                 .Localized(() => _simulator ? UiText.MenuSubtagline : UiText.GameSubtagline);
-            _subtagline.rectTransform.PlaceTL(40, 117, PixelScreen.Width - 80, 9);
+            _subtagline.rectTransform.PlaceTL((W - textWidth) / 2, SubtaglineTop, textWidth, 9);
 
             // The Boss Simulator says so under the title (F9 again: back to the game).
             Text simulator = UiFactory.CreateText("SimulatorLabel", front, "", 8, Palette.Ember, style: FontStyle.Bold).WithOutline()
                 .Localized(() => UiText.SimulatorLabel);
-            simulator.rectTransform.PlaceTL(0, 12, PixelScreen.Width, 9);
+            simulator.rectTransform.PlaceTL(0, Grid + 4, W, 9);
             _simulatorLabel = simulator.gameObject;
             _simulatorLabel.SetActive(false);
 
@@ -160,21 +186,21 @@ namespace HellPoker.Presentation.Views
             // The language, in the top right corner (L does the same): shows the one a press switches to.
             Button language = UiFactory.CreateButton("MenuLanguageButton", front, "", 8, out Text languageLabel, ButtonSkin.Ash);
             languageLabel.Localized(() => UiText.LanguageButton);
-            ((RectTransform)language.transform).PlaceTL(PixelScreen.Width - 32, 4, 28, 18);
+            ((RectTransform)language.transform).PlaceTL(W - Grid - 4 * Grid, Grid, 4 * Grid, CornerHeight);
             language.onClick.AddListener(() => LanguagePressed?.Invoke());
 
             Button feedback = UiFactory.CreateButton("MenuFeedbackButton", front, "", 8, out Text feedbackLabel, ButtonSkin.Ash);
             feedbackLabel.Localized(() => UiText.FeedbackButton);
-            ((RectTransform)feedback.transform).PlaceTL(4, 4, 104, 18);
+            ((RectTransform)feedback.transform).PlaceTL(Grid, Grid, 13 * Grid, CornerHeight);
             feedback.onClick.AddListener(() => FeedbackPressed?.Invoke());
 
             UiFactory.CreateText("Footer", front, "", 8, Palette.BoneDark).WithOutline().Localized(() => UiText.MenuFooter)
-                .rectTransform.PlaceTL(0, 254, PixelScreen.Width, 9);
+                .rectTransform.PlaceTL(0, H - 2 * Grid, W, 9);
 
             // The build's version, small, in the bottom right corner (C.23).
             Text version = UiFactory.CreateText("Version", front, HellPoker.Core.Game.ReleaseVersion.Display(Application.version), 8, Palette.BoneDark,
                 TextAnchor.MiddleRight).WithOutline();
-            version.rectTransform.PlaceTL(PixelScreen.Width - 84, 258, 80, 9);
+            version.rectTransform.PlaceTL(W - Grid - 10 * Grid, H - 2 * Grid, 10 * Grid, 9);
 
             _rulesPanel = BuildRulesPanel(screen, rules, cheats, sinners);
             ShowRules(false);
@@ -268,7 +294,7 @@ namespace HellPoker.Presentation.Views
             // RULES → HANDS → CHEATS → SINNERS page switch (the label names the next page), then BACK.
             int buttonsY = PixelScreen.Height - 16 - 26;
             Button page = UiFactory.CreateButton("HandRanksPageButton", panel.transform, "", 8, out _pageLabel, ButtonSkin.Ash);
-            ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 108, buttonsY, 104, ButtonHeight);
+            ((RectTransform)page.transform).PlaceTL((PixelScreen.Width - 16) / 2 - 108, buttonsY, 104, RulesButtonHeight);
             page.onClick.AddListener(() => ShowPage(Next(_page)));
             _pageButton = page.gameObject;
 
@@ -278,7 +304,7 @@ namespace HellPoker.Presentation.Views
 
             Button back = UiFactory.CreateButton("BackButton", panel.transform, "", 8, out Text rulesBackLabel, ButtonSkin.Blood);
             rulesBackLabel.Localized(() => UiText.Back);
-            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 16) / 2 + 4, buttonsY, 80, ButtonHeight);
+            ((RectTransform)back.transform).PlaceTL((PixelScreen.Width - 16) / 2 + 4, buttonsY, 80, RulesButtonHeight);
             back.onClick.AddListener(() => ShowRules(false));
             return panel.gameObject;
         }
@@ -292,23 +318,27 @@ namespace HellPoker.Presentation.Views
             return button.gameObject;
         }
 
-        /// <summary>Places the visible buttons two to a row, in order, with Quit centred on its own row below.</summary>
+        /// <summary>
+        /// Places the visible buttons two to a row, in order, every one the same size on the 8 px grid; Quit takes the last row's empty
+        /// place, or is centred on a row of its own.
+        /// </summary>
         private void LayOut()
         {
-            int left = (PixelScreen.Width - 2 * ButtonWidth - GridGap) / 2;
+            int left = Snap((W - 2 * ButtonWidth - GridGap) / 2);
             int slot = 0;
             foreach (GameObject button in _grid)
             {
                 if (!button.activeSelf) continue;
-                int x = left + slot % 2 * (ButtonWidth + GridGap);
-                int y = GridTop + slot / 2 * (ButtonHeight + GridGap);
-                ((RectTransform)button.transform).PlaceTL(x, y, ButtonWidth, ButtonHeight);
+                Place(button, left + slot % 2 * (ButtonWidth + GridGap), GridTop + slot / 2 * RowStep);
                 slot++;
             }
-
-            int quitY = GridTop + (slot + 1) / 2 * (ButtonHeight + GridGap);
-            ((RectTransform)_quitButton.transform).PlaceTL((PixelScreen.Width - ButtonWidth) / 2, quitY, ButtonWidth, ButtonHeight);
+            if (slot % 2 == 1)
+                Place(_quitButton, left + ButtonWidth + GridGap, GridTop + slot / 2 * RowStep);
+            else
+                Place(_quitButton, (W - ButtonWidth) / 2, GridTop + slot / 2 * RowStep);
         }
+
+        private static void Place(GameObject button, int x, int y) => ((RectTransform)button.transform).PlaceTL(x, y, ButtonWidth, ButtonHeight);
 
         public bool CloseOverlay()
         {

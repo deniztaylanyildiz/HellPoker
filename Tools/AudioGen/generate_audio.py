@@ -17,6 +17,16 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 AUDIO = os.path.join(ROOT, "Assets", "Resources", "Audio")
 
 
+def check_seam(name, data):
+    """A loop closes seamlessly: the step from its last sample back to its first is no bigger than the biggest step inside it (2% slack,
+    as the art's loop rule). mix() wraps every voice that rings past the end, so this holds by construction; the check keeps it so."""
+    import numpy as np
+    steps = np.abs(np.diff(data.astype(np.float64)))
+    seam = abs(float(data[0]) - float(data[-1]))
+    if seam > steps.max() * 1.02 + 1e-9:
+        raise SystemExit(f"{name}: the loop's seam jumps {seam:.4f} (the biggest step inside is {steps.max():.4f})")
+
+
 def main(selected):
     if not selected or "sfx" in selected:
         folder = os.path.join(AUDIO, "Sfx")
@@ -32,6 +42,7 @@ def main(selected):
         for name, make in sounds.MUSIC.items():
             path = os.path.join(folder, name + ".wav")
             data = make()
+            check_seam(name, data)
             write(path, data)
             print("wrote", os.path.relpath(path, ROOT), f"{len(data) / RATE:.1f}s")
 

@@ -178,6 +178,7 @@ namespace HellPoker.Presentation.Views
             // The hover box (over everything else).
             Image tip = UiFactory.CreateImage("NodeTip", screen, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _tipRect = tip.rectTransform;
             _tipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);

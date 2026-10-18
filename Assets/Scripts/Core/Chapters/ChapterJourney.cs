@@ -255,7 +255,7 @@ namespace HellPoker.Core.Chapters
                 Sentence = journey.Sentence
             };
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
-                save.Deck, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted,
+                null, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted,
                 save.CompassJumps);
             journey.Run.RestoreCompass(save.CompassUsed);
             journey.Run.RestoreWardensBeaten(save.WardensHere);
@@ -323,7 +323,6 @@ namespace HellPoker.Core.Chapters
                 Breaker = run.BreaksFirstCheat,
                 Rested = run.RestedByTheFire,
                 EventsSeen = run.EventsSeen.ToList(),
-                Deck = run.DeckCards.ToList(),
                 Matches = run.MatchesOpened,
                 WardenRelic = run.WardenRelicWaiting,
                 BossBarStart = run.BossBarStart,

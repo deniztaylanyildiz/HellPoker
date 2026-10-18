@@ -95,6 +95,7 @@ namespace HellPoker.Presentation.Views
 
             Image tip = UiFactory.CreateImage("SinnerCardTip", screen, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _tipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _tipText.raycastTarget = false;

@@ -1682,7 +1682,6 @@ namespace HellPoker.Presentation
                 save.MatchHands = _match.HandsPlayed;
                 save.MatchMarks = _match.Marks.Encode();
                 save.GambleStake = _match.HousePurse == null ? _match.AnteNow : 0;
-                save.Deck = _match.DeckCards.ToList();
                 CaptureHand(save, _match.Game, _match.HandInPlay);
             }
             else if (_bossGame != null)
@@ -1692,7 +1691,6 @@ namespace HellPoker.Presentation
                 save.MatchHands = _bossGame.RoundNumber;
                 save.Malice = _bossGame.Malice;
                 save.MajorUsed = _bossGame.MajorCheatUsed;
-                save.Deck = _bossGame.DeckCards.ToList();
                 CaptureHand(save, _bossGame, _bossGame.CurrentHand != null);
             }
             _archive.SaveRun(save);

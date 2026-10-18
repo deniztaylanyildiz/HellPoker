@@ -106,6 +106,7 @@ namespace HellPoker.Presentation.Views
             // What the class can do, beside the portrait, while the badge is hovered.
             Image tip = UiFactory.CreateImage("SinnerTip", root, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             tip.rectTransform.PlaceTL(Width + 6, -2, 188, 46);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _tooltipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);

@@ -25,6 +25,21 @@ namespace HellPoker.Presentation.Ui
         public static string PayoutLossSameFoldFormat => L("× pays on the ante,\nraises pay 1 : 1.\nLose: House hand{0}\nFold: always {1}",
             "× ante'ye işler,\nartırmalar 1 : 1.\nKayıp: kasanın eli{0}\nÇekil: her zaman {1}");
 
+        // Phase 3: a chapter's table pays in the hands' panel (H), these notes under the ranks.
+        public static string HandsPayoutsButton => L("HANDS\nPAYOUTS", "ELLER\nÖDEMELER");
+        public static string HandsPayoutsHint => L("Hand ranks and payouts (H)", "El sıralaması ve ödemeler (H)");
+        public static string PayoutNoteAnte => L("× pays on the ante, raises pay 1 : 1", "× ante'ye ödenir, artırmalar 1 : 1");
+        /// <summary>{0} loss surcharge (see <see cref="LossSurcharge"/>), {1} what a fold costs ("all", "half / all").</summary>
+        public static string PayoutNoteLossFormat => L("Lose: the House's hand{0}  ·  Fold: {1}", "Kayıp: kasanın eli{0}  ·  Çekilme: {1}");
+        /// <summary>A demon's table: {0} percent a win counts against the bar, {1} a loss.</summary>
+        public static string PayoutNoteScaleFormat => L("Against the demon: a win counts {0}%, a loss {1}%",
+            "Şeytana karşı: kazanç %{0}, kayıp %{1} sayılır");
+        /// <summary>A floor's table that pays more (Belial's Show): {0} percent.</summary>
+        public static string PayoutNoteFloorWinFormat => L("Wins pay {0}% here", "Burada kazanç %{0} öder");
+        /// <summary>Mammon's table: {0} percent of the bar's start, every hand not won.</summary>
+        public static string PayoutNoteInterestFormat => L("INTEREST: every hand you do not win, the bar grows {0}%",
+            "FAİZ: kazanamadığın her elde bar %{0} uzar");
+
         /// <summary>A share of the stake in a word: "half", "all", "quarter", or a percentage.</summary>
         public static string ShareShort(int percent)
         {

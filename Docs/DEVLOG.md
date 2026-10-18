@@ -3743,3 +3743,60 @@ Köylü 41.1 / 39.8 / **36.7**, Kâhin 29.8 / 47.4 / **41.4**, Kral 31.7 / 24.6 
 `Builds/HellPoker-Demo-2.3.1-win64.zip` (38.7 MB, Result: Success). Kayıtlar yedeklendi; zipten açılan oyunla 3 × `-fpstour`: çıkış 0,
 hata 0, 19 FPS satırı; yedek geri kondu. (Not: scratchpad yolu zipteki en uzun dosyayla 260 karakteri aşıyor; duman turu kısa bir
 `%TEMP%` klasöründe.) Etiket `v2.3.1-demo`.
+
+## 2026-10-19 — Phase 3 (1): hover kutuları, ödemeler H panelinde, her el taze deste, kat müzikleri, ana menü
+
+### İstek (kullanıcı)
+Phase 3'ün başlangıcı, iki aşama + sürüm. Aşama 1: A hover kutuları en üstte ve ekranda; B bölüm masalarında PAYOUTS paneli kalkar, ödemeler
+ELLER / ÖDEMELER (H) panelinde; C bölüm masalarında her el taze 52'lik deste (deste sayacı, KARIŞTIR, S, kayıttaki deste kalkar), bölüm
+geçişinde karılmama hatasının nedeni; D kat (ve harita) müzikleri uzun ve yumuşak; E ana menü 8 px ızgarada. Boss Simülatörü / demo kurallarına
+dokunma; testler tek Unity, tek tek (kullanıcı ayrıca: "testler sistemi yorarsa yavaş yavaş" — Unity düşük öncelikte, koşular arası mola).
+
+### Yapılanlar
+- **A** `Ui/HoverTip` (kendi Canvas'ı, `overrideSorting`, ekranın sırası + 15; her karede tam pikselle ekrana geri iter; tıklama almaz). Bütün
+  ipuçları bağlandı: son eller (`RecentTip` — PAYOUTS'un arkasında kalan), deste, mesaj, rozet, emanet çubuğu, çanta, can barı, niyet, kit paneli,
+  harita düğümü, sınıf kartı, yeni ELLER/ÖDEMELER ipucu. PlayMode `TableLayoutTests.EveryHoverBox_IsOverEverythingAndOnScreen_InBothLanguages`
+  boss masası, sınıf kartları, harita ve kat masasında her EventTrigger'ı açar: kutu ekranının bütün canvas'larının üstünde ve ekranın içinde.
+- **B** `ITableView.SetPayoutTableShown(false)` bölüm masalarında: PAYOUTS gizli, düğme "ELLER\nÖDEMELER" (76 px, hover "El sıralaması ve ödemeler (H)"),
+  bahis satırı sağ sütuna uzar (ARTIR 104 / PAS / HEP PAS 80 / ÇEKİL), kısayol satırı 146'dan başlar. `HandRanksPanel` notlar satırları alır
+  (panel uzar): "× ante'ye ödenir, artırmalar 1:1", "Kayıp: kasanın eli · Çekilme: hepsi", şeytanda "kazanç %X, kayıp %Y sayılır" (oyunun kendi
+  `ScaledPayoutTable`'ı: `HellPokerGame.Payouts`), Belial'in şovunda kat kazancı, Mammon'da FAİZ (`TablePresenter.Payouts.cs`). Simülatör aynen.
+- **C** `ChapterTuning.FreshDeckEveryHand` (oyun: true; simülasyon `HELLPOKER_CHAPTER_DECK=0` eski sayılan deste): kat ve şeytan masalarının
+  `GameRules.continuousDeck` false → sayaç / KARIŞTIR kendiliğinden gizli, S bölüm masasında sessiz, "deste bitti" mesajı gelmez. `ChapterSave`
+  `deck` yazmaz, eski kayıttaki yok sayılır. Heybe kartları her taze desteden çıkar (`KeepHookCardsOut`). Testlerin yığılmış destesi için
+  `HellPokerGame.StackTheDeal` (sayılan destede `RestoreDeck`; taze destede bir kerelik dağıtım). İlk denemede `RestoreDeck`'i taze desteye açmıştım:
+  simülatörün masa değişimi eski desteyi taşıdığı için LuciferJourneyTests düştü → geri alındı, ayrı yöntem.
+  **Bölüm geçişinde karılmama:** kod yolu (`ChapterJourney.NextChapter` yeni `ChapterRun`'ı destesiz kurar) ve son günlük (run-20261019-000400:
+  2. bölümün ilk masasında ilk karıştırma 4. elde, 9 kart kala — taze deste) hatayı göstermedi; deste yalnız bir bölüm *içinde* masadan masaya
+  ve kayıtla taşınıyordu (yeni katın ilk elinde "deste bitti" çok sık: aynı günlükte 4 kez). Muhtemelen görülen bu. Artık soru kalmadı.
+- **D** `sounds.py`: `floor_mammon` 64 BPM 32 ölçü (2:00), `floor_belial` 96 BPM 48 ölçü (2:00), `floor_lilith` 60 BPM 32 ölçü (2:08), `map_mammon`
+  (2:17), `map_belial` vals 72 ölçü (2:00), `map_lilith` (2:34): A / B / nefes (bas susar, pad) / A / dönüş, üçgen bas, örs ~1 kHz dört ölçüde bir
+  ve kısık, çok sessiz pad, ara ara kısa melodi, normalize 0.42 (0.5'ti). `generate_audio.py` her müzikte dikiş denetimi (`check_seam`). Eski /
+  yeni: `AudioCompare/old`, `AudioCompare/new` (git'e girmez).
+- **E** `MainMenuView`: yerleşim ekran boyundan (W, H, `Snap` 8 px): düğmeler 128×24, iki sütun arası 16, satır adımı 32, ÇIKIŞ son satırın
+  boş yerine ya da ortaya; logo `LogoScale` (genişliğin 4/5'ine sığan tam kat), köşe düğmeleri 16 px, alt satır H−16. Zemin (`pixel_menu.py`):
+  yıldız 50→24, pencereler %35→18, parıltı 4→2, ateş denizinin sakin ortası geniş ve soğuk; `MENU_TEXT` yeni yerleşime (C# kopyası
+  `BackdropMotionTests`). PlayMode `MenuGridTests` (iki dil, oyun + simülatör: aynı boy, ızgara, logo tam kat, çakışma yok).
+- How to Play resimleri yeniden çekildi (`HowToShots.CaptureHowToPictures`). Ekran görüntüleri `Screenshots/phase3/before` (4 çözünürlük),
+  `after_e` ([Explicit] `PhaseThreeShots`).
+
+### Denge (C): aynı tohumlar, sınıf başına 500 koşu, daire 0
+| sınıf | sayılan deste | taze deste | fark |
+|---|---|---|---|
+| Köylü | %39.0 | %29.8 | **−9.2** |
+| Kâhin | %40.6 | %41.0 | +0.4 |
+| Kral | %27.4 | %32.2 | **+4.8** |
+| Soytarı | %23.0 | %23.0 | 0 (zaten her el taze) |
+| Çağırıcı | %30.4 | %32.6 | +2.2 |
+| Hırsız | %39.0 | %39.4 | +0.4 |
+Köylü ve Kral ±3'ün dışında: talimat gereği dokunulmadı (karar kullanıcının). Köylü'de kat kesesi daha sık boşalıyor (%9.6→12.6 1. bölüm), şeytan
+masalarında daha çok yanıyor; heybe kullanımı biraz düşük (79→73 kart).
+
+### Testler
+EditMode 1121 (1116 geçti, 5 Explicit). PlayMode tek tek: HellPokerScene 10, SalonRegression 5, RunJourney 2, LuciferJourney 1, JesterJourney 1,
+CheatJourney 7, BackdropMotion 2, ChapterJourney 5, TableLayout 6, HowToPlay 2, MenuGrid 1. FullRunTests 8 + kaos geçti (artık her elde deste
+sayacı yok, KARIŞTIR yok, deste taze denetimi).
+
+### Açık
+- Köylü −9 / Kral +5 (taze deste) — denge kararı.
+- Sıradaki: Aşama 2 (F, 640×360).

@@ -147,7 +147,7 @@ namespace HellPoker.Core.Chapters
                 t.OpeningCardsShown, t.RaiseUnitsBeforeDraw, t.RaiseUnitsAfterDraw, t.HouseReRaiseUnits, t.SoulWorthYears, t.SoulLossPercent,
                 luciferGateYears: 0, t.LuciferCastDownYears, final, t.MalicePerHand, t.MalicePerWin, t.MaliceLowSentenceYears,
                 t.MaliceLowSentenceBonus, t.MajorCheatYears, t.MajorCheatPercent, t.GrudgeHands, t.GrudgeMalicePerHand,
-                t.EventChancePercent, t.EventCooldownHands, t.ContinuousDeck, t.ShuffleYears, t.ShuffleMinYears);
+                t.EventChancePercent, t.EventCooldownHands, t.ContinuousDeck && !ChapterTuning.FreshDeckEveryHand, t.ShuffleYears, t.ShuffleMinYears);
         }
 
         /// <summary>The demon's table for a bar: the boss's own temper, cheats and payouts (scaled by the chapter's percents).</summary>

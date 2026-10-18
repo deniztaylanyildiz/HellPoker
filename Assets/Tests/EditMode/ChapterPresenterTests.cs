@@ -335,7 +335,7 @@ namespace HellPoker.Core.Tests
             var game = (HellPokerGame)_table.Game;
             game.TakeOver(bar, 0);
             var head = TestCards.Cards(deal).ToList();
-            game.RestoreDeck(head.Concat(Core.Cards.Deck.CreateStandardCards().Where(c => !head.Contains(c))).ToList());
+            game.StackTheDeal(head.Concat(Core.Cards.Deck.CreateStandardCards().Where(c => !head.Contains(c))).ToList());
             return archive;
         }
 

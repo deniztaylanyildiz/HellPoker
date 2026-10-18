@@ -442,98 +442,184 @@ SFX.update({
 # ---------------------------------------------------------------------------------------------------------------- Phase 2's music
 
 
-def music_map_mammon():
-    """Mammon's vault, on the map: the march slowed to a creep — the bass and the anvil far off, a counting-house bell."""
-    beat, length = _track(56, 8)
-    chords = ["Am", "F", "Dm", "E"] * 2
-    parts = []
-    for bar, ch in enumerate(chords):
-        root = _chord_notes(ch, 2)[0]
-        parts.append((bar * 4 * beat, env(pulse(note_hz(root), beat * 3.8, 0.125), 0.02, 0.4, 0.5, 0.4), 0.3))
-        anvil = decay_env(pulse(2100, 0.25, 0.5) * 0.5 + noise(0.25, seed=80 + bar, rate_hz=11000) * 0.5, 0.06)
-        parts.append((bar * 4 * beat + 2 * beat, anvil, 0.1))
-        for k, n in enumerate(_chord_notes(ch, 4)):
-            parts.append((bar * 4 * beat + k * beat, decay_env(triangle(note_hz(n), beat), 0.3), 0.12))
-    return normalize(loop_lowpass(mix(length, parts), 0.4), 0.5)
+# Phase 3: the floors' and the maps' loops are long (32 bars or more, about two minutes) so they do not tire: an A and a B part, a breath
+# between them (the bass rests, only a quiet pad), a soft bass (triangle), the anvil low (~1 kHz), rare and quiet, a pad under it all
+# and now and then a short phrase of melody. Each keeps its chapter's colour: Mammon heavy and metallic, Belial a cabaret, Lilith the night.
 
 
-def music_map_belial():
-    """Belial's stage, on the map: a music box waltz behind the curtain."""
-    beat, length = _track(132, 16, beats=3)
-    chords = ["Dm", "A7", "Dm", "G", "Bb", "A7", "Dm", "A7"] * 2
-    parts = []
-    for bar, ch in enumerate(chords):
-        tones = _chord_notes(ch, 3)
-        start = bar * 3 * beat
-        parts.append((start, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 0.9), 0.005, 0.1, 0.6, 0.05), 0.4))
-        for b in (1, 2):
-            chord = sum(triangle(note_hz(n) * 2, beat * 0.4) for n in tones[:3])
-            parts.append((start + b * beat, decay_env(chord, 0.06), 0.08))
-    tune = ["A5", "F5", "D5", "E5", None, "C#5", "D5", "F5", "A5", "G5", None, "E5"]
-    for i, n in enumerate(tune * 4):
-        if n:
-            parts.append((i * beat, decay_env(triangle(note_hz(n) * 2, beat * 0.9), 0.12), 0.2))
-    return normalize(mix(length, parts), 0.5)
+def _pad(chord, octave, length, gain=1.0, attack=0.8, release=1.0):
+    """A very quiet held chord: soft triangles, slow in and out."""
+    return sum(env(triangle(note_hz(n), length), attack, 0.5, 0.7, release) for n in _chord_notes(chord, octave)) * gain
 
 
-def music_map_lilith():
-    """Lilith's night, on the map: slow and violet, a pad and a far-off bell."""
-    beat, length = _track(50, 8)
-    chords = ["Dm", "Bb", "Gm", "A"] * 2
-    parts = []
-    for bar, ch in enumerate(chords):
-        pad = sum(env(triangle(note_hz(n), beat * 4.3), 0.8, 0.5, 0.7, 1.0) for n in _chord_notes(ch, 3))
-        parts.append((bar * 4 * beat, pad, 0.18))
-        if bar % 2 == 0:
-            t = np.arange(seconds(3), dtype=np.float32) / RATE
-            bell = (np.sin(2 * np.pi * note_hz("D6") * t) + 0.4 * np.sin(2 * np.pi * note_hz("D6") * 2.76 * t)) * 0.5 ** (t / 0.7)
-            parts.append((bar * 4 * beat + beat, bell.astype(np.float32), 0.12))
-    return normalize(loop_lowpass(mix(length, parts), 0.35), 0.5)
+def _anvil(seed, hz=1000):
+    """Mammon's anvil, low and dull: a lower ring and filtered noise."""
+    ring = pulse(hz, 0.35, 0.5) * 0.35 + triangle(hz * 1.5, 0.35) * 0.25
+    return decay_env(lowpass(ring + noise(0.35, seed=seed, rate_hz=6000) * 0.3, 0.35), 0.07)
+
+
+def _phrase(notes, start, step, gain, parts, voice="pulse", length=1.6, vibrato=0.006):
+    """A short phrase of melody: notes (None rests) a step apart from start."""
+    for i, n in enumerate(notes):
+        if not n:
+            continue
+        if voice == "pulse":
+            s = env(pulse(note_hz(n), step * length, 0.5, vibrato=vibrato), 0.04, 0.3, 0.5, 0.4)
+        else:
+            s = env(triangle(note_hz(n), step * length), 0.02, 0.3, 0.55, 0.4)
+        parts.append((start + i * step, s, gain))
 
 
 def music_floor_mammon():
-    """A floor of Mammon's: his march, plainer — the bass and the anvil, no lead."""
-    beat, length = _track(68, 8)
-    chords = ["Am", "Am", "F", "F", "Dm", "Dm", "E", "E"]
+    """A floor of Mammon's (Phase 3): his march, long and quiet — A, B, a breath, A again, a turn home. 64 BPM, 32 bars (2 min)."""
+    beat, length = _track(64, 32)
+    a = ["Am", "Am", "F", "F", "Dm", "Dm", "E", "E"]
+    b = ["F", "G", "Am", "Am", "Dm", "F", "E", "E"]
+    breath = ["Am", "F", "Dm", "E"]
+    home = ["Dm", "E", "Am", "E"]
+    bars = [(c, "a") for c in a] + [(c, "b") for c in b] + [(c, "breath") for c in breath] + [(c, "a") for c in a] + [(c, "home") for c in home]
     parts = []
-    for bar, ch in enumerate(chords):
-        root = _chord_notes(ch, 2)[0]
-        for b in range(4):
-            start = (bar * 4 + b) * beat
-            parts.append((start, env(pulse(note_hz(root), beat * 0.9, 0.125), 0.005, 0.15, 0.5, 0.05), 0.35))
-            if b == 0:
-                anvil = decay_env(pulse(2100, 0.25, 0.5) * 0.5 + noise(0.25, seed=90 + bar, rate_hz=11000) * 0.5, 0.05)
-                parts.append((start, anvil, 0.15))
-    return normalize(mix(length, parts), 0.5)
+    for bar, (ch, part) in enumerate(bars):
+        start = bar * 4 * beat
+        parts.append((start, _pad(ch, 3, beat * 4.4), 0.045 if part != "breath" else 0.06))
+        if part != "breath":
+            root = _chord_notes(ch, 2)[0]
+            for b in (0, 2):   # half notes: the march's weight without the drone of every beat
+                parts.append((start + b * beat, env(triangle(note_hz(root), beat * 1.8), 0.01, 0.3, 0.6, 0.2), 0.32))
+            if part == "b":
+                fifth = _chord_notes(ch, 2)[2]
+                parts.append((start + 3 * beat, env(triangle(note_hz(fifth), beat * 0.8), 0.01, 0.2, 0.5, 0.1), 0.18))
+        if bar % 4 == 0 and part != "breath":
+            parts.append((start, _anvil(90 + bar), 0.06))   # every fourth bar, far off
+        if part == "breath" and bar % 2 == 0:
+            parts.append((start + 2 * beat, decay_env(lowpass(noise(0.6, seed=140 + bar, rate_hz=3000), 0.1), 0.2), 0.05))   # coins settling
+    # Now and then a phrase: once in B, once in the second A.
+    _phrase(["E5", "D5", "C5", None, "B4", None, "A4", None], 10 * 4 * beat, beat, 0.07, parts)
+    _phrase(["C5", None, "D5", "E5", None, None, "D5", "B4"], 24 * 4 * beat, beat, 0.06, parts)
+    return normalize(loop_lowpass(mix(length, parts), 0.45), 0.42)
 
 
 def music_floor_belial():
-    """A floor of Belial's: the walking bass and the brushes, no lead."""
-    beat, length = _track(116, 8)
+    """A floor of Belial's (Phase 3): the cabaret, long — the walking bass and the brushes, a breath, a crooned phrase. 96 BPM, 48 bars."""
+    beat, length = _track(96, 48)
     swing = beat * 0.62
-    chords = ["Dm7", "G7", "Cmaj7", "A7"] * 2
+    a = ["Dm7", "G7", "Cmaj7", "A7"] * 2
+    b = ["Fmaj7", "Bb", "Em7", "A7", "Dm7", "G7", "Cmaj7", "A7"]
+    breath = ["Dm7", "G7", "Cmaj7", "A7"]
+    bars = ([(c, "a") for c in a] + [(c, "a2") for c in a] + [(c, "b") for c in b] + [(c, "breath") for c in breath]
+            + [(c, "a") for c in a] + [(c, "b") for c in b] + [(c, "turn") for c in ["Dm7", "G7", "Cmaj7", "A7"]])
     parts = []
-    for bar, ch in enumerate(chords):
+    for bar, (ch, part) in enumerate(bars):
+        start = bar * 4 * beat
+        parts.append((start, _pad(ch.replace("maj7", "").replace("m7", "m").replace("7", ""), 3, beat * 4.3, attack=0.5), 0.03 if part != "breath" else 0.05))
+        if part == "breath":
+            parts.append((start + swing, decay_env(noise(0.08, seed=300 + bar), 0.02), 0.03))
+            continue
         tones = _chord_notes(ch, 2)
         walk = [tones[0], tones[1 % len(tones)], tones[2 % len(tones)], tones[1 % len(tones)]]
         for b in range(4):
-            start = (bar * 4 + b) * beat
-            parts.append((start, env(triangle(note_hz(walk[b]), beat * 0.9), 0.005, 0.1, 0.7, 0.05), 0.5))
-            parts.append((start + swing, decay_env(noise(0.08, seed=100 + bar * 4 + b), 0.02), 0.06))
-    return normalize(mix(length, parts), 0.5)
+            s = start + b * beat
+            parts.append((s, env(triangle(note_hz(walk[b]), beat * 0.85), 0.006, 0.1, 0.6, 0.05), 0.36))
+            parts.append((s + swing, decay_env(noise(0.07, seed=100 + bar * 4 + b), 0.018), 0.04))
+            if b in (1, 3) and part != "a":
+                chord = sum(triangle(note_hz(n) * 2, beat * 0.35) for n in _chord_notes(ch, 3))
+                parts.append((s + swing * 0.2, env(chord, 0.005, 0.1, 0.4, 0.05), 0.03))
+    _phrase(["F5", "E5", "D5", None, "B4", "D5", "G5", None], 8 * 4 * beat, beat, 0.06, parts, vibrato=0.009)
+    _phrase(["E5", None, "G5", "B5", "A5", "G5", "E5", None], 28 * 4 * beat, beat, 0.055, parts, vibrato=0.009)
+    return normalize(mix(length, parts), 0.42)
 
 
 def music_floor_lilith():
-    """A floor of Lilith's: her arpeggio alone."""
-    beat, length = _track(60, 8)
-    chords = ["Dm", "Bb", "Gm", "A"] * 2
+    """A floor of Lilith's (Phase 3): her arpeggio over a low drone, A and B, a breath of pad, a far phrase. 60 BPM, 32 bars."""
+    beat, length = _track(60, 32)
+    a = ["Dm", "Bb", "Gm", "A"] * 2
+    b = ["F", "C", "Dm", "A", "Bb", "Gm", "A", "A"]
+    breath = ["Dm", "Bb", "Gm", "A"]
+    bars = [(c, "a") for c in a] + [(c, "b") for c in b] + [(c, "breath") for c in breath] + [(c, "a") for c in a] + [(c, "b") for c in b[:4]]
     parts = []
-    for bar, ch in enumerate(chords):
+    t = np.arange(seconds(length), dtype=np.float32) / RATE
+    drone = (np.sin(2 * np.pi * note_hz("D2") * t) + 0.3 * np.sin(2 * np.pi * note_hz("A2") * t)).astype(np.float32)
+    parts.append((0, drone, 0.05))
+    for bar, (ch, part) in enumerate(bars):
+        start = bar * 4 * beat
+        parts.append((start, _pad(ch, 3, beat * 4.4, attack=1.0, release=1.4), 0.04 if part != "breath" else 0.06))
+        if part == "breath":
+            continue
         notes = _chord_notes(ch, 3)
         for k in range(8):
             n = notes[[0, 1, 2, 1][k % 4]]
-            parts.append(((bar * 8 + k) * beat * 0.5, decay_env(triangle(note_hz(n), beat * 1.5), 0.3), 0.25))
-    return normalize(loop_lowpass(mix(length, parts), 0.5), 0.5)
+            if part == "b" and k >= 4:
+                n = n[:-1] + str(int(n[-1]) + 1)
+            parts.append((start + k * beat * 0.5, decay_env(triangle(note_hz(n), beat * 1.5), 0.3), 0.17))
+    _phrase(["A5", None, None, "F5", None, "G5", None, None], 12 * 4 * beat, beat * 2, 0.05, parts, length=1.8, vibrato=0.01)
+    _phrase(["D6", None, "C6", None, "A5", None, None, None], 26 * 4 * beat, beat * 2, 0.045, parts, length=1.8, vibrato=0.01)
+    return normalize(loop_lowpass(mix(length, parts), 0.45), 0.42)
+
+
+def music_map_mammon():
+    """Mammon's vault, on the map (Phase 3): the march slowed to a creep, long — a bass far off, a counting-house bell. 56 BPM, 32 bars."""
+    beat, length = _track(56, 32)
+    a = ["Am", "F", "Dm", "E"] * 2
+    b = ["F", "C", "Dm", "E"] * 2
+    bars = [(c, "a") for c in a] + [(c, "b") for c in b] + [(c, "breath") for c in ["Am", "F", "Dm", "E"]] + [(c, "a") for c in a] + [(c, "b") for c in b[:4]]
+    parts = []
+    for bar, (ch, part) in enumerate(bars):
+        start = bar * 4 * beat
+        parts.append((start, _pad(ch, 3, beat * 4.4), 0.04))
+        if part != "breath":
+            parts.append((start, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 3.8), 0.02, 0.4, 0.5, 0.4), 0.3))
+            for k, n in enumerate(_chord_notes(ch, 4)):
+                parts.append((start + k * beat, decay_env(triangle(note_hz(n), beat), 0.3), 0.08))
+        if bar % 8 == 4:
+            parts.append((start + 2 * beat, _anvil(80 + bar, 900), 0.05))
+        if bar % 8 == 0:
+            tt = np.arange(seconds(3), dtype=np.float32) / RATE
+            bell = (np.sin(2 * np.pi * note_hz("A5") * tt) + 0.4 * np.sin(2 * np.pi * note_hz("A5") * 2.76 * tt)) * 0.5 ** (tt / 0.6)
+            parts.append((start + beat, bell.astype(np.float32), 0.06))
+    return normalize(loop_lowpass(mix(length, parts), 0.4), 0.42)
+
+
+def music_map_belial():
+    """Belial's stage, on the map (Phase 3): the music-box waltz behind the curtain, long — the tune comes and goes. 108 BPM, 72 bars of 3."""
+    beat, length = _track(108, 72, beats=3)
+    a = ["Dm", "A7", "Dm", "G", "Bb", "A7", "Dm", "A7"]
+    b = ["F", "C", "Dm", "A7", "Bb", "F", "G", "A7"]
+    plan = [(c, "a") for c in a] * 2 + [(c, "b") for c in b] * 2 + [(c, "breath") for c in a[:4] + a[:4]] + [(c, "a") for c in a] * 2 + [(c, "b") for c in b] + [(c, "turn") for c in a]
+    tune = ["A5", "F5", "D5", "E5", None, "C#5", "D5", "F5", "A5", "G5", None, "E5"]
+    parts = []
+    for bar, (ch, part) in enumerate(plan):
+        start = bar * 3 * beat
+        parts.append((start, _pad(ch.replace("7", ""), 3, beat * 3.3, attack=0.4, release=0.6), 0.03))
+        if part == "breath":
+            continue
+        parts.append((start, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 0.9), 0.005, 0.1, 0.6, 0.05), 0.3))
+        for b in (1, 2):
+            chord = sum(triangle(note_hz(n) * 2, beat * 0.4) for n in _chord_notes(ch, 3)[:3])
+            parts.append((start + b * beat, decay_env(chord, 0.06), 0.05))
+    # The music box's tune only in the A parts' first time round and the last A: it comes and goes.
+    for first in (0, 40):
+        for i, n in enumerate(tune * 4):
+            if n and i < 48:
+                parts.append(((first * 3 + i) * beat, decay_env(triangle(note_hz(n) * 2, beat * 0.9), 0.12), 0.12))
+    return normalize(mix(length, parts), 0.42)
+
+
+def music_map_lilith():
+    """Lilith's night, on the map (Phase 3): slow and violet, long — a pad, a far bell, a few notes of her song. 50 BPM, 32 bars."""
+    beat, length = _track(50, 32)
+    chords = ["Dm", "Bb", "Gm", "A"] * 4 + ["F", "C", "Dm", "A"] * 2 + ["Dm", "Bb", "Gm", "A"] * 2
+    parts = []
+    for bar, ch in enumerate(chords):
+        start = bar * 4 * beat
+        parts.append((start, _pad(ch, 3, beat * 4.3, attack=1.0, release=1.2), 0.07))
+        if bar % 4 == 0:
+            tt = np.arange(seconds(3), dtype=np.float32) / RATE
+            bell = (np.sin(2 * np.pi * note_hz("D6") * tt) + 0.4 * np.sin(2 * np.pi * note_hz("D6") * 2.76 * tt)) * 0.5 ** (tt / 0.7)
+            parts.append((start + beat, bell.astype(np.float32), 0.07))
+        if 8 <= bar < 12 or 24 <= bar < 28:
+            parts.append((start, env(triangle(note_hz(_chord_notes(ch, 2)[0]), beat * 3.9), 0.4, 0.4, 0.6, 0.6), 0.12))
+    _phrase(["A5", None, "F5", None, "G5", None, "E5", None], 16 * 4 * beat, beat * 2, 0.05, parts, voice="triangle", length=1.8)
+    return normalize(loop_lowpass(mix(length, parts), 0.35), 0.42)
 
 
 def music_lucifer_call():

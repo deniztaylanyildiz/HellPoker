@@ -37,7 +37,7 @@ namespace HellPoker.Core.Tests
         private static RoundResult PlayOne(HellPokerGame game, string cards)
         {
             if (game.Phase == GamePhase.RoundOver) game.NextRound();
-            game.RestoreDeck(DeckStarting(cards));
+            game.StackTheDeal(DeckStarting(cards));
             game.PlaceBet();
             if (game.Phase == GamePhase.PlayerReveal && game.CanCheckToDraw(out _)) game.CheckToDraw();
             while (game.Phase != GamePhase.RoundOver && !game.IsGameOver)

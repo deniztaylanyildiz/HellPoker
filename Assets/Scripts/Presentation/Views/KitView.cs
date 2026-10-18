@@ -137,6 +137,7 @@ namespace HellPoker.Presentation.Views
 
             Image tip = UiFactory.CreateImage("KitTip", root, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             UiFactory.AddBorder(tip.gameObject, Palette.Lilac, 1f);
             _tooltipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _tooltipText.raycastTarget = false;

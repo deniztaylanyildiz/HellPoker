@@ -136,6 +136,7 @@ namespace HellPoker.Presentation.Views
 
             Image tip = UiFactory.CreateImage("DeckTip", screen, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             tip.rectTransform.PlaceTL(DeckX, DeckY + 11, 200, 30);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _deckTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
@@ -234,10 +235,13 @@ namespace HellPoker.Presentation.Views
             ((RectTransform)menu.transform).PlaceTL(4, 248, 56, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
 
-            Button hands = UiFactory.CreateButton("HandsButton", screen, "", 8, out Text handsLabel, ButtonSkin.Ash);
-            handsLabel.Localized(() => UiText.HandsButton);
-            ((RectTransform)hands.transform).PlaceTL(64, 248, 56, 18);
-            hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
+            _hands = UiFactory.CreateButton("HandsButton", screen, "", 8, out _handsLabel, ButtonSkin.Ash);
+            _handsLabel.Localized(() => PayoutTableShown ? UiText.HandsButton : UiText.HandsPayoutsButton);
+            _handsLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            _handsLabel.lineSpacing = 1f;
+            ((RectTransform)_hands.transform).PlaceTL(64, 248, 56, 18);
+            _hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
+            BuildHandsTip(screen);
 
             _leaveButton = UiFactory.CreateButton("LeaveButton", screen, "", 8, out _leaveLabel, ButtonSkin.Ash);
             ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
@@ -301,8 +305,8 @@ namespace HellPoker.Presentation.Views
             _checkToDrawButton.onClick.AddListener(() => CheckToDrawPressed?.Invoke());
             ApplyBetControls(BetControls.Hidden);
 
-            UiFactory.CreateText("Hint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline().Localized(() => UiText.Hint)
-                .rectTransform.PlaceTL(126, 253, 350, 9);
+            _hint = UiFactory.CreateText("Hint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline().Localized(() => UiText.Hint);
+            _hint.rectTransform.PlaceTL(HintX, 253, PixelScreen.Width - 4 - HintX, 9);
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
@@ -471,6 +475,7 @@ namespace HellPoker.Presentation.Views
         {
             Image tip = UiFactory.CreateImage("MessageTip", screen, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
             _messageTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _messageTip = tip.gameObject;
@@ -670,7 +675,24 @@ namespace HellPoker.Presentation.Views
             _passButton.GetComponent<ButtonFeel>().Locked = !controls.CanPass;
             _checkToDrawButton.GetComponent<ButtonFeel>().Locked = !controls.CanCheckToDraw;
 
-            if (checkToDraw)
+            if (!PayoutTableShown)
+            {
+                // Phase 3: a chapter's table has no payouts panel, the row runs on into the right column and every word has room.
+                if (checkToDraw)
+                {
+                    PlaceControl(_raiseButton, 0, 104);
+                    PlaceControl(_passButton, 112, 64);
+                    PlaceControl(_checkToDrawButton, 184, 80);
+                    PlaceControl(_foldButton, 272, 72);
+                }
+                else
+                {
+                    PlaceControl(_raiseButton, 0, 104);
+                    PlaceControl(_passButton, 112, 80);
+                    PlaceControl(_foldButton, controls.IsAnswer ? 144 : 200, 80);
+                }
+            }
+            else if (checkToDraw)
             {
                 // Four buttons share the row: RAISE · PASS · CHECK TO DRAW · FOLD.
                 PlaceControl(_raiseButton, 0, 88);
@@ -690,6 +712,51 @@ namespace HellPoker.Presentation.Views
         private static void PlaceControl(Button button, int x, int width)
         {
             ((RectTransform)button.transform).PlaceTL(Middle + x, ControlsY, width, ButtonHeight);
+        }
+
+        // ------------------------------------------------------------------ the payouts: a panel, or in the hands' panel (Phase 3)
+
+        private Button _hands;
+        private Text _handsLabel;
+        private GameObject _handsTip;
+        private Text _hint;
+        private const int HintX = 126, WideHintX = 146, HandsWidth = 56, WideHandsWidth = 76;
+
+        /// <summary>True while the payouts panel stands in the right column (the simulator); a chapter's table puts them in the hands' panel.</summary>
+        public bool PayoutTableShown { get; private set; } = true;
+
+        public void SetPayoutTableShown(bool shown)
+        {
+            PayoutTableShown = shown;
+            ((PayoutTableView)Payouts).gameObject.SetActive(shown);
+            _handsLabel.text = shown ? UiText.HandsButton : UiText.HandsPayoutsButton;
+            ((RectTransform)_hands.transform).PlaceTL(64, 248, shown ? HandsWidth : WideHandsWidth, 18);
+            int hintX = shown ? HintX : WideHintX;
+            _hint.rectTransform.PlaceTL(hintX, 253, PixelScreen.Width - 4 - hintX, 9);
+            _handsTip.SetActive(false);
+        }
+
+        /// <summary>The hands button's hover (a chapter's table): what the panel holds and its key.</summary>
+        private void BuildHandsTip(Transform screen)
+        {
+            Image tip = UiFactory.CreateImage("HandsTip", screen, Palette.Black);
+            tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
+            UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
+            Text text = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(() => UiText.HandsPayoutsHint);
+            text.rectTransform.PlaceTL(4, 3, 152, 9);
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            tip.rectTransform.PlaceTL(64, 248 - 16, 160, 14);
+            _handsTip = tip.gameObject;
+            _handsTip.SetActive(false);
+
+            var hover = _hands.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => _handsTip.SetActive(!PayoutTableShown));
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => _handsTip.SetActive(false));
+            hover.triggers.Add(enter);
+            hover.triggers.Add(exit);
         }
 
         public void SetPot(int years)
@@ -712,7 +779,14 @@ namespace HellPoker.Presentation.Views
             });
         }
 
-        public void ShowHandRanks(Core.Game.IPayoutInfo payouts, string footnote = null) => _handRanks.Show(payouts, footnote);
+        public void ShowHandRanks(Core.Game.IPayoutInfo payouts, string footnote = null, string notes = null)
+        {
+            _handsTip.SetActive(false);
+            _handRanks.Show(payouts, footnote, notes);
+        }
+
+        /// <summary>The hands' panel (for tests and screenshots).</summary>
+        public HandRanksPanel HandRanks => _handRanks;
 
         public void SetMalice(MaliceGauge gauge) => _malice.SetGauge(gauge);
 

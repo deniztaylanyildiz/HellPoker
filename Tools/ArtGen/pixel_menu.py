@@ -31,7 +31,7 @@ def sky(img):
     img.dither(img.m_rect(0, 110, W, HORIZON), C.NIGHT, C.BLOOD_DARK, np.clip((img.ys - 110) / 80.0, 0, 1))
     img.dither(img.m_rect(0, 170, W, HORIZON), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - 170) / 40.0, 0, 0.8))
     rng = np.random.default_rng(5)
-    for _ in range(50):   # dead stars, most of them soon hidden by the wings
+    for _ in range(24):   # dead stars, a few (Phase 3: a quieter sky), most of them hidden by the wings
         img.put(int(rng.integers(0, W)), int(rng.integers(0, 110)), C.MAUVE if rng.random() < 0.7 else C.LILAC_LIGHT)
 
 
@@ -121,7 +121,7 @@ def city(img):
                 img.paint(img.m_poly([(x + 1, top), (x + w // 2, top - int(rng.integers(5, 14))), (x + w - 2, top)]), C.BLACK)
             for wy in range(top + 3, HORIZON, 5):
                 for wx in range(x + 2, x + w - 2, 4):
-                    if rng.random() < 0.35:
+                    if rng.random() < 0.18:   # Phase 3: fewer lit windows
                         lit = (wx + wy + frame) % 7 != 0
                         img.put(wx, wy, C.ORANGE if lit else C.RED)
             x += w + int(rng.integers(0, 3))
@@ -138,9 +138,9 @@ def fire_color(x, y, f):
     # A still, irregular swell under the crests, so the sea does not read as a regular hatch.
     wave += 0.7 * math.sin(x * 0.071 + y * 0.53) * math.sin(x * 0.033 - y * 0.21)
     wave /= 2.0
-    # Calm under the buttons (the middle), wild toward the sides.
-    edge = min(1.0, max(0.0, (abs(x - 240) - 120) / 60.0))
-    heat = (wave * 0.5 + 0.5) * (0.45 + 0.55 * edge)
+    # Calm under the buttons (the middle), wild toward the sides (Phase 3: a wider, cooler calm).
+    edge = min(1.0, max(0.0, (abs(x - W / 2) - 150) / 70.0))
+    heat = (wave * 0.5 + 0.5) * (0.35 + 0.65 * edge)
     if heat > 0.85:
         return C.AMBER if depth < 0.4 else C.ORANGE
     if heat > 0.6:
@@ -177,7 +177,7 @@ def fire_layer(name, x0, w):
     return Layer(name, x0, HORIZON + 1, w, H - HORIZON - 1, FRAMES, 8, draw, vignette=quiet_middle)
 
 
-GOLD_GLINTS = ((20, 254), (52, 252), (8, 262), (66, 262))
+GOLD_GLINTS = ((20, 254), (52, 252))   # Phase 3: two glints, not four
 
 
 def gold(img):
@@ -277,7 +277,7 @@ def quiet_middle(img, ox=0, oy=0):
         dy = np.maximum(np.maximum(y0 - ys, ys - y1), 0)
         return np.clip(1 - np.hypot(dx, dy) / fade, 0, 1)
 
-    middle = field(94, 30, 386, 256, 24)
+    middle = field(W * 39 // 200, H * 11 // 100, W - W * 39 // 200, H - 14, 24)
     out = np.where(middle > threshold, once, img.px)
     out = np.where(middle * 0.8 > threshold + 0.05, twice, out)
     img.px = out
@@ -312,7 +312,9 @@ MENU_PARTICLES = [Particles("embers", 0, 30, 90, 170, 14), Particles("embers", 3
 
 # Where words sit on the title screen (nothing moves there): the taglines, the button grid, the footer, and the version
 # in the bottom right corner.
-MENU_TEXT = ((88, 84, 392, 126), (100, 128, 380, 240), (176, 250, 304, 266), (400, 256, 479, 269), (204, 70, 276, 82))   # the last: DEMO
+# Phase 3 (the menu on the 8 px grid): the taglines, the buttons, the footer, the version, DEMO, the two corner buttons.
+MENU_TEXT = ((40, 76, 440, 118), (96, 120, 384, 256), (176, 250, 304, 266), (392, 250, 479, 269), (200, 60, 280, 74), (0, 0, 120, 28),
+             (424, 0, 479, 28))
 
 
 def write_all(out_dir):

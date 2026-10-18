@@ -135,12 +135,18 @@ namespace HellPoker.Core.Tests
 
         public string HandRanksFootnote { get; private set; }
 
-        public void ShowHandRanks(IPayoutInfo payouts, string footnote = null)
+        public string HandRanksNotes { get; private set; }
+
+        public void ShowHandRanks(IPayoutInfo payouts, string footnote = null, string notes = null)
         {
             HandRanksOpen = true;
             HandRanksPayouts = payouts;
             HandRanksFootnote = footnote;
+            HandRanksNotes = notes;
         }
+
+        public bool PayoutTableShown { get; private set; } = true;
+        public void SetPayoutTableShown(bool shown) => PayoutTableShown = shown;
 
         public MaliceGauge Malice { get; private set; } = MaliceGauge.Hidden;
         public CheatCard Intent { get; private set; }

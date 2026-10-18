@@ -76,9 +76,9 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsTrue(ChapterJourneyTests.Chapters.IsAtTable);
             AssertNothingOverlaps(view, "boss, before the deal");
             view.SetAnte(99);
-            view.SetDeck(UiText.DeckShufflingLabel, UiText.DeckShufflingHint);
             yield return Settle();
-            AssertNothingOverlaps(view, "boss, before the deal, the widest ante and deck");
+            AssertNothingOverlaps(view, "boss, before the deal, the widest ante");
+            Assert.AreEqual("", view.DeckCountText, "Phase 3: no deck counter at a chapter's table");
 
             yield return Hand(view, coins: false);
 
@@ -114,7 +114,6 @@ namespace HellPoker.PlayMode.Tests
             view.SetStakeInfo(string.Format(coins ? UiText.CoinStakeInfoFormat : UiText.BarStakeInfoFormat, 999, 999));
             view.House.SetCaption(string.Format(UiText.WinnerFormat, string.Format(UiText.HouseDrewFormat, longest, 3)), Tone.Bad);
             view.Player.SetCaption(string.Format(UiText.WinnerFormat, longest), Tone.Triumph);
-            view.SetDeck(UiText.DeckShufflingLabel, UiText.DeckShufflingHint);
             yield return Settle();
             AssertNothingOverlaps(view, where + ", a three-line message and the longest captions");
             Assert.AreEqual(3, view.MessageShown.Split('\n').Length);
@@ -206,6 +205,132 @@ namespace HellPoker.PlayMode.Tests
                     if (UiText.ChapterPassiveLine(id) != null) StringAssert.Contains(turkish ? "PASİF:" : "PASSIVE:", select.TipText, what);
                     select.HideTip();
                 }
+            }
+        }
+
+        // ------------------------------------------------------------------ Phase 3: the hover boxes, the payouts in the hands' panel
+
+        [UnityTest, Timeout(300000)]
+        public IEnumerator EveryHoverBox_IsOverEverythingAndOnScreen_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            {
+                string lang = turkish ? " (tr)" : " (en)";
+                // A demon's table with relics, the class panel, the bar, the malice: the King at Mammon's, in a hand.
+                yield return Load(turkish, new ChapterSave
+                {
+                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                    BossBar = 1600, NodeDone = false, Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).ToList(), Taxes = 20
+                });
+                yield return Settle();
+                TableView view = ChapterJourneyTests.ChapterTableView;
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle();
+                int opened = 0;
+                yield return HoverAll(view.transform, "boss" + lang, n => opened += n);
+
+                // A floor's table after a hand (the last hands' pips under the coins), the map before it, the class cards before that.
+                yield return Load(turkish, null);
+                HellPokerScreenshots.Press("NewGameButton");
+                yield return new WaitForSeconds(0.6f);
+                yield return HoverAll(UnityEngine.Object.FindFirstObjectByType<SinnerSelectView>().transform, "class cards" + lang, n => opened += n);
+                HellPokerScreenshots.ChooseSinner(0);
+                yield return new WaitForSeconds(0.6f);
+                HellPokerScreenshots.Press("PanelOption0");   // DESCEND
+                yield return null;
+                yield return HoverAll(UnityEngine.Object.FindFirstObjectByType<ChapterMapView>().transform, "map" + lang, n => opened += n);
+                MapNode start = ChapterJourneyTests.Chapters.Run.Choices.First(n => n.Kind == NodeKind.Table);
+                HellPokerScreenshots.Find<Button>($"Node0_{start.Lane}").onClick.Invoke();
+                yield return Settle();
+                view = ChapterJourneyTests.ChapterTableView;
+                ITableCommands table = ChapterJourneyTests.Chapters.Table;
+                int guard = 0;
+                table.PerformAction();
+                yield return Settle();
+                while (table is TablePresenter presenter && presenter.Game.Phase != Core.Game.GamePhase.RoundOver && guard++ < 20)
+                {
+                    table.PerformAction();
+                    yield return Settle();
+                }
+                yield return HoverAll(view.transform, "floor" + lang, n => opened += n);
+                Assert.Greater(opened, 8, "the hovers were really opened" + lang);
+            }
+        }
+
+        /// <summary>Points at every hover of <paramref name="root"/> in turn: each box that opens draws over its whole screen and stays inside it.</summary>
+        private static IEnumerator HoverAll(Transform root, string where, Action<int> opened)
+        {
+            var problems = new List<string>();
+            int count = 0;
+            var triggers = root.GetComponentsInChildren<UnityEngine.EventSystems.EventTrigger>(false).Where(t => t.isActiveAndEnabled).ToList();
+            foreach (var trigger in triggers)
+            {
+                var data = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current);
+                UnityEngine.EventSystems.ExecuteEvents.Execute(trigger.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerEnterHandler);
+                yield return null;   // the box keeps itself on screen in its LateUpdate
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                foreach (HoverTip tip in UnityEngine.Object.FindObjectsByType<HoverTip>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                {
+                    count++;
+                    Canvas rootCanvas = tip.GetComponent<Canvas>().rootCanvas;
+                    int highest = rootCanvas.GetComponentsInChildren<Canvas>(false).Where(c => c.GetComponent<HoverTip>() == null && c.overrideSorting)
+                        .Select(c => c.sortingOrder).DefaultIfEmpty(rootCanvas.sortingOrder).Max();
+                    if (tip.SortingOrder <= Math.Max(highest, rootCanvas.sortingOrder))
+                        problems.Add($"{tip.name} (from {trigger.name}) under its screen ({tip.SortingOrder} ≤ {highest})");
+                    RectTransform screen = HoverTip.ScreenOf(tip.transform);
+                    Rect area = Box(screen), box = Box((RectTransform)tip.transform);
+                    if (box.xMin < area.xMin - 0.5f || box.xMax > area.xMax + 0.5f || box.yMin < area.yMin - 0.5f || box.yMax > area.yMax + 0.5f)
+                        problems.Add($"{tip.name} (from {trigger.name}) off the screen");
+                    Text text = tip.GetComponentInChildren<Text>();
+                    if (text != null && text.preferredHeight > ((RectTransform)tip.transform).rect.height + 1f)
+                        problems.Add($"{tip.name} (from {trigger.name}): its words run out of the box");
+                }
+                UnityEngine.EventSystems.ExecuteEvents.Execute(trigger.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerExitHandler);
+            }
+            opened(count);
+            Assert.IsEmpty(problems, where + ":\n" + string.Join("\n", problems));
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator TheHandsPanel_HoldsTheTablesPayouts_AndFits_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            {
+                yield return Load(turkish, new ChapterSave
+                {
+                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                    BossBar = 1600, NodeDone = false
+                });
+                yield return Settle();
+                TableView view = ChapterJourneyTests.ChapterTableView;
+                string what = turkish ? "tr" : "en";
+                Assert.IsFalse(view.PayoutTableShown, what + ": no payouts panel at a chapter's table");
+                Assert.IsFalse(view.transform.GetComponentsInChildren<Transform>(false).Any(t => t.name == "Payouts"), what + ": nothing of it on show");
+                Text hands = view.transform.GetComponentsInChildren<Button>(false).Single(b => b.name == "HandsButton").GetComponentInChildren<Text>();
+                Assert.AreEqual(UiText.HandsPayoutsButton, hands.text);
+                Assert.LessOrEqual(hands.preferredWidth, hands.rectTransform.rect.width + 0.5f, what + ": HANDS / PAYOUTS fits its button");
+
+                ChapterJourneyTests.Chapters.Table.ToggleHandRanks();
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                HandRanksPanel panel = view.HandRanks;
+                Assert.IsTrue(panel.IsOpen, what + ": H opens it");
+                var categories = Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
+                var mammon = Core.Dealers.DealerRoster.Mammon.Payouts;
+                for (int i = 0; i < categories.Length; i++)
+                    Assert.AreEqual(mammon.IsAbsolution(categories[i]) ? UiText.Absolution : "×" + mammon.GetMultiplier(categories[i]), panel.Values[i],
+                        what + ": " + categories[i] + " as Mammon's table pays it");
+                StringAssert.Contains(UiText.PayoutNoteAnte, panel.NotesShown);
+                var notes = (RectTransform)panel.transform.Find("Notes");
+                Assert.LessOrEqual(notes.GetComponent<Text>().preferredHeight, notes.rect.height + 0.5f, what + ": the notes fit");
+                foreach (Text line in panel.GetComponentsInChildren<Text>(false).Where(t => !string.IsNullOrEmpty(t.text)))
+                    Assert.LessOrEqual(line.preferredWidth, line.rectTransform.rect.width + 1f, $"{what}: '{line.text}' fits its line");
+                Rect area = Box(HoverTip.ScreenOf(panel.transform)), box = Box((RectTransform)panel.transform);
+                Assert.GreaterOrEqual(box.yMin, area.yMin - 0.5f, what + ": the panel on screen");
+                ChapterJourneyTests.Chapters.Table.ToggleHandRanks();
+                yield return null;
+                Assert.IsFalse(panel.IsOpen, what + ": H closes it");
             }
         }
 

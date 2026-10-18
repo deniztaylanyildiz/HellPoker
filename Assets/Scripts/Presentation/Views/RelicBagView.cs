@@ -96,6 +96,7 @@ namespace HellPoker.Presentation.Views
             // The hover's words, right of the places.
             Image tip = UiFactory.CreateImage("BagTip", panel.transform, Palette.Black);
             tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
             tip.rectTransform.PlaceTL(Left + RelicBagState.Worn * Step + 4, WornY - 2, Width - (Left + RelicBagState.Worn * Step + 4) - 8, BagY + Tile - WornY + 4);
             UiFactory.AddBorder(tip.gameObject, Palette.Lilac, 1f);
             _tipText = UiFactory.CreateText("BagTipText", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);

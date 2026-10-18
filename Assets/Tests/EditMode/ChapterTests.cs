@@ -215,7 +215,7 @@ namespace HellPoker.Core.Tests
             var antes = new List<int>();
             for (int i = 0; i < 4; i++)
             {
-                table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseNothing + " 2H 3H 4D"));
+                table.Game.StackTheDeal(DeckStarting(PlayerNothing + " " + HouseNothing + " 2H 3H 4D"));
                 table.Deal();
                 antes.Add(table.Game.Ante);
                 Assert.AreEqual(table.Game.Ante * 6, table.Game.TableCap, "the cap follows the ante");
@@ -401,7 +401,7 @@ namespace HellPoker.Core.Tests
             ChapterRun run = Run(8, ChapterRules.For(1).With(impCoins: 500));
             Stand(run, run.Map[0, 0]);
             FloorTable table = run.OpenTable();
-            table.Game.RestoreDeck(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
+            table.Game.StackTheDeal(DeckStarting(PlayerNothing + " " + HouseQuads + " 2H 3H 4D"));
             PlayOne(table);
             Assert.IsTrue(table.IsOver);
             run.FinishTable(table);
@@ -514,7 +514,7 @@ namespace HellPoker.Core.Tests
                 : FloorTable.Imp(run.Rules, run.Sinner, run.Effects, run.Purse, 3);
             while (!table.IsOver)
             {
-                table.Game.RestoreDeck(DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
+                table.Game.StackTheDeal(DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
                 PlayOne(table);
             }
             Assert.IsTrue(table.MatchWon);
@@ -690,7 +690,7 @@ namespace HellPoker.Core.Tests
         public void AWinThatEmptiesTheBarBeatsTheDemon()
         {
             HellPokerGame game = BossTable.Create(GameRules.Default, DealerRoster.Mammon.WithoutCheats(), 10, 200, 100, 100, 1, null, NewPeasant());
-            game.RestoreDeck(DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
+            game.StackTheDeal(DeckStarting(Royal + " " + HouseNothing + " AH KC QD"));
             game.PlaceBet();
             if (game.Phase == GamePhase.PlayerReveal) game.CheckToDraw();
             if (game.Phase == GamePhase.Drawing) game.Draw(Array.Empty<int>());
