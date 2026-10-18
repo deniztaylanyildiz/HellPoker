@@ -3738,3 +3738,8 @@ Hırsız draw sonrası); 5) testler, 2.3.1-demo, build, `v2.3.1-demo`.
 ### Son tablo
 Köylü 41.1 / 39.8 / **36.7**, Kâhin 29.8 / 47.4 / **41.4**, Kral 31.7 / 24.6 / **28.9**, Soytarı 13.6 / 16.0 / **21.7**, Çağırıcı 36.9 /
 30.7 / **32.2**, Hırsız 30.0 / 36.3 / **37.4** (2.2.1 / 2.3 / 2.3.1). Seviye bölüm başında 0 / 1.1 / 2.0 / Lucifer 2.3.
+
+### Build
+`Builds/HellPoker-Demo-2.3.1-win64.zip` (38.7 MB, Result: Success). Kayıtlar yedeklendi; zipten açılan oyunla 3 × `-fpstour`: çıkış 0,
+hata 0, 19 FPS satırı; yedek geri kondu. (Not: scratchpad yolu zipteki en uzun dosyayla 260 karakteri aşıyor; duman turu kısa bir
+`%TEMP%` klasöründe.) Etiket `v2.3.1-demo`.
