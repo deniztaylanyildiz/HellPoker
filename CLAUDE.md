@@ -22,7 +22,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.3-win64.zip` (bundleVersion **2.3.0-demo**: menüde "Demo 2.3" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.3.1-win64.zip` (bundleVersion **2.3.1-demo**: menüde "Demo 2.3.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -152,6 +152,17 @@ Son simülasyon (daire 0, 2000): Köylü %39.8, Kâhin %47.4 (hedefin üstünde;
 Kral %24.6, Soytarı %16.0 (altında), Çağırıcı %30.7, Hırsız %36.3 (yakalanma başı 40 → 45: %43.2 → %37.2, 500 koşu); seviye bölüm başında
 0 / 1.6 / 2.8 / Lucifer 3.0, koşu başına ~2.1 sınıf emaneti. Sınıf kartı metinleri kısa tutulmalı (altı kart: satır ~13 harf; PlayMode
 `TableLayoutTests.TheGamesClassCards...` ölçer); kit paneli kartla 47 px ve `KitView.CardsLift` 7 px yukarı (diyalog kenarına).
+
+**Demo 2.3.1** (etiket `v2.3.1-demo`; PHASE2_CHAPTERS on yedinci tur): **büyüme** — ganimette sınıf emaneti yok
+(`ChapterRelics.LootClassRelic` false), şans bölüm 1'de pazar %50 (`ClassRelicChance`) / bekçi %60 (`WardenClassRelicChance`), sonraki
+bölümlerde %15 (`LaterClassRelicChance`), dövme sınıf emanetine tam +1 adım (`RelicRoster.ForgedGift`, `ForgeClassSteps`); seviye bölüm
+başında 0 / 1.1 / 2.0 / Lucifer 2.3, Lucifer'de seviye 3 ~%57 (kullanıcı %70'e kadar kabul etti). **Kâhin** ÖNSEZİ `ClassKit.ForesightByLevel`
+= 1 / 2 / 2 / 3 (en çok 3). **Soytarı** kalkan `ClassKit.ShieldStep` = 2 a seviye (masa başına; `ShieldsPerChapter` / `ChapterShieldStep`
+seçenek). **Metin:** sınıf kartı kısa (`ChapterSinnerAbility`), kartın hover kutusu (`SinnerCard.Hover`, `SinnerSelectView.ShowTip`) ve rozet
+hover'ı tam metin (`UiText.ChapterSinnerFull / ChapterPassiveFull / ChapterSinnerDetailFull`: saray J Q K, Hırsız draw'dan sonra, bedel).
+Simülasyon düğmeleri (`HELLPOKER_POWER_GRID`): chance, warden, later, loot, forge, stepupgrade, oracle=1223, shield, chaptershield.
+FullRunTests şeytan masasında barı eller arasında başlangıcın yarısında tutar. Son simülasyon (daire 0, 2000): Köylü %36.7, Kâhin %41.4,
+Kral %28.9, Soytarı %21.7, Çağırıcı %32.2, Hırsız %37.4.
 
 ## Oyun
 

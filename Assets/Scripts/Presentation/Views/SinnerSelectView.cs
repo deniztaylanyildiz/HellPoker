@@ -38,6 +38,15 @@ namespace HellPoker.Presentation.Views
         private SalonView _salon;
         private RectTransform _cards;
 
+        /// <summary>Demo 2.3.1: the hovered card's whole text (the card keeps its short words).</summary>
+        private GameObject _tip;
+        private Text _tipText;
+        private const int TipWidth = 196;
+
+        /// <summary>The hover box is open (for tests and screenshots), and its words.</summary>
+        public bool TipShown => _tip != null && _tip.activeSelf;
+        public string TipText => _tipText != null ? _tipText.text : "";
+
         public event Action<int> SinnerChosen;
         public event Action BackPressed;
         public event Action<int, int> CircleStepped;
@@ -83,10 +92,38 @@ namespace HellPoker.Presentation.Views
             backLabel.Localized(() => UiText.Back);
             ((RectTransform)back.transform).PlaceTL(8, 4, 56, 16);
             back.onClick.AddListener(() => BackPressed?.Invoke());
+
+            Image tip = UiFactory.CreateImage("SinnerCardTip", screen, Palette.Black);
+            tip.raycastTarget = false;
+            UiFactory.AddBorder(tip.gameObject, Palette.Gold, 1f);
+            _tipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _tipText.raycastTarget = false;
+            _tip = tip.gameObject;
+            _tip.SetActive(false);
+        }
+
+        /// <summary>The hover box beside the card at <paramref name="x"/> (right of it, or left when there is no room), as tall as its words.</summary>
+        public void ShowTip(string text, int x)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            _tipText.text = text;
+            _tipText.rectTransform.PlaceTL(4, 3, TipWidth - 8, 200);
+            int height = Mathf.CeilToInt(_tipText.preferredHeight) + 6;
+            _tipText.rectTransform.PlaceTL(4, 3, TipWidth - 8, height - 6);
+            int left = x + CardWidth + 2 + TipWidth <= PixelScreen.Width ? x + CardWidth + 2 : Math.Max(0, x - TipWidth - 2);
+            ((RectTransform)_tip.transform).PlaceTL(left, CardsY + 40, TipWidth, height);
+            _tip.transform.SetAsLastSibling();
+            _tip.SetActive(true);
+        }
+
+        public void HideTip()
+        {
+            if (_tip != null) _tip.SetActive(false);
         }
 
         public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null)
         {
+            HideTip();
             _subtitle.text = note ?? UiText.ChooseSinnerSubtitle;
             _subtitle.color = note == null ? Palette.BoneMid : Palette.Ember;
             foreach (Transform child in _cards)
@@ -110,6 +147,7 @@ namespace HellPoker.Presentation.Views
 
         public void Hide()
         {
+            HideTip();
             _canvas.enabled = false;
             GetComponent<GraphicRaycaster>().enabled = false;
         }
@@ -119,6 +157,18 @@ namespace HellPoker.Presentation.Views
             Image box = UiFactory.CreatePanel($"Sinner_{sinner.Id}", _cards);
             box.rectTransform.PlaceTL(x, CardsY, CardWidth, CardHeight);
             Transform card = box.transform;
+            if (!string.IsNullOrEmpty(sinner.Hover))
+            {
+                // Demo 2.3.1: the whole text while the card is hovered.
+                box.raycastTarget = true;
+                var hover = box.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+                var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+                enter.callback.AddListener(_ => ShowTip(sinner.Hover, x));
+                var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+                exit.callback.AddListener(_ => HideTip());
+                hover.triggers.Add(enter);
+                hover.triggers.Add(exit);
+            }
 
             // The portrait at twice its size (48 → 96): whole pixels.
             // The portrait at twice its size (48 → 96) — once (48) when five cards share the row: whole pixels either way.

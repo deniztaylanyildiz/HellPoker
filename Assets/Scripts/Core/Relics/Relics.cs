@@ -305,12 +305,22 @@ namespace HellPoker.Core.Relics
                 RelicEffects effects = id == silenced || (cleansed != null && cleansed.Contains(id)) ? relic.Boon : relic.Effects;
                 all = all.With(effects);
                 if (id == amplified) all = all.With(effects);
-                if (forged != null && forged.Contains(id)) all = all.With(relic.Boon.Partial(ForgePercent));
+                if (forged != null && forged.Contains(id)) all = all.With(ForgedGift(relic));
             }
             return all;
         }
 
         /// <summary>A forged relic's gift counts this much (percent) more.</summary>
         public const int ForgePercent = 50;
+
+        /// <summary>What the forge adds to a relic: half its gift again — but a class relic's step exactly one more (Demo 2.3.1: not left to
+        /// the rounding of half a step).</summary>
+        public static RelicEffects ForgedGift(IRelic relic)
+        {
+            if (relic is ChapterRelic chapter && chapter.ClassId != null)
+                return ChapterRelics.ForgeClassSteps <= 0 ? RelicEffects.None
+                    : new RelicEffects(extras: RelicEffects.Marks((RelicExtras.ClassStep, ChapterRelics.ForgeClassSteps)));
+            return relic.Boon.Partial(ForgePercent);
+        }
     }
 }

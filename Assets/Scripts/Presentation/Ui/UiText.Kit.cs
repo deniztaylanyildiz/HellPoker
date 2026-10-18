@@ -27,6 +27,99 @@ namespace HellPoker.Presentation.Ui
             return text;
         }
 
+        /// <summary>
+        /// The whole text (Demo 2.3.1): the class card's hover box and the badge's hover — the main power in full with its numbers now and at
+        /// most, the passive, what the short card leaves out (the King's palace, the Thief's steal after the draw), the upgrades the run has.
+        /// </summary>
+        public static string ChapterSinnerFull(string id, ClassKit kit = null)
+        {
+            ClassKit k = kit ?? KitOf(id);
+            if (k == null) return SinnerAbility(id);
+            int now = k.PowerValue, most = k.PowerMax;
+            string main;
+            switch (id)
+            {
+                case Peasant.ClassId:
+                    main = string.Format(L("SATCHEL: after the draw keep one thrown card; in a later draw click it to take it instead of the deck's ({0} cards, at most {1}).",
+                        "HEYBE: draw'dan sonra attığın bir kartı sakla; sonraki bir draw'da ona tıklarsan desteden değil ondan çekersin ({0} kart, en çok {1})."), now, most);
+                    break;
+                case Warlock.ClassId:
+                    main = string.Format(L("FORESIGHT: once the cards are dealt, see the next {0} cards your draw will take (at most {1}).",
+                        "ÖNSEZİ: kartlar dağıtılınca draw'da gelecek {0} kartı görürsün (en çok {1})."), now, most);
+                    break;
+                case King.ClassId:
+                    main = string.Format(L("TREASURY: a tax for every hand won ({0}, at most {1}); before the draw OPEN {2}, FREE raise {3}, SEIZE {4}. " +
+                        "PALACE: no cheat touches your J, Q or K.",
+                        "HAZİNE: kazandığın her elde vergi ({0}, en çok {1}); draw'dan önce AÇ {2}, BEDAVA artırma {3}, MÜSADERE {4}. " +
+                        "SARAY: J, Q ve K'na hiçbir hile işlemez (J Q K güvende)."), now, most,
+                        k.PriceOf(TaxAct.Reveal), k.PriceOf(TaxAct.FreeRaise), k.PriceOf(TaxAct.Seize));
+                    break;
+                case Summoner.ClassId:
+                    main = string.Format(L("IMPS, before the draw: EYE {1} (a closed card turns), HAND {2} (a card of yours for an open one), WHISPER {3} " +
+                        "(his next cheat, true) coins; at a demon's table the bar grows. Open: {0} of 3 (his relics open the HAND, then the WHISPER, then halve the prices).",
+                        "İBLİSLER, draw'dan önce: GÖZ {1} (kapalı bir kart açılır), EL {2} (bir kartın onun açık biriyle), FISILTI {3} (sıradaki hilesi, doğrusu) " +
+                        "coin; şeytan masasında bar uzar. Açık: {0}/3 (emanetleri önce EL'i, sonra FISILTI'yı açar, sonra fiyatları yarıya indirir)."), now,
+                        SummonPowers.CoinPrices[0], SummonPowers.CoinPrices[1], SummonPowers.CoinPrices[2]);
+                    break;
+                case Thief.ClassId:
+                    main = string.Format(L("STEAL (K or the button), once a hand from the deal to the showdown — after the draw too, even answering a re-raise: " +
+                        "a card of yours for one of the demon's closed ones, blind. Caught {0}% (at best {1}%): no swap, a fine.",
+                        "ÇAL (K ya da düğme), elde bir kez, dağıtımdan showdown'a kadar — draw'dan sonra da çalar, şeytanın artırmasına cevap verirken bile: " +
+                        "bir kartın onun kapalı biriyle körlemesine yer değişir. %{0} yakalanırsın (en iyi %{1}): takas yok, ceza."), now, most);
+                    break;
+                case Jester.ClassId:
+                    main = string.Format(L("Jokers in the deck: one is any card you name, two lose. A win adds one. " +
+                        "SHIELDS: {0} (at most {1}) — a hand lost to your own two jokers is a push.",
+                        "Destede joker: biri istediğin kart, ikisi kayıp. Kazanç bir ekler. " +
+                        "KALKAN: {0} (en çok {1}) — kendi iki jokerinle kaybettiğin el berabere sayılır."), now, most) + " " +
+                        (ClassKit.ShieldsPerChapter ? L("(a chapter)", "(bölüm başına)") : L("(at every table)", "(her masada)"));
+                    break;
+                default:
+                    return ChapterSinnerAbility(id, kit);
+            }
+            string text = main;
+            string passive = ChapterPassiveFull(id, k);
+            if (passive != null) text += "\n" + passive;
+            if (kit != null && kit.Upgrades.Count > 0)
+                text += "\n" + string.Format(UpgradesLineFormat, string.Join(", ", kit.Upgrades.Select(UpgradeName)));
+            return text;
+        }
+
+        /// <summary>The passive in full: "PASSIVE: name, what it does".</summary>
+        public static string ChapterPassiveFull(string id, ClassKit kit)
+        {
+            switch (id)
+            {
+                case Peasant.ClassId: return L("PASSIVE: SILENT FIELD, the demon never sees a hand's first satchel card (a second one he sees: his re-raise comes more often).",
+                    "PASİF: SESSİZ TARLA, elin ilk heybe kartını şeytan görmez (ikincisini görür: o el daha sık artırır).");
+                case Warlock.ClassId: return L("PASSIVE: SEES THE TRUTH, the demons' lies and the swindlers' traps.",
+                    "PASİF: GERÇEĞİ GÖRÜR, şeytanların yalanlarını ve dolandırıcıların tuzaklarını görürsün.");
+                case King.ClassId: return string.Format(L("PASSIVE: ROYAL DISCOUNT, a hand's seizure costs half ({0} taxes, not {1}).",
+                    "PASİF: KRALİYET İNDİRİMİ, elin müsaderesi yarı fiyata ({1} değil {0} vergi)."), kit.PriceOf(TaxAct.Seize), kit.SeizeFullPrice);
+                case Summoner.ClassId: return string.Format(L("PASSIVE: LOYAL IMP, a hand's first {0} imp(s) come free.", "PASİF: SADIK İBLİS, elin ilk {0} iblisi bedava."),
+                    kit.FreeImpsPerHand);
+                case Thief.ClassId: return L("PASSIVE: GLANCE, one of the demon's closed cards plays face up from the deal.",
+                    "PASİF: GÖZ UCU, şeytanın kapalı kartlarından biri dağıtımdan açık gelir.");
+                default: return null;
+            }
+        }
+
+        /// <summary>The price of the class in full (the class card's hover box).</summary>
+        public static string ChapterSinnerDetailFull(string id)
+        {
+            switch (id)
+            {
+                case Peasant.ClassId: return L("Price: a second satchel card in a hand the demon sees, and he raises more.", "Bedel: elin ikinci heybe kartını şeytan görür, daha çok artırır.");
+                case Warlock.ClassId: return L("Price, MIRROR CURSE: every hand the demon knows one of your cards.", "Bedel, AYNA LANETİ: şeytan her elde kartlarından birini bilir.");
+                case King.ClassId: return L("Price: a demon's hand lost takes half your taxes.", "Bedel: kaybedilen boss eli vergilerinin yarısını alır.");
+                case Thief.ClassId: return string.Format(L("Price: caught, nothing changes hands and you pay a fine (an ante's coins; at a demon's table {0}% of the bar).",
+                    "Bedel: yakalanırsan takas olmaz, ceza ödersin (bir ante coin; şeytan masasında barın %{0} kadarı)."), TheftPowers.FineBarPercent);
+                case Summoner.ClassId: return L("Price: at a demon's table imps cost bar; one in ten runs wild and lowers a card.",
+                    "Bedel: şeytan masasında iblisler bar ister; onda biri azar ve bir kartını düşürür.");
+                default: return ChapterSinnerDetail(id);
+            }
+        }
+
         /// <summary>The main power in one sentence, its number now (<paramref name="kit"/>'s level, else the start) and at its highest.</summary>
         public static string ChapterMainPower(string id, ClassKit kit = null)
         {

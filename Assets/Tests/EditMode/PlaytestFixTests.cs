@@ -297,6 +297,28 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
+        public void TheWholeText_KeepsWhatTheShortCardLeavesOut_InBothLanguages()
+        {
+            try
+            {
+                Assert.AreNotEqual(UiText.ChapterSinnerAbility(King.ClassId), UiText.ChapterSinnerFull(King.ClassId), "the card is short, the hover whole");
+                StringAssert.Contains("J, Q or K", UiText.ChapterSinnerFull(King.ClassId), "the King's palace");
+                StringAssert.Contains("after the draw too", UiText.ChapterSinnerFull(Thief.ClassId), "the Thief's steal after the draw");
+                StringAssert.Contains("PASSIVE:", UiText.ChapterSinnerFull(Peasant.ClassId));
+                Lang.Set(Language.Turkish);
+                StringAssert.Contains("J Q K güvende", UiText.ChapterSinnerFull(King.ClassId));
+                StringAssert.Contains("draw'dan sonra da çalar", UiText.ChapterSinnerFull(Thief.ClassId));
+                StringAssert.Contains("PASİF:", UiText.ChapterSinnerFull(Summoner.ClassId));
+                foreach (SinnerClass cls in SinnerRoster.PhaseTwo)
+                    Assert.IsNotEmpty(UiText.ChapterSinnerDetailFull(cls.Id), cls.Id);
+            }
+            finally
+            {
+                Lang.Set(Language.English);
+            }
+        }
+
+        [Test]
         public void TheOldKPowers_CannotBeCalled_KTellsWhatTheClassDoes_ButTheThiefsKSteals()
         {
             foreach (SinnerClass cls in SinnerRoster.PhaseTwo)
@@ -333,7 +355,7 @@ namespace HellPoker.Core.Tests
                     Assert.IsTrue(badge.Passive, cls.Id);
                     Assert.IsFalse(badge.Usable, cls.Id + ": no READY: K");
                     Assert.AreEqual(journey.Kit.Level, badge.Charge, cls.Id + ": the pips are the level");
-                    StringAssert.StartsWith(UiText.ChapterSinnerAbility(cls.Id, journey.Kit), badge.Description, cls.Id + ": the class card's words");
+                    StringAssert.StartsWith(UiText.ChapterSinnerFull(cls.Id, journey.Kit), badge.Description, cls.Id + ": the whole text (Demo 2.3.1)");
                     if (UiText.ChapterPassiveLine(cls.Id) != null)
                         StringAssert.Contains(language == Language.English ? "PASSIVE:" : "PASİF:", badge.Description, cls.Id);
                     // The demo's words never show in Phase 2 (its powers: the free fold, the ward, the crown's whole hand; its K line).

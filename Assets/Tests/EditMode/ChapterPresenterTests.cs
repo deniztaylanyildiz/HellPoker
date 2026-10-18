@@ -674,14 +674,13 @@ namespace HellPoker.Core.Tests
             _chapters.Continue();
             Assert.AreEqual(UiText.LootTitle, _panel.Card.Title);
             var labels = _panel.Card.Options.Select(o => o.Label).ToList();
-            Assert.AreEqual(5, labels.Count, "two relics, the class's next relic (Demo 2.3), an upgrade, the coins");
+            Assert.AreEqual(4, labels.Count, "two relics, an upgrade, the coins (Demo 2.3.1: no class relic in the loot)");
             Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsSeal), labels[0]);
             Assert.AreEqual(UiText.RelicName(ChapterRelicIds.MammonsScales), labels[1]);
-            Assert.AreEqual(UiText.RelicName(ChapterRelicIds.RopeBelt), labels[2], "the Peasant's first class relic");
             string upgrade = _chapters.Run.LootUpgrade;
-            Assert.AreEqual(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), labels[3]);
+            Assert.AreEqual(string.Format(UiText.LootUpgradeFormat, UiText.UpgradeName(upgrade)), labels[2]);
             StringAssert.StartsWith(UiText.RarityName(RelicRarity.Boss), _panel.Card.Options[0].Detail, "the rarity on the relic's line");
-            _panel.Press(3);
+            _panel.Press(2);
             CollectionAssert.AreEqual(new[] { upgrade }, _chapters.Journey.Kit.Upgrades, "the upgrade joins the run");
             Assert.AreEqual(2, _chapters.Journey.Chapter, "on to Belial");
         }

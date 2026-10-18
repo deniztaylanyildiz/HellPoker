@@ -3709,3 +3709,32 @@ bütün resimler yeniden çekildi; 7. sayfanın resmi artık sınıf kartların�
 - Sınıf kartı metinleri sığsın diye kısaldı; Kral'ın "J Q K güvende" ve Hırsız'ın "draw'dan sonra da" bilgisi yalnız panel ipucunda / How to
   Play'de. Kart düzeni (ör. daha uzun kart) istenirse metinler uzatılabilir.
 - Sınıf seviyesi 3. bölüm başında ortalama 2.8 (en çok 3): büyüme hızlı; emanet şansı (%35) ve dövme kuralı bunu belirliyor.
+
+## 2026-10-17/18 — Demo 2.3.1: büyüme hızı, Kâhin ve Soytarı dengesi, tam metin hover'ları
+
+### İstek (kullanıcı)
+Demo 2.3'ün açık kararları: 1) büyüme hızı (dövme +1, gerekirse pazar %25, sonra bekçi); 2) Kâhin %45 üstündeyse ÖNSEZİ en çok 3;
+3) Soytarı %20-30 (seviye başına 2 kalkan / bölüm başına kalkan / jackpot 12); 4) kart kısa, hover ve rozet tam metin (Kral sarayı,
+Hırsız draw sonrası); 5) testler, 2.3.1-demo, build, `v2.3.1-demo`.
+
+### Yapılanlar
+- Dövme: sınıf emanetine tam +1 adım (`RelicRoster.ForgedGift`; öncekinde de yuvarlamayla +1'di, sayı değişmedi), diğer emanetler aynı.
+- Merdiven (pazar %25, bekçi %25 / %15) hedefe ulaşmadı (en iyi 1.3 / 2.6 / %91); teşhis: asıl kaynak ganimetin her şeytandan sonra
+  sınıf emaneti vermesi. Kullanıcıya soruldu → ganimetten kalktı, dövme +1 kaldı, seviye 3 payı %70'e kadar. Bölüm 1 / sonrası ayrı
+  şans (`LaterClassRelicChance`): pazar %50, bekçi %60, sonra %15 → 1.1 / 1.9 / %57.
+- Kâhin 2000 koşuda %47.0 → ÖNSEZİ `ForesightByLevel` 1 / 2 / 2 / 3 → %41.4. Metinler ("en çok 3", emanet / Üçüncü Göz: seviyeye göre
+  kart) koddan.
+- Soytarı `ShieldStep` 2 → %23.0 (jackpot seçeneği denenmedi: ilk seçenek hedefe ulaştı).
+- Tam metin: `UiText.ChapterSinnerFull`, `ChapterPassiveFull`, `ChapterSinnerDetailFull`; sınıf kartı hover kutusu (`SinnerCard.Hover`,
+  `SinnerSelectView.ShowTip`), rozet hover'ı aynı tam metin + bedel. Kart kısa kaldı.
+- FullRunTests: Hırsız TR yine bir şeytan masasında tek elde yandı (tavandaki bahisle kare: bar başlangıcın ~2.6 katı); test barı eller
+  arasında başlangıcın yarısında tutuyor, oyun kodu değişmedi.
+
+### Testler
+- EditMode 1111 (1106 geçti, 5 explicit). PlayMode grupları tek tek: HellPokerScene 10, SalonRegression 5, RunJourney 2, LuciferJourney 1,
+  JesterJourney 1, CheatJourney 7, BackdropMotion 2, ChapterJourney 5, TableLayout 4 (sınıf kartı hover kutusu iki dilde ekranda ve
+  sığıyor), HowToPlay 2. FullRunTests 8 + kaos geçti. HowToShots resimleri ve 170-177 ekran görüntüleri yenilendi.
+
+### Son tablo
+Köylü 41.1 / 39.8 / **36.7**, Kâhin 29.8 / 47.4 / **41.4**, Kral 31.7 / 24.6 / **28.9**, Soytarı 13.6 / 16.0 / **21.7**, Çağırıcı 36.9 /
+30.7 / **32.2**, Hırsız 30.0 / 36.3 / **37.4** (2.2.1 / 2.3 / 2.3.1). Seviye bölüm başında 0 / 1.1 / 2.0 / Lucifer 2.3.

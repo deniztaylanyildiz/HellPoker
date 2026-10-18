@@ -757,3 +757,37 @@ Soytarı 5.4 kalkan.
 Hedef %20-45: Köylü, Kral, Çağırıcı, Hırsız içinde; **Kâhin üstünde (%47.4)** — simülasyon oyuncusu artık ÖNSEZİ'nin kartlarını bilerek
 değişiyor (2.2'de bilgiyi yalnız KADERİ BÜK'te kullanıyordu), gerçek oyuncu bu kadar kesin oynamaz; **Soytarı altında (%16.0, 2.2'de
 13.6)** — kalkanlar biraz yardım ediyor, kullanıcı kararıyla zorlanmadı.
+
+## On yedinci tur — Demo 2.3.1: büyüme hızı, Kâhin ve Soytarı (2026-10-17)
+
+### Büyüme (500 / 300 koşu; seviye 2. böl. / 3. böl. / Lucifer, Lucifer'de seviye 3)
+| ayar | seviye | seviye 3 |
+|---|---|---|
+| 2.3 (dövme +1, pazar ve bekçi %35, ganimet var) | 1.6 / 2.8 / 3.0 | %97 |
+| pazar %25 | 1.5 / 2.8 / 3.0 | %97 |
+| pazar %25, bekçi %25 | 1.4 / 2.7 / 2.9 | %94 |
+| pazar %25, bekçi %15 | 1.3 / 2.6 / 2.9 | %91 |
+| teşhis: + dövme adım vermez | 1.3 / 2.3 / 2.6 | %62 |
+| teşhis: + ganimette sınıf emaneti yok | 0.5 / 1.2 / 1.8 | %38 |
+| ganimet yok, %35 / %35 | 0.8 / 1.9 / 2.5 | %66 |
+| ganimet yok, böl. 1 pazar %50 / bekçi %60, sonra %15 | **1.1 / 1.9 / 2.3** | **%57** |
+
+Kullanıcı kararı: ganimetten sınıf emaneti kalksın, dövme +1 kalsın, Lucifer'de seviye 3 %70'e kadar kabul. Son ayar oyunun varsayılanı.
+
+### Kâhin (2000 koşu)
+ÖNSEZİ 1 / 2 / 3 / 4: %47.0 · 1 / 2 / 3 / 3: %46.2 · **1 / 2 / 2 / 3: %41.4** (seçildi; hedef %35-45).
+
+### Soytarı (500 koşu)
+Kalkan seviye başına 1: %17.2 · **seviye başına 2 (masada): %23.0** (seçildi: sırayla ilk hedefe ulaşan) · bölüm başına seviye başına 8: %26.4.
+
+### Son simülasyon (daire 0, 2000 koşu)
+| sınıf | 2.2.1 | 2.3 | 2.3.1 | seviye böl. 2 / 3 / Lucifer |
+|---|---|---|---|---|
+| Köylü | %41.1 | %39.8 | **%36.7** | 1.2 / 2.1 / 2.4 |
+| Kâhin | %29.8 | %47.4 | **%41.4** | 1.2 / 2.2 / 2.5 |
+| Kral | %31.7 | %24.6 | **%28.9** | 1.2 / 2.0 / 2.3 |
+| Soytarı | %13.6 | %16.0 | **%21.7** | 1.0 / 1.8 / 2.2 |
+| Çağırıcı | %36.9 | %30.7 | **%32.2** | 1.0 / 1.6 / 2.0 |
+| Hırsız | %30.0 | %36.3 | **%37.4** | 1.2 / 2.1 / 2.4 |
+
+Koşu başına sınıf emaneti ~1.1 (2.3: ~2.1). Hepsi hedef aralıklarında (Soytarı %20-30, Kâhin %35-45, diğerleri %20-45).

@@ -1226,10 +1226,11 @@ namespace HellPoker.Presentation
                 // Phase 2 (Demo 2.3): the class's main power and its passive work on their own — the hover says what the class card says,
                 // with the power's numbers now; the pips are its level; a passive that worked this hand flashes the badge.
                 ClassKit kit = _kit.Kit;
-                string text = UiText.ChapterSinnerAbility(id, kit);
+                string text = UiText.ChapterSinnerFull(id, kit);   // Demo 2.3.1: the whole text (the class card keeps the short one)
                 if (sinner.JackpotFallsTo > 0 && sinner.Class.JokerJackpot > 0)
                     text += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, sinner.Class.JokerJackpot, sinner.JackpotFallsTo);
                 if (jokers >= 0) text += "\n" + UiText.JokerBadgeHint(jokers);
+                text += "\n" + UiText.ChapterSinnerDetailFull(id);
                 _view.SetSinner(new SinnerBadge(id, UiText.SinnerName(id), text, kit.Level, kit.Grows ? ClassKit.MaxLevel : 0, jokers: jokers,
                     upgrades: kit.Upgrades.Count, passive: true, passiveFlashes: kit.Passives + kit.Shields));
                 return;

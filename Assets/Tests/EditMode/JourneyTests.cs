@@ -76,8 +76,8 @@ namespace HellPoker.Core.Tests
             journey.Sinner.ChangeJokers(1);
             BeatTheDemon(journey);
             Assert.IsFalse(journey.CanGoOn, "the spoils first");
-            CollectionAssert.AreEqual(ChapterRelics.BossLoot(DealerRoster.MammonId).Concat(new[] { ChapterRelicIds.BellCollar }), journey.Run.LootOffers,
-                "Mammon's own two relics, and the Jester's first class relic (Demo 2.3)");
+            CollectionAssert.AreEqual(ChapterRelics.BossLoot(DealerRoster.MammonId), journey.Run.LootOffers,
+                "Mammon's own two relics (Demo 2.3.1: no class relic in the loot)");
             CollectionAssert.Contains(ClassUpgrades.For(Jester.ClassId), journey.Run.LootUpgrade, "and an upgrade of the class's");
             Assert.IsTrue(journey.Run.TakeLootCoins());
             Assert.IsTrue(journey.CanGoOn);
@@ -113,10 +113,9 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(journey.Run.RelicsFull);
             BeatTheDemon(journey);
             IReadOnlyList<string> offers = journey.Run.LootOffers;
-            Assert.AreEqual(3, offers.Count);
+            Assert.AreEqual(2, offers.Count);
             Assert.AreEqual(ChapterRelicIds.MammonsScales, offers[0], "his own, the one not carried");
             Assert.AreEqual(RelicRarity.Rare, ChapterRelics.RarityOf(offers[1]), "a rare in place of the one carried");
-            Assert.IsTrue(ChapterRelics.IsClassRelic(offers[2]), "Demo 2.3: the class's next relic too");
             Assert.IsFalse(journey.Run.TakeLoot(offers[0]), "every slot and the bag full: one must go");
             Assert.IsTrue(journey.Run.TakeLoot(offers[0], RelicIds.RustyCrown));
             Assert.IsTrue(journey.Effects.Holds(offers[0]));

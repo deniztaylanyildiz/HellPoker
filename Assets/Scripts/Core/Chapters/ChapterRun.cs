@@ -455,12 +455,14 @@ namespace HellPoker.Core.Chapters
         /// first of its chain the run does not hold; null when it holds them all.</summary>
         public string NextClassRelic => ChapterRelics.NextClassRelic(Sinner.Id, Effects.Holds, RelicAvailable);
 
-        /// <summary>The class's next relic, <see cref="ChapterRelics.ClassRelicChance"/> of the time (a market's stall, a warden's prize);
-        /// null otherwise. The dice are asked only when there is one to give.</summary>
-        public string RollClassRelic(IRandomSource random)
+        /// <summary>The class's next relic, <see cref="ChapterRelics.ClassRelicChance"/> of the time (a market's stall; a warden's prize:
+        /// <see cref="ChapterRelics.WardenClassRelicChance"/>); null otherwise. The dice are asked only when there is one to give.</summary>
+        public string RollClassRelic(IRandomSource random, bool warden = false)
         {
             string next = NextClassRelic;
-            return next != null && (random ?? _nodeRandom).Next(100) < ChapterRelics.ClassRelicChance ? next : null;
+            int chance = Rules.Number > 1 ? ChapterRelics.LaterClassRelicChance
+                : warden ? ChapterRelics.WardenClassRelicChance : ChapterRelics.ClassRelicChance;
+            return next != null && (random ?? _nodeRandom).Next(100) < chance ? next : null;
         }
 
         /// <summary>A helper's good turn, in percent, as the relics bend it (the Lost Soul's Letter more, the Liar's Tongue less).</summary>
@@ -566,7 +568,7 @@ namespace HellPoker.Core.Chapters
             WardensBeatenHere++;
 
             // The class's next relic some of the time (Demo 2.3), else a relic drawn by the warden's odds.
-            string relic = RollClassRelic(_nodeRandom)
+            string relic = RollClassRelic(_nodeRandom, warden: true)
                            ?? ChapterRelics.Draw(_nodeRandom, RelicWeights.Warden, 1, Effects.AllHeld.ToList(), RelicAvailable, Sinner.Id).FirstOrDefault();
             if (relic == null) Purse.Add(Rules.WardenRelicCoins);
             else if (!Effects.Give(relic)) WardenRelicWaiting = relic;
@@ -606,7 +608,7 @@ namespace HellPoker.Core.Chapters
                 var exclude = Effects.AllHeld.Concat(loot).ToList();
                 loot.AddRange(ChapterRelics.Draw(_nodeRandom, new RelicWeights(0, 1, 0), LootRelics - loot.Count, exclude, RelicAvailable, Sinner.Id));
             }
-            string classRelic = NextClassRelic;
+            string classRelic = ChapterRelics.LootClassRelic ? NextClassRelic : null;
             if (classRelic != null && !loot.Contains(classRelic)) loot.Add(classRelic);
             _loot = loot;
             IReadOnlyList<string> upgrades = UpgradesOffered();

@@ -553,8 +553,12 @@ namespace HellPoker.Core.Tests
                 Shields += kit.Shields;
             }
 
+            /// <summary>The runs that reached Lucifer at the power's highest level.</summary>
+            public int TopLevelAtLucifer;
+
             public void AddLevel(int at, ClassKit kit)
             {
+                if (at == 3 && kit.Level >= ClassKit.MaxLevel) TopLevelAtLucifer++;
                 LevelAt[at] += kit.Level;
                 ValueAt[at] += kit.PowerValue;
                 StartedAt[at]++;
@@ -606,11 +610,16 @@ namespace HellPoker.Core.Tests
 
         private static readonly int[] PowerDefaults =
         {
-            ChapterRelics.ClassRelicChance, ClassKit.SatchelStart, ClassKit.ForesightStart, ClassKit.TaxStart, ClassKit.TaxStep,
-            ClassKit.CaughtStart, ClassKit.CaughtStep, ClassKit.SatchelReRaisePercent, ProphecyPowers.BullyPercent, ChapterTuning.DemonKnowsPercent
+            ChapterRelics.ClassRelicChance, ClassKit.SatchelStart, 0, ClassKit.TaxStart, ClassKit.TaxStep,
+            ClassKit.CaughtStart, ClassKit.CaughtStep, ClassKit.SatchelReRaisePercent, ProphecyPowers.BullyPercent, ChapterTuning.DemonKnowsPercent,
+            ChapterRelics.WardenClassRelicChance, ClassKit.ShieldStep, ClassKit.ChapterShieldStep, ClassKit.ShieldsPerChapter ? 1 : 0
         };
 
-        /// <summary>"chance=35,satchel=1,foresight=1,tax=5,taxstep=5,caught=40,caughtstep=10,risk=30": the knobs named are set, the rest kept.</summary>
+        private static readonly int[] ForesightDefaults = (int[])ClassKit.ForesightByLevel.Clone();
+
+        /// <summary>"chance=35,warden=35,satchel=1,oracle=1233,tax=5,taxstep=5,caught=40,caughtstep=10,risk=30,shield=1,chaptershield=3":
+        /// the knobs named are set, the rest kept (oracle: FORESIGHT's cards at levels 0-3, a digit each; chaptershield: the Jester's shields
+        /// counted a chapter, this many a level).</summary>
         private static void ApplyPowers(string setting)
         {
             if (string.IsNullOrWhiteSpace(setting)) return;
@@ -622,7 +631,14 @@ namespace HellPoker.Core.Tests
                 {
                     case "chance": ChapterRelics.ClassRelicChance = v; break;
                     case "satchel": ClassKit.SatchelStart = v; break;
-                    case "foresight": ClassKit.ForesightStart = v; break;
+                    case "oracle": ClassKit.ForesightByLevel = kv[1].Trim().Select(ch => ch - '0').ToArray(); break;
+                    case "warden": ChapterRelics.WardenClassRelicChance = v; break;
+                    case "loot": ChapterRelics.LootClassRelic = v != 0; break;
+                    case "later": ChapterRelics.LaterClassRelicChance = v; break;
+                    case "forge": ChapterRelics.ForgeClassSteps = v; break;
+                    case "stepupgrade": ClassKit.StepUpgradeCounts = v != 0; break;
+                    case "shield": ClassKit.ShieldStep = v; break;
+                    case "chaptershield": ClassKit.ShieldsPerChapter = true; ClassKit.ChapterShieldStep = v; break;
                     case "tax": ClassKit.TaxStart = v; break;
                     case "taxstep": ClassKit.TaxStep = v; break;
                     case "caught": ClassKit.CaughtStart = v; break;
@@ -638,7 +654,18 @@ namespace HellPoker.Core.Tests
         {
             ChapterRelics.ClassRelicChance = PowerDefaults[0];
             ClassKit.SatchelStart = PowerDefaults[1];
-            ClassKit.ForesightStart = PowerDefaults[2];
+            ClassKit.ForesightByLevel = (int[])ForesightDefaults.Clone();
+            ChapterRelics.WardenClassRelicChance = PowerDefaults[10];
+            ClassKit.ShieldStep = PowerDefaults[11];
+            ClassKit.ChapterShieldStep = PowerDefaults[12];
+            ClassKit.ShieldsPerChapter = PowerDefaults[13] != 0;
+            ChapterRelics.LootClassRelic = false;
+            ClassKit.ShieldStep = 2;
+            ClassKit.ChapterShieldStep = 8;
+            ClassKit.ShieldsPerChapter = false;
+            ChapterRelics.LaterClassRelicChance = 15;
+            ChapterRelics.ForgeClassSteps = 1;
+            ClassKit.StepUpgradeCounts = true;
             ClassKit.TaxStart = PowerDefaults[3];
             ClassKit.TaxStep = PowerDefaults[4];
             ClassKit.CaughtStart = PowerDefaults[5];
@@ -669,14 +696,21 @@ namespace HellPoker.Core.Tests
                     ResetPowers();
                     ApplyPowers(setting);
                     var line = new StringBuilder($"{(setting.Trim().Length == 0 ? "(game)" : setting.Trim()),-32}");
+                    var levels = new StringBuilder("   level ch2 / ch3 / Lucifer (Lucifer at level 3):");
+                    var everyone = new RunTally();
                     foreach (SinnerClass cls in classes)
                     {
                         var tally = new RunTally();
-                        var all = new RunTally();
-                        for (int run = 0; run < runs; run++) PlayWholeRun(cls, run * 7919 + 29, tally, all);
+                        for (int run = 0; run < runs; run++) PlayWholeRun(cls, run * 7919 + 29, tally, everyone);
                         line.Append($" {Pct(tally.Freed, tally.Runs),9}");
+                        levels.Append($"  {cls.Id} {Avg((int)tally.LevelAt[1], tally.StartedAt[1])} / {Avg((int)tally.LevelAt[2], tally.StartedAt[2])} / " +
+                                      $"{Avg((int)tally.LevelAt[3], tally.StartedAt[3])} ({Pct(tally.TopLevelAtLucifer, tally.StartedAt[3])})");
                     }
                     report.AppendLine(line.ToString());
+                    report.AppendLine(levels.ToString());
+                    report.AppendLine($"   all: level {Avg((int)everyone.LevelAt[1], everyone.StartedAt[1])} / {Avg((int)everyone.LevelAt[2], everyone.StartedAt[2])} / " +
+                                      $"{Avg((int)everyone.LevelAt[3], everyone.StartedAt[3])}, Lucifer at level 3 {Pct(everyone.TopLevelAtLucifer, everyone.StartedAt[3])}, " +
+                                      $"freed {Pct(everyone.Freed, everyone.Runs)}");
                 }
             }
             finally

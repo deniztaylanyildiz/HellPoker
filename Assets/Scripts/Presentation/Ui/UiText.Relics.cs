@@ -68,13 +68,17 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
+        /// <summary>FORESIGHT a step up, with its cards at every level from the code (Demo 2.3.1: "1 / 2 / 2 / 3").</summary>
+        public static string ForesightStepText => string.Format(L("FORESIGHT a step up (cards by level: {0}).", "ÖNSEZİ bir adım büyür (seviyeye göre kart: {0})."),
+            string.Join(" / ", HellPoker.Core.Chapters.ClassKit.ForesightByLevel));
+
         /// <summary>A class relic's gift (Demo 2.3): a step of its class's main power, with the step's own numbers.</summary>
         public static string ClassStepGift(string classId)
         {
             switch (classId)
             {
                 case HellPoker.Core.Sinners.Peasant.ClassId: return L("The SATCHEL a step up: one card more.", "HEYBE bir adım büyür: bir kart fazla.");
-                case HellPoker.Core.Sinners.Warlock.ClassId: return L("FORESIGHT a step up: one card more.", "ÖNSEZİ bir adım büyür: bir kart fazla.");
+                case HellPoker.Core.Sinners.Warlock.ClassId: return ForesightStepText;
                 case HellPoker.Core.Sinners.King.ClassId:
                     return string.Format(L("The TREASURY a step up: {0} taxes more.", "HAZİNE bir adım büyür: {0} vergi fazla."), HellPoker.Core.Chapters.ClassKit.TaxStep);
                 case HellPoker.Core.Sinners.Summoner.ClassId:
@@ -84,8 +88,8 @@ namespace HellPoker.Presentation.Ui
                     return string.Format(L("The QUICK HAND a step up: caught {0}% less often.", "EL ÇABUKLUĞU bir adım büyür: %{0} daha az yakalanırsın."),
                         HellPoker.Core.Chapters.ClassKit.CaughtStep);
                 case HellPoker.Core.Sinners.Jester.ClassId:
-                    return L("A shield more at every table: a hand lost to your own two jokers is a push.",
-                        "Her masada bir kalkan fazla: kendi iki jokerinle kaybettiğin el berabere sayılır.");
+                    return string.Format(L("{0} shields more at every table: a hand lost to your own two jokers is a push.",
+                        "Her masada {0} kalkan fazla: kendi iki jokerinle kaybettiğin el berabere sayılır."), HellPoker.Core.Chapters.ClassKit.ShieldStep);
                 default: return "";
             }
         }

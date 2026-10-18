@@ -245,8 +245,25 @@ namespace HellPoker.Core.Relics
             return next != null && (available == null || available(next)) ? next : null;
         }
 
-        /// <summary>How often (percent) a market's stall shows the class's next relic, and a warden leaves it as his prize (a tuning knob).</summary>
-        public static int ClassRelicChance = 35;
+        // Demo 2.3.1 (the user's targets: the power's level ~1.0-1.3 as chapter 2 begins, ~1.7-2.1 as chapter 3 does, under 70% of the runs
+        // at the top level at Lucifer): no class relic in the loot, the first chapter's chances high, the later ones low — 1.1 / 1.9 / 57%
+        // (300 whole runs a class; with 35% everywhere and the loot: 1.6 / 2.8 / 97%).
+
+        /// <summary>How often (percent) a market's stall shows the class's next relic in the first chapter (a tuning knob).</summary>
+        public static int ClassRelicChance = 50;
+
+        /// <summary>How often (percent) a warden leaves the class's next relic as his prize in the first chapter (a tuning knob).</summary>
+        public static int WardenClassRelicChance = 60;
+
+        /// <summary>From the second chapter on, a market's and a warden's chance of the class's next relic (percent; a tuning knob): the
+        /// power grows fast in the first chapter, slower after it.</summary>
+        public static int LaterClassRelicChance = 15;
+
+        /// <summary>A beaten demon's loot offers the class's next relic (a tuning knob; Demo 2.3.1: no).</summary>
+        public static bool LootClassRelic = false;
+
+        /// <summary>The steps the forge adds to a class relic (a tuning knob; the game's: one).</summary>
+        public static int ForgeClassSteps = 1;
 
         /// <summary>The Devil's Compass: steps a chapter, and the years every step puts on the sentence.</summary>
         public const int CompassSteps = 2, CompassYears = 40;

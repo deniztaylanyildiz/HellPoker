@@ -1,5 +1,17 @@
 # Hell Poker — değişiklikler
 
+## Demo 2.3.1 (2.3.1-demo) — 2026-10-17 — Büyüme hızı, Kâhin ve Soytarı dengesi
+
+### Değişen
+- **Sınıf gücü daha yavaş büyür:** şeytanın ganimetinde artık sınıf emaneti yok. Sınıf emanetleri ilk bölümde sık gelir (pazar %50,
+  bekçi %60), sonraki bölümlerde seyrek (%15). Dövme bir sınıf emanetini tam bir adım büyütür. Ortalama seviye 2. bölüm başında 1.1,
+  3. bölüm başında 2.0 (önceden 1.6 / 2.8).
+- **Kâhin:** ÖNSEZİ en çok 3 kart (seviyeye göre 1 / 2 / 2 / 3).
+- **Soytarı:** her sınıf emaneti her masada 2 kalkan verir (0 / 2 / 4 / 6).
+- Sınıf kartının üzerine gelince bütün kurallar yazar (kartta kısa metin kalır); masadaki rozetin hover'ı da tam metni gösterir:
+  Kral'ın sarayı (J Q K güvende), Hırsız'ın draw'dan sonra da çaldığı, sınıfın bedeli.
+- Denge (simülasyon, sınıf başına 2000 koşu): Köylü %37, Kâhin %41, Kral %29, Soytarı %22, Çağırıcı %32, Hırsız %37.
+
 ## Demo 2.3 (2.3.0-demo) — 2026-10-17 — Sınıf güçleri pasif, sınıflar emanetlerle güçlenir, iki renkli kartlar
 
 ### Yeni

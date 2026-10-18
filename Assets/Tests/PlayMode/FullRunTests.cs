@@ -375,7 +375,9 @@ namespace HellPoker.PlayMode.Tests
             if (game.Phase != GamePhase.Betting) return;
             ChapterJourney journey = Chapters.Journey;
             int start = journey.Stage == JourneyStage.Lucifer ? journey.LuciferBarStart : Chapters.Run.BossBarStart;
-            if (game.Years > start)
+            // Held at half its start between hands (Demo 2.3.1: a single hand lost with the table full against a demon's quads can put
+            // more than twice the start on the bar — from the start itself that burned the soul now and then).
+            if (game.Years > start / 2)
             {
                 story.Notes.Add($"the bar held: {game.Years} -> {start / 2}");
                 HellPokerScreenshots.SetSentence(table, Math.Max(1, start / 2));

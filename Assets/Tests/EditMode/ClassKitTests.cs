@@ -176,7 +176,8 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(2, kit.ProphecyCards, "the Third Eye: a level");
             kit.Relics = () => HellPoker.Core.Relics.RelicRoster.Combined(new[] { HellPoker.Core.Relics.ChapterRelicIds.CrackedOrb,
                 HellPoker.Core.Relics.ChapterRelicIds.SeersSpectacles, HellPoker.Core.Relics.ChapterRelicIds.StarChart });
-            Assert.AreEqual(4, kit.ProphecyCards, "at most four: the highest level");
+            Assert.AreEqual(3, kit.ProphecyCards, "Demo 2.3.1: at most three, the highest level");
+            CollectionAssert.AreEqual(new[] { 1, 2, 2, 3 }, Enumerable.Range(0, 4).Select(kit.ValueAt).ToArray(), "FORESIGHT by level");
             Assert.AreEqual(0, new ClassKit(new Sinner(SinnerRoster.Peasant)).ProphecyCards);
         }
 

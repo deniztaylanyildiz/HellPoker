@@ -45,7 +45,7 @@ namespace HellPoker.Presentation.Ui
                 case UpgradeIds.QuietSatchel: return L("The demon notices the satchel half as often.", "Şeytan heybeyi yarı yarıya daha az fark eder.");
                 case UpgradeIds.Seed: return L("Every new chapter puts a ten or better in your satchel.", "Her yeni bölüm heybene onlu ya da daha iyi bir kart koyar.");
                 case UpgradeIds.Abundance: return L("After a draw two thrown cards may go into the satchel.", "Değişten sonra atılan iki kart heybeye girebilir.");
-                case UpgradeIds.DeepProphecy: return L("FORESIGHT a step up: one card more.", "ÖNSEZİ bir adım büyür: bir kart fazla.");
+                case UpgradeIds.DeepProphecy: return ForesightStepText;
                 case UpgradeIds.BlindMirror: return L("Half the hands the demon learns none of your cards.", "Ellerin yarısında şeytan kartlarından hiçbirini öğrenemez.");
                 case UpgradeIds.Thrice: return L("You see which of your cards the demon knows.", "Şeytanın hangi kartını bildiğini görürsün.");
                 case UpgradeIds.EyeOfTruth: return string.Format(L("Walk away from a swindler's offer: +{0} coins.",

@@ -36,8 +36,8 @@ namespace HellPoker.Core.Chapters
         /// <summary>A shield spared this hand's loss to the Jester's own two jokers.</summary>
         public bool ShieldedThisHand { get; private set; }
 
-        /// <summary>The shields left at this table.</summary>
-        public int ShieldsLeft => Math.Max(0, _kit.BustShieldsPerTable - _shieldsUsed);
+        /// <summary>The shields left at this table (counted a chapter: in this chapter).</summary>
+        public int ShieldsLeft => Math.Max(0, _kit.BustShieldsPerTable - (ClassKit.ShieldsPerChapter ? _kit.ShieldsUsedThisChapter : _shieldsUsed));
 
         public override void HandDealt(HellPokerGame game)
         {
@@ -51,6 +51,7 @@ namespace HellPoker.Core.Chapters
         {
             if (showdown == null || !showdown.PlayerBust || ShieldsLeft <= 0) return false;
             _shieldsUsed++;
+            _kit.ShieldsUsedThisChapter++;
             _kit.Shields++;
             ShieldedThisHand = true;
             return true;

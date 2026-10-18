@@ -191,6 +191,20 @@ namespace HellPoker.PlayMode.Tests
                     Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price under the power");
                     Assert.LessOrEqual(Bottom(detail), circle != null ? Top(circle) : Top(choose), $"{what}: the words end above the circle's row");
                     Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: and above CHOOSE");
+
+                    // Demo 2.3.1: the hover box holds the whole text, on screen.
+                    var select = UnityEngine.Object.FindFirstObjectByType<SinnerSelectView>();
+                    select.ShowTip(UiText.ChapterSinnerFull(id) + "\n" + UiText.ChapterSinnerDetailFull(id), (int)((RectTransform)card).anchoredPosition.x);
+                    yield return null;
+                    Assert.IsTrue(select.TipShown, what + ": the hover box opens");
+                    var tip = (RectTransform)select.transform.GetComponentsInChildren<Transform>(true).First(t => t.name == "SinnerCardTip");
+                    Text tipText = tip.GetComponentInChildren<Text>();
+                    Assert.LessOrEqual(tipText.preferredHeight, tipText.rectTransform.rect.height + 0.5f, what + ": the whole text fits its box");
+                    Assert.GreaterOrEqual(tip.anchoredPosition.x, 0f, what + ": the box on screen (left)");
+                    Assert.LessOrEqual(tip.anchoredPosition.x + tip.rect.width, 480f, what + ": on screen (right)");
+                    Assert.LessOrEqual(-tip.anchoredPosition.y + tip.rect.height, 270f, what + ": on screen (bottom)");
+                    if (UiText.ChapterPassiveLine(id) != null) StringAssert.Contains(turkish ? "PASİF:" : "PASSIVE:", select.TipText, what);
+                    select.HideTip();
                 }
             }
         }

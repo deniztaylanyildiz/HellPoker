@@ -40,8 +40,22 @@ namespace HellPoker.Core.Chapters
         /// <summary>The Peasant's satchel: this many cards at level 0, one more a level.</summary>
         public static int SatchelStart = 1;
 
-        /// <summary>The Oracle's FORESIGHT: this many cards at level 0, one more a level.</summary>
-        public static int ForesightStart = 1;
+        /// <summary>The Oracle's FORESIGHT: its cards at levels 0-3 (a tuning knob).</summary>
+        /// <remarks>Demo 2.3.1: at most three (1 / 2 / 3 / 4: 47.0% freed; 1 / 2 / 3 / 3: 46.2%; 1 / 2 / 2 / 3: 41.4%; 2000 whole runs).</remarks>
+        public static int[] ForesightByLevel = { 1, 2, 2, 3 };
+
+        /// <summary>FORESIGHT's cards at level 0.</summary>
+        public static int ForesightStart => ForesightByLevel[0];
+
+        /// <summary>The Jester's shields a level (tuning knobs): at every table — or, <see cref="ShieldsPerChapter"/>, this many a level for a
+        /// whole chapter.</summary>
+        /// <remarks>Demo 2.3.1: two a level (0 / 2 / 4 / 6 at every table): the Jester 17.2% → 23.0% freed (500 whole runs; a chapter's
+        /// eight a level: 26.4%).</remarks>
+        public static int ShieldStep = 2, ChapterShieldStep = 8;
+        public static bool ShieldsPerChapter;
+
+        /// <summary>The Jester's shields spent in this chapter (when they are counted a chapter).</summary>
+        public int ShieldsUsedThisChapter { get; set; }
 
         /// <summary>The King's treasury: this many taxes at level 0, this many more a level.</summary>
         public static int TaxStart = 5, TaxStep = 5;
@@ -99,9 +113,14 @@ namespace HellPoker.Core.Chapters
         {
             Chapter = Math.Max(1, chapter);
             AtLucifer = false;
+            ShieldsUsedThisChapter = 0;
         }
 
-        public void EnterLucifer() => AtLucifer = true;
+        public void EnterLucifer()
+        {
+            AtLucifer = true;
+            ShieldsUsedThisChapter = 0;
+        }
 
         // ------------------------------------------------------------------ the main power's level (Demo 2.3)
 
@@ -119,6 +138,9 @@ namespace HellPoker.Core.Chapters
             }
         }
 
+        /// <summary>The class's step upgrade lifts the power a level (a tuning knob: the simulation measures without it).</summary>
+        public static bool StepUpgradeCounts = true;
+
         /// <summary>The steps the worn class relics give (a forged one two).</summary>
         public int RelicSteps => Math.Max(0, Mark(RelicExtras.ClassStep));
 
@@ -128,7 +150,7 @@ namespace HellPoker.Core.Chapters
             get
             {
                 string upgrade = StepUpgradeOf(Sinner.Id);
-                return Math.Min(MaxLevel, RelicSteps + (upgrade != null && Has(upgrade) ? 1 : 0));
+                return Math.Min(MaxLevel, RelicSteps + (StepUpgradeCounts && upgrade != null && Has(upgrade) ? 1 : 0));
             }
         }
 
@@ -140,11 +162,11 @@ namespace HellPoker.Core.Chapters
             switch (Kind)
             {
                 case KitKind.Satchel: return SatchelStart + level;
-                case KitKind.Prophecy: return ForesightStart + level;
+                case KitKind.Prophecy: return ForesightByLevel[level];
                 case KitKind.Treasury: return TaxStart + TaxStep * level;
                 case KitKind.Theft: return Math.Max(CaughtLeast, CaughtStart - CaughtStep * level);
                 case KitKind.Summon: return Math.Min(ImpCount, 1 + level);
-                default: return IsJester ? level : 0;
+                default: return IsJester ? level * (ShieldsPerChapter ? ChapterShieldStep : ShieldStep) : 0;
             }
         }
 
@@ -290,7 +312,8 @@ namespace HellPoker.Core.Chapters
 
         // ------------------------------------------------------------------ the Jester's shields
 
-        /// <summary>Hands lost to the Jester's own two jokers that his relics spare at every table (each one a push).</summary>
+        /// <summary>Hands lost to the Jester's own two jokers that his relics spare at every table — or in a whole chapter
+        /// (<see cref="ShieldsPerChapter"/>) — each one a push.</summary>
         public int BustShieldsPerTable => IsJester ? ValueAt(Level) : 0;
 
         // ------------------------------------------------------------------ Lucifer's mirror (his own copy of the class's mechanic)

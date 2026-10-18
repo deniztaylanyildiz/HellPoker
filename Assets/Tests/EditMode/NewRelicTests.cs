@@ -86,6 +86,10 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(ClassKit.SatchelReRaisePercent + 5, peasant.Kit.SatchelRisk, "the scythe's curse");
             peasant.Effects.Forge(ChapterRelicIds.RopeBelt);
             Assert.AreEqual(3, peasant.Kit.Level, "a forged class relic: another step");
+            Assert.AreEqual(2, RelicRoster.Combined(new[] { ChapterRelicIds.RopeBelt }, forged: new[] { ChapterRelicIds.RopeBelt }).Extra(RelicExtras.ClassStep),
+                "Demo 2.3.1: the forge adds exactly one step to a class relic (itself one: two in all)");
+            Assert.AreEqual(110 * 105 / 100, RelicRoster.Combined(new[] { ChapterRelicIds.BloodRing }, forged: new[] { ChapterRelicIds.BloodRing }).WinPercent,
+                "another relic's forge: half its gift again, as before (110% → ×105%)");
             Assert.AreEqual(ClassKit.MaxLevel, peasant.Kit.Level);
 
             var king = Journey(SinnerRoster.King).Run;
@@ -115,12 +119,16 @@ namespace HellPoker.Core.Tests
             var jester = Journey(SinnerRoster.Jester).Run;
             Assert.AreEqual(0, jester.Kit.BustShieldsPerTable);
             jester.Effects.Give(ChapterRelicIds.BellCollar);
-            Assert.AreEqual(1, jester.Kit.BustShieldsPerTable);
+            Assert.AreEqual(ClassKit.ShieldStep, jester.Kit.BustShieldsPerTable, "Demo 2.3.1: two shields a step");
         }
 
         [Test]
-        public void TheClassRelic_ComesByTheMarket_TheWarden_AndTheLoot()
+        public void TheClassRelic_ComesByTheMarket_AndTheWarden_ManyInTheFirstChapter_NeverInTheLoot()
         {
+            Assert.AreEqual(50, ChapterRelics.ClassRelicChance, "Demo 2.3.1: the first chapter's market");
+            Assert.AreEqual(60, ChapterRelics.WardenClassRelicChance, "the first chapter's warden");
+            Assert.AreEqual(15, ChapterRelics.LaterClassRelicChance, "later chapters");
+            Assert.IsFalse(ChapterRelics.LootClassRelic);
             int chance = ChapterRelics.ClassRelicChance;
             ChapterRelics.ClassRelicChance = 100;
             try
@@ -134,7 +142,7 @@ namespace HellPoker.Core.Tests
                 Assert.AreEqual(ChapterRelicIds.PeasantsScythe, run.RollClassRelic(new SystemRandomSource(1)));
                 run.PayTribute();
                 run.LeaveBossTable(0);
-                CollectionAssert.Contains(run.LootOffers, ChapterRelicIds.PeasantsScythe, "a beaten demon's loot offers it");
+                Assert.IsFalse(run.LootOffers.Any(ChapterRelics.IsClassRelic), "a beaten demon's loot: no class relic (Demo 2.3.1)");
             }
             finally
             {

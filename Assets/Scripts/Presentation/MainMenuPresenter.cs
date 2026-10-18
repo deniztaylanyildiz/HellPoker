@@ -497,6 +497,15 @@ namespace HellPoker.Presentation
         private int CircleOf(string classId) =>
             Math.Min(_circleChoice.TryGetValue(classId, out int c) ? c : 0, _chapters?.Records?.CirclesOpen(classId) ?? 0);
 
+        /// <summary>A Phase 2 class card's hover box (Demo 2.3.1): the whole text the short card leaves out, and its price.</summary>
+        private static string ClassCardHover(SinnerClass c)
+        {
+            string text = UiText.ChapterSinnerFull(c.Id);
+            if (c.StartingJokers > 0 && c.JokerJackpot > 0)
+                text += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, c.JokerJackpot, Jester.PhaseTwoJackpotFallsTo);
+            return text + "\n" + UiText.ChapterSinnerDetailFull(c.Id);
+        }
+
         private void OpenSinnerChoice(bool curtain)
         {
             HideAll();
@@ -508,7 +517,7 @@ namespace HellPoker.Presentation
                         UiText.ChapterSinnerDetail(c.Id),
                         string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id)),
                         !Core.Chapters.ChapterUnlocks.IsClassOpen(c.Id, records), UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone),
-                        CircleOf(c.Id), records?.CirclesOpen(c.Id) ?? 0)
+                        CircleOf(c.Id), records?.CirclesOpen(c.Id) ?? 0, ClassCardHover(c))
                     : new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id),
                         string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
                 _pendingDealer?.Id, _chapterChoice ? _circleNote : null);

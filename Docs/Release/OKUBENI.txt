@@ -48,10 +48,11 @@ başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne oldu
 EMANETLER: en çok 5'i takılı (masada sadece onlar etki eder), 5'i de çantada bekler. Takılı ve çantadakileri kampta (EMANET DÜZENİ)
 değiştirirsin; haritadaki EMANETLER düğmesi hepsini gösterir. Her emanetin bir lütfu, bir laneti vardır; çerçevesinin rengi
 nadirliğidir.
-SINIF EMANETLERİ: her sınıfın üç emaneti var (yaygın, nadir, efsanevi); sırayla gelirler. Pazarda bazen tezgâhta, bazen bekçinin
-ödülü olarak, her zaman da ganimette. Takılıyken her biri sınıfının ana gücünü bir adım büyütür (çantadayken etkisizdir); kampta
-DÖVÜLÜRSE bir adım daha. Sınıf zayıf başlar, gücü yolda büyür: haritanın sağında "ÖNSEZİ 2/4" gibi yazar.
-Şeytanı yenince ganimetinde onun iki emaneti, sınıfının sıradaki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin).
+SINIF EMANETLERİ: her sınıfın üç emaneti var (yaygın, nadir, efsanevi); sırayla gelirler: pazarın tezgâhında ya da bekçinin ödülü
+olarak — ilk bölümde sık, sonra seyrek. Takılıyken her biri sınıfının ana gücünü bir adım büyütür (çantadayken etkisizdir); kampta
+DÖVÜLÜRSE bir adım daha. Sınıf zayıf başlar, gücü yolda büyür: haritanın sağında "ÖNSEZİ 2/4" gibi yazar. Sınıf kartının ve masadaki
+sınıf rozetinin üzerine gelince sınıfın bütün kuralları yazar.
+Şeytanı yenince ganimetinde onun iki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin).
 Yükseltmeler sınıfını kalıcı olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
 
 KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür, kazanç en çok ×3 öder. Bir bölüm başlarken kesen
@@ -71,7 +72,7 @@ Rozetin yanındaki noktalar gücün seviyesi (0-3); üzerine gelince gücün şu
   - Köylü, HEYBE: kart değiştirdikten sonra attığın kartlardan birini heybeye koy (1 kart; sınıf emanetleriyle 4'e kadar). Sonraki
     kart değiştirmelerde heybedeki karta tıklarsan desteden çekmek yerine o gelir. PASİF, SESSİZ TARLA: elin ilk heybe kartını şeytan
     görmez; ikincisini görür ve o el daha sık artırır.
-  - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek kartı görür (1 kart; 4'e kadar).
+  - Kâhin (gözleri bağlı, alnında üçüncü göz): ÖNSEZİ — kartlar dağıtılınca kart değiştirmede gelecek kartı görür (1 kart; 3'e kadar).
     PASİF, GERÇEĞİ GÖRÜR: şeytanın yalanlarını ve dolandırıcıların tuzağını açıkça görür. Bedeli, AYNA LANETİ: şeytan her elde
     kartlarından birini bilir.
   - Kral, HAZİNE: kazandığın her elde 1 vergi (en çok 5; 20'ye kadar). Kart değiştirmeden önce: AÇ (şeytanın bir kartı açılır),
@@ -80,7 +81,7 @@ Rozetin yanındaki noktalar gücün seviyesi (0-3); üzerine gelince gücün şu
   - Soytarı: destede joker var (2 ile başlar, kazandıkça artar). Tek joker el sonunda istediğin karta döner; elinde 2 joker varsa
     kaybedersin, fazlasını kart değiştirirken at. Şeytan da joker çekebilir. 20 jokerde sayı 10'a iner: ilk seferde Soytarı'nın
     Çıngırağı, sonrakilerde bir emanet ya da 30 coin. Sınıf emanetleri KALKAN verir: her masada kendi iki jokerinle kaybettiğin
-    bir el (emanet başına) berabere sayılır.
+    eller (emanet başına iki, en çok altı) berabere sayılır.
   - Çağırıcı, İBLİSLER: kart değiştirmeden önce GÖZ (şeytanın kapalı bir kartını aç, 5 coin), EL (bir kartını onun açık bir kartıyla
     değiş, 15), FISILTI (sıradaki hilesini doğru öğren, 8). Başta yalnız GÖZ açık; EL ve FISILTI sınıf emanetleriyle açılır, üçüncü
     adımda hepsi yarı fiyat. Şeytan masasında coin yerine bar uzar. Onda bir iblis azar ve bir kartını düşürür. PASİF, SADIK İBLİS:
