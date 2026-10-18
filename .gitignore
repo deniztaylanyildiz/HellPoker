@@ -67,3 +67,4 @@ __pycache__/
 # Art preview pages (py Tools/ArtGen/preview.py)
 /Tools/ArtGen/preview/
 /AudioCompare/
+/sim_*.txt
