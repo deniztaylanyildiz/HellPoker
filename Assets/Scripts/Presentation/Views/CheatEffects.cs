@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using HellPoker.Core.Cheats;
 using HellPoker.Presentation.Abstractions;
+using HellPoker.Presentation.Animation;
 using HellPoker.Presentation.Ui;
 using UnityEngine;
 using UnityEngine.UI;
@@ -109,7 +110,7 @@ namespace HellPoker.Presentation.Views
                     sign.sprite = icon;
                     sign.enabled = icon != null && s % 2 == 0;
                 }
-                if (impact.CheatId == CheatIds.TheFall && s < FallShake.Length)
+                if (impact.CheatId == CheatIds.TheFall && s < FallShake.Length && ScreenShake.Enabled)
                     _screen.anchoredPosition = FallShake[s];
                 yield return Tween.Wait(Step);
             }

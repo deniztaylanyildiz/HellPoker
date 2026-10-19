@@ -203,6 +203,13 @@ namespace HellPoker.Presentation.Views
 
         public void SetSinnerMood(SinnerMood mood) => _panel.SetMood(mood);
 
+        private HandFanfareView _fanfare;
+
+        /// <summary>The hand endings' animations (for tests and screenshots).</summary>
+        public HandFanfareView Fanfare => _fanfare;
+
+        public void PlayHand(HandFanfare fanfare) => _fanfare.Play(fanfare);
+
         private EventPanelView _event;
 
         /// <summary>The event panel (for tests and screenshots).</summary>
@@ -342,6 +349,10 @@ namespace HellPoker.Presentation.Views
 
             _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, ControlsY + 26, MiddleWidth);
             _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence, Middle, BandY - 2, MiddleWidth);
+            // Demo 3.1: a chapter table's hand ending by its strength (the coins fly to the counter on a floor, to the demon's bar at his table).
+            _fanfare = HandFanfareView.Create(screen, _sequencer, (HandView)Player, (HandView)House, c => Glow(c),
+                new Vector2Int(W / 2, PlayerY + CardView.Size.y / 2), new Vector2Int(W / 2, HouseY + CardView.Size.y / 2),
+                new Vector2Int(RightX + SentenceView.Width / 2, 14), new Vector2Int(8 + 46, 125), Middle, BandY - 2, MiddleWidth);
             // The malice gauge and the announced cheat ride on the portrait box (4, 4, 104 × 104).
             _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
             // The class badge in the portrait box's lower right corner (the malice pips run along the lower left).
@@ -381,6 +392,7 @@ namespace HellPoker.Presentation.Views
         private int _floatX, _floatY;
         private const float FloatSeconds = 0.9f;
         private const int FloatRise = 14;
+        private const int BarFloatX = 4 + DealerView.PortraitSize + 8 + 4;
 
         /// <summary>The band on show (for tests and screenshots); null when down.</summary>
         public ResultBand Band { get; private set; }
@@ -448,10 +460,11 @@ namespace HellPoker.Presentation.Views
                 LastFloat = text;
                 _float.text = text ?? "";
                 _float.color = Palette.For(tone);
-                // Over the counter's number (top right), or over the demon's bar under the portrait.
-                _floatX = overBar ? 8 : RightX;
-                _floatY = overBar ? 112 : 22;
-                _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? 92 : SentenceView.Width, 8);
+                // Over the counter's number (top right), or beside the demon's bar (Demo 3.1: right of it, in the gap before the middle
+                // column — over the bar it rose through his name and the malice pips).
+                _floatX = overBar ? BarFloatX : RightX;
+                _floatY = overBar ? 120 : 22;
+                _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? Middle - BarFloatX - 2 : SentenceView.Width, 8);
                 _float.transform.SetAsLastSibling();
                 _float.enabled = true;
                 _floatLeft = FloatSeconds;
@@ -887,6 +900,7 @@ namespace HellPoker.Presentation.Views
             _malice.Finish();
             _scenes.Finish();
             _panel.Finish();
+            _fanfare.Finish();
             FinishResults();
         }
 

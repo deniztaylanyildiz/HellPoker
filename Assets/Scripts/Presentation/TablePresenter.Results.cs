@@ -126,6 +126,41 @@ namespace HellPoker.Presentation
                 _view.FloatAmount(UiText.SignedPercent(bar), bar < 0 ? Tone.Triumph : Tone.Doom, overBar: true);
         }
 
+        /// <summary>
+        /// Demo 3.1: the hand's ending at a chapter's table, by its strength (<see cref="HandFanfare.TierOf"/>): the player's hand as judged (a
+        /// joker counts as the card it became; a sealed hand that turned itself over is judged the same), the House's when it won with trips or
+        /// more; a fold and a push play nothing. The sound goes with the tier. The Dead Man's Hand at a demon's table keeps its own scene.
+        /// </summary>
+        private void PlayHandEnding(RoundResult round)
+        {
+            HandOutcome outcome = OutcomeOf(round);
+            ShowdownResult s = round.Showdown;
+            HandCategory? player = round.Folded || round.HouseFolded || s == null || s.PlayerBust ? (HandCategory?)null : s.Player.Category;
+            HandCategory? house = round.Folded || round.HouseFolded || s == null || s.HouseBust ? (HandCategory?)null : s.House.Category;
+            HandTier tier = HandFanfare.TierOf(outcome, player, house);
+
+            if (CoinMode)
+                PlayCoinSound(round);   // a floor counts coins: they ring (more of them, a fuller sound)
+            else if (outcome == HandOutcome.Win)
+                _view.PlaySfx(tier == HandTier.Plain ? SfxIds.WinSmall : SfxIds.WinBig);
+            else if (outcome == HandOutcome.Loss || (round.Folded && !round.FreeFold))
+                _view.PlaySfx(SfxIds.Loss);
+            if (CoinMode && tier >= HandTier.Good && tier <= HandTier.Quads) _view.PlaySfx(SfxIds.WinBig);
+            if (tier == HandTier.Blaze) _view.PlaySfx(SfxIds.WinBlaze);
+
+            if (player == HandCategory.DeadMansHand && !CoinMode)
+            {
+                _view.PlayMoment(TableMoment.DeadMansHand, playerCards: DeadMansCards(_game.PlayerHand));
+                return;
+            }
+            if (tier == HandTier.None) return;
+            IReadOnlyList<IReadOnlyList<int>> groups = tier == HandTier.HouseStrong ? HandFanfare.GroupsOf(s.House.Hand, s.House.Category)
+                : player.HasValue ? HandFanfare.GroupsOf(s.Player.Hand, player.Value) : Array.Empty<IReadOnlyList<int>>();
+            string title = tier >= HandTier.Good && tier != HandTier.HouseStrong && player.HasValue
+                ? string.Format(UiText.GoodHandFormat, UiText.CategoryNameUpper(player.Value)) : null;
+            _view.PlayHand(new HandFanfare(tier, title, groups, coinsToBar: !CoinMode));
+        }
+
         private static string CoinAmount(int coins) => coins == 0 ? UiText.BandCoinsStay : string.Format(UiText.BandCoinsFormat, UiText.SignedYears(coins));
 
         /// <summary>The remembered hands as pips: the colour, and the hover (the hand's name and what it did).</summary>

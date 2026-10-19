@@ -430,7 +430,19 @@ def sfx_rule_mirror():
     return normalize(mix(0.6, [(0, a, 0.5), (0.22, b, 0.45)]), 0.55)
 
 
+def sfx_win_blaze():
+    """Demo 3.1: a straight flush, a royal flush: a long rising fanfare over a roar of flame, a held major chord, a gong under it."""
+    rise = _arp(["C5", "E5", "G5", "C6", "E6", "G6", "C7"], 0.08)
+    chord = sum(env(pulse(note_hz(n), 1.4, 0.25), 0.01, 0.3, 0.5, 0.8) for n in ("C5", "E5", "G5", "C6"))
+    t = np.arange(seconds(2.2), dtype=np.float32) / RATE
+    roar = lowpass(noise(2.2, seed=81), 0.06) * np.sin(np.pi * np.clip(t / 2.2, 0, 1)) * 3
+    partials = [(98, 1.0), (98 * 2.76, 0.45), (98 * 5.4, 0.2)]
+    gong = sum(a * np.sin(2 * np.pi * f * t) * (0.5 ** (t / (0.7 / (1 + k)))) for k, (f, a) in enumerate(partials)).astype(np.float32)
+    return normalize(mix(2.2, [(0, roar.astype(np.float32), 0.35), (0, rise, 0.6), (0.6, chord, 0.35), (0.6, gong, 0.5)]), 0.72)
+
+
 SFX.update({
+    "win_blaze": sfx_win_blaze,
     "coin_win": sfx_coin_win, "coin_win_big": sfx_coin_win_big, "coin_loss": sfx_coin_loss, "coin_loss_big": sfx_coin_loss_big,
     "purse_empty": sfx_purse_empty, "bar_hit": sfx_bar_hit, "bar_grow": sfx_bar_grow, "soul_warning": sfx_soul_warning,
     "node_select": sfx_node_select, "chapter_title": sfx_chapter_title, "loot": sfx_loot, "market_buy": sfx_market_buy, "fire": sfx_fire,

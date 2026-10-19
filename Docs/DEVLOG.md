@@ -3953,3 +3953,28 @@ kayıp animasyonları, EKRAN SARSINTISI ayarı. D) testler. E) build 3.1.
 - Testler: `SinnerAnimationTests` + ruh halleri ve üretilen şeritler (6 sınıf × 5 durum: 64 yükseklik, kare sayısı, yarı saydam piksel yok,
   ≤ 32 renk, döngüler kapanıyor ve hareket var); panel testi idle'ın 8 kare ve 64×64 oynadığını ölçer. EditMode 1140 (1135 geçti, 5 Explicit),
   TableLayoutTests 8/8.
+
+## 2026-10-19 — Demo 3.1 (C): el animasyonları (kademeler) ve EKRAN SARSINTISI
+
+- `HandTier` / `HandFanfare` (Abstractions, saf): `TierOf(sonuç, oyuncunun eli, kasanın eli)` — kazanç: Yüksek Kart / Çift Plain, İki Çift /
+  Üçlü Good, Kent / Renk Strong, Full, Kare Quads, Floş / Floş Royal (ve katta Ölü Adamın Eli) Blaze; kayıp yalnız kasanın Üçlü ve üstüyle
+  HouseStrong; çekilme / beraberlik / küçük kayıp None. `GroupsOf(el, kategori)`: setler büyükten küçüğe (Full: üçlü sonra çift), Kent /
+  Renk / Floş kart kart soldan, Yüksek Kart tek kart; jokerli elde değerlendirilmiş el (joker döndüğü kart sayılır). Süreler `SecondsOf`
+  (normal hız): Plain 0.8, Good 1.5, Strong 1.7, Full 2.0, Quads 2.3, Blaze 2.9, HouseStrong 0.7 sn.
+- `HandFanfareView` (TableView'da, `ITableView.PlayHand`): coin uçuşu (katta sayaca, şeytan masasında barına), kart vuruşu (3 px zıplar +
+  altın parlama; kasanınki aşağı), büyük ad bandı (sonuç bandını tamamen örter, bitince bant görünür), coin patlaması, kısa sarsıntı, iki
+  karelik beyaz flaş (sprite, alfa değil), coin yağmuru, Blaze: oyuncunun kartları dışında karanlık + üst / alt kenarda alev şeridi
+  (`Ui/flames`), kartlar tek tek yanar. Her kademe kuyrukta tek adım: şeytanın sözü ve bar vuruşu ondan sonra (boss masasında üst üste
+  binmez); atlanınca hemen biter, ekranda hiçbir şey kalmaz (kartlar yerine, parlama söner, ekran 0,0).
+- Presenter (sadece bölüm masası; simülatör aynen): `PlayHandEnding` — ses kademeye göre (katta coin sesi + Good..Quads `win_big`, bar
+  masasında Plain `win_small` / üstü `win_big`, Blaze yeni `win_blaze`: yükselen fanfar + alev uğultusu + gong, `Tools/AudioGen`); şeytan
+  masasında Ölü Adamın Eli kendi sahnesini korur. Animasyondan önce pot ve elin istemi temizlenir (kuyruk beklerken eski mesaj bandın altına
+  kayıp "MASADA" satırıyla çakışıyordu). Bölüm masasında büyük kayıp sarsıntısı yerine HouseStrong.
+- **EKRAN SARSINTISI** (Ayarlar ▸ GÖRÜNTÜ, `settings.shake`, varsayılan açık; `GameSettings.ScreenShake`, `Animation.ScreenShake`): kapalıyken
+  sarsıntı (büyük kayıp, Full, Düşüş, Lucifer'in titremesi) ve beyaz flaş yok; diğer her şey oynar.
+- Düzeltme: şeytanın barından yükselen yüzde barın sağına (portre sütunuyla orta sütun arasına) taşındı — 640 düzeninde adının ve kötülük
+  piplerinin üstüne biniyordu.
+- Testler: EditMode `HandFanfareTests` (26: kademe tablosu, gruplar, joker, süreler artan, her kademe yığılmış desteyle Mammon'un masasında,
+  kasanın Karesi, çekilme, simülatörde kademe yok, ayar); PlayMode `HandFanfarePlayTests` (her kademe sahnede doğru, bar animasyonu bekler,
+  atlama hiçbir şey bırakmaz, Full kendi süresinde biter, sarsıntı kapalıyken flaş ve sarsıntı yok). [Explicit] `Demo31Shots` →
+  `Screenshots/demo31/`. EditMode 1166 (1161 geçti, 5 Explicit), TableLayoutTests 8/8, HandFanfarePlayTests 8/8.

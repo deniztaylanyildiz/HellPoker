@@ -2269,7 +2269,21 @@ namespace HellPoker.Presentation
             _view.Payouts.Highlight(playerWon ? showdown.Player.Category : (HandCategory?)null);
             // A chapter's table: the result band, the edge's blink, the amount floating up, the last hands' pips (before the moments).
             ShowHandResult(round);
-            if (round != null && !_relabelling)
+            if (round != null && !_relabelling && _seat != null)
+            {
+                // Demo 3.1: a chapter's table ends a hand by its strength (the tiers), sounds with it; the demon's words and bar after.
+                // The pot and the hand's prompt go first: nothing stale sits under the band while the hand plays out (the result's
+                // message comes right after it).
+                _view.SetPot(0);
+                _view.SetMessage("", Tone.Neutral);
+                PlayHandEnding(round);
+                KitResultSounds(round);
+                if (showdown?.HouseBust == true && playerWon)
+                    _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerLaughFlash);
+                if (round.JokerJackpot)
+                    _view.PlayMoment(TableMoment.JokerLaugh, UiText.JokerJackpotFlash);
+            }
+            else if (round != null && !_relabelling)
             {
                 if (CoinMode)
                     PlayCoinSound(round);   // a floor counts coins: they ring (more of them, a fuller sound)

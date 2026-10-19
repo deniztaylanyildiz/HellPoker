@@ -45,6 +45,9 @@ namespace HellPoker.Presentation.Abstractions
 
         public string VSync { get; set; }
 
+        /// <summary>Demo 3.1: SCREEN SHAKE ("ON" / "OFF").</summary>
+        public string ScreenShake { get; set; }
+
         // The sound tab: the volumes as shown ("7 / 10", "OFF").
         public string Master { get; set; }
         public string Music { get; set; }
@@ -68,6 +71,9 @@ namespace HellPoker.Presentation.Abstractions
         event Action WindowScalePressed;
         event Action PixelScalePressed;
         event Action VSyncPressed;
+
+        /// <summary>Demo 3.1: the SCREEN SHAKE row.</summary>
+        event Action ScreenShakePressed;
 
         event Action MasterPressed;
         event Action MusicPressed;

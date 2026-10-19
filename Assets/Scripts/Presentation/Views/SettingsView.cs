@@ -40,6 +40,7 @@ namespace HellPoker.Presentation.Views
         private Text _pixelScale;
         private ButtonFeel _pixelScaleFeel;
         private Text _vSync;
+        private Text _screenShake;
         private Text _master;
         private Text _music;
         private Text _sfx;
@@ -54,6 +55,7 @@ namespace HellPoker.Presentation.Views
         public event Action WindowScalePressed;
         public event Action PixelScalePressed;
         public event Action VSyncPressed;
+        public event Action ScreenShakePressed;
         public event Action MasterPressed;
         public event Action MusicPressed;
         public event Action SfxPressed;
@@ -107,6 +109,8 @@ namespace HellPoker.Presentation.Views
                 () => PixelScalePressed?.Invoke(), out Button pixelScale);
             _pixelScaleFeel = pixelScale.GetComponent<ButtonFeel>();
             _vSync = Row(display, 3, () => UiText.SettingVSync, () => UiText.SettingVSyncHint, "VSyncButton", () => VSyncPressed?.Invoke(), out _);
+            _screenShake = Row(display, 4, () => UiText.SettingScreenShake, () => UiText.SettingScreenShakeHint, "ScreenShakeButton",
+                () => ScreenShakePressed?.Invoke(), out _);
 
             Transform sound = Page(screen, SettingsTab.Sound);
             _master = Row(sound, 0, () => UiText.SettingMaster, () => UiText.SettingMasterHint, "MasterButton", () => MasterPressed?.Invoke(), out _);
@@ -177,6 +181,7 @@ namespace HellPoker.Presentation.Views
             _pixelScale.text = screen.PixelScale;
             _pixelScaleFeel.Locked = screen.PixelScaleLocked;
             _vSync.text = screen.VSync;
+            _screenShake.text = screen.ScreenShake ?? "";
             _master.text = screen.Master;
             _music.text = screen.Music;
             _sfx.text = screen.Sfx;

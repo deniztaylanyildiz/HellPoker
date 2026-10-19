@@ -87,6 +87,10 @@ namespace HellPoker.Core.Tests
         public System.Collections.Generic.List<SinnerMood> SinnerMoods { get; } = new System.Collections.Generic.List<SinnerMood>();
         public void SetSinnerMood(SinnerMood mood) => SinnerMoods.Add(mood);
 
+        /// <summary>Every hand ending played, in order (Demo 3.1).</summary>
+        public System.Collections.Generic.List<HandFanfare> Fanfares { get; } = new System.Collections.Generic.List<HandFanfare>();
+        public void PlayHand(HandFanfare fanfare) => Fanfares.Add(fanfare);
+
         public PowerDisplay Power { get; private set; } = PowerDisplay.None;
         public void SetPower(PowerDisplay power) => Power = power ?? PowerDisplay.None;
 

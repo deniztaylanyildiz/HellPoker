@@ -57,6 +57,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Demo 3.1: how the player's sinner feels (a chapter's table: the panel's portrait plays it; queued like everything else).</summary>
         void SetSinnerMood(SinnerMood mood);
 
+        /// <summary>Demo 3.1: a chapter table's hand ending, by its strength (<see cref="HandFanfare"/>); one step of the queue.</summary>
+        void PlayHand(HandFanfare fanfare);
+
         /// <summary>A power switched on and waiting: the line that stays under the message, the Warlock's shield (<see cref="PowerDisplay.None"/>: off).</summary>
         void SetPower(PowerDisplay power);
 

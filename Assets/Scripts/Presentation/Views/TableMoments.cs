@@ -95,6 +95,7 @@ namespace HellPoker.Presentation.Views
 
         private IEnumerator Shake()
         {
+            if (!ScreenShake.Enabled) yield break;   // Demo 3.1: SCREEN SHAKE off — the counter still flashes red
             foreach (Vector2Int offset in ShakePattern)
             {
                 _screen.anchoredPosition = offset;

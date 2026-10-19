@@ -68,6 +68,9 @@ namespace HellPoker.Presentation.Abstractions
         public const string RuleTemptation = "rule_temptation";
         public const string RuleMirror = "rule_mirror";
 
+        /// <summary>Demo 3.1: a straight flush or a royal flush won at a chapter's table (the longest hand ending).</summary>
+        public const string WinBlaze = "win_blaze";
+
         public const string MenuMusic = "menu";
         public const string SoulLayer = "soul_layer";
 
@@ -80,7 +83,7 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Effects long enough to be cut when the player hurries the table along.</summary>
         public static bool IsLong(string id) => id == Sealed || id == Soul || id == Summoned || id == Fall || id == WinBig || id == PurseEmpty
-                                                 || id == ChapterTitle || id == Fire;
+                                                 || id == ChapterTitle || id == Fire || id == WinBlaze;
     }
 
     /// <summary>No sound at all (batch runs, tests).</summary>

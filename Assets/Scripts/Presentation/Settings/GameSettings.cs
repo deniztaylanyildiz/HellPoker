@@ -43,6 +43,7 @@ namespace HellPoker.Presentation.Settings
         private const string FillKey = "settings.display.fill";
         private const string VSyncKey = "settings.vsync";
         private const string FourColorKey = "settings.fourcolor";
+        private const string ShakeKey = "settings.shake";
 
         /// <summary>Demo 2.3: the four-colour deck's own key from now on. Not there yet (a first launch, or a 2.1.1-2.2.1 player whose
         /// "settings.fourcolor" was on by default): the classic two colours, once — after that the player's choice stands.</summary>
@@ -122,6 +123,15 @@ namespace HellPoker.Presentation.Settings
 
         public void ToggleVSync() => Set(() => VSync = !VSync);
 
+        /// <summary>Demo 3.1: the screen shakes and flashes at a hand's big moments (on by default); applied to <see cref="Animation.ScreenShake"/>.</summary>
+        public bool ScreenShake { get; private set; } = true;
+
+        public void ToggleScreenShake()
+        {
+            Set(() => ScreenShake = !ScreenShake);
+            Animation.ScreenShake.Set(ScreenShake);
+        }
+
         /// <summary>Raised after any setting changed (and was saved).</summary>
         public event Action Changed;
 
@@ -133,6 +143,7 @@ namespace HellPoker.Presentation.Settings
             Load();
             Lang.Set(Language);
             SuitColors.Set(FourColorDeck);
+            Animation.ScreenShake.Set(ScreenShake);
         }
 
         /// <summary>The first launch's language from the system's: Turkish for a Turkish system, English for every other.</summary>
@@ -207,6 +218,7 @@ namespace HellPoker.Presentation.Settings
             WindowScale = scale >= 2 && scale <= MaxSavedWindowScale ? scale : AutoWindowScale;
             FillScreen = _store.GetInt(FillKey, 0) == 1;
             VSync = _store.GetInt(VSyncKey, 1) != 0;
+            ScreenShake = _store.GetInt(ShakeKey, 1) != 0;
             MasterVolume = Volume(_store.GetInt(MasterKey, MaxVolume), MaxVolume);
             HandGuide = _store.GetInt(HandGuideKey, 1) != 0;
             // Only the Demo 2.3 key counts: an older "settings.fourcolor" (on by default then) turns into the two colours, once.
@@ -235,6 +247,7 @@ namespace HellPoker.Presentation.Settings
             _store.SetInt(WindowScaleKey, WindowScale);
             _store.SetInt(FillKey, FillScreen ? 1 : 0);
             _store.SetInt(VSyncKey, VSync ? 1 : 0);
+            _store.SetInt(ShakeKey, ScreenShake ? 1 : 0);
             _store.SetInt(MasterKey, MasterVolume);
             _store.SetInt(HandGuideKey, HandGuide ? 1 : 0);
             _store.SetInt(FourColorKey, FourColorDeck ? 1 : 0);   // still written: an older build reads only this

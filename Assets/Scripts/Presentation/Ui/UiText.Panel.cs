@@ -22,6 +22,11 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The Jester's row: the jokers in the deck.</summary>
         public static string PanelJokersFormat => L("JOKERS ×{0}", "JOKER ×{0}");
 
+        /// <summary>The settings' display tab: SCREEN SHAKE.</summary>
+        public static string SettingScreenShake => L("SCREEN SHAKE", "EKRAN SARSINTISI");
+
+        public static string SettingScreenShakeHint => L("Off: no shaking and no flashes.", "Kapalıyken sarsıntı ve flaş olmaz.");
+
         /// <summary>The panel's hover over the portrait and the passive: what the class does, and how to use it.</summary>
         public static string PanelClickHint => L("Click the portrait (or K).", "Portreye tıkla (ya da K).");
     }

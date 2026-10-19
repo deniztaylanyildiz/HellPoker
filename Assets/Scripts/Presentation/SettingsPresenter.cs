@@ -49,6 +49,7 @@ namespace HellPoker.Presentation
             _view.WindowScalePressed += CycleWindowScale;
             _view.PixelScalePressed += ToggleFill;
             _view.VSyncPressed += _settings.ToggleVSync;
+            _view.ScreenShakePressed += _settings.ToggleScreenShake;
             _view.MasterPressed += _settings.CycleMaster;
             _view.MusicPressed += _settings.CycleMusic;
             _view.SfxPressed += _settings.CycleSfx;
@@ -105,6 +106,7 @@ namespace HellPoker.Presentation
             _view.WindowScalePressed -= CycleWindowScale;
             _view.PixelScalePressed -= ToggleFill;
             _view.VSyncPressed -= _settings.ToggleVSync;
+            _view.ScreenShakePressed -= _settings.ToggleScreenShake;
             _view.MasterPressed -= _settings.CycleMaster;
             _view.MusicPressed -= _settings.CycleMusic;
             _view.SfxPressed -= _settings.CycleSfx;
@@ -153,6 +155,7 @@ namespace HellPoker.Presentation
                 PixelScale = _settings.FillScreen ? UiText.PixelScaleFill : UiText.PixelScaleWhole,
                 PixelScaleLocked = !_settings.Fullscreen,
                 VSync = _settings.VSync ? UiText.On : UiText.Off,
+                ScreenShake = _settings.ScreenShake ? UiText.On : UiText.Off,
                 Master = UiText.Volume(_settings.MasterVolume, GameSettings.MaxVolume),
                 Music = UiText.Volume(_settings.MusicVolume, GameSettings.MaxVolume),
                 Sfx = UiText.Volume(_settings.SfxVolume, GameSettings.MaxVolume)

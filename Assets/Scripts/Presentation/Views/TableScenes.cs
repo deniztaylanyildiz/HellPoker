@@ -189,6 +189,7 @@ namespace HellPoker.Presentation.Views
 
         private IEnumerator Shudder()
         {
+            if (!ScreenShake.Enabled) yield break;   // Demo 3.1: SCREEN SHAKE off
             foreach (int x in new[] { 1, -1, 1, 0 })
             {
                 _screen.anchoredPosition = new Vector2(x, 0f);
