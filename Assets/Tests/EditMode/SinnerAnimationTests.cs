@@ -117,6 +117,69 @@ namespace HellPoker.Core.Tests
             Assert.IsNull(SinnerView.ReactionTo(SinnerMood.Tense));
         }
 
+        [TestCase(HandOutcome.Win, HellPoker.Core.Evaluation.HandCategory.OnePair, SinnerMood.Pleased)]
+        [TestCase(HandOutcome.Win, HellPoker.Core.Evaluation.HandCategory.ThreeOfAKind, SinnerMood.Pleased)]
+        [TestCase(HandOutcome.Win, HellPoker.Core.Evaluation.HandCategory.Straight, SinnerMood.Elated)]
+        [TestCase(HandOutcome.Win, HellPoker.Core.Evaluation.HandCategory.RoyalFlush, SinnerMood.Elated)]
+        [TestCase(HandOutcome.Loss, HellPoker.Core.Evaluation.HandCategory.FullHouse, SinnerMood.Hurt)]
+        public void AHandsEnd_MovesTheSinner(HandOutcome outcome, HellPoker.Core.Evaluation.HandCategory category, SinnerMood mood)
+        {
+            Assert.AreEqual(mood, Presentation.TablePresenter.MoodAfter(outcome, category));
+        }
+
+        [Test]
+        public void AFoldOrAPush_MovesNothing_AndAWinWithoutAHandSmiles()
+        {
+            Assert.IsNull(Presentation.TablePresenter.MoodAfter(HandOutcome.Fold, null));
+            Assert.IsNull(Presentation.TablePresenter.MoodAfter(HandOutcome.Push, HellPoker.Core.Evaluation.HandCategory.OnePair));
+            Assert.AreEqual(SinnerMood.Pleased, Presentation.TablePresenter.MoodAfter(HandOutcome.Win, null), "the imp folded: no hand shown");
+        }
+
+        // ------------------------------------------------------------------ the generated art
+
+        private static readonly (string state, int frames, bool loops)[] States =
+            { ("idle", 8, true), ("happy", 6, false), ("joy", 8, false), ("hurt", 6, false), ("tense", 8, true) };
+
+        [Test]
+        public void EveryClass_HasItsFiveStrips_At64_InWholeColours_AndItsLoopsClose()
+        {
+            foreach (Core.Sinners.SinnerClass cls in Core.Sinners.SinnerRoster.PhaseTwo)
+            foreach (var (state, frames, loops) in States)
+            {
+                string path = $"Assets/Resources/Art/Sinners/{cls.Id}/{state}.png";
+                Assert.IsTrue(File.Exists(path), path + ": py Tools/ArtGen/generate_art.py sinners");
+                var strip = new Texture2D(2, 2);
+                _created.Add(strip);
+                Assert.IsTrue(strip.LoadImage(File.ReadAllBytes(path)), path);
+                Assert.AreEqual(SinnerAnimationLibrary.FrameSize, strip.height, path);
+                Assert.AreEqual(frames * SinnerAnimationLibrary.FrameSize, strip.width, path + ": its frames");
+
+                Color32[] px = strip.GetPixels32();
+                var colours = new HashSet<int>();
+                foreach (Color32 c in px)
+                {
+                    Assert.IsTrue(c.a == 0 || c.a == 255, path + ": no half-transparent pixel");
+                    if (c.a == 255) colours.Add(c.r << 16 | c.g << 8 | c.b);
+                }
+                Assert.LessOrEqual(colours.Count, 32, path + ": the one palette");
+                if (!loops) continue;
+
+                int w = SinnerAnimationLibrary.FrameSize;
+                int Diff(int a, int b)
+                {
+                    int n = 0;
+                    for (int y = 0; y < w; y++)
+                        for (int x = 0; x < w; x++)
+                            if (!px[y * strip.width + a * w + x].Equals(px[y * strip.width + b * w + x])) n++;
+                    return n;
+                }
+                int largest = 0;
+                for (int f = 0; f < frames - 1; f++) largest = System.Math.Max(largest, Diff(f, f + 1));
+                Assert.LessOrEqual(Diff(frames - 1, 0), largest * 1.02f + 1, path + ": the loop jumps back to its first frame");
+                Assert.Greater(largest, 0, path + ": it moves");
+            }
+        }
+
         [Test]
         public void ThePortraitView_ShowsTheFallback_WithoutStretchingIt()
         {

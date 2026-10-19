@@ -1411,6 +1411,7 @@ namespace HellPoker.Presentation
             _view.SetBetControls(BetControls.Hidden);
             _view.PlaySfx(SfxIds.Sealed);
             _view.PlayMoment(TableMoment.PactSealed, UiText.PactSealed);
+            if (_seat != null) _view.SetSinnerMood(SinnerMood.Tense);   // Demo 3.1: no way back — the sinner holds his breath
             _view.SetMessage(UiText.SealedMessage, Tone.Warning);
             Say(d => d.Sealed, _game.RoundNumber, DealerMood.Gloating);
         }

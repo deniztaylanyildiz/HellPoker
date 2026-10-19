@@ -3937,3 +3937,19 @@ kayıp animasyonları, EKRAN SARSINTISI ayarı. D) testler. E) build 3.1.
 - Testler: EditMode `SinnerAnimationTests` (10); PlayMode `TableLayoutTests.ThePlayersPanel_...` (6 sınıf × 2 dil: sayacın altında, ekranda,
   hiçbir yazı / düğmeyle çakışmıyor, şeytan portresinde rozet / emanet yok, yazılar sığıyor, emanet hover'ı ekranda ve karonun solunda, Kemik
   Zar panelden kart seçer, portre ve pasif satırı K gibi). EditMode 1133 (1128 geçti, 5 Explicit), TableLayoutTests 8/8.
+
+## 2026-10-19 — Demo 3.1 (B): sınıf portresi animasyonları
+
+- `pixel_sinners.py`: portreler 48'lik tasarım ızgarasında, `Canvas(size)` koordinatları kendi boyuna ölçekleyip yeniden çizer (64'te
+  büyütme değil, her kenar 64'te; 48'lik sınıf kartı portreleri birebir aynı — git değişiklik görmedi). Poz (`REST` = kart): gövde / baş
+  tam piksel kayar, gözler (kapalı, gülen, iri, sıkılmış, kısılmış), ağız (gülümseme, sırıtış, burukluk, sıkı), sınıfın hareketi (`g`):
+  Köylü kalçasındaki heybeyi yoklar, Kâhin'in üçüncü gözü parlar, Kral kayan tacını eliyle düzeltir, Soytarı'nın çanları sallanır,
+  Çağırıcı'nın omzundaki iblis zıplar ve gözleri söner, Hırsız gözlerini kaçırır. Kâhin'in gözleri bağlı: ifadeyi üçüncü göz taşır.
+- Şeritler `Sinners/<id>/<durum>.png` (64×64 kare): idle 8 kare 5 FPS (nefes, bir kırpma, hareket; döngü kuralı ArtGen'de assert),
+  happy 6 / 8 FPS bir kez, joy 8 / 8 FPS (zıplama, sırıtış, kıvılcımlar), hurt 6 / 8 FPS (sarsılma, sıkılmış gözler, zemin kan kırmızısı
+  parlar), tense 8 / 6 FPS döngü (kısık gözler, alında kayan ter damlası, ufak titreme).
+- Presenter (sadece bölüm masası): `TablePresenter.MoodAfter` — kazanç Pleased, Kent ve üstü Elated, kayıp Hurt, çekilme / beraberlik yok;
+  mühür Tense; yeni el / yeni masa `RestingMood` (bar ruh çizgisinin %85'inde Tense, değilse Calm). Hepsi masanın kuyruğundan.
+- Testler: `SinnerAnimationTests` + ruh halleri ve üretilen şeritler (6 sınıf × 5 durum: 64 yükseklik, kare sayısı, yarı saydam piksel yok,
+  ≤ 32 renk, döngüler kapanıyor ve hareket var); panel testi idle'ın 8 kare ve 64×64 oynadığını ölçer. EditMode 1140 (1135 geçti, 5 Explicit),
+  TableLayoutTests 8/8.

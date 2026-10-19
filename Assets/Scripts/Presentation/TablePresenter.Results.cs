@@ -32,7 +32,7 @@ namespace HellPoker.Presentation
         private int _resultRound = -1;
         private bool _bandUp;
 
-        /// <summary>A new chapter table: no band, no pips.</summary>
+        /// <summary>A new chapter table: no band, no pips; the sinner calm (or tense, the soul's line near).</summary>
         private void ClearResults()
         {
             _recent.Clear();
@@ -40,14 +40,32 @@ namespace HellPoker.Presentation
             _bandUp = false;
             _view.SetResultBand(null);
             _view.SetRecentHands(Array.Empty<HandPip>());
+            _view.SetSinnerMood(RestingMood());
         }
 
-        /// <summary>The band goes as soon as the next hand begins (NEXT HAND); a skip never takes it down.</summary>
+        /// <summary>The band goes as soon as the next hand begins (NEXT HAND); a skip never takes it down. The sinner settles again.</summary>
         private void TakeBandDown()
         {
             if (!_bandUp) return;
             _bandUp = false;
             _view.SetResultBand(null);
+            _view.SetSinnerMood(RestingMood());
+        }
+
+        /// <summary>Demo 3.1: between hands the sinner breathes calmly — or tensely with the demon's bar near the soul's line.</summary>
+        private SinnerMood RestingMood() =>
+            BarMode && _seat != null && _seat.Limit > 0 && _game != null && (long)_game.Years * 100 / _seat.Limit >= SoulWarningPercent ? SinnerMood.Tense : SinnerMood.Calm;
+
+        /// <summary>Demo 3.1: how the hand left the sinner — a smile for a win, joy for a straight and up, a wince for a loss; a fold or a push
+        /// moves nothing.</summary>
+        internal static SinnerMood? MoodAfter(HandOutcome outcome, HandCategory? category)
+        {
+            switch (outcome)
+            {
+                case HandOutcome.Win: return category.HasValue && category.Value >= HandCategory.Straight ? SinnerMood.Elated : SinnerMood.Pleased;
+                case HandOutcome.Loss: return SinnerMood.Hurt;
+                default: return null;
+            }
         }
 
         private HandOutcome OutcomeOf(RoundResult round)
@@ -97,6 +115,8 @@ namespace HellPoker.Presentation
             });
             while (_recent.Count > RecentHandsShown) _recent.RemoveAt(0);
             _view.SetRecentHands(RecentPips());
+            SinnerMood? mood = MoodAfter(outcome, _recent[_recent.Count - 1].Category);
+            if (mood.HasValue) _view.SetSinnerMood(mood.Value);
 
             if (outcome == HandOutcome.Win) _view.PlayMoment(TableMoment.WinGlow);
             else if (outcome == HandOutcome.Loss) _view.PlayMoment(TableMoment.LossGlow);

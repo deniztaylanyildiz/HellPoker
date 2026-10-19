@@ -401,6 +401,8 @@ namespace HellPoker.PlayMode.Tests
                 Assert.IsFalse(view.PortraitRelics.gameObject.activeInHierarchy, where + ": no relics on the demon's portrait");
                 Assert.AreEqual(cls.Id, panel.Badge.ClassId, where);
                 Assert.AreEqual(relics.Count, panel.Relics.Relics.Count, where + ": every worn relic on the panel");
+                Assert.AreEqual(8, panel.Sinner.Portrait.Clip?.Frames.Length, where + ": the class's idle loop plays (Sinners/<id>/idle)");
+                Assert.AreEqual(new Vector2(SinnerView.Size, SinnerView.Size), ((RectTransform)panel.Sinner.Portrait.transform).sizeDelta, where + ": at 64, its own pixels");
 
                 ChapterJourneyTests.Chapters.Table.PerformAction();   // the deal: the bet row, the class's panel at work
                 yield return Settle();
