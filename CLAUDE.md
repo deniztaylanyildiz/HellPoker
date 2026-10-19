@@ -15,6 +15,9 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Demo 3.1** (etiket `v3.1-demo`): oyuncu paneli, animasyonlu sınıf portresi, el gücüne göre kademeli el animasyonları, EKRAN SARSINTISI
+ayarı (aşağıdaki **Demo 3.1** paragrafı). Demo 3.0.1 / 3.0.2: How to Play resimleri 256×144, siyah hover kutusu düzeltmesi.
+
 **Phase 3 başladı: Demo 3.0** (etiket `v3.0-demo`, DEVLOG 2026-10-19): 640×360 ızgara, yeni ana menü, ödemeler H panelinde, bölüm
 masalarında her el taze deste, uzun kat / harita müzikleri, hover kutuları en üstte (aşağıdaki **Phase 3 (1)** paragrafı ve görsel kurallar).
 
@@ -25,7 +28,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.0.2-win64.zip` (bundleVersion **3.0.2-demo**: menüde "Demo 3.0.2" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.1-win64.zip` (bundleVersion **3.1.0-demo**: menüde "Demo 3.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -183,6 +186,24 @@ Kral +4.8, diğerleri ±3 içinde (karar bekliyor). **Müzik:** kat ve harita d�
 örs; `generate_audio.py` dikiş denetimi. **Ana menü** 8 px ızgarada, ekran boyundan hesaplanır (`MainMenuView` W / H / `Snap`, düğme 128×24,
 satır 32; PlayMode `MenuGridTests`); `pixel_menu.py` sadeleşti, `MENU_TEXT` = `BackdropMotionTests.MenuText`. [Explicit] `PhaseThreeShots`
 (menü, harita, kat, şeytan, How to Play; `HELLPOKER_SHOT_SIZE`, `HELLPOKER_SHOTS`).
+
+**Demo 3.1** (DEVLOG 2026-10-19 A–C; Boss Simülatörü, demo masası, kurallar ve denge aynen): **Oyuncu paneli** `PlayerPanelView` (bölüm
+masasında sağ sütunda sayacın altında, `TableView.PanelY` 62, 104×174; görünürlüğü `SetPayoutTableShown(false)`'a bağlı — presenter değişmedi):
+72'lik kutuda 64×64 `SinnerView`, sınıf adı + seviye pipleri, yükseltmeler kutunun köşesinde, pasif satırı (`UiArt.PassiveIcon` 12×12 +
+`UiText.ChapterPassiveName`; Soytarı'da JOKER ×N; pasif çalışınca parlar), emanetler aynı `RelicBarView` ile ızgarada (`grid: true`, 3 + 3,
+hover karonun solunda; Kemik Zar tıkı, nadirlik çerçevesi, yeni parlaması aynı). Portre ve pasif satırı tık = K (`SinnerPressed`), hover =
+sınıfın tam metni. Bölüm masasında şeytan portresinin üstündeki `SinnerBadgeView` ve `RelicBarView` gizli (simülatörde yerinde). Bahis
+satırı geniş kaldı (x 504'te biter, panel 532'de başlar). **Sınıf portresi** `SinnerAnimationLibrary` (`Sinners/<id>/<durum>.png`, 64×64:
+idle 8 kare 5 FPS döngü, happy 6, joy 8, hurt 6 bir kez 8 FPS, tense 8 / 6 FPS döngü; yedek: idle → 48'lik `Sinners/<id>.png` ortalı, büyütülmez
+→ düz renk), `SinnerView` (`SinnerMood` Calm / Pleased / Elated / Hurt / Tense → animasyon; `ITableView.SetSinnerMood`), presenter
+`TablePresenter.MoodAfter` (kazanç Pleased, Kent+ Elated, kayıp Hurt, çekilme / beraberlik yok), mühür Tense, yeni el `RestingMood` (bar
+ruh çizgisinin %85'inde Tense). Çizim `pixel_sinners.py`: 48'lik tasarım ızgarası, `Canvas(64)` her şekli 64'te yeniden çizer; poz (nefes,
+kırpma, ifade, sınıfın hareketi) tam piksel; 48'lik kart portreleri birebir aynı. **El animasyonları** `HandTier` / `HandFanfare`
+(`TierOf`, `GroupsOf`, `SecondsOf`: Plain 0.8, Good 1.5, Strong 1.7, Full 2.0, Quads 2.3, Blaze 2.9, HouseStrong 0.7 sn) + `HandFanfareView`
+(`ITableView.PlayHand`; kuyrukta tek adım: şeytanın sözü ve bar vuruşu ondan sonra; atlanınca ekranda hiçbir şey kalmaz), presenter
+`PlayHandEnding` (ses kademeye göre, Blaze `win_blaze`; şeytan masasında Ölü Adamın Eli kendi sahnesi). **EKRAN SARSINTISI** (GÖRÜNTÜ sekmesi,
+`settings.shake`, `Animation.ScreenShake`): kapalıyken sarsıntı ve beyaz flaş yok. Testler: `SinnerAnimationTests`, `HandFanfareTests`,
+PlayMode `HandFanfarePlayTests`, `TableLayoutTests.ThePlayersPanel_...`; [Explicit] `Demo31Shots` (`Screenshots/demo31/`).
 
 ## Oyun
 
@@ -660,6 +681,7 @@ Assets/Scripts/
                    Lucifer titremesi), MaliceView (gösterge + niyet şeridi + yalanın kırılması), CheatEffects (hile vuruşu, BACKFIRE),
                    MenuBackdrop, BackdropMotionView (katmanlar + piksel parçacıkları, kendi Canvas'ı), FpsCounter (F3, dev build),
                    SettingsView, EndScreenView, RecordsView, SinnerBadgeView / SinnerSelectView, EventPanelView, RelicBarView,
+                   PlayerPanelView + SinnerView + HandFanfareView (Demo 3.1: oyuncu paneli, sınıf portresi, el animasyonları),
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings, WindowMode), WindowScales (pencere katları, saf aritmetik), ISettingsStore
                    (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar), RunLogSink (IRunLogSink: dosya / bellek)

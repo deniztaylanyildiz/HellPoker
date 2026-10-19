@@ -1,5 +1,26 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.1 (3.1.0-demo) — 2026-10-19 — Oyuncu paneli ve el animasyonları
+
+### Yeni
+- **Oyuncu paneli:** bölüm masalarında sağda, sayacın altında: sınıfının hareketli portresi (nefes alır, göz kırpar, sınıfına özgü küçük
+  bir hareket yapar: Köylü heybesini yoklar, Kâhin'in üçüncü gözü parlar, Kral tacını düzeltir, Soytarı'nın çanları sallanır, Çağırıcı'nın
+  iblisi omzunda kıpırdar, Hırsız gözlerini kaçırır), seviyesi, pasif gücünün adı (çalışınca parlar) ve takılı emanetlerin. Portreye ya da
+  pasif satırına tıklamak K ile aynı. Şeytanın portresinin üstündeki rozet ve emanetler kalktı: portre temiz.
+- **Portre elin gidişini yaşar:** kazanınca gülümser, güçlü elde sevinçle zıplar, kaybedince yüzünü buruşturur, mühürlü elde ve ruh
+  çizgisine yaklaşınca gerilir.
+- **El gücüne göre animasyon:** yüksek kart / çiftte coin'ler uçar; iki çift / üçlüde kazanan kartlar vurur ve elin adı yazılır; kent /
+  renkte kartlar tek tek yanar; Full'de üçlü ve çift ayrı vurur, ekran sarsılır; Karede beyaz flaş ve coin yağmuru; Floş / Floş Royal'de
+  ekran kararır, kenarlar yanar, kartlar tek tek tutuşur. Kasanın üçlü ve üstüyle kaybedince kasanın kartları vurur. Her kademenin kendi
+  sesi var. Şeytan masasında barın vuruşu animasyondan sonra gelir. Herhangi bir tuş animasyonu bitirir.
+- **EKRAN SARSINTISI** ayarı (Ayarlar ▸ GÖRÜNTÜ): kapalıyken sarsıntı ve flaş olmaz.
+
+### Düzeltilen
+- Şeytanın barından yükselen yüzde artık adının ve kötülük göstergesinin üstüne binmiyor.
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.0.2 (3.0.2-demo) — 2026-10-19 — Siyah kutu düzeltmesi
 
 ### Düzeltilen

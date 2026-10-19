@@ -111,6 +111,10 @@ Poker bilmiyorsan dert etme:
 
 Bölüm masalarında her el yeni, karılmış bir desteyle başlar (deste saymak yok).
 
+Masanın sağında, sayacın altında senin panelin var: sınıfının portresi (elin gidişine göre güler, sevinir, yüzünü buruşturur), pasif
+gücü ve takılı emanetlerin. Portreye ya da pasif satırına tıklamak K tuşuyla aynıdır. Güçlü bir el güçlü bir anla biter (Full, Kare,
+Floş); ekran sarsıntısını ve flaşları Ayarlar ▸ GÖRÜNTÜ ▸ EKRAN SARSINTISI ile kapatabilirsin.
+
 Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür. Bir elin ortasında oyunu kapatırsan o el kaybedilmiş sayılır.
 
 
