@@ -313,44 +313,50 @@ def write_halls(out_dir):
     written = []
     for hall, build in HALLS.items():
         base, layers, particles = build()
-        written += write(os.path.join(out_dir, hall), base, layers, particles, S.VARIANT_TABLES, text_zones=S.TABLE_TEXT)
+        written += write(os.path.join(out_dir, hall), base, layers, particles, S.VARIANT_TABLES, text_zones=S.TABLE_TEXT,
+                         widen=S.ROW_BAND.get(hall, True) if S.WIDE else False, darken=S.readable_middle_wide if S.WIDE else None)
     return written
 
 
 # ================================================================== the chapter's map
 
+# Phase 3: the maps are drawn on the 640×360 screen itself, from ChapterMapView's numbers (lanes 80 px apart from x 160, eight floors
+# 36 px apart from y 22, the gate in the middle lane under the last floor).
+MW, MH = 640, 360
+MAP_MID = 140 + 20 + 200   # LaneX(2.5)
+
 def chapter_map():
     """Down into the vault: dark at the top, the gold glow of the vault at the bottom; a shaft's walls at the edges, faint ledges
     under the floors' rows. The map's middle stays quiet so the paths and the nodes read."""
-    img = Img(W, H)
-    full = np.ones((H, W), bool)
-    depth = np.clip((img.ys - 20) / 250.0, 0, 1)
+    img = Img(MW, MH)
+    full = np.ones((MH, MW), bool)
+    depth = np.clip((img.ys - 20) / 340.0, 0, 1)
     img.dither(full, C.BLACK, C.NIGHT, 0.25 + 0.5 * depth)
     # The vault's gold glows up from below the gate, fading out long before the floors.
-    glow = np.clip(1 - np.hypot((img.xs - 298) / 190.0, (img.ys - 300) / 95.0), 0, 1)
+    glow = np.clip(1 - np.hypot((img.xs - MAP_MID) / 250.0, (img.ys - 390) / 125.0), 0, 1)
     img.dither(glow > 0, C.NIGHT, C.GOLD_DARK, glow * 0.55)
     # A few coins glint in the dark of the shaft.
     rng_coins = np.random.default_rng(11)
-    for _ in range(26):
-        x, y = int(rng_coins.integers(142, 464)), int(rng_coins.integers(8, 250))
+    for _ in range(40):
+        x, y = int(rng_coins.integers(142, 594)), int(rng_coins.integers(8, 340))
         img.put(x, y, C.GOLD_MID if rng_coins.integers(0, 3) else C.GOLD)
     # The shaft's walls: stone at both edges of the map, coins pressed into the mortar.
     rng = np.random.default_rng(5)
-    for x0, x1 in ((128, 136), (468, W - 1)):
-        img.paint(img.m_rect(x0, 0, x1, H - 1), C.DUSK)
-        for y in range(0, H, 12):
+    for x0, x1 in ((128, 136), (598, MW - 1)):
+        img.paint(img.m_rect(x0, 0, x1, MH - 1), C.DUSK)
+        for y in range(0, MH, 12):
             img.paint(img.m_rect(x0, y, x1, y), C.BLACK)
             if rng.integers(0, 3) == 0:
                 img.put(int(rng.integers(x0 + 1, x1)), y + 6, C.GOLD_MID)
-        img.paint(img.m_rect(x0, 0, x0, H - 1), C.BLACK)
+        img.paint(img.m_rect(x0, 0, x0, MH - 1), C.BLACK)
     # A faint ledge under each floor's row.
     for f in range(8):
-        y = 22 + f * 28 + 23
-        for x in range(140, 466, 3):
+        y = 22 + f * 36 + 10 + 13
+        for x in range(140, 596, 3):
             img.put(x, y, C.DUSK)
     # The vault door's glow behind the gate.
-    img.dither(img.m_ellipse(298, 262, 70, 22), C.NIGHT, C.GOLD_DARK, 0.45)
-    img.dither(img.m_ellipse(298, 266, 40, 10), C.GOLD_DARK, C.GOLD_MID, 0.4)
+    img.dither(img.m_ellipse(MAP_MID, 326, 92, 26), C.NIGHT, C.GOLD_DARK, 0.45)
+    img.dither(img.m_ellipse(MAP_MID, 330, 52, 12), C.GOLD_DARK, C.GOLD_MID, 0.4)
     return img
 
 

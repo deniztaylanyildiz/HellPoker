@@ -19,30 +19,33 @@ from pixel import C, Img, bezier, ribbon, shifted
 from pixel_layers import Layer, Particles, phase, write
 from pixel_salons import DARKER, glint_layer, lut
 
-W, H = 480, 270
-HORIZON = 200
+# Phase 3: drawn on the 640×360 screen (everything measured from its edges and its middle).
+W, H = 640, 360
+HORIZON = H - 70
+SX = W / 480.0   # the wings spread with the screen
 FRAMES = 12
 
 
 def sky(img):
     """Smoke-dark sky: black at the top, bleeding into blood red toward the burning horizon."""
     full = np.ones((H, W), bool)
-    img.dither(full, C.BLACK, C.NIGHT, np.clip(img.ys / 120.0, 0, 1))
-    img.dither(img.m_rect(0, 110, W, HORIZON), C.NIGHT, C.BLOOD_DARK, np.clip((img.ys - 110) / 80.0, 0, 1))
-    img.dither(img.m_rect(0, 170, W, HORIZON), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - 170) / 40.0, 0, 0.8))
+    img.dither(full, C.BLACK, C.NIGHT, np.clip(img.ys / 150.0, 0, 1))
+    img.dither(img.m_rect(0, HORIZON - 90, W, HORIZON), C.NIGHT, C.BLOOD_DARK, np.clip((img.ys - (HORIZON - 90)) / 80.0, 0, 1))
+    img.dither(img.m_rect(0, HORIZON - 30, W, HORIZON), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - (HORIZON - 30)) / 40.0, 0, 0.8))
     rng = np.random.default_rng(5)
     for _ in range(24):   # dead stars, a few (Phase 3: a quieter sky), most of them hidden by the wings
-        img.put(int(rng.integers(0, W)), int(rng.integers(0, 110)), C.MAUVE if rng.random() < 0.7 else C.LILAC_LIGHT)
+        img.put(int(rng.integers(0, W)), int(rng.integers(0, HORIZON - 90)), C.MAUVE if rng.random() < 0.7 else C.LILAC_LIGHT)
 
 
 def wings(img):
     """Two vast membranes spreading from the top edge, ribbed, their hooked tips reaching down the sides."""
     sway = 0
     for side in (-1, 1):
-        cx = 240 + side * 20
-        outer = [(cx, 0), (cx + side * 230, -4), (240 + side * 248, 40 + sway), (240 + side * 232, 92 + sway)]
+        centre = W // 2
+        cx = centre + side * 20
+        outer = [(cx, 0), (cx + side * 230 * SX, -4), (centre + side * 248 * SX, 40 + sway), (centre + side * 232 * SX, 92 + sway)]
         # The scalloped lower edge: membrane hanging between the ribs.
-        ribs = [(240 + side * x, y + sway) for x, y in ((214, 88), (178, 60), (142, 52), (104, 34), (66, 22), (36, 8))]
+        ribs = [(centre + side * x * SX, y + sway) for x, y in ((214, 88), (178, 60), (142, 52), (104, 34), (66, 22), (36, 8))]
         edge = []
         for (x0, y0), (x1, y1) in zip(ribs, ribs[1:]):
             mid = ((x0 + x1) / 2, max(y0, y1) + 10)
@@ -58,14 +61,14 @@ def wings(img):
         img.paint(hem, C.MAUVE)
         img.paint(wing & ~shifted(wing, 0, 2) & ~hem, C.PLUM)
         # The hooked claw at the wing's tip.
-        tx, ty = 240 + side * 232, 92 + sway
+        tx, ty = centre + side * 232 * SX, 92 + sway
         img.paint(img.m_poly(ribbon([(tx, ty - 6), (tx + side * 3, ty), (tx, ty + 6)], 3, 1)), C.BONE_SHADE)
 
 
-EYES = (226, 254)
+EYES = (W // 2 - 14, W // 2 + 14)
 EYES_Y = 13.5
 # The eyes' layer: a box round both of them (screen x 214..266, y 3..24).
-EYES_BOX = (214, 3, 53, 22)
+EYES_BOX = (W // 2 - 26, 3, 53, 22)
 # Over 12 frames: the glow deepens and eases, and once a loop they narrow, close and open again.
 EYE_OPEN = [2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 2.2, 1.2, 0.0, 1.2, 2.2]
 EYE_CORE = [C.ORANGE, C.ORANGE, C.AMBER, C.AMBER, C.AMBER, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE, C.ORANGE]
@@ -101,7 +104,7 @@ def eyes_layer():
 
 def crescent(img):
     """Lilith's moon, caught low in the shadow of the left wing."""
-    moon = img.m_ellipse(40, 120, 12, 12) & ~img.m_ellipse(46, 116, 11, 11)
+    moon = img.m_ellipse(40, 140, 12, 12) & ~img.m_ellipse(46, 136, 11, 11)
     img.shade(moon, [C.MAUVE, C.LILAC, C.LILAC_LIGHT, C.WHITE], light=(-1, 1), shadow=1)
 
 
@@ -109,7 +112,7 @@ def city(img):
     """Black ruins on the horizon at both sides, windows burning, smoke stacks leaning."""
     frame = 0
     rng = np.random.default_rng(17)
-    for x0, x1 in ((0, 92), (388, W)):
+    for x0, x1 in ((0, 122), (W - 122, W)):
         x = x0
         while x < x1:
             w = int(rng.integers(6, 15))
@@ -159,7 +162,7 @@ def fire_sea(img):
 
 
 # The wild edges of the sea roll (layers); the middle, under the buttons and the footer, stays still.
-FIRE_EDGES = (("fire_left", 0, 88), ("fire_right", 392, 88))
+FIRE_EDGES = (("fire_left", 0, 120), ("fire_right", W - 120, 120))
 # Toward the still middle the motion fades out over this many pixels (dithered), so there is no seam.
 FIRE_FADE = 20
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
@@ -177,33 +180,34 @@ def fire_layer(name, x0, w):
     return Layer(name, x0, HORIZON + 1, w, H - HORIZON - 1, FRAMES, 8, draw, vignette=quiet_middle)
 
 
-GOLD_GLINTS = ((20, 254), (52, 252))   # Phase 3: two glints, not four
+GOLD_GLINTS = ((20, H - 16), (52, H - 18))   # Phase 3: two glints, not four
 
 
 def gold(img):
     """Mammon's spilled treasure at the bottom left: a heap of coins, a tipped chest (its coins glint in layers)."""
-    heap = img.m_ellipse(34, 272, 46, 26)
+    heap = img.m_ellipse(34, H + 2, 46, 26)
     img.shade(heap, [C.GOLD_DARK, C.GOLD_MID, C.GOLD, C.GOLD_LIGHT], shadow=2)
     rng = np.random.default_rng(23)
     for _ in range(60):
-        x, y = int(rng.integers(0, 78)), int(rng.integers(248, H))
+        x, y = int(rng.integers(0, 78)), int(rng.integers(H - 22, H))
         if heap[min(y, H - 1), x]:
             img.put(x, y, C.GOLD_DARK)
             img.put(x + 1, y, C.GOLD_LIGHT)
     # A dark wooden chest bound in gold, its lid thrown open and coins spilling out.
-    chest = img.m_rect(46, 236, 70, 250)
+    b = H - 270   # the chest stands on the bottom edge
+    chest = img.m_rect(46, 236 + b, 70, 250 + b)
     img.paint(chest, C.BLOOD_DARK)
-    img.paint(img.m_rect(46, 240, 70, 240), C.BLOOD)
+    img.paint(img.m_rect(46, 240 + b, 70, 240 + b), C.BLOOD)
     for bx in (49, 67):
-        img.paint(img.m_rect(bx, 236, bx + 1, 250), C.GOLD_MID)
-    img.paint(img.m_rect(56, 241, 60, 245), C.GOLD)
-    img.put(58, 243, C.BLACK)
+        img.paint(img.m_rect(bx, 236 + b, bx + 1, 250 + b), C.GOLD_MID)
+    img.paint(img.m_rect(56, 241 + b, 60, 245 + b), C.GOLD)
+    img.put(58, 243 + b, C.BLACK)
     img.inner_outline(chest, C.BLACK)
-    lid = img.m_poly([(45, 236), (71, 236), (74, 226), (48, 224)])
+    lid = img.m_poly([(45, 236 + b), (71, 236 + b), (74, 226 + b), (48, 224 + b)])
     img.paint(lid, C.BLOOD)
     img.inner_outline(lid, C.GOLD_DARK)
     for x in range(50, 68, 3):
-        img.put(x, 235, C.GOLD_LIGHT if x % 2 else C.GOLD)
+        img.put(x, 235 + b, C.GOLD_LIGHT if x % 2 else C.GOLD)
 
 
 def card(img, x, y, rank, suit_rows, ink):
@@ -223,26 +227,27 @@ CLUB = [".kkk.", ".kkk.", "kkkkk", "k.k.k", "..k.."]
 
 def dead_mans_hand(img):
     """A♠ A♣ 8♠ 8♣ fanned on a stone slab at the bottom right — the one hand that walks out of here."""
-    slab = img.m_rect(404, 236, 476, 262)
+    x0, y0 = W - 76, H - 34
+    slab = img.m_rect(x0, y0, x0 + 72, y0 + 26)
     img.paint(slab, C.DUSK)
-    img.paint(img.m_rect(404, 236, 476, 237), C.PLUM)
+    img.paint(img.m_rect(x0, y0, x0 + 72, y0 + 1), C.PLUM)
     img.inner_outline(slab, C.BLACK)
     for i, (rank, suit) in enumerate(((GLYPH_A, SPADE), (GLYPH_A, CLUB), (GLYPH_8, SPADE), (GLYPH_8, CLUB))):
-        card(img, 410 + i * 15, 230 - (1 if i in (1, 2) else 0), rank, suit, C.BLACK)
+        card(img, x0 + 6 + i * 15, y0 - 6 - (1 if i in (1, 2) else 0), rank, suit, C.BLACK)
 
 
-COLUMN_X = 448
+COLUMN_X = W - 32
 # The serpent's layer: round the column from its broken top to the horizon (screen x 436..460, y 90..200).
-SERPENT_BOX = (434, 90, 29, HORIZON - 90 + 1)
+SERPENT_BOX = (COLUMN_X - 14, 110, 29, HORIZON - 110 + 1)
 
 
 def serpent_column(img):
     """A broken column at the right (Belial's silver serpent winds round it in a layer)."""
     x = COLUMN_X
-    column = img.m_rect(x - 7, 104, x + 7, HORIZON)
+    column = img.m_rect(x - 7, 124, x + 7, HORIZON)
     img.paint(column, C.BONE_SHADE)
-    img.paint(img.m_rect(x - 7, 104, x - 6, HORIZON), C.BONE_DARK)
-    img.paint(img.m_poly([(x - 9, 104), (x - 4, 96), (x + 2, 102), (x + 8, 94), (x + 9, 104)]), C.BONE_SHADE)
+    img.paint(img.m_rect(x - 7, 124, x - 6, HORIZON), C.BONE_DARK)
+    img.paint(img.m_poly([(x - 9, 124), (x - 4, 116), (x + 2, 122), (x + 8, 114), (x + 9, 124)]), C.BONE_SHADE)
     img.inner_outline(column, C.BLACK)
 
 
@@ -251,7 +256,7 @@ def serpent_layer():
     ox, oy, w, h = SERPENT_BOX
 
     def draw(img, f):
-        spine = [(COLUMN_X - ox + 4 * math.sin(y * 0.16 + phase(f, FRAMES)), y - oy) for y in range(108, HORIZON, 3)]
+        spine = [(COLUMN_X - ox + 4 * math.sin(y * 0.16 + phase(f, FRAMES)), y - oy) for y in range(128, HORIZON, 3)]
         img.paint(img.m_poly(ribbon(spine, 4, 3)), C.SILVER_DARK)
         hx, hy = spine[0]
         img.paint(img.m_ellipse(hx + 2, hy - 2, 3, 2), C.SILVER)
@@ -303,18 +308,18 @@ def menu_layers():
     layers += [fire_layer(name, x0, w) for name, x0, w in FIRE_EDGES]
     for i, (x, y) in enumerate(GOLD_GLINTS):
         layers.append(glint_layer(f"glint{i}", x, y, offset=i * 3))
-    layers.append(glint_layer("glint_cards", 412, 230, offset=7))
+    layers.append(glint_layer("glint_cards", W - 68, H - 40, offset=7))
     return layers
 
 
 # Embers rise from the burning city on either side, never across the logo, the words or the buttons.
-MENU_PARTICLES = [Particles("embers", 0, 30, 90, 170, 14), Particles("embers", 390, 30, 90, 170, 14)]
+MENU_PARTICLES = [Particles("embers", 0, 30, 120, HORIZON - 30, 16), Particles("embers", W - 120, 30, 120, HORIZON - 30, 16)]
 
 # Where words sit on the title screen (nothing moves there): the taglines, the button grid, the footer, and the version
 # in the bottom right corner.
 # Phase 3 (the menu on the 8 px grid): the taglines, the buttons, the footer, the version, DEMO, the two corner buttons.
-MENU_TEXT = ((40, 76, 440, 118), (96, 120, 384, 256), (176, 250, 304, 266), (392, 250, 479, 269), (200, 60, 280, 74), (0, 0, 120, 28),
-             (424, 0, 479, 28))
+MENU_TEXT = ((40, 100, 600, 144), (176, 148, 464, 280), (240, 340, 400, 356), (544, 340, 639, 359), (280, 84, 360, 98), (0, 0, 120, 28),
+             (592, 0, 639, 28))
 
 
 def write_all(out_dir):

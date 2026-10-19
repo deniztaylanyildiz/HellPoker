@@ -14,6 +14,10 @@ namespace HellPoker.Presentation.Views
     {
         private const int SortingOrder = 105;
 
+        // Phase 3 (640×360): the records' lines have the screen's height; two columns split its width.
+        private const int BodyHeight = PixelScreen.Height - 118;
+        private const int ColumnWidth = PixelScreen.Width / 2 - 32;
+
         private Canvas _canvas;
         private Text _body;
 
@@ -42,7 +46,7 @@ namespace HellPoker.Presentation.Views
                 .rectTransform.PlaceTL(0, 36, PixelScreen.Width, 16);
 
             _body = UiFactory.CreateText("Body", screen, "", 8, Palette.Bone, TextAnchor.UpperCenter);
-            _body.rectTransform.PlaceTL(104, 58, PixelScreen.Width - 208, 152);
+            _body.rectTransform.PlaceTL(104, 58, PixelScreen.Width - 208, BodyHeight);
             _body.lineSpacing = 1.1f;
             _right = UiFactory.CreateText("BodyRight", screen, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _right.lineSpacing = 1.1f;
@@ -77,8 +81,8 @@ namespace HellPoker.Presentation.Views
         {
             _panel.rectTransform.PlaceTL(two ? 12 : 96, 24, two ? PixelScreen.Width - 24 : PixelScreen.Width - 192, PixelScreen.Height - 48);
             _body.alignment = two ? TextAnchor.UpperLeft : TextAnchor.UpperCenter;
-            _body.rectTransform.PlaceTL(two ? 24 : 104, 58, two ? 212 : PixelScreen.Width - 208, 152);
-            _right.rectTransform.PlaceTL(248, 58, 212, 152);
+            _body.rectTransform.PlaceTL(two ? 24 : 104, 58, two ? ColumnWidth : PixelScreen.Width - 208, BodyHeight);
+            _right.rectTransform.PlaceTL(PixelScreen.Width / 2 + 8, 58, ColumnWidth, BodyHeight);
             _right.gameObject.SetActive(two);
         }
 

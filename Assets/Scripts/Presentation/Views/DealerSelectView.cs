@@ -75,15 +75,15 @@ namespace HellPoker.Presentation.Views
             _cards = UiFactory.CreateRect("Cards", screen).Stretch();
 
             Image details = UiFactory.CreatePanel("Details", screen);
-            details.rectTransform.PlaceTL(8, 190, PixelScreen.Width - 16, 76);
+            details.rectTransform.PlaceTL(8, PixelScreen.Height - 84, PixelScreen.Width - 16, 76);
             _detailTitle = UiFactory.CreateText("Name", details.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft, FontStyle.Bold).WithOutline();
             _detailTitle.rectTransform.PlaceTL(8, 6, 300, 8);
             _description = UiFactory.CreateText("Description", details.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _description.rectTransform.PlaceTL(8, 16, PixelScreen.Width - 32, 18);
             _traitsLeft = UiFactory.CreateText("TraitsLeft", details.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
-            _traitsLeft.rectTransform.PlaceTL(8, 38, 216, 36);
+            _traitsLeft.rectTransform.PlaceTL(8, 38, (PixelScreen.Width - 48) / 2, 36);
             _traitsRight = UiFactory.CreateText("TraitsRight", details.transform, "", 8, Palette.BoneMid, TextAnchor.UpperLeft);
-            _traitsRight.rectTransform.PlaceTL(232, 38, 224, 36);
+            _traitsRight.rectTransform.PlaceTL(8 + (PixelScreen.Width - 48) / 2 + 8, 38, (PixelScreen.Width - 48) / 2, 36);
 
             Button back = UiFactory.CreateButton("DealerBackButton", screen, "", 8, out Text backLabel, ButtonSkin.Ash);
             backLabel.Localized(() => UiText.Back);

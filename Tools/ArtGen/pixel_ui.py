@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from pixel import C, Img, RAMP_FIRE, RAMP_GOLD, bezier, ribbon, sheet, shifted
 
-SCREEN_W, SCREEN_H = 480, 270
+SCREEN_W, SCREEN_H = 640, 360   # Phase 3
 
 
 # ------------------------------------------------------------------ backdrop
@@ -536,9 +536,10 @@ def joker_sparkle(frames=6):
 def fade(steps=4):
     """A slow fall into darkness without any transparency blending: black laid over the screen in growing Bayer patterns
     (¼, ½, ¾, all), one full-screen frame per step."""
+    # Phase 3: a 16×16 tile per step (the game lays it over the screen, tiled): four 640 px frames would pass the importer's 2048 px.
     out = []
     for k in range(1, steps + 1):
-        img = Img(SCREEN_W, SCREEN_H)
+        img = Img(16, 16)
         full = np.ones((img.h, img.w), bool)
         img.dither(full, C.CLEAR, C.BLACK, k / steps - 0.01 if k < steps else 1.0)
         out.append(img)

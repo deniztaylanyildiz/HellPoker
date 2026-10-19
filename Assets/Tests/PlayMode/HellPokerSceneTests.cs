@@ -106,11 +106,11 @@ namespace HellPoker.PlayMode.Tests
                         var title = (RectTransform)card.Find("Title");
                         Assert.LessOrEqual(title.GetComponent<Text>().preferredHeight, title.rect.height + 0.5f, $"{what}: who they were fits.");
 
-                        // Every card on the 480 px screen, side by side, none over another.
+                        // Every card on the screen, side by side, none over another.
                         var box = (RectTransform)card;
                         float left = box.anchoredPosition.x;
                         Assert.GreaterOrEqual(left, 0f, $"{what}: on screen (left).");
-                        Assert.LessOrEqual(left + box.rect.width, 480f, $"{what}: on screen (right).");
+                        Assert.LessOrEqual(left + box.rect.width, HellPoker.Presentation.Ui.PixelScreen.Width, $"{what}: on screen (right).");
                         if (index > 0)
                         {
                             var previous = (RectTransform)Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)

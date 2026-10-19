@@ -16,6 +16,7 @@ Each backdrop folder gets a manifest (motion.txt) the game reads:
 <repeat> lays copies side by side; <drift> moves the layer sideways in pixels per second, wrapping every <wrap> pixels;
 <offset> starts the loop that many frames in (so a row of glints does not blink all at once).
 """
+import copy
 import math
 import os
 
@@ -112,17 +113,142 @@ def keep_out_of_text(base, layer, frames, zones):
     return frames
 
 
-def write(folder, base, layers, particles=(), variants=None, base_name=None, layer_prefix="", manifest_name="motion", text_zones=()):
+# ---------------------------------------------------------------- Phase 3: a 480×270 scene widened to the 640×360 screen
+#
+# A hall is drawn on the 480×270 grid it was designed on, then widened without resampling: a 160 px band of columns in its dark
+# middle and a 90 px band of rows where its sides are plain wall are each laid down twice. Every pixel stays a whole pixel, the
+# edges keep their character (the left side stays left, the right side moves right, the bottom moves down), and the screen's
+# readability darkening is laid over the widened picture afterwards, measured from the 640×360 table.
+
+WIDE_W, WIDE_H = 640, 360
+COLUMN_BAND = (160, 160)   # the middle's columns 160..319 twice: the old middle (240) is the new one (320)
+
+
+def best_row_band(px, add=90, sides=((0, 150), (330, 480))):
+    """The 90 rows whose doubling shows least: the sides are plain there (a row like the one 18 above: the walls' courses) and the
+    seam at both ends of the band runs on smoothly."""
+    side = np.concatenate([px[:, a:b] for a, b in sides], axis=1).astype(np.int32)
+    h = px.shape[0]
+    best = None
+    for start in range(20, h - add - 10):
+        seam = np.count_nonzero(side[start + add] != side[start]) + np.count_nonzero(side[start - 1] != side[start + add - 1])
+        busy = sum(np.count_nonzero(side[y] != side[y - 18]) for y in range(start, start + add, 3))
+        score = seam * 2 + busy
+        if best is None or score < best[0]:
+            best = (score, start)
+    return best[1], add
+
+
+def _new_index(n, band):
+    """The old row (or column) shown at the widened picture's row n."""
+    start, add = band
+    return n if n < start + add else n - add
+
+
+def _span(pos, size, band):
+    """Where an old span [pos, pos + size) lands once its band is doubled: the widened span (it grows if it reaches into the band)."""
+    start, add = band
+    lo = pos if pos < start + add else pos + add
+    hi = pos + size if pos + size <= start else pos + size + add
+    return lo, hi - lo
+
+
+def widen_px(px, cols, rows):
+    """The whole picture widened: the bands' columns and rows laid down twice."""
+    out = px
+    if cols:
+        index = [_new_index(n, cols) for n in range(px.shape[1] + cols[1])]
+        out = out[:, index]
+    if rows:
+        index = [_new_index(n, rows) for n in range(px.shape[0] + rows[1])]
+        out = out[index, :]
+    return out
+
+
+def _remap(layer, frames, x, w, y, h, col_of):
+    """The layer's frames on a new box (x, y, w, h): every new pixel takes the old one its row and column show (col_of: the old column)."""
+    out = []
+    for frame in frames:
+        img = Img(w, h)
+        for ny in range(h):
+            oy = _new_index(y + ny, layer.rows) - layer.y
+            if not 0 <= oy < layer.h:
+                continue
+            for nx in range(w):
+                ox = col_of(x + nx) - layer.x
+                if 0 <= ox < layer.w:
+                    img.px[ny, nx] = frame.px[oy, ox]
+        out.append(img)
+    return out
+
+
+def widen_layer(layer, frames, cols, rows):
+    """
+    A layer's frames widened like the picture under it, as one layer or two: rows are simply laid down twice (a strip's height is
+    free); a layer reaching into the columns' band is cut in two — its left copy keeps its place, its right copy moves right by the
+    band — so no strip grows wider. A drifting layer keeps its width and wraps further.
+    """
+    layer.rows = rows
+    y, h = _span(layer.y, layer.h, rows)
+    start, add = cols
+    if layer.drift:
+        out = _remap(layer, frames, layer.x, layer.w, y, h, lambda n: n)
+        layer.y, layer.h = y, h
+        if layer.wrap:
+            layer.wrap += add
+        return [(layer, out)]
+    x0, x1 = layer.x, layer.x + layer.w
+    parts = []
+    if x0 < start + add:   # the left copy: columns as they were (the band's first copy included)
+        lx1 = min(x1, start + add)
+        parts.append((x0, lx1 - x0, lambda n: n, ""))
+    if x1 > start:   # the right copy: the band's second copy and everything right of it, moved right
+        rx0 = max(x0, start) + add
+        parts.append((rx0, x1 + add - rx0, lambda n: n - add, "_b" if x0 < start + add else ""))
+    result = []
+    for x, w, col_of, suffix in parts:
+        out = _remap(layer, frames, x, w, y, h, col_of)
+        part = copy.copy(layer)
+        part.name, part.x, part.y, part.w, part.h = layer.name + suffix, x, y, w, h
+        result.append((part, out))
+    return result
+
+
+def widen_particles(p, cols, rows):
+    p.x, p.w = _span(p.x, p.w, cols)
+    p.y, p.h = _span(p.y, p.h, rows)
+    return p
+
+
+def write(folder, base, layers, particles=(), variants=None, base_name=None, layer_prefix="", manifest_name="motion", text_zones=(),
+          widen=False, darken=None):
     """
     Writes the still base for every variant (<variant>.png — or <base_name>.png when there is a single look), each
     layer's strip per variant (<layer_prefix><name>[_<variant>].png) and the manifest (<manifest_name>.txt).
     `variants` maps a variant name to a palette lookup table (None for the normal look); `text_zones` are the screen boxes
-    where words sit (nothing moves there). Returns the paths written.
+    where words sit (nothing moves there). Phase 3: `widen` takes a 480×270 scene to 640×360 (see above; `text_zones` are then
+    the 640×360 screen's) and `darken(img, ox, oy)` lays the readability darkening over the widened picture and every layer.
+    Returns the paths written.
     """
     os.makedirs(folder, exist_ok=True)
     variants = variants or {"normal": None}
     written = []
-    rendered = [(layer, keep_out_of_text(base, layer, layer.render(), text_zones)) for layer in layers]
+    rendered = [(layer, layer.render()) for layer in layers]
+    if widen:
+        # widen=True: the band chosen by the picture; a number: the band's first row, chosen by eye.
+        cols, rows = COLUMN_BAND, (best_row_band(base.px) if widen is True else (int(widen), 90))
+        wide = Img(base.w + cols[1], base.h + rows[1])
+        wide.px = widen_px(base.px, cols, rows)
+        base = wide
+        rendered = [part for layer, frames in rendered for part in widen_layer(layer, frames, cols, rows)]
+        layers = [layer for layer, _ in rendered]
+        particles = [widen_particles(p, cols, rows) for p in particles]
+    if darken:
+        darken(base, 0, 0)
+        for layer, frames in rendered:
+            for frame in frames:
+                darken(frame, layer.x, layer.y)
+    rendered = [(layer, keep_out_of_text(base, layer, frames, text_zones)) for layer, frames in rendered]
     for variant, table in variants.items():
         img = Img(base.w, base.h)
         img.px = table[base.px] if table is not None else base.px

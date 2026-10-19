@@ -34,7 +34,9 @@ namespace HellPoker.Presentation.Views
         private Text _flare;
         private float _flareLeft;
 
-        public static TableMoments Create(RectTransform screen, AnimationSequencer sequencer, HandView player, SentenceView sentence)
+        /// <param name="bandX">, <paramref name="bandY"/>, <paramref name="bandWidth"/>: the flare's band across the middle column.</param>
+        public static TableMoments Create(RectTransform screen, AnimationSequencer sequencer, HandView player, SentenceView sentence,
+            int bandX = 112, int bandY = 88, int bandWidth = 256)
         {
             var moments = screen.gameObject.AddComponent<TableMoments>();
             moments._sequencer = sequencer;
@@ -52,12 +54,12 @@ namespace HellPoker.Presentation.Views
             // The flare sits on a black band across the middle, so the words under it never mix with it.
             moments._flareBand = UiFactory.CreateImage("HandFlareBand", screen, Palette.Black);
             moments._flareBand.raycastTarget = false;
-            moments._flareBand.rectTransform.PlaceTL(112, 88, 256, 24);
+            moments._flareBand.rectTransform.PlaceTL(bandX, bandY, bandWidth, 24);
             UiFactory.AddBorder(moments._flareBand.gameObject, Palette.Gold, 1f);
             moments._flareBand.enabled = false;
 
             moments._flare = UiFactory.CreateText("HandFlare", moments._flareBand.transform, "", 16, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
-            moments._flare.rectTransform.PlaceTL(0, 4, 256, 16);
+            moments._flare.rectTransform.PlaceTL(0, 4, bandWidth, 16);
             moments._flare.horizontalOverflow = HorizontalWrapMode.Overflow;
             moments._flare.enabled = false;
             return moments;

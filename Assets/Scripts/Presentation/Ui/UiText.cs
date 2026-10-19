@@ -325,8 +325,8 @@ namespace HellPoker.Presentation.Ui
         public static string SettingWindowMode => L("DISPLAY MODE", "GÖRÜNTÜ MODU");
         public static string WindowModeWindow => L("WINDOW", "PENCERE");
         public static string SettingWindowScale => L("WINDOW SIZE", "PENCERE BOYUTU");
-        public static string SettingWindowScaleHint => L("In a window only: multiples of 480×270 that fit your display.",
-            "Sadece pencerede: ekranına sığan 480×270 katları.");
+        public static string SettingWindowScaleHint => L("In a window only: multiples of 640×360 that fit your display.",
+            "Sadece pencerede: ekranına sığan 640×360 katları.");
         public static string WindowScaleAuto => L("AUTO", "OTOMATİK");
         /// <summary>A window size: {0} the multiple, {1}×{2} the pixels.</summary>
         public static string WindowScaleFormat => L("×{0}  {1}×{2}", "×{0}  {1}×{2}");

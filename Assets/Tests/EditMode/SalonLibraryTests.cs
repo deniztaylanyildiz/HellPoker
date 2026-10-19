@@ -40,7 +40,7 @@ namespace HellPoker.Core.Tests
             SpriteClip clip = Library().Get("mammon", SalonMode.Normal);
 
             Assert.AreEqual(3, clip.Frames.Length);
-            Assert.AreEqual(new Rect(960, 0, 480, 270), clip.Frames[2].rect);
+            Assert.AreEqual(new Rect(2 * SalonLibrary.FrameWidth, 0, SalonLibrary.FrameWidth, 270), clip.Frames[2].rect);
             Assert.IsTrue(clip.Loop);
         }
 

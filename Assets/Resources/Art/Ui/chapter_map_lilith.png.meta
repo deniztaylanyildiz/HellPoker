@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      chapter_map_lilith_0: 4329940342084634367
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

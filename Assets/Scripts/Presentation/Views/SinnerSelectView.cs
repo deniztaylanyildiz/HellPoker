@@ -16,12 +16,12 @@ namespace HellPoker.Presentation.Views
     public sealed class SinnerSelectView : MonoBehaviour, ISinnerSelectView
     {
         private const int SortingOrder = 112;
-        /// <summary>The widest a card gets (three classes); with more, the cards narrow so the row always fits the 480 px screen.</summary>
+        /// <summary>The widest a card gets (three classes); with more, the cards narrow so the row always fits the screen.</summary>
         private const int MaxCardWidth = 148;
         private const int CardSpacing = 6;
         private const int ScreenMargin = 4;
         private const int CardsY = 34;
-        private const int CardHeight = 230;
+        private const int CardHeight = PixelScreen.Height - CardsY - 26;   // Phase 3: 300 px at 640×360, room for the words
 
         /// <summary>Where the ability text starts, its margin, and the top of CHOOSE: the ability and the price live between.</summary>
         public const int AbilityTop = 152;

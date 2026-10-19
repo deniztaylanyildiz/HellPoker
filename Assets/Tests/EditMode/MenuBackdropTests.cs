@@ -9,7 +9,7 @@ namespace HellPoker.Core.Tests
     /// <summary>The title screen's backdrop: the animated bottom of Hell, with the stone wall and a flat colour behind it.</summary>
     public class MenuBackdropTests
     {
-        private static Texture2D Strip(int frames) => new Texture2D(480 * frames, 270);
+        private static Texture2D Strip(int frames) => new Texture2D(MenuBackdropLibrary.FrameWidth * frames, Presentation.Ui.PixelScreen.Height);
 
         [Test]
         public void TheMenuArt_PlaysAsALoopingClip()
@@ -46,8 +46,8 @@ namespace HellPoker.Core.Tests
             var texture = new Texture2D(2, 2);
             Assert.IsTrue(texture.LoadImage(File.ReadAllBytes(path)));
 
-            Assert.AreEqual(270, texture.height);
-            Assert.AreEqual(480, texture.width, "The backdrop is one still frame; what moves is in its layers.");
+            Assert.AreEqual(Presentation.Ui.PixelScreen.Height, texture.height);
+            Assert.AreEqual(Presentation.Ui.PixelScreen.Width, texture.width, "The backdrop is one still frame; what moves is in its layers.");
             Assert.IsTrue(File.Exists("Assets/Resources/Art/Ui/menu_motion.txt"));
         }
 
@@ -69,18 +69,19 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheMiddleColumn_StaysDark()
         {
-            // Under the logo, the text and the buttons (x 100-380, y 40-250) the picture must stay quiet: mostly the darkest colours.
+            // Under the logo, the text and the buttons (the middle 280 px, y 40 to 60 px above the bottom) the picture must stay quiet.
             var texture = new Texture2D(2, 2);
             texture.LoadImage(File.ReadAllBytes("Assets/Resources/Art/Ui/menu.png"));
+            int w = MenuBackdropLibrary.FrameWidth, x0 = w / 2 - 140, x1 = w / 2 + 140, y1 = texture.height - 60;
             Color32[] pixels = texture.GetPixels32();
-            for (int frame = 0; frame < texture.width / 480; frame++)
+            for (int frame = 0; frame < texture.width / w; frame++)
             {
                 int dark = 0, total = 0;
-                for (int y = 40; y <= 250; y++)
+                for (int y = 40; y <= y1; y++)
                 {
-                    for (int x = 100; x <= 380; x++)
+                    for (int x = x0; x <= x1; x++)
                     {
-                        Color32 p = pixels[(texture.height - 1 - y) * texture.width + frame * 480 + x];   // rows are stored bottom up
+                        Color32 p = pixels[(texture.height - 1 - y) * texture.width + frame * w + x];   // rows are stored bottom up
                         if (p.r + p.g + p.b < 3 * 80) dark++;
                         total++;
                     }

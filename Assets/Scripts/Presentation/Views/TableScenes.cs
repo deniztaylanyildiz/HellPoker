@@ -153,6 +153,8 @@ namespace HellPoker.Presentation.Views
                 return;
             }
             _shroud.sprite = _fade[Mathf.Clamp(step, 0, _fade.Length - 1)];
+            _shroud.type = Image.Type.Tiled;   // a 16×16 Bayer tile over the whole screen
+            _shroud.pixelsPerUnitMultiplier = 1f;
             _shroud.color = Color.white;
         }
 

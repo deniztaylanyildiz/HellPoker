@@ -120,7 +120,7 @@ coin, `ClassKit.SealCoins`, sonuç "sealed"). Kör Kâhin olayı Türkçede KÖR
 **Harita sürüm 3** (`ChapterMap.CurrentVersion`; 2.1 kayıtları sürüm 2 ile aynı haritayı alır): yol üzerinde iki pazar ("?" içeriği dahil)
 ya da iki kamp arasında en az 2 kat, yolda en çok 2 pazar (`MapMaker.FloorsBetween / MostMarketsOnAPath / SpaceTheMarkets / NearA`).
 **How to Play** (oyun): 10 resimli sayfa (`HowToPlayView`, `UiText.HowTo.cs`; resimler `Resources/Art/HowTo/<nn_ad>_<en|tr>.png`,
-[Explicit] `HowToShots` üretir: 1920×1080 → 480×270 doğal piksel → 200×112 kırpma; oklar / Q-E `IMenuCommands.TurnRulesPage`);
+[Explicit] `HowToShots` üretir: 2560×1440 → 640×360 doğal piksel → 200×112 kırpma; oklar / Q-E `IMenuCommands.TurnRulesPage`);
 simülatörün sayfaları aynı. **Günlük:** bölüm masaları elleri, hileleri, güçleri ve reddedilen K'yi bölümün `RunLog`'una yazar
 (`TablePresenter.ChapterLog`). Tek kopya (`forceSingleInstance`). Hata avı düzeltmeleri: Çağırıcı LEJYON sonrası ücret, müsadere seçimi
 draw ile kapanır, Ayna metinleri (`LuciferMirror.DrewTop / UsedBag`), ipuçları yükseltmelerle. Testler: `OracleTests`, `PowerHuntTests`,
@@ -463,7 +463,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Sınıflar** (günahkârlar, `Core/Sinners`): New Game → şeytan → **sınıf seçimi** (`SinnerSelectView`: portre, ad, unvan, ne yaptığı,
   bedeli, başlangıç cezası; yetenek ve bedel metni içeriğe göre yerleşir — bedel yeteneğin gerçek yüksekliğinin altından başlar, ikisi
   de SEÇ'in üstünde biter, PlayMode testi iki dilde ölçer; kart genişliği sınıf sayısına göre `CardWidthFor`: 4 sınıfta 112 px, hepsi
-  480 px'e sığar) → masa. Sınıf bütün koşu boyunca kalır (masa değişimi, Lucifer, Continue).
+  ekrana sığar) → masa. Sınıf bütün koşu boyunca kalır (masa değişimi, Lucifer, Continue).
   - `SinnerClass` (Id, `StartingYears`, `WinAntePercent`, `Ability` = güç, `SeesLies`, `HouseCardsShownAt`); her sınıf kendi dosyasında
     (`Peasant.cs`, `Warlock.cs`, `King.cs`), `SinnerRoster.All` listesinde. **Yeni sınıf = yeni dosya + roster'a bir satır**
     (+ UiText.Sinners metinleri, `pixel_sinners.py` portre ve ikon, şeytanlara `GreetingAs...` repliği; gerekirse `HellPokerGame.WhyNoPower / UsePower`).
@@ -655,7 +655,7 @@ Assets/Scripts/
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings, WindowMode), WindowScales (pencere katları, saf aritmetik), ISettingsStore
                    (PlayerPrefsStore / MemoryStore), RunArchive (kayıt + rekorlar), RunLogSink (IRunLogSink: dosya / bellek)
-    Ui/            UiFactory, PixelScreen (480×270, tam sayı ölçek), UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
+    Ui/            UiFactory, PixelScreen (640×360, tam sayı ölçek), HoverTip, UiArt (Resources'tan sprite/font/metin), Palette, UiText + UiText.Dealers
                    + UiText.Cheats (iki dilli), Lang (dil), LocalizedText (`Localized()`: dille değişen sabit etiket), PixelOutline (`WithOutline()`: 8 yönlü 1 px siyah dış çizgi),
                    ButtonFeel (hover / 1 px basılma / kilitli görünüm), ClickCatcher
     Phase 2 sunumu: ChapterPresenter (IChapterSession / IChapterCommands: harita, paneller, kat maçları, kapı, boss, bölüm sonu; kendi
@@ -689,7 +689,7 @@ Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla oynayan testler: He
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
 Assets/Resources/Art/   Üretilmiş piksel görseller:
                           Demons/<dealerId>/<durum>.png  (idle, talk, gloat, angry, reraise, final, soul — yatay şerit, kareler 96×96)
-                          Backgrounds/<dealerId>/{normal,hell,soul}.png  (şeytan salonları: tek kare 480×270 sabit resim)
+                          Backgrounds/<dealerId>/{normal,hell,soul}.png  (şeytan salonları: tek kare 640×360 sabit resim)
                                                  <katman>[_hell|_soul].png + motion.txt  (hareketli katmanlar, parçacıklar)
                           Ui/ (background[_hell], panel[_hot], dialog[_lucifer], button_*, card_face/back/slot, suit_*[_small], digits,
                                title, coin, flames, divider, soul_lamp, fade, menu (+ menu_<katman>, menu_motion.txt),
@@ -710,10 +710,15 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
   kemik beyazı, eski altın + Mammon yeşili, Lilith leylağı, Belial gümüşü). Her görsel ondan üretilir; kenar yumuşatma yok.
   Unity'deki `Palette` renkleri aynı hex değerleri (metin rengi de palet içinde kalır). Saydam karıştırma yerine sprite değiştir
   (ör. son 250 yılda `background_hell`).
-- **Ekran:** her şey 480×270 piksellik `Screen` rect'i içinde, tam sayı piksellerle (`UiFactory.PlaceTL`). `PixelScreen`
-  bunu tam sayı katıyla ölçekler (1920×1080'de ×4), kenarda siyah dolgu kalır; `Canvas.pixelPerfect` açık.
+- **Ekran (Phase 3):** her şey 640×360 piksellik `Screen` rect'i içinde, tam sayı piksellerle (`UiFactory.PlaceTL`). `PixelScreen`
+  bunu tam sayı katıyla ölçekler: 1366×768 ×2 (+kenar), 1920×1080 ×3, 2560×1440 ×4, 3840×2160 ×6 — yaygın çözünürlüklerde kenar yok,
+  EKRANI DOLDUR'a gerek kalmaz. Pencere katları (`WindowScales`) 640×360'ın katları (1080p'de pencere ×2). Yerleşim ekran boyundan
+  hesaplanır (`PixelScreen.Width/Height`): masa (`TableView`: orta sütun 320 px ortalı, sağ sütun W−108, alt satır H−22, diyalog 96 px),
+  menü (`MainMenuView` 8 px ızgara), harita (şerit 80, kat en çok 36), ortalı paneller. Fazla alan ölçeğe değil nefese gider: kart
+  32×48, portre 96×96, ikon ve font boyları aynı. PlayMode `TableLayoutTests.TheTable_IsLaidOutOnThe640By360Grid`.
+
 - **Boyutlar:** şeytan karesi 96×96, kart 32×48 (köşede 5×5, ortada 11×11 renk sembolü), butonlar / paneller / diyalog 12×12
-  9-slice (kenar 4 px), piksel rakam 12×16, zemin 480×270, alev şeridi 32×20 karelik.
+  9-slice (kenar 4 px), piksel rakam 12×16, zemin 640×360, alev şeridi 32×20 karelik, kararma (`Ui/fade`) 4 × 16×16 Bayer döşemesi.
 - **Keskin yazı** (`Ui/PixelText`): `UiFactory.CreateText` her metne `PixelSnappedText` (mesh düzenleyici: her köşe tam ekran
   pikseline yuvarlanır — tek ölçeklerde ×3 / ×5 yarım oyun pikseli yarım ekran pikseli olurdu) ekler ve font atlasını Point filtreye
   alır (`Font.textureRebuilt`'te yeniden). EKRANI DOLDUR'da (2K'da ×5.33) font pikselleri eşitsiz olur: ayarın ipucu söyler.
@@ -751,6 +756,12 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
 - **Yedek zinciri:** şeytan: durum dosyası yoksa idle, o da yoksa tek portre (`Demons/<id>.png`), o da yoksa düz renk.
   Salon: varyant → normal → `Ui/background_hell` (sadece hell) → `Ui/background` → düz renk. Eksik görsel
   oyunu asla bozmaz (`DealerAnimationTests`, `SalonLibraryTests`).
+- **Zeminler 640×360 (Phase 3):** salonlar ve kat salonları 480×270 tasarımıyla çizilir, `pixel_layers.write(widen=...)` onları yeniden
+  örneklemeden genişletir: karanlık ortadaki 160 sütun ve duvarın sade olduğu 90 satır iki kez basılır (satır bandı resme göre seçilir,
+  `pixel_salons.ROW_BAND` elle verilenler: Mammon 140, Sikke İblisi 78, Gece Hemşiresi 89); ortadaki bandı kesen hareketli katman iki
+  parçaya bölünür (`_b`), parçacık kutuları uzar, okunurluk karartması genişletilmiş resme 640×360 masaya göre konur
+  (`readable_middle_wide`). Dikey renk geçişli Lilith ve Lucifer salonları, menü ve üç harita doğrudan 640×360 çizilir (`NATIVE`,
+  `NX()`). `TABLE_TEXT` / `MENU_TEXT` 640×360 koordinatlarında (C# kopyaları `BackdropMotionTests`).
 - Görseller **elle düzenlenmez**: script'te değiştirip `generate_art.py` ile yeniden üret, `preview.py` ile kontrol et.
 - Yeni şeytan: `DealerRoster`'a `Dealer`, `UiText.Dealers.cs`'e metinler, `pixel_demons.py`'ye çizim fonksiyonu (DEMONS'a id ile).
   Diğer şeytanlara Lucifer için `Farewell` (çağrılırken) ve `Returned` (düşüşten dönünce) replikleri de gerekir.

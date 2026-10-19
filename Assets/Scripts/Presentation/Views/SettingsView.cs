@@ -14,13 +14,14 @@ namespace HellPoker.Presentation.Views
     public sealed class SettingsView : MonoBehaviour, ISettingsView
     {
         private const int SortingOrder = 105;
-        private const int TabsTop = 44;
+        // Phase 3 (640×360): the rows centred on the screen, a little lower, with room above the tabs.
+        private const int TabsTop = 60;
         private const int TabWidth = 96;
         private const int TabGap = 8;
-        private const int RowsTop = 66;
+        private const int RowsTop = 88;
         private const int RowHeight = 30;   // five rows on the game tab (2.1.1: the four-colour deck)
-        private const int LabelX = 64;
-        private const int ValueX = 288;
+        private const int LabelX = PixelScreen.Width / 2 - 176;
+        private const int ValueX = PixelScreen.Width / 2 + 48;
         private const int ValueWidth = 128;
 
         private Canvas _canvas;

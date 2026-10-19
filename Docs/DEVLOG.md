@@ -3800,3 +3800,45 @@ sayacı yok, KARIŞTIR yok, deste taze denetimi).
 ### Açık
 - Köylü −9 / Kral +5 (taze deste) — denge kararı.
 - Sıradaki: Aşama 2 (F, 640×360).
+
+## 2026-10-19 — Phase 3 (2): 640×360 ızgara, 2K'da kusursuz piksel
+
+### İstek
+F: 480×270 → 640×360 (2560×1440'ta ×4); önce 4 çözünürlükte ölçüm, ekran ekran taşıma, zeminler 640×360, How to Play resimleri, testler,
+`Screenshots/phase3/` önce / sonra, CLAUDE.md görsel kurallar.
+
+### Ölçüm (masa görüntüsü; `Screenshots/phase3/before` ve `after`, [Explicit] `PhaseThreeShots`)
+| çözünürlük | önce (480×270) | sonra (640×360) |
+|---|---|---|
+| 1920×1080 | ×4, kenarsız | ×3, kenarsız |
+| 2560×1440 | ×5 + 80 / 45 px kenar (EKRANI DOLDUR: ×5.33, eşitsiz piksel) | ×4, kenarsız |
+| 3840×2160 | ×8, kenarsız | ×6, kenarsız |
+| 1366×768 | ×2 + 203 / 114 px kenar | ×2 + 43 / 24 px kenar (kabul) |
+Yarım piksel yazı yok (`PixelSnappedText` zaten tam piksele oturtuyor); 2048'i aşan doku yoktu, yok (kararma şeridi 640'ta 2560 olacaktı →
+16×16 döşeme).
+
+### Yapılanlar
+- `PixelScreen` 640×360; `WindowScales` 640×360 katları (1080p'de pencere ×2, 1440p ×3; 768 px ekranda pencere yalnız otomatik);
+  `SalonLibrary` / `MenuBackdropLibrary.FrameWidth` = ekran genişliği; ayarın ipucu "640×360 katları".
+- Ekranlar: `TableView` (sabitler W / H'den: orta sütun 320 ortalı, sağ sütun W−108, alt satır H−22, ev kartları 52, mesaj 112, pot 142,
+  oyuncu kartları 172, kontroller 250, olay paneli ve el paneli ortalı; `TableMoments` / `CheatEffects` orta noktayı masadan alır),
+  `DealerView` (diyalog 72→96 px), `KitView` / LEAVE diyaloğun altına, `MainMenuView` (logo ×3; kurallar paneli metni ekran yüksekliğinde),
+  `SettingsView` (satırlar ortalı, biraz aşağıda), `RecordsView`, `EndScreenView`, `DealerSelectView` (simülatör), `SinnerSelectView` (kart 300 px),
+  `ChapterMapView` (şerit 80, kat en çok 36, yan panel uzun), `ChapterPanelView` (400 px, harita üstünde ortalı), `RelicBagView` ortalı.
+- Zeminler (`Tools/ArtGen`): `pixel_layers.write(widen=..., darken=...)` — 480×270 çizilen salon, ortadaki 160 sütun ve sade bir 90 satırlık
+  bant iki kez basılarak 640×360'a genişler (yeniden örnekleme yok); bandı kesen katman iki parça (`_b`), parçacık kutuları uzar; okunurluk
+  karartması genişletilmiş resme 640×360 masaya göre. Satır bandı resme göre seçilir; elle: Mammon 140 (para kuleleri uzar — geniş sürümde
+  biraz daha yüksek çizilir), Sikke İblisi 78, Gece Hemşiresi 89 (yataklar aşağıda, lamba ışığı küçük). Lilith ve Lucifer (dikey renk
+  geçişleri), menü ve üç harita doğrudan 640×360 çizildi. `TABLE_TEXT` / `MENU_TEXT` yeni koordinatlarda.
+- How to Play resimleri yeniden çekildi (HowToShots: 2560×1440 → 640×360 → 200×112; kırpmalar yeni ekranlara).
+- Testler: 480/270 varsayımları ekran sabitlerine bağlandı (MenuBackdrop, LuciferArt, BackdropMotion, SalonLibrary, scale / pencere
+  testleri yeni katlarla); yeni PlayMode `TableLayoutTests.TheTable_IsLaidOutOnThe640By360Grid` (ölçekler + masadaki her yazı / resim ekranda).
+
+### Testler
+EditMode 1123 (1118 geçti, 5 Explicit). PlayMode tek tek, düşük öncelik + mola: HellPokerScene 10, SalonRegression 5, RunJourney 2,
+LuciferJourney 1, JesterJourney 1, CheatJourney 7, BackdropMotion 2, ChapterJourney 5, TableLayout 7, HowToPlay 2, MenuGrid 1;
+FullRunTests 8 + kaos geçti.
+
+### Açık / not
+- How to Play resmi 200×112 doğal piksel kaldı; geniş panelde metne daha çok yer kaldı (resmi ×2 göstermek metni daraltırdı).
+- Yeni masada kontrollerin altında (y 270–338) boşluk var: nefes olarak bırakıldı.

@@ -10,8 +10,8 @@ namespace HellPoker.Presentation.Settings
     /// </summary>
     public static class WindowScales
     {
-        public const int Width = 480;
-        public const int Height = 270;
+        public const int Width = Ui.PixelScreen.Width;
+        public const int Height = Ui.PixelScreen.Height;
 
         /// <summary>The smallest size offered (×1 is a postage stamp).</summary>
         public const int Smallest = 2;

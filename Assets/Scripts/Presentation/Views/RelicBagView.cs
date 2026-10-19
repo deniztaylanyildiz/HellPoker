@@ -18,7 +18,8 @@ namespace HellPoker.Presentation.Views
     {
         public const int SortingOrder = 50;
 
-        private const int X = 96, Y = 46, Width = 288, Height = 178;
+        private const int Width = 288, Height = 178;
+        private const int X = (PixelScreen.Width - Width) / 2, Y = (PixelScreen.Height - Height) / 2;   // Phase 3: centred
         private const int Tile = 22, Step = 28, Left = 10;
         private const int WornY = 34, BagY = 78;
 

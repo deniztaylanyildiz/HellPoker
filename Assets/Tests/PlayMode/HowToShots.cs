@@ -25,23 +25,23 @@ namespace HellPoker.PlayMode.Tests
     public class HowToShots
     {
         private const int Scale = 4;
-        private static readonly Vector2Int Size = new Vector2Int(480 * Scale, 270 * Scale);
+        private static readonly Vector2Int Size = new Vector2Int(Presentation.Ui.PixelScreen.Width * Scale, Presentation.Ui.PixelScreen.Height * Scale);
 
         [TearDown]
         public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
-        /// <summary>The crop of each page's scene (x, y from the top left of the 480×270 screen).</summary>
+        /// <summary>The crop of each page's scene (x, y from the top left of the 640×360 screen).</summary>
         private static readonly Dictionary<int, RectInt> Crops = new Dictionary<int, RectInt>
         {
             [0] = new RectInt(0, 0, 200, 112),      // the chapter's card beside the map: the purse, the demon's bar, the sentence, the tribute
-            [1] = new RectInt(150, 4, 200, 112),    // the map's first floors
+            [1] = new RectInt(160, 22, 200, 112),    // the map's first floors
             [2] = new RectInt(0, 0, 200, 112),      // a floor's table: the imp, his purse and ante
-            [3] = new RectInt(135, 104, 200, 112),   // a hand at the draw: two cards to throw
+            [3] = new RectInt(220, 132, 200, 112),   // a hand at the draw: two cards to throw
             [4] = new RectInt(0, 20, 200, 112),     // the demon's bar under him, glowing: the last blow
             [5] = new RectInt(0, 0, 200, 112),      // the cheat announced over the demon, his gauge
-            [6] = new RectInt(4, 120, 200, 112),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
-            [7] = new RectInt(100, 50, 200, 112),   // the relics: worn and in the bag
-            [8] = new RectInt(140, 62, 200, 112),   // a market's seller
+            [6] = new RectInt(4, 160, 200, 112),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
+            [7] = new RectInt(180, 95, 200, 112),   // the relics: worn and in the bag
+            [8] = new RectInt(190, 62, 200, 112),   // a market's seller
         };
 
         private static string LangCode => HellPoker.Presentation.Ui.Lang.Current == Language.Turkish ? "tr" : "en";
@@ -285,9 +285,10 @@ namespace HellPoker.PlayMode.Tests
         {
             Texture2D full = null;
             yield return Grab(t => full = t);
-            var native = new Texture2D(480, 270, TextureFormat.RGB24, false);
-            for (int y = 0; y < 270; y++)
-                for (int x = 0; x < 480; x++)
+            int nativeW = Presentation.Ui.PixelScreen.Width, nativeH = Presentation.Ui.PixelScreen.Height;
+            var native = new Texture2D(nativeW, nativeH, TextureFormat.RGB24, false);
+            for (int y = 0; y < nativeH; y++)
+                for (int x = 0; x < nativeW; x++)
                     native.SetPixel(x, y, full.GetPixel(x * Scale + Scale / 2, y * Scale + Scale / 2));
             native.Apply();
             Object.Destroy(full);
@@ -300,7 +301,7 @@ namespace HellPoker.PlayMode.Tests
             RectInt crop = Crops[page];
             var cut = new Texture2D(crop.width, crop.height, TextureFormat.RGB24, false);
             // Textures count rows from the bottom; the crop from the top.
-            cut.SetPixels(native.GetPixels(crop.x, 270 - crop.y - crop.height, crop.width, crop.height));
+            cut.SetPixels(native.GetPixels(crop.x, nativeH - crop.y - crop.height, crop.width, crop.height));
             cut.Apply();
             string folder = Path.Combine(Application.dataPath, "Resources", "Art", "HowTo");
             Directory.CreateDirectory(folder);

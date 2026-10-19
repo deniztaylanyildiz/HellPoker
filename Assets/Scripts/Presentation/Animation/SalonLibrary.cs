@@ -23,7 +23,7 @@ namespace HellPoker.Presentation.Animation
     /// </summary>
     public sealed class SalonLibrary
     {
-        public const int FrameWidth = 480;
+        public const int FrameWidth = Ui.PixelScreen.Width;
         public const float Fps = 4f;
 
         private readonly Func<string, Texture2D> _load;

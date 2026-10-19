@@ -159,11 +159,12 @@ namespace HellPoker.Core.Tests
 
         // ------------------------------------------------------------------ the window sizes a display offers
 
-        [TestCase(1920, 1080, new[] { 0, 2, 3 })]          // ×4 is 1920×1080 itself: no room for the title bar
-        [TestCase(2560, 1440, new[] { 0, 2, 3, 4 })]
-        [TestCase(3840, 2160, new[] { 0, 2, 3, 4, 5, 6, 7 })]
-        [TestCase(1366, 768, new[] { 0, 2 })]
-        [TestCase(1280, 720, new[] { 0, 2 })]
+        // Phase 3 (640×360): ×3 is 1920×1080 itself, no room for the title bar; a 768 px display fits no window above ×1.
+        [TestCase(1920, 1080, new[] { 0, 2 })]
+        [TestCase(2560, 1440, new[] { 0, 2, 3 })]
+        [TestCase(3840, 2160, new[] { 0, 2, 3, 4, 5 })]
+        [TestCase(1366, 768, new[] { 0 })]
+        [TestCase(1280, 720, new[] { 0 })]
         [TestCase(800, 600, new[] { 0 })]                 // not even ×2 fits: automatic only
         [TestCase(0, 0, new[] { 0 })]
         public void TheWindowSizes_StopAtWhatTheDisplayFits(int width, int height, int[] expected)
@@ -179,12 +180,12 @@ namespace HellPoker.Core.Tests
         [Test]
         public void Automatic_IsTheOldWindow_AndASizeThatNoLongerFits_FallsBackToIt()
         {
-            Assert.AreEqual(3, WindowScales.Auto(1920, 1080), "85% of 1080p: ×3, as before.");
-            Assert.AreEqual(4, WindowScales.Auto(2560, 1440));
+            Assert.AreEqual(2, WindowScales.Auto(1920, 1080), "85% of 1080p: ×2 of 640×360.");
+            Assert.AreEqual(3, WindowScales.Auto(2560, 1440));
             Assert.AreEqual(1, WindowScales.Auto(640, 360), "Never below ×1.");
             Assert.AreEqual(2, WindowScales.Resolve(2, 1920, 1080));
-            Assert.AreEqual(3, WindowScales.Resolve(0, 1920, 1080));
-            Assert.AreEqual(3, WindowScales.Resolve(4, 1920, 1080), "A ×4 saved on a bigger display: automatic here.");
+            Assert.AreEqual(2, WindowScales.Resolve(0, 1920, 1080));
+            Assert.AreEqual(2, WindowScales.Resolve(4, 1920, 1080), "A ×4 saved on a bigger display: automatic here.");
         }
 
         // ------------------------------------------------------------------ the presenter
@@ -199,7 +200,7 @@ namespace HellPoker.Core.Tests
 
             Assert.AreEqual("NORMAL", view.Speed);
             CollectionAssert.AreEqual(new[] { true }, display.Calls, "The saved display is applied once at start.");
-            Assert.AreEqual((true, 3, false, true), display.Last, "Full screen, whole pixels, vertical sync (the window would be ×3).");
+            Assert.AreEqual((true, 2, false, true), display.Last, "Full screen, whole pixels, vertical sync (the window would be ×2).");
 
             view.PressSpeed();
             Assert.AreEqual("FAST", view.Speed);
@@ -240,20 +241,20 @@ namespace HellPoker.Core.Tests
             Assert.IsFalse(view.Screen.WindowScaleLocked);
             Assert.IsTrue(view.Screen.PixelScaleLocked, "In a window the pixel scale means nothing.");
             Assert.AreEqual("AUTO", view.Screen.WindowScale);
-            Assert.AreEqual((false, 4, false, true), display.Last, "Automatic on 1440p: ×4.");
+            Assert.AreEqual((false, 3, false, true), display.Last, "Automatic on 1440p: ×3.");
 
             var seen = new List<string>();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++)
             {
                 view.PressWindowScale();
                 seen.Add(view.Screen.WindowScale);
             }
 
-            CollectionAssert.AreEqual(new[] { "×2  960×540", "×3  1440×810", "×4  1920×1080", "AUTO" }, seen,
-                "×2 up to what fits (×5 does not), then automatic again.");
-            Assert.AreEqual((false, 4, false, true), display.Last);
-            CollectionAssert.AreEqual(new[] { 4, 2, 3, 4 }, display.Applied.Skip(1).Select(a => a.scale),
-                "Every new size is applied (automatic and ×4 are the same window here: not applied twice).");
+            CollectionAssert.AreEqual(new[] { "×2  1280×720", "×3  1920×1080", "AUTO" }, seen,
+                "×2 up to what fits (×4 does not), then automatic again.");
+            Assert.AreEqual((false, 3, false, true), display.Last);
+            CollectionAssert.AreEqual(new[] { 3, 2, 3 }, display.Applied.Skip(1).Select(a => a.scale),
+                "Every new size is applied (automatic and ×3 are the same window here: not applied twice).");
 
             view.PressPixelScale();
             Assert.IsFalse(settings.FillScreen, "Fill does nothing in a window.");
@@ -269,11 +270,11 @@ namespace HellPoker.Core.Tests
 
             view.PressPixelScale();
             Assert.AreEqual("FILL SCREEN", view.Screen.PixelScale);
-            Assert.AreEqual((true, 3, true, true), display.Last);
+            Assert.AreEqual((true, 2, true, true), display.Last);
 
             view.PressVSync();
             Assert.AreEqual("OFF", view.Screen.VSync);
-            Assert.AreEqual((true, 3, true, false), display.Last);
+            Assert.AreEqual((true, 2, true, false), display.Last);
         }
 
         [Test]

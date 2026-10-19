@@ -17,6 +17,9 @@ namespace HellPoker.Presentation.Views
     /// </summary>
     public sealed class CheatEffects : MonoBehaviour
     {
+        /// <summary>The middle of the table (where a struck card without a place and the bought coins come from).</summary>
+        private Vector2 _middle = new Vector2(240, 160);
+
         private const float Step = 0.06f;
         private static readonly int[] Shudder = { 2, -2, 1, -1, 2, -1, 0 };
         private static readonly Vector2Int[] FallShake =
@@ -37,9 +40,11 @@ namespace HellPoker.Presentation.Views
         public string LastCheat { get; private set; }
 
         /// <param name="dealerPoint">Where the tithe's coins fly to (the demon's portrait), in screen pixels.</param>
-        public static CheatEffects Create(RectTransform screen, AnimationSequencer sequencer, HandView player, HandView house, Vector2Int dealerPoint)
+        public static CheatEffects Create(RectTransform screen, AnimationSequencer sequencer, HandView player, HandView house, Vector2Int dealerPoint, Vector2? middle = null)
         {
+            Vector2 centreOfTable = middle ?? new Vector2(240, 160);
             var effects = screen.gameObject.AddComponent<CheatEffects>();
+            effects._middle = centreOfTable;
             effects._sequencer = sequencer;
             effects._screen = screen;
             effects._player = player;
@@ -128,7 +133,7 @@ namespace HellPoker.Presentation.Views
             _backfireText.text = text;
 
             // The strip is centred on the card (or on the player's hand), wider than the card so the word fits.
-            Vector2 centre = card != null ? ScreenPoint(card) : new Vector2(240, 164);
+            Vector2 centre = card != null ? ScreenPoint(card) : _middle + new Vector2(0f, 4f);
             ((RectTransform)_backfire.transform).PlaceTL(Mathf.RoundToInt(centre.x) - BackfireWidth / 2, Mathf.RoundToInt(centre.y) - 6,
                 BackfireWidth, 12);
             _backfire.transform.SetAsLastSibling();
@@ -173,7 +178,7 @@ namespace HellPoker.Presentation.Views
         private IEnumerator FlyCoins(Sprite icon)
         {
             Sprite coin = UiArt.MalicePip(Core.Dealers.DealerRoster.MammonId, full: true) ?? icon;
-            var from = new Vector2(240, 160);
+            var from = _middle;
             var to = new Vector2(_dealerPoint.x, _dealerPoint.y);
             yield return Tween.Run(0.6f, t =>
             {

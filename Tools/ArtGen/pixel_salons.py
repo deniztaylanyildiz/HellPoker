@@ -22,10 +22,17 @@ LAYER_FPS = 10
 # Where words sit on the table, over the hall (x0, y0, x1, y1, inclusive): nothing moves there.
 # The demon's name and title under the portrait; the middle column (messages, the stake, the hand's name, the banners);
 # the shortcut line along the bottom. Everything else with words is on a panel.
-TABLE_TEXT = ((0, 104, 112, 132), (138, 88, 342, 240), (118, 248, 476, 266))
+# Phase 3: on the 640×360 table (the halls are drawn on 480×270 and widened, see pixel_layers.write): the name, the middle column, the
+# shortcut line along the bottom.
+TABLE_TEXT = ((0, 104, 112, 132), (186, 106, 454, 292), (118, 341, 636, 356))
+
+# The halls are widened to 640×360 (pixel_layers): the readability darkening is laid over the widened picture (readable_middle_wide).
+WIDE = True
 
 # Particles keep to the sides, clear of the words: above and below the demon's name on the left, beside the panels on the right.
 LEFT_HIGH, LEFT_LOW, RIGHT_SIDE = (0, 0, 136, 100), (0, 134, 136, 112), (344, 0, 136, 246)
+# The same on the 640×360 table (the halls drawn on it directly).
+WIDE_LEFT_LOW, WIDE_RIGHT_SIDE = (0, 134, 136, 202), (504, 0, 136, 336)
 
 # One step darker for every palette colour (used for the central vignette).
 DARKER = {
@@ -88,6 +95,18 @@ def readable_middle(img, ox=0, oy=0):
     behind the two rows of cards so they always stand clear of the hall. (ox, oy) is where the image sits on the screen —
     a layer gets exactly the darkness of the hall under it, with the same dither.
     """
+    if WIDE:
+        return   # laid over the widened picture instead (readable_middle_wide)
+    _darken(img, ox, oy, middle=(150, 30, 330, 236), hint=(70, 251, 474, 263), cards=((146, 36, 334, 88), (146, 130, 334, 190)))
+
+
+def readable_middle_wide(img, ox=0, oy=0):
+    """The same darkening on the 640×360 table (Phase 3): the middle column at 160..480, the House's cards at y 52, the player's at 172,
+    the controls at 250, the shortcut line at 343."""
+    _darken(img, ox, oy, middle=(198, 30, 442, 296), hint=(70, 341, 634, 353), cards=((218, 46, 422, 104), (218, 166, 422, 224)))
+
+
+def _darken(img, ox, oy, middle, hint, cards):
     darker = lut(DARKER)
     once = darker[img.px]
     twice = darker[once]
@@ -100,9 +119,9 @@ def readable_middle(img, ox=0, oy=0):
         dy = np.maximum(np.maximum(y0 - ys, ys - y1), 0)
         return np.clip(1 - np.hypot(dx, dy) / fade, 0, 1)
 
-    middle = field(150, 30, 330, 236, 26)
-    hint = field(70, 251, 474, 263, 6)   # the shortcut line along the bottom
-    cards = np.maximum(field(146, 36, 334, 88, 10), field(146, 130, 334, 190, 10))
+    middle = field(*middle, 26)
+    hint = field(*hint, 6)   # the shortcut line along the bottom
+    cards = np.maximum(field(*cards[0], 10), field(*cards[1], 10))
     out = np.where(np.maximum(middle, hint) > threshold, once, img.px)
     out = np.where(cards * 0.75 > threshold, twice, out)
     img.px = out
@@ -184,7 +203,9 @@ def mammon_base():
             img.put(x + 3, 44 - h + 3, C.GOLD)
 
     # Columns of coins beside the cards.
-    for i, (x, height) in enumerate(((118, 30), (132, 22), (348, 26), (362, 34))):
+    # Phase 3: on the widened hall they rise above its doubled band of rows (140..229), so they grow taller instead of breaking.
+    stacks = ((118, 37), (132, 34), (348, 35), (362, 39)) if WIDE else ((118, 30), (132, 22), (348, 26), (362, 34))
+    for i, (x, height) in enumerate(stacks):
         coin_stack(img, x, 236, height, seed=40 + i)
 
     # Locked strongboxes and heaps of gold along the floor.
@@ -341,17 +362,29 @@ def belial():
 
 # ================================================================== LILITH — the garden of night, the moon crypt
 
+# Phase 3: the night sky and the red glow are gradients from top to bottom, which a doubled band of rows would break; these two halls
+# are drawn on the 640×360 screen itself. NW / NH: its size; NX: an old 480 px x on the new screen (the left side stays, the right side
+# moves right by 160, the middle by 80).
+NW, NH = 640, 360
+
+
+def NX(x):
+    return x if x < 160 else x + 160 if x >= 320 else x + 80
+
+
 def lilith_base():
+    W, H = NW, NH
     img = Img(W, H, C.NIGHT)
     # Night sky lightening toward a violet horizon, so the black trees stand out against it.
     full = np.ones((H, W), bool)
-    img.dither(full, C.BLACK, C.NIGHT, np.clip(img.ys / 90.0, 0, 1))
-    img.dither(img.m_rect(0, 90, W, H), C.NIGHT, C.DUSK, np.clip((img.ys - 90) / 70.0, 0, 1))
-    img.dither(img.m_rect(0, 160, W, H), C.DUSK, C.PLUM, np.clip((img.ys - 160) / 70.0, 0, 1))
-    img.dither(img.m_rect(0, 220, W, H), C.PLUM, C.VIOLET, np.clip((img.ys - 220) / 80.0, 0, 0.7))
+    k = H / 270.0   # the sky's bands stretch with the screen
+    img.dither(full, C.BLACK, C.NIGHT, np.clip(img.ys / (90.0 * k), 0, 1))
+    img.dither(img.m_rect(0, int(90 * k), W, H), C.NIGHT, C.DUSK, np.clip((img.ys - 90 * k) / (70.0 * k), 0, 1))
+    img.dither(img.m_rect(0, int(160 * k), W, H), C.DUSK, C.PLUM, np.clip((img.ys - 160 * k) / (70.0 * k), 0, 1))
+    img.dither(img.m_rect(0, int(220 * k), W, H), C.PLUM, C.VIOLET, np.clip((img.ys - 220 * k) / (80.0 * k), 0, 0.7))
     rng = np.random.default_rng(31)
-    for _ in range(70):
-        x, y = int(rng.integers(0, W)), int(rng.integers(0, 150))
+    for _ in range(95):
+        x, y = int(rng.integers(0, W)), int(rng.integers(0, int(150 * k)))
         img.put(x, y, C.LILAC_LIGHT if rng.random() < 0.3 else C.MAUVE)
 
     # A huge crescent moon over the garden wall.
@@ -370,11 +403,11 @@ def lilith_base():
         branch(x2, y2, angle + 0.45, length * 0.72, width * 0.7, depth - 1)
         branch(x2, y2, angle - 0.5, length * 0.68, width * 0.7, depth - 1)
 
-    branch(118, H, math.pi / 2 + 0.05, 60, 5, 6)
-    branch(364, H, math.pi / 2 - 0.1, 66, 5, 6)
+    branch(118, H, math.pi / 2 + 0.05, 76, 6, 6)
+    branch(NX(364), H, math.pi / 2 - 0.1, 82, 6, 6)
 
     # Gravestones overgrown with purple vines, a candle on one (its flame is a layer).
-    for x0, h in ((10, 34), (60, 26), (196, 22), (270, 28), (410, 36), (450, 24)):
+    for x0, h in ((10, 34), (60, 26), (NX(196), 22), (NX(270), 28), (NX(410), 36), (NX(450), 24), (NX(338), 30)):
         stone = img.m_rect(x0, H - h, x0 + 22, H) | img.m_ellipse(x0 + 11, H - h, 11, 8)
         img.shade(stone, [C.DUSK, C.PLUM, C.VIOLET, C.MAUVE], shadow=1)
         img.inner_outline(stone, C.BLACK)
@@ -385,7 +418,7 @@ def lilith_base():
         for k in range(0, 16, 4):
             vx, vy = vine[k]
             img.put(int(vx) + 1, int(vy), C.LILAC)
-    img.paint(img.m_rect(281, H - 31, 282, H - 27), C.BONE)
+    img.paint(img.m_rect(NX(281), H - 31, NX(282), H - 27), C.BONE)
 
     readable_middle(img)
     return img
@@ -402,7 +435,7 @@ def flame_layer():
         img.put(2 + FLAME_LEAN[f], 2, C.AMBER)
         if f % 4 in (1, 2):
             img.put(2 + FLAME_LEAN[f], 1, C.ORANGE)
-    return Layer("flame", 279, H - 35, 5, 4, 8, 8, draw)
+    return Layer("flame", NX(279), NH - 35, 5, 4, 8, 8, draw)
 
 
 # A night bird: its wingtips rise and fall a pixel at a time.
@@ -415,7 +448,7 @@ def bird_layer(name, x, y, offset):
         for dx, dy in ((0, 1 + tip), (1, 1 + max(0, tip)), (2, 1), (3, 1), (4, 1), (5, 1 + max(0, tip)), (6, 1 + tip)):
             img.put(dx, dy, C.BLACK)
     # Flies right across the top band, about 9 px a second, coming round again off the left edge.
-    return Layer(name, x, y, 7, 3, 8, 8, draw, drift=9, wrap=W + 7, offset=offset)
+    return Layer(name, x, y, 7, 3, 8, 8, draw, drift=9, wrap=NW + 7, offset=offset)
 
 
 def star_layer(name, x, y, offset):
@@ -432,12 +465,12 @@ def star_layer(name, x, y, offset):
 
 def lilith():
     layers = [flame_layer()]
-    for i, (x, y) in enumerate(((180, 12), (232, 6), (300, 16))):
+    for i, (x, y) in enumerate(((NX(180), 12), (NX(232), 6), (NX(300), 16))):
         layers.append(bird_layer(f"bird{i}", x, y, offset=i * 3))
     rng = np.random.default_rng(32)
     for i in range(6):
-        layers.append(star_layer(f"star{i}", int(rng.integers(150, 330)), int(rng.integers(4, 26)), offset=i * 2))
-    particles = [Particles("wisps", *LEFT_LOW, 6), Particles("wisps", 344, 150, 136, 96, 6)]
+        layers.append(star_layer(f"star{i}", int(rng.integers(150, 490)), int(rng.integers(4, 26)), offset=i * 2))
+    particles = [Particles("wisps", *WIDE_LEFT_LOW, 6), Particles("wisps", NW - 136, 200, 136, 136, 6)]
     return lilith_base(), layers, particles
 
 
@@ -454,8 +487,8 @@ HOTTER = {
 }
 
 # The chains: (top x, bottom x, bottom y). The two over the middle hang still; the outer four sway.
-STILL_CHAINS = ((190, 214, 172), (300, 270, 174))
-SWAYING_CHAINS = ((20, 70, 200), (60, 110, 168), (430, 380, 190), (470, 446, 220))
+STILL_CHAINS = ((NX(190), NX(214), 222), (NX(300), NX(270), 224), (NX(240), NX(244), 210))
+SWAYING_CHAINS = ((20, 70, 250), (60, 110, 208), (NX(430), NX(380), 240), (NX(470), NX(446), 270))
 
 
 def chain(img, x0, y0, x1, y1, sway):
@@ -475,27 +508,29 @@ def chain(img, x0, y0, x1, y1, sway):
 
 
 def lucifer_base():
+    W, H = NW, NH
+    cx = W // 2
     img = Img(W, H, C.BLACK)
     # Darkness above, a red glow pooling down toward the steps.
     full = np.ones((H, W), bool)
-    img.dither(full, C.BLACK, C.BLOOD_DARK, np.clip((img.ys - 40) / 140.0, 0, 1))
-    img.dither(img.m_rect(0, 150, W, H), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - 150) / 120.0, 0, 0.85))
+    img.dither(full, C.BLACK, C.BLOOD_DARK, np.clip((img.ys - 60) / 180.0, 0, 1))
+    img.dither(img.m_rect(0, 200, W, H), C.BLOOD_DARK, C.BLOOD, np.clip((img.ys - 200) / 150.0, 0, 0.85))
 
     # The steps: each wider and lower than the one above; the throne itself is somewhere far above the frame.
-    for i, (top, half) in enumerate(((176, 150), (196, 190), (218, 230), (242, 260))):
-        step = img.m_rect(240 - half, top, 240 + half, H)
+    for i, (top, half) in enumerate(((226, 200), (248, 250), (272, 300), (298, 330), (326, 340))):
+        step = img.m_rect(cx - half, top, cx + half, H)
         img.paint(step, C.BLOOD_DARK)
-        img.paint(img.m_rect(240 - half, top, 240 + half, top + 1), C.CRIMSON)        # lit tread edge
-        img.paint(img.m_rect(240 - half, top + 2, 240 + half, top + 2), C.BLOOD)
-        for x in range(240 - half + 17 * (i % 2), 240 + half, 34):                   # joints between the blocks
+        img.paint(img.m_rect(cx - half, top, cx + half, top + 1), C.CRIMSON)        # lit tread edge
+        img.paint(img.m_rect(cx - half, top + 2, cx + half, top + 2), C.BLOOD)
+        for x in range(cx - half + 17 * (i % 2), cx + half, 34):                   # joints between the blocks
             img.paint(img.m_rect(x, top + 3, x, top + 20), C.BLACK)
     # Two colossal feet of the throne, cut off by the top of the frame.
-    for x0 in (96, 352):
-        leg = img.m_rect(x0, 0, x0 + 32, 176)
+    for x0 in (96, W - 96 - 32):
+        leg = img.m_rect(x0, 0, x0 + 32, 226)
         img.paint(leg, C.NIGHT)
-        img.paint(img.m_rect(x0, 0, x0 + 2, 176), C.DUSK)
-        img.paint(img.m_rect(x0 - 6, 166, x0 + 38, 176), C.BLOOD_DARK)
-        img.paint(img.m_rect(x0 - 6, 166, x0 + 38, 166), C.CRIMSON)
+        img.paint(img.m_rect(x0, 0, x0 + 2, 226), C.DUSK)
+        img.paint(img.m_rect(x0 - 6, 216, x0 + 38, 226), C.BLOOD_DARK)
+        img.paint(img.m_rect(x0 - 6, 216, x0 + 38, 216), C.CRIMSON)
         img.inner_outline(leg, C.BLACK)
 
     for x0, x1, y1 in STILL_CHAINS:
@@ -518,11 +553,16 @@ def chain_layer(name, x0, x1, y1):
 def lucifer():
     layers = [chain_layer(f"chain{i}", x0, x1, y1) for i, (x0, x1, y1) in enumerate(SWAYING_CHAINS)]
     # Embers rise through the sides of the hall (never across the cards and the words).
-    particles = [Particles("embers", *LEFT_HIGH, 8), Particles("embers", *LEFT_LOW, 10), Particles("embers", *RIGHT_SIDE, 18)]
+    particles = [Particles("embers", *LEFT_HIGH, 8), Particles("embers", *WIDE_LEFT_LOW, 10), Particles("embers", *WIDE_RIGHT_SIDE, 18)]
     return lucifer_base(), layers, particles
 
 
 SALONS = {"mammon": mammon, "belial": belial, "lilith": lilith, "lucifer": lucifer}
+# Drawn on the 640×360 screen itself (their gradients would not survive a doubled band of rows).
+NATIVE = {"lilith", "lucifer"}
+# A hall whose band is chosen by eye: Mammon's coin towers grow taller instead of showing their tops twice.
+# The floors' halls too: the coin imp's band under its shelves and over its coins, the nurse's under her lamps' glow.
+ROW_BAND = {"mammon": 140, "imp": 78, "nurse": 89}
 # Lucifer's hall has no soul variant (the soul never goes on his table) and its own, hotter final moments.
 SALON_VARIANTS = {"lucifer": {"normal": None, "hell": lut(HOTTER)}}
 
@@ -532,5 +572,6 @@ def write_all(out_dir):
     for dealer, build in SALONS.items():
         base, layers, particles = build()
         folder = os.path.join(out_dir, dealer)
-        written += write(folder, base, layers, particles, SALON_VARIANTS.get(dealer, VARIANT_TABLES), text_zones=TABLE_TEXT)
+        written += write(folder, base, layers, particles, SALON_VARIANTS.get(dealer, VARIANT_TABLES), text_zones=TABLE_TEXT,
+                         widen=(ROW_BAND.get(dealer, True) if dealer not in NATIVE else False) if WIDE else False, darken=readable_middle_wide if WIDE else None)
     return written

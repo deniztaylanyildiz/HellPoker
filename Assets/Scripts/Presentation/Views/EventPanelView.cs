@@ -16,7 +16,7 @@ namespace HellPoker.Presentation.Views
     /// </summary>
     public sealed class EventPanelView : MonoBehaviour
     {
-        private const int Width = 256;
+        public const int Width = 256;
         private const int Height = 132;
         private const int Portrait = 48;
 

@@ -5,7 +5,7 @@ namespace HellPoker.Presentation.Ui
 {
     /// <summary>
     /// Keeps a canvas pixel-perfect: the game is laid out on a 480×270 screen that is scaled by a whole number
-    /// (×3 at 1440×810, ×4 at 1920×1080...), centred, with black bars filling whatever is left. With <see cref="FillScreen"/>
+    /// (×3 at 1920×1080, ×4 at 2560×1440...), centred, with black bars filling whatever is left. With <see cref="FillScreen"/>
     /// (the settings' "fill screen", at full screen) the scale is the largest that fits, whole or not: the shape is kept, the
     /// bars shrink to the sliver the aspect ratio leaves, and the pixels may be slightly uneven. Clicks stay right either way:
     /// the UI's hit areas are its rectangles, scaled with it.
@@ -13,8 +13,9 @@ namespace HellPoker.Presentation.Ui
     [RequireComponent(typeof(Canvas), typeof(CanvasScaler))]
     public sealed class PixelScreen : MonoBehaviour
     {
-        public const int Width = 480;
-        public const int Height = 270;
+        // Phase 3: 640×360, a whole-number scale at every common size (1366×768 ×2, 1920×1080 ×3, 2560×1440 ×4, 3840×2160 ×6).
+        public const int Width = 640;
+        public const int Height = 360;
 
         private Canvas _canvas;
         private CanvasScaler _scaler;

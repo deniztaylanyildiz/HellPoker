@@ -20,7 +20,9 @@ namespace HellPoker.Presentation.Views
         public const int SortingOrder = 45;
 
         /// <summary>The area the panel sits in (over the map, beside its side panel); the panel is as tall as its words need, centred in it.</summary>
-        private const int X = 136, Y = 8, Width = 336, Height = 254, MinHeight = 104;
+        // Phase 3 (640×360): wider and taller, centred over the map (right of its side panel).
+        private const int Width = 400, Height = PixelScreen.Height - 16, MinHeight = 104;
+        private const int X = 132 + (PixelScreen.Width - 132 - Width) / 2, Y = 8;
         private const int Portrait = 48;
         private const int Row = 20;
 

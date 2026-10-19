@@ -21,21 +21,23 @@ namespace HellPoker.Presentation.Views
     {
         public const int SortingOrder = 40;
 
+        // Phase 3 (640×360): the lanes and the floors have room between them (Tools/ArtGen's maps draw their ledges and glow from the same numbers).
         private const int SideWidth = 124;
         private const int MapLeft = 140;
-        private const int LaneStep = 54;
+        private const int LaneStep = 80;
         private const int IconSize = 16;
+        private const int MostFloorStep = 36;
 
         /// <summary>The map's bottom: the gate's icon and its words under the last floor end above it.</summary>
-        private const int MapBottom = 266;
+        private const int MapBottom = PixelScreen.Height - 4;
 
         /// <summary>Eight floors start under the prompt with room to spare; ten and twelve start higher.</summary>
         private static int FloorTopFor(int floors) => floors > 8 ? 16 : 22;
 
-        /// <summary>Eight floors get 28 pixels each and a 20-pixel frame; ten and twelve are packed closer (twelve: 19, a frame of 18).</summary>
-        private static int FloorStepFor(int floors) => Math.Min(28, (MapBottom - FloorTopFor(floors) - IconSize - 2) / Math.Max(1, floors));
+        /// <summary>Eight floors get 36 pixels each and a 20-pixel frame; ten and twelve are packed closer (Phase 3: 32 and 26).</summary>
+        private static int FloorStepFor(int floors) => Math.Min(MostFloorStep, (MapBottom - FloorTopFor(floors) - IconSize - 2) / Math.Max(1, floors));
 
-        private int _floorStep = 28;
+        private int _floorStep = MostFloorStep;
         private int FloorTop => FloorTopFor(_state?.Map.FloorCount ?? 8);
         private int NodeFrame => Math.Min(20, _floorStep - 1);
 
@@ -142,15 +144,15 @@ namespace HellPoker.Presentation.Views
             _bar = BossBarWidget.Create(side.transform, "MapBossBar", 8, 91, SideWidth - 20, 6);
 
             _lines = UiFactory.CreateText("Lines", side.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).WithOutline();
-            _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, 88);
+            _lines.rectTransform.PlaceTL(8, 102, SideWidth - 16, KeysY - 104);
             _lines.lineSpacing = 1f;
 
             _keys = UiFactory.CreateText("Keys", side.transform, "", 8, Palette.BoneDark, TextAnchor.UpperLeft).WithOutline().Localized(() => UiText.MapKeysHint);
-            _keys.rectTransform.PlaceTL(8, 192, SideWidth - 16, 20);
+            _keys.rectTransform.PlaceTL(8, KeysY, SideWidth - 16, 20);
 
             // The Devil's Compass (2.1.1): only while one is worn, in the keys' place (they are the map's usual ones).
             _compass = UiFactory.CreateButton("MapCompassButton", side.transform, "", 8, out _compassLabel, ButtonSkin.Ash);
-            ((RectTransform)_compass.transform).PlaceTL(8, 192, SideWidth - 16, 18);
+            ((RectTransform)_compass.transform).PlaceTL(8, KeysY, SideWidth - 16, 18);
             _compass.onClick.AddListener(() => CompassPressed?.Invoke());
             _compass.gameObject.SetActive(false);
 
@@ -186,6 +188,9 @@ namespace HellPoker.Presentation.Views
             _tip = tip.gameObject;
             _tip.SetActive(false);
         }
+
+        /// <summary>The keys' hint (or the compass) in the side panel, above RELICS and MENU.</summary>
+        private const int KeysY = PixelScreen.Height - 8 - 48 - 4 - 24;
 
         private static int LaneX(float lane) => MapLeft + 10 + Mathf.RoundToInt(lane * LaneStep) + 10;
 

@@ -16,6 +16,7 @@ namespace HellPoker.Presentation.Views
     public sealed class EndScreenView : MonoBehaviour, IEndScreenView
     {
         private const int SortingOrder = 108;
+        private const int StoryHeight = PixelScreen.Height - 170;   // Phase 3: the story has the screen's height
 
         private Canvas _canvas;
         private Image _background;
@@ -72,7 +73,7 @@ namespace HellPoker.Presentation.Views
             UiFactory.CreateSprite("Divider", screen, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 48) / 2, 90, 48, 3);
 
             _story = UiFactory.CreateText("Story", screen, "", 8, Palette.BoneMid, TextAnchor.UpperCenter).WithOutline();
-            _story.rectTransform.PlaceTL(88, 100, PixelScreen.Width - 176, 100);
+            _story.rectTransform.PlaceTL(88, 100, PixelScreen.Width - 176, StoryHeight);
             _story.lineSpacing = 1.25f;
 
             // The Morning Star's eyes, in a dark box beside the story (only when he falls).
@@ -116,7 +117,7 @@ namespace HellPoker.Presentation.Views
                 _eyesLeft = 0f;
             }
             _story.alignment = fallen ? TextAnchor.UpperLeft : TextAnchor.UpperCenter;
-            _story.rectTransform.PlaceTL(fallen ? 196 : 88, 100, fallen ? PixelScreen.Width - 196 - 80 : PixelScreen.Width - 176, 100);
+            _story.rectTransform.PlaceTL(fallen ? 196 : 88, 100, fallen ? PixelScreen.Width - 196 - 80 : PixelScreen.Width - 176, StoryHeight);
 
             _story.text = string.Join("\n", StoryOf(summary));
 

@@ -204,9 +204,12 @@ namespace HellPoker.Core.Tests
             Assert.IsNull(DealerView.ReactionTo(mood));
         }
 
-        [TestCase(1920, 1080, 4)]
-        [TestCase(1440, 900, 3)]
-        [TestCase(2560, 1440, 5)]
+        // Phase 3: the 640×360 screen — a whole number at every common size.
+        [TestCase(1920, 1080, 3)]
+        [TestCase(1440, 900, 2)]
+        [TestCase(2560, 1440, 4)]
+        [TestCase(3840, 2160, 6)]
+        [TestCase(1366, 768, 2)]
         [TestCase(1280, 720, 2)]
         [TestCase(800, 600, 1)]
         [TestCase(320, 200, 1)]

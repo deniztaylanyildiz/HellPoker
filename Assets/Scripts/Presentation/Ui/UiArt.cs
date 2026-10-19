@@ -20,7 +20,8 @@ namespace HellPoker.Presentation.Ui
 
         /// <summary>Full-screen black in growing Bayer patterns (¼ … all), for a slow fall into darkness.</summary>
         public const string Fade = "Ui/fade";
-        public const int FadeWidth = 480;
+        /// <summary>Phase 3: each step of the fade is a 16×16 Bayer tile laid over the whole screen (a 640 px frame ×4 would pass the importer's 2048 px).</summary>
+        public const int FadeWidth = 16;
         public const string CardFace = "Ui/card_face";
         public const string CardBack = "Ui/card_back";
         public const string CardSlot = "Ui/card_slot";

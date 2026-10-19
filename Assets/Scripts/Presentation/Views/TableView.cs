@@ -17,21 +17,28 @@ namespace HellPoker.Presentation.Views
     /// </summary>
     public sealed class TableView : MonoBehaviour, ITableView
     {
-        // Middle column.
-        private const int Middle = 112;
-        private const int MiddleWidth = 256;
+        // Phase 3: the table on the 640×360 screen. The demon's column keeps to the left edge, the counter's to the right, the bottom row
+        // to the bottom; the middle column is centred and wider, and its lines have room between them.
+        private const int W = PixelScreen.Width, H = PixelScreen.Height;
+        private const int MiddleWidth = 320;
+        private const int Middle = (W - MiddleWidth) / 2;
+        private const int RightX = W - 108;                  // the counter and the payouts
+        private const int BottomY = H - 22;                  // MENU, HANDS, the shortcut line
         private const int CardSpacing = 8;
-        private const int ControlsY = 204;
+        private const int ControlsY = 250;
         private const int ButtonHeight = 20;
+        private const int TitleY = 8;
+        private const int DealerBottom = 4 + DealerView.Height;   // the portrait, the name and the dialog box
+        private const int HouseY = 52, HouseCaptionY = 38;
 
         // The middle column's lines (2.1.1: nothing in it overlaps — the layout test walks every text and button).
         private const int LineHeight = 9;
-        private const int MessageY = 91, MessageLines = 3;
-        private const int PotY = 119, StakeY = 128;
-        private const int PlayerY = 139;
+        private const int MessageY = 112, MessageLines = 3;
+        private const int PotY = 142, StakeY = 152;
+        private const int PlayerY = 172;
 
         /// <summary>The result band across the middle (a chapter's table): the big word and the amount; the message keeps to two lines under it.</summary>
-        private const int BandY = 90, BandHeight = 27, BandMessageY = 118, BandMessageLines = 2;   // the dotted İ of the title clears the House's cards
+        private const int BandY = 110, BandHeight = 27, BandMessageY = 140, BandMessageLines = 2;   // the dotted İ of the title clears the House's cards
 
         private AnimationSequencer _sequencer;
         private Canvas _canvas;
@@ -124,7 +131,7 @@ namespace HellPoker.Presentation.Views
         }
 
         /// <summary>The deck counter's own box: left of the title, on a line of its own (2.1.1: it ran into the House's caption).</summary>
-        public const int DeckX = Middle, DeckY = 8, DeckWidth = 46;
+        public const int DeckX = Middle, DeckY = TitleY + 4, DeckWidth = 46;
 
         /// <summary>The deck's count left of the title (the House's caption has its row to itself); hovering it tells how the deck works.</summary>
         private void BuildDeckCounter(Transform screen)
@@ -218,13 +225,13 @@ namespace HellPoker.Presentation.Views
             if (logo.sprite != null)
             {
                 Vector2 size = logo.sprite.rect.size;
-                logo.rectTransform.PlaceTL(Middle + (MiddleWidth - (int)size.x) / 2, 3, (int)size.x, (int)size.y);
+                logo.rectTransform.PlaceTL(Middle + (MiddleWidth - (int)size.x) / 2, TitleY, (int)size.x, (int)size.y);
             }
             else
             {
                 logo.enabled = false;
                 UiFactory.CreateText("TitleText", screen, "", 16, Palette.Hell, style: FontStyle.Bold).WithOutline().Localized(() => UiText.Title)
-                    .rectTransform.PlaceTL(Middle, 4, MiddleWidth, 16);
+                    .rectTransform.PlaceTL(Middle, TitleY, MiddleWidth, 16);
             }
 
             // Left column: the dealer.
@@ -232,31 +239,31 @@ namespace HellPoker.Presentation.Views
 
             Button menu = UiFactory.CreateButton("MenuButton", screen, "", 8, out Text menuLabel, ButtonSkin.Ash);
             menuLabel.Localized(() => UiText.Menu);
-            ((RectTransform)menu.transform).PlaceTL(4, 248, 56, 18);
+            ((RectTransform)menu.transform).PlaceTL(4, BottomY, 56, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
 
             _hands = UiFactory.CreateButton("HandsButton", screen, "", 8, out _handsLabel, ButtonSkin.Ash);
             _handsLabel.Localized(() => PayoutTableShown ? UiText.HandsButton : UiText.HandsPayoutsButton);
             _handsLabel.verticalOverflow = VerticalWrapMode.Overflow;
             _handsLabel.lineSpacing = 1f;
-            ((RectTransform)_hands.transform).PlaceTL(64, 248, 56, 18);
+            ((RectTransform)_hands.transform).PlaceTL(64, BottomY, 56, 18);
             _hands.onClick.AddListener(() => HandRanksPressed?.Invoke());
             BuildHandsTip(screen);
 
             _leaveButton = UiFactory.CreateButton("LeaveButton", screen, "", 8, out _leaveLabel, ButtonSkin.Ash);
-            ((RectTransform)_leaveButton.transform).PlaceTL(4, 210, 104, 18);
+            ((RectTransform)_leaveButton.transform).PlaceTL(4, DealerBottom + 4, 104, 18);
             _leaveButton.onClick.AddListener(() => LeavePressed?.Invoke());
             _leaveButton.gameObject.SetActive(false);
 
             // Right column: the sentence (or the soul) and the dealer's payouts.
-            _sentence = SentenceView.Create(screen, 372, 4, _sequencer);
-            _soul = SoulView.Create(screen, 372, 4, _sequencer);
-            Payouts = PayoutTableView.Create(screen, 372, 62, 178, _sequencer);
+            _sentence = SentenceView.Create(screen, RightX, 4, _sequencer);
+            _soul = SoulView.Create(screen, RightX, 4, _sequencer);
+            Payouts = PayoutTableView.Create(screen, RightX, 62, 178, _sequencer);
 
             // Middle column: house cards, the talk of the table, player cards, the bet controls.
             int handWidth = CardView.Size.x * 5 + CardSpacing * 4;
             int handX = Middle + (MiddleWidth - handWidth) / 2;
-            House = HandView.Create(screen, "HouseHand", handX, 38, CardSpacing, 28, _sequencer, Middle, MiddleWidth);
+            House = HandView.Create(screen, "HouseHand", handX, HouseY, CardSpacing, HouseCaptionY, _sequencer, Middle, MiddleWidth);
             // 2.1.1: the player's row a pixel higher and its caption a pixel lower — the caption no longer hugs the cards' edge.
             Player = HandView.Create(screen, "PlayerHand", handX, PlayerY, CardSpacing, PlayerY + CardView.Size.y + 6, _sequencer, Middle, MiddleWidth);
 
@@ -306,28 +313,28 @@ namespace HellPoker.Presentation.Views
             ApplyBetControls(BetControls.Hidden);
 
             _hint = UiFactory.CreateText("Hint", screen, "", 8, Palette.BoneDark, TextAnchor.MiddleLeft).WithOutline().Localized(() => UiText.Hint);
-            _hint.rectTransform.PlaceTL(HintX, 253, PixelScreen.Width - 4 - HintX, 9);
+            _hint.rectTransform.PlaceTL(HintX, BottomY + 5, W - 4 - HintX, 9);
 
-            _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, 230, MiddleWidth);
-            _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence);
+            _finalStretch = FinalStretchEffect.Create(screen, _salon, Middle, ControlsY + 26, MiddleWidth);
+            _moments = TableMoments.Create(screen, _sequencer, (HandView)Player, _sentence, Middle, BandY - 2, MiddleWidth);
             // The malice gauge and the announced cheat ride on the portrait box (4, 4, 104 × 104).
             _malice = MaliceView.Create(screen, 4, 4, DealerView.PortraitSize + 8, _sequencer);
             // The class badge in the portrait box's lower right corner (the malice pips run along the lower left).
             _sinner = SinnerBadgeView.Create(screen, 4 + DealerView.PortraitSize + 8 - SinnerBadgeView.Width - 4, 4 + DealerView.PortraitSize + 8 - 22, _sequencer,
                 () => SinnerPressed?.Invoke());
-            _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56));
+            _cheatEffects = CheatEffects.Create(screen, _sequencer, (HandView)Player, (HandView)House, new Vector2Int(56, 56), new Vector2(W / 2, PlayerY + 24));
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             // The relics down the portrait box's right edge, under the intent sign.
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
             // Phase 2's class panel: under the dialog box, where a chapter's table has no LEAVE TABLE.
-            _kit = KitView.Create(screen, 4, 207, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
+            _kit = KitView.Create(screen, 4, DealerBottom + 3, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
             // Phase 2: the demon's health bar, under the name (in place of the line under it).
             _bossBar = BossBarWidget.Create(screen, "BossBar", 8, 122, 92, 7, hover: true);
             // The joker picker sits where the bet controls do (they are hidden while it is open).
             _jokerPicker = JokerPickerView.Create(screen, Middle, ControlsY - 12, _sequencer, (rank, suit) => JokerStepPressed?.Invoke(rank, suit),
                 () => JokerConfirmPressed?.Invoke());
-            _event = EventPanelView.Create(screen, Middle, 60, _sequencer, dealers, index => EventOptionPressed?.Invoke(index));
-            _handRanks = HandRanksPanel.Create(screen, (PixelScreen.Width - HandRanksPanel.Width) / 2, 40, () => UiText.HandRanksTableFooter);
+            _event = EventPanelView.Create(screen, (W - EventPanelView.Width) / 2, 80, _sequencer, dealers, index => EventOptionPressed?.Invoke(index));
+            _handRanks = HandRanksPanel.Create(screen, (W - HandRanksPanel.Width) / 2, 50, () => UiText.HandRanksTableFooter);
             BuildResults(screen);
             _stage = new Stage(this);
         }
@@ -414,7 +421,7 @@ namespace HellPoker.Presentation.Views
                 _float.text = text ?? "";
                 _float.color = Palette.For(tone);
                 // Over the counter's number (top right), or over the demon's bar under the portrait.
-                _floatX = overBar ? 8 : 372;
+                _floatX = overBar ? 8 : RightX;
                 _floatY = overBar ? 112 : 22;
                 _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? 92 : SentenceView.Width, 8);
                 _float.transform.SetAsLastSibling();
@@ -730,9 +737,9 @@ namespace HellPoker.Presentation.Views
             PayoutTableShown = shown;
             ((PayoutTableView)Payouts).gameObject.SetActive(shown);
             _handsLabel.text = shown ? UiText.HandsButton : UiText.HandsPayoutsButton;
-            ((RectTransform)_hands.transform).PlaceTL(64, 248, shown ? HandsWidth : WideHandsWidth, 18);
+            ((RectTransform)_hands.transform).PlaceTL(64, BottomY, shown ? HandsWidth : WideHandsWidth, 18);
             int hintX = shown ? HintX : WideHintX;
-            _hint.rectTransform.PlaceTL(hintX, 253, PixelScreen.Width - 4 - hintX, 9);
+            _hint.rectTransform.PlaceTL(hintX, BottomY + 5, W - 4 - hintX, 9);
             _handsTip.SetActive(false);
         }
 
@@ -746,7 +753,7 @@ namespace HellPoker.Presentation.Views
             Text text = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(() => UiText.HandsPayoutsHint);
             text.rectTransform.PlaceTL(4, 3, 152, 9);
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            tip.rectTransform.PlaceTL(64, 248 - 16, 160, 14);
+            tip.rectTransform.PlaceTL(64, BottomY - 16, 160, 14);
             _handsTip = tip.gameObject;
             _handsTip.SetActive(false);
 

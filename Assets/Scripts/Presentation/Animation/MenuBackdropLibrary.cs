@@ -15,7 +15,7 @@ namespace HellPoker.Presentation.Animation
         public const string MenuPath = "Ui/menu";
         public const string MotionPath = "Ui/menu_motion";
         public const string StoneWallPath = "Ui/background";
-        public const int FrameWidth = 480;
+        public const int FrameWidth = Ui.PixelScreen.Width;
         public const float Fps = 4f;
 
         private readonly Func<string, Texture2D> _load;

@@ -200,8 +200,8 @@ namespace HellPoker.PlayMode.Tests
                     Text tipText = tip.GetComponentInChildren<Text>();
                     Assert.LessOrEqual(tipText.preferredHeight, tipText.rectTransform.rect.height + 0.5f, what + ": the whole text fits its box");
                     Assert.GreaterOrEqual(tip.anchoredPosition.x, 0f, what + ": the box on screen (left)");
-                    Assert.LessOrEqual(tip.anchoredPosition.x + tip.rect.width, 480f, what + ": on screen (right)");
-                    Assert.LessOrEqual(-tip.anchoredPosition.y + tip.rect.height, 270f, what + ": on screen (bottom)");
+                    Assert.LessOrEqual(tip.anchoredPosition.x + tip.rect.width, PixelScreen.Width, what + ": on screen (right)");
+                    Assert.LessOrEqual(-tip.anchoredPosition.y + tip.rect.height, PixelScreen.Height, what + ": on screen (bottom)");
                     if (UiText.ChapterPassiveLine(id) != null) StringAssert.Contains(turkish ? "PASİF:" : "PASSIVE:", select.TipText, what);
                     select.HideTip();
                 }
@@ -255,6 +255,43 @@ namespace HellPoker.PlayMode.Tests
                 yield return HoverAll(view.transform, "floor" + lang, n => opened += n);
                 Assert.Greater(opened, 8, "the hovers were really opened" + lang);
             }
+        }
+
+        /// <summary>Phase 3: the 640×360 grid — a whole-number scale at every common size, and nothing of a chapter's table outside the screen.</summary>
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheTable_IsLaidOutOnThe640By360Grid()
+        {
+            Assert.AreEqual(640, PixelScreen.Width);
+            Assert.AreEqual(360, PixelScreen.Height);
+            foreach (var (w, h, scale) in new[] { (1920, 1080, 3), (2560, 1440, 4), (3840, 2160, 6), (1366, 768, 2), (1280, 720, 2) })
+            {
+                Assert.AreEqual(scale, PixelScreen.ScaleFor(w, h), $"{w}×{h}");
+                if (w % PixelScreen.Width == 0 && h % PixelScreen.Height == 0)
+                    Assert.AreEqual((float)scale, PixelScreen.FillScaleFor(w, h), 0.0001f, $"{w}×{h}: the screen filled exactly, no bars");
+            }
+
+            yield return Load(false, new ChapterSave
+            {
+                ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                BossBar = 1600, NodeDone = false, Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).ToList(), Taxes = 20
+            });
+            yield return Settle();
+            TableView view = ChapterJourneyTests.ChapterTableView;
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return Settle();
+            Canvas.ForceUpdateCanvases();
+            Rect area = Box(HoverTip.ScreenOf(view.Kit.transform));
+            var outside = new List<string>();
+            foreach (Graphic g in view.GetComponentsInChildren<Graphic>(false).Where(g => g.isActiveAndEnabled && g.color.a > 0.01f))
+            {
+                if (g is Text t && string.IsNullOrWhiteSpace(t.text)) continue;
+                if (g.name.StartsWith("ResultEdge") || g.name == "Letterbox" || Under(g.transform, "Salon") || Under(g.transform, "Backdrop")) continue;
+                Rect box = g is Text text ? Glyphs(text) : Box(g.rectTransform);
+                if (box.width <= 0f) continue;
+                if (box.xMin < area.xMin - 0.5f || box.xMax > area.xMax + 0.5f || box.yMin < area.yMin - 0.5f || box.yMax > area.yMax + 0.5f)
+                    outside.Add(g.name);
+            }
+            Assert.IsEmpty(outside, "off the 640×360 screen:\n" + string.Join("\n", outside));
         }
 
         /// <summary>Points at every hover of <paramref name="root"/> in turn: each box that opens draws over its whole screen and stays inside it.</summary>

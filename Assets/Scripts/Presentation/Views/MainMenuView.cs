@@ -21,7 +21,8 @@ namespace HellPoker.Presentation.Views
         private const int GridGap = 16;                   // between the two columns
         private const int RowStep = ButtonHeight + Grid;  // a row and the gap under it
         private const int CornerHeight = 16;
-        private const int RulesButtonHeight = 20;          // How to Play's pager (its pages are laid out round it)              // BUG / IDEA and the language, in the top corners
+        private const int RulesButtonHeight = 20;
+        private const int RulesBodyHeight = PixelScreen.Height - 76;   // the rules' text down to the pager          // How to Play's pager (its pages are laid out round it)              // BUG / IDEA and the language, in the top corners
         private static int W => PixelScreen.Width;
         private static int H => PixelScreen.Height;
 
@@ -258,18 +259,18 @@ namespace HellPoker.Presentation.Views
             UiFactory.CreateSprite("Divider", panel.transform, UiArt.Divider).rectTransform.PlaceTL((PixelScreen.Width - 16 - 48) / 2, 19, 48, 3);
 
             Text body = UiFactory.CreateText("Body", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(rules);
-            body.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            body.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, RulesBodyHeight);
             body.lineSpacing = 1f;
             _rulesBody = body.gameObject;
 
             Text cheatsText = UiFactory.CreateText("Cheats", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(cheats ?? (() => ""));
-            cheatsText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            cheatsText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, RulesBodyHeight);
             cheatsText.lineSpacing = 1f;
             _cheatsBody = cheatsText.gameObject;
             _cheatsBody.SetActive(false);
 
             Text sinnersText = UiFactory.CreateText("Sinners", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(sinners ?? (() => ""));
-            sinnersText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            sinnersText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, RulesBodyHeight);
             sinnersText.lineSpacing = 1f;
             _sinnersBody = sinnersText.gameObject;
             _sinnersBody.SetActive(false);
@@ -277,14 +278,14 @@ namespace HellPoker.Presentation.Views
             // Phase 2: the classes' chapter powers and the demons' own rules.
             Text chapterText = UiFactory.CreateText("ChapterRules", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft)
                 .Localized(UiText.ChapterRulesPage);
-            chapterText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            chapterText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, RulesBodyHeight);
             chapterText.lineSpacing = 1f;
             _chapterBody = chapterText.gameObject;
             _chapterBody.SetActive(false);
 
             // The game's own first page: the chapters, the map, the purse, the bar, Lucifer.
             Text gameText = UiFactory.CreateText("GameRules", panel.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft).Localized(UiText.GameRulesPage);
-            gameText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, 196);
+            gameText.rectTransform.PlaceTL(10, 28, PixelScreen.Width - 36, RulesBodyHeight);
             gameText.lineSpacing = 1f;
             _gameBody = gameText.gameObject;
             _gameBody.SetActive(false);

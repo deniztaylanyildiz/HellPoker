@@ -76,7 +76,7 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsTrue(picker.IsOpen);
             Assert.AreEqual(Rank.Ace, picker.Pick.Card.Rank, "The picker opens on the best card.");
             var rect = (RectTransform)picker.transform;
-            Assert.LessOrEqual(-rect.anchoredPosition.y + rect.rect.height, 270, "The picker fits the screen.");
+            Assert.LessOrEqual(-rect.anchoredPosition.y + rect.rect.height, HellPoker.Presentation.Ui.PixelScreen.Height, "The picker fits the screen.");
 
             Press("JokerRankForward");
             yield return WaitForTable();

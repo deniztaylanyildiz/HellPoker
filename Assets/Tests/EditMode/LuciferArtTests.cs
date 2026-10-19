@@ -64,8 +64,8 @@ namespace HellPoker.Core.Tests
         [Test]
         public void HisHall_HasNormalAndHot_AndNoSoulVariant()
         {
-            Assert.AreEqual(270, Load(Halls + "normal.png").height);
-            Assert.AreEqual(270, Load(Halls + "hell.png").height);
+            Assert.AreEqual(Presentation.Ui.PixelScreen.Height, Load(Halls + "normal.png").height);
+            Assert.AreEqual(Presentation.Ui.PixelScreen.Height, Load(Halls + "hell.png").height);
             Assert.LessOrEqual(Load(Halls + "normal.png").width, 2048, "Within the importer's texture limit.");
             Assert.IsFalse(File.Exists(Halls + "soul.png"), "The soul never goes on his table.");
         }
@@ -83,8 +83,8 @@ namespace HellPoker.Core.Tests
         {
             Assert.AreEqual(12, Load("Assets/Resources/Art/Ui/dialog_lucifer.png").width);
             Texture2D fade = Load("Assets/Resources/Art/Ui/fade.png");
-            Assert.AreEqual(270, fade.height);
-            Assert.AreEqual(4 * 480, fade.width, "Four steps into darkness.");
+            Assert.AreEqual(Presentation.Ui.UiArt.FadeWidth, fade.height, "Phase 3: a tile laid over the screen");
+            Assert.AreEqual(4 * Presentation.Ui.UiArt.FadeWidth, fade.width, "Four steps into darkness.");
         }
     }
 }

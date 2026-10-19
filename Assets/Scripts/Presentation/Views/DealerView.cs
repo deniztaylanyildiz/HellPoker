@@ -15,6 +15,10 @@ namespace HellPoker.Presentation.Views
     public sealed class DealerView : MonoBehaviour, IDealerView
     {
         public const int PortraitSize = 96;
+
+        /// <summary>The whole column: the portrait box, the name and title, the dialog box (Phase 3: a taller box, 96 px).</summary>
+        public const int Height = 224;
+        private const int DialogHeight = 96;
         private const float CharactersPerSecond = 40f;
 
         private AnimationSequencer _sequencer;
@@ -36,7 +40,7 @@ namespace HellPoker.Presentation.Views
 
         public static DealerView Create(Transform parent, int x, int y, AnimationSequencer sequencer, DealerAnimationLibrary library)
         {
-            RectTransform root = UiFactory.CreateRect("Dealer", parent).PlaceTL(x, y, PortraitSize + 8, 200);
+            RectTransform root = UiFactory.CreateRect("Dealer", parent).PlaceTL(x, y, PortraitSize + 8, Height);
             var view = root.gameObject.AddComponent<DealerView>();
             view._sequencer = sequencer;
             view._library = library;
@@ -69,12 +73,12 @@ namespace HellPoker.Presentation.Views
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             Image dialog = UiFactory.CreateDialog("Speech", root);
-            dialog.rectTransform.PlaceTL(0, 128, PortraitSize + 8, 72);
+            dialog.rectTransform.PlaceTL(0, 128, PortraitSize + 8, DialogHeight);
             _dialog = dialog.gameObject;
             _dialogBox = dialog;
             _plainDialog = dialog.sprite;
             _line = UiFactory.CreateText("Line", dialog.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
-            _line.rectTransform.PlaceTL(6, 5, PortraitSize - 4, 62);
+            _line.rectTransform.PlaceTL(6, 5, PortraitSize - 4, DialogHeight - 10);
             _line.lineSpacing = 1f;
             _dialog.SetActive(false);
         }

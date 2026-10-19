@@ -309,10 +309,11 @@ def nurse_hall_base():
     """The night ward: a long dark room, rows of narrow beds under grey sheets, a lamp hanging low over each row."""
     img = Img(W, H)
     S.stone_wall(img, C.BLACK, C.NIGHT, C.BLACK, seed=151, row_h=20)
-    img.dither(np.ones((H, W), bool), C.BLACK, C.NIGHT, np.clip((img.ys - 40) / 300.0, 0, 0.4))
+    # Phase 3 (widened): an even haze, the beds lower and closer, the lamps' glow smaller — a plain band of wall (89..178) is laid twice.
+    img.dither(np.ones((H, W), bool), C.BLACK, C.NIGHT, 0.25 if S.WIDE else np.clip((img.ys - 40) / 300.0, 0, 0.4))
     for x0 in (6, 380):
         for k in range(3):
-            y = 150 + k * 36
+            y = (190 + k * 27) if S.WIDE else (150 + k * 36)
             frame = img.m_rect(x0, y, x0 + 92, y + 16)
             img.paint(frame, C.SILVER_DARK)
             sheet_ = img.m_rect(x0 + 2, y - 6, x0 + 90, y + 6)
@@ -325,7 +326,10 @@ def nurse_hall_base():
         lamp = img.m_poly([(cx - 7, 30), (cx + 7, 30), (cx + 4, 38), (cx - 4, 38)])
         img.paint(lamp, C.GOLD_DARK)
         img.paint(img.m_rect(cx - 3, 38, cx + 3, 40), C.AMBER)
-        img.dither(img.m_ellipse(cx, 70, 40, 30) & (img.px == C.BLACK), C.BLACK, C.VIOLET, 0.25)
+        if S.WIDE:
+            img.dither(img.m_ellipse(cx, 62, 40, 24) & ((img.px == C.BLACK) | (img.px == C.NIGHT)), C.NIGHT, C.VIOLET, 0.3)
+        else:
+            img.dither(img.m_ellipse(cx, 70, 40, 30) & (img.px == C.BLACK), C.BLACK, C.VIOLET, 0.25)
     S.readable_middle(img)
     return img
 
@@ -344,56 +348,62 @@ def write_halls(out_dir):
     written = []
     for hall, build in HALLS.items():
         base, layers, particles = build()
-        written += write(os.path.join(out_dir, hall), base, layers, particles, S.VARIANT_TABLES, text_zones=S.TABLE_TEXT)
+        written += write(os.path.join(out_dir, hall), base, layers, particles, S.VARIANT_TABLES, text_zones=S.TABLE_TEXT,
+                         widen=S.ROW_BAND.get(hall, True) if S.WIDE else False, darken=S.readable_middle_wide if S.WIDE else None)
     return written
 
 
 # ================================================================== the maps
 
+# Phase 3: the maps are drawn on the 640×360 screen itself, from ChapterMapView's numbers (lanes 80 px apart from x 160, eight floors
+# 36 px apart from y 22, the gate in the middle lane under the last floor).
+MW, MH = 640, 360
+MAP_MID = 140 + 20 + 200   # LaneX(2.5)
+
 def chapter_map_belial():
     """Down through Belial's theatre: a dark house, red curtains along the shaft's edges, a spotlight's pool at the bottom."""
-    img = Img(W, H)
-    full = np.ones((H, W), bool)
-    depth = np.clip((img.ys - 20) / 250.0, 0, 1)
+    img = Img(MW, MH)
+    full = np.ones((MH, MW), bool)
+    depth = np.clip((img.ys - 20) / 340.0, 0, 1)
     img.dither(full, C.BLACK, C.NIGHT, 0.2 + 0.45 * depth)
-    glow = np.clip(1 - np.hypot((img.xs - 298) / 170.0, (img.ys - 300) / 90.0), 0, 1)
+    glow = np.clip(1 - np.hypot((img.xs - MAP_MID) / 240.0, (img.ys - 390) / 90.0), 0, 1)
     img.dither(glow > 0, C.NIGHT, C.BLOOD_DARK, glow * 0.55)
     rng = np.random.default_rng(23)
     for _ in range(22):
-        x, y = int(rng.integers(142, 464)), int(rng.integers(8, 250))
+        x, y = int(rng.integers(142, 594)), int(rng.integers(8, 340))
         img.put(x, y, C.SILVER_DARK if rng.integers(0, 3) else C.LILAC)
-    for x0, x1 in ((124, 136), (468, W - 1)):
+    for x0, x1 in ((124, 136), (598, MW - 1)):
         for x in range(x0, x1 + 1):
             fold = (x - x0) % 6
-            img.paint(img.m_rect(x, 0, x, H - 1), C.BLOOD_DARK if fold in (0, 5) else C.CRIMSON if fold in (2, 3) else C.BLOOD)
-        img.paint(img.m_rect(x0, 0, x0, H - 1), C.BLACK)
-    img.dither(img.m_ellipse(298, 262, 70, 22), C.NIGHT, C.BONE_SHADE, 0.45)
-    img.dither(img.m_ellipse(298, 266, 40, 10), C.BONE_SHADE, C.BONE_DARK, 0.4)
+            img.paint(img.m_rect(x, 0, x, MH - 1), C.BLOOD_DARK if fold in (0, 5) else C.CRIMSON if fold in (2, 3) else C.BLOOD)
+        img.paint(img.m_rect(x0, 0, x0, MH - 1), C.BLACK)
+    img.dither(img.m_ellipse(MAP_MID, 326, 92, 26), C.NIGHT, C.BONE_SHADE, 0.45)
+    img.dither(img.m_ellipse(MAP_MID, 330, 52, 12), C.BONE_SHADE, C.BONE_DARK, 0.4)
     return img
 
 
 def chapter_map_lilith():
     """Down into Lilith's night: violet dark, stars, thorned vines along the edges, the moon's pale glow at the bottom."""
-    img = Img(W, H)
-    full = np.ones((H, W), bool)
-    depth = np.clip((img.ys - 20) / 250.0, 0, 1)
+    img = Img(MW, MH)
+    full = np.ones((MH, MW), bool)
+    depth = np.clip((img.ys - 20) / 340.0, 0, 1)
     img.dither(full, C.BLACK, C.VIOLET, 0.15 + 0.35 * depth)
-    glow = np.clip(1 - np.hypot((img.xs - 298) / 180.0, (img.ys - 300) / 95.0), 0, 1)
+    glow = np.clip(1 - np.hypot((img.xs - MAP_MID) / 240.0, (img.ys - 390) / 95.0), 0, 1)
     img.dither(glow > 0, C.NIGHT, C.MAUVE, glow * 0.5)
     rng = np.random.default_rng(31)
     for _ in range(40):
-        x, y = int(rng.integers(142, 464)), int(rng.integers(6, 240))
+        x, y = int(rng.integers(142, 594)), int(rng.integers(6, 330))
         img.put(x, y, C.WHITE if rng.integers(0, 4) == 0 else C.LILAC_LIGHT)
-    for x0, x1 in ((124, 136), (468, W - 1)):
-        img.paint(img.m_rect(x0, 0, x1, H - 1), C.NIGHT)
-        vine = img.m_line(bezier([((x0 + x1) // 2, 0), (x0, 90), (x1, 180), ((x0 + x1) // 2, H)], 40), 2)
+    for x0, x1 in ((124, 136), (598, MW - 1)):
+        img.paint(img.m_rect(x0, 0, x1, MH - 1), C.NIGHT)
+        vine = img.m_line(bezier([((x0 + x1) // 2, 0), (x0, 120), (x1, 240), ((x0 + x1) // 2, MH)], 50), 2)
         img.paint(vine, C.GREEN_DARK)
-        for y in range(6, H, 14):
+        for y in range(6, MH, 14):
             img.put(int(rng.integers(x0, x1 + 1)), y, C.GREEN)
             img.put(int(rng.integers(x0, x1 + 1)), y + 5, C.CRIMSON)
-        img.paint(img.m_rect(x0, 0, x0, H - 1), C.BLACK)
-    img.dither(img.m_ellipse(298, 262, 70, 22), C.NIGHT, C.LILAC, 0.4)
-    img.dither(img.m_ellipse(298, 266, 40, 10), C.LILAC, C.LILAC_LIGHT, 0.4)
+        img.paint(img.m_rect(x0, 0, x0, MH - 1), C.BLACK)
+    img.dither(img.m_ellipse(MAP_MID, 326, 92, 26), C.NIGHT, C.LILAC, 0.4)
+    img.dither(img.m_ellipse(MAP_MID, 330, 52, 12), C.LILAC, C.LILAC_LIGHT, 0.4)
     return img
 
 
