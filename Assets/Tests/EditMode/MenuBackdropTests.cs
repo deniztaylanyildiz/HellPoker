@@ -89,5 +89,48 @@ namespace HellPoker.Core.Tests
                 Assert.GreaterOrEqual(dark / (float)total, 0.8f, $"Frame {frame}: the middle column is too bright to read on.");
             }
         }
+
+        private static Texture2D LoadArt(string name)
+        {
+            string path = $"Assets/Resources/Art/Ui/{name}.png";
+            Assert.IsTrue(File.Exists(path), "py Tools/ArtGen/generate_art.py menu");
+            var texture = new Texture2D(2, 2);
+            Assert.IsTrue(texture.LoadImage(File.ReadAllBytes(path)));
+            return texture;
+        }
+
+        [Test]
+        public void LucifersThrone_IsOnlyADarkShape()
+        {
+            // Demo 3.3: far away behind the menu, his throne — steps, a spiked back, chains — never a figure: almost all of it near black.
+            Texture2D texture = LoadArt("menu");
+            Color32[] pixels = texture.GetPixels32();
+            int dark = 0, total = 0;
+            for (int y = 84; y <= 280; y++)
+            {
+                for (int x = 240; x <= 400; x++)
+                {
+                    Color32 p = pixels[(texture.height - 1 - y) * texture.width + x];
+                    if (p.r + p.g + p.b < 3 * 40) dark++;
+                    total++;
+                }
+            }
+            Assert.GreaterOrEqual(dark / (float)total, 0.9f, "The throne must stay a silhouette in the dark.");
+        }
+
+        [Test]
+        public void TheMenusOwnSprites_HaveTheirSizes()
+        {
+            // The logo fits four fifths of the screen at least once; the box is a 24 px 9-slice; the cursor 4 frames of 8; the glint 8 of 9.
+            Texture2D logo = LoadArt("menu_logo");
+            Assert.LessOrEqual(logo.width, Presentation.Ui.PixelScreen.Width * 4 / 5);
+            Assert.LessOrEqual(logo.height, 80, "The logo leaves room for the words and the box under it.");
+            Texture2D box = LoadArt("menu_box");
+            Assert.AreEqual(new Vector2Int(24, 24), new Vector2Int(box.width, box.height));
+            Texture2D cursor = LoadArt("menu_cursor");
+            Assert.AreEqual(new Vector2Int(32, 8), new Vector2Int(cursor.width, cursor.height));
+            Texture2D glint = LoadArt("menu_glint");
+            Assert.AreEqual(new Vector2Int(72, 9), new Vector2Int(glint.width, glint.height));
+        }
     }
 }

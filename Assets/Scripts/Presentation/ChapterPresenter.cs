@@ -152,6 +152,20 @@ namespace HellPoker.Presentation
         /// <summary>A run waits: in memory, or saved from an earlier session.</summary>
         public bool CanContinue => HasRun || (_archive?.HasRun ?? false);
 
+        /// <summary>Demo 3.3: the run that waits for the title menu's card — the one in memory, or the saved one; null with none.</summary>
+        public ContinueCard ContinueCard
+        {
+            get
+            {
+                if (HasRun)
+                    return new ContinueCard(_journey.Sinner.Id, _journey.Stage == JourneyStage.Lucifer ? 4 : _journey.Chapter,
+                        _run.Current == null ? 0 : _run.Current.Floor + 1, _run.Purse.Coins, _journey.Sentence.Years, _journey.Circle);
+                ChapterSave save = _archive != null && _archive.HasRun ? _archive.LoadRun() : null;
+                return save == null ? null
+                    : new ContinueCard(save.ClassId, save.Lucifer ? 4 : save.Chapter, save.Trail.Count, save.Coins, save.Sentence, save.Circle);
+            }
+        }
+
         public bool IsVisible => _visible;
 
         /// <summary>Where the run stands, for a bug report (null with no run going on): the class, circle, chapter, floor, the log's lines.</summary>

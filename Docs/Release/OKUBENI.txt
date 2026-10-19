@@ -103,7 +103,7 @@ Rozetin yanındaki noktalar gücün seviyesi (0-3); üzerine gelince gücün şu
 
 Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR: 10 kısa, resimli sayfa (oklar ya da Q / E ile gezilir; sonuncusu
 el tablosu).
-Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüde sağ üstteki TR / EN butonuyla ya da L tuşuyla değiştirirsin.
+Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüden AYARLAR ▸ DİL sekmesinde değiştirirsin (oklar ve Enter ya da tıklama).
 Poker bilmiyorsan dert etme:
   - H tuşu (ELLER / ÖDEMELER) hangi elin hangisini yendiğini ve o masada ne ödediğini gösterir.
   - Oyun elinin adını söyler ("NOW: ONE PAIR").
@@ -121,7 +121,7 @@ Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür
 KONTROLLER
 ----------
   Space / Enter   dağıt · kart değiştir · pas · karşıla (haritada: seç)
-  Oklar           haritada yol seç · el sonunda jokerin kartını seç (Soytarı) · How to Play'de sayfa çevir
+  Oklar           ana menüde düğme seç (alev imleci) · haritada yol seç · el sonunda jokerin kartını seç (Soytarı) · How to Play'de sayfa çevir
   R               artır (raise)
   F               çekil (fold)
   D               kart değiştirmeye kadar pas geç (check to draw)
@@ -129,21 +129,20 @@ KONTROLLER
   1-5             kart seç (atmak için)
   H               el sıralaması ve ödemeler
   K               Hırsız: ÇAL · diğer sınıflar: sınıfının ne yaptığı (güçler kendiliğinden çalışır)
-  L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü
   Alt+Enter       tam ekran aç / kapat
 
   Animasyon sürerken herhangi bir tuşa basarsan animasyon hızlıca biter.
-  Ayarlarda (SETTINGS / AYARLAR) üç sekme var, Q / E ya da ok tuşlarıyla geçersin:
-    OYUN: animasyon hızı, el rehberi, ipuçları, dil, dört renkli deste (kartlar varsayılan olarak klasik iki renk) ·
+  Ayarlarda (SETTINGS / AYARLAR) dört sekme var, Q / E ya da ok tuşlarıyla geçersin:
+    OYUN: animasyon hızı, el rehberi, ipuçları, dört renkli deste (kartlar varsayılan olarak klasik iki renk) ·
     GÖRÜNTÜ: tam ekran / pencere, pencere boyutu, piksel ölçeği,
-    dikey senkron · SES: ana ses, müzik, efektler.
+    dikey senkron, ekran sarsıntısı · SES: ana ses, müzik, efektler · DİL: English / Türkçe (yukarı / aşağı ve Enter ya da tıkla).
   Fareyle de oynanır: butonlara, kartlara ve haritadaki düğümlere tıkla.
 
 
 BİR SORUN OLURSA
 ----------------
-En kolayı: ana menünün sol üstündeki HATA / ÖNERİ butonu (oyunun ortasında Esc ile menüye dönersin). Hata mı öneri mi seç, birkaç
+En kolayı: ana menünün sol altındaki HATA / ÖNERİ butonu (oyunun ortasında Esc ile menüye dönersin). Hata mı öneri mi seç, birkaç
 satır yaz, GÖNDER'e bas: e-posta uygulaman caveengine@gmail.com adresine hazır bir e-postayla açılır; konusu hataysa
 "[Hell Poker HATA] ...", öneriyse "[Hell Poker ÖNERİ] ..." olur (gövdede sürüm, sınıf, daire, bölüm, kat ve koşunun son satırları). Açılmazsa rapor panoya kopyalanır; bir e-postaya yapıştırıp o adrese gönder.
 

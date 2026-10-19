@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "UnityEngine.UI",
         "HellPoker.Core",
-        "HellPoker.Presentation"
+        "HellPoker.Presentation",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

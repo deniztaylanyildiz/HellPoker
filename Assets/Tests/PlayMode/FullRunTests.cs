@@ -487,7 +487,7 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.SetString(ChapterArchive.RecordsKey, Records());
             yield return LoadScene();
             var random = new System.Random(2026);
-            string[] never = { "QuitButton", "MenuLanguageButton", "FeedbackSendButton", "MenuFeedbackButton", "LanguageRow" };
+            string[] never = { "QuitButton", "FeedbackSendButton", "MenuFeedbackButton", "SettingsLanguage" };
             for (int press = 0; press < 2000; press++)
             {
                 int roll = random.Next(100);

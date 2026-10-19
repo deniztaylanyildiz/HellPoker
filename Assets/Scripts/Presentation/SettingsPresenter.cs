@@ -11,31 +11,24 @@ namespace HellPoker.Presentation
     /// <summary>
     /// Keeps the settings screen, the saved settings and the running game in step: a press changes and saves a setting,
     /// the screen shows the new value, and the change takes effect at once (animation speed, the display, the volumes,
-    /// language). The screen has three tabs — game, display, sound — switched by their buttons or Q / E and the arrows.
-    /// Every language button (the table's, the menu's, the settings row) and the L key cycle the language here.
+    /// language). The screen has four tabs — game, display, sound, language — switched by their buttons or Q / E and the arrows.
+    /// Demo 3.3: the language changes only on the LANGUAGE tab (a list of every language by its own name: a click, or up / down and Enter);
+    /// the title menu's corner button and the L key are gone.
     /// </summary>
     public sealed class SettingsPresenter : ISettingsCommands, IDisposable
     {
         private readonly GameSettings _settings;
         private readonly ISettingsView _view;
         private readonly IDisplayMode _display;
-        private readonly ILanguageButton[] _languageButtons;
         private readonly IAudio _audio;
 
         /// <summary>The tab on show (kept while the screen is closed: it opens where the player left it).</summary>
         public SettingsTab Tab { get; private set; } = SettingsTab.Game;
 
-        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, params ILanguageButton[] languageButtons)
-            : this(settings, view, display, null, languageButtons)
-        {
-        }
-
         /// <param name="audio">The game's sound: the volumes are applied to it at once.</param>
-        /// <param name="languageButtons">Other screens with a language button (the table, the title menu).</param>
-        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, IAudio audio, params ILanguageButton[] languageButtons)
+        public SettingsPresenter(GameSettings settings, ISettingsView view, IDisplayMode display, IAudio audio = null)
         {
             _audio = audio ?? NullAudio.Instance;
-            _languageButtons = new ILanguageButton[] { view }.Concat(languageButtons ?? new ILanguageButton[0]).Where(b => b != null).ToArray();
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _display = display ?? throw new ArgumentNullException(nameof(display));
@@ -54,8 +47,7 @@ namespace HellPoker.Presentation
             _view.MusicPressed += _settings.CycleMusic;
             _view.SfxPressed += _settings.CycleSfx;
             _settings.Changed += Apply;
-            foreach (ILanguageButton button in _languageButtons)
-                button.LanguagePressed += CycleLanguage;
+            _view.LanguageChosen += ChooseLanguage;
             Lang.Changed += Apply;   // the values on the settings screen ("ON", "FAST") are words too
 
             Apply();
@@ -63,7 +55,33 @@ namespace HellPoker.Presentation
 
         public void ToggleFullscreen() => _settings.ToggleFullscreen();
 
-        public void CycleLanguage() => _settings.CycleLanguage();
+        /// <summary>The language the LANGUAGE tab's keys point at (its place in <see cref="Lang.All"/>).</summary>
+        public int LanguageCursor { get; private set; }
+
+        public bool IsLanguageTab => IsSettingsOpen && Tab == SettingsTab.Language;
+
+        public void StepLanguage(int step)
+        {
+            if (!IsLanguageTab || step == 0) return;
+            int count = Lang.All.Count;
+            LanguageCursor = ((LanguageCursor + step) % count + count) % count;
+            UiFactory.PlayClick();
+            Render();
+        }
+
+        public void ConfirmLanguage()
+        {
+            if (IsLanguageTab) ChooseLanguage(LanguageCursor);
+        }
+
+        /// <summary>A language from the list: saved, and every screen rewrites itself in it at once (<see cref="Lang.Changed"/>).</summary>
+        private void ChooseLanguage(int index)
+        {
+            if (index < 0 || index >= Lang.All.Count) return;
+            LanguageCursor = index;
+            _settings.SetLanguage(Lang.All[index]);
+            Render();
+        }
 
         public bool IsSettingsOpen => _view.IsVisible;
 
@@ -77,6 +95,7 @@ namespace HellPoker.Presentation
         {
             if (!Enum.IsDefined(typeof(SettingsTab), tab) || tab == Tab) return;
             Tab = tab;
+            if (tab == SettingsTab.Language) LanguageCursor = Math.Max(0, IndexOf(_settings.Language));
             Render();
         }
 
@@ -111,8 +130,7 @@ namespace HellPoker.Presentation
             _view.MusicPressed -= _settings.CycleMusic;
             _view.SfxPressed -= _settings.CycleSfx;
             _settings.Changed -= Apply;
-            foreach (ILanguageButton button in _languageButtons)
-                button.LanguagePressed -= CycleLanguage;
+            _view.LanguageChosen -= ChooseLanguage;
             Lang.Changed -= Apply;
         }
 
@@ -158,8 +176,18 @@ namespace HellPoker.Presentation
                 ScreenShake = _settings.ScreenShake ? UiText.On : UiText.Off,
                 Master = UiText.Volume(_settings.MasterVolume, GameSettings.MaxVolume),
                 Music = UiText.Volume(_settings.MusicVolume, GameSettings.MaxVolume),
-                Sfx = UiText.Volume(_settings.SfxVolume, GameSettings.MaxVolume)
+                Sfx = UiText.Volume(_settings.SfxVolume, GameSettings.MaxVolume),
+                Languages = Lang.All.Select(Lang.NativeName).ToArray(),
+                LanguageSelected = IndexOf(_settings.Language),
+                LanguageCursor = LanguageCursor
             });
+        }
+
+        private static int IndexOf(Language language)
+        {
+            for (int i = 0; i < Lang.All.Count; i++)
+                if (Lang.All[i] == language) return i;
+            return -1;
         }
     }
 }

@@ -15,6 +15,18 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Demo 3.3** (etiket `v3.3-demo`, bundleVersion **3.3.0-demo**): **dil Ayarlar'da** — `SettingsTab.Language` dördüncü sekme (liste
+`Lang.All`, her dil kendi adıyla `Lang.NativeName`; satırlar `SettingsLanguage<i>`, seçili olanda piksel ok + altın çerçeve; tık
+`ISettingsView.LanguageChosen`, klavye `ISettingsCommands.IsLanguageTab / StepLanguage / ConfirmLanguage`); menünün dil düğmesi,
+`ILanguageButton`, `CycleLanguage` komutu ve L tuşu yok (`GameSettings.CycleLanguage` testler için duruyor). **Ana menü** (`MainMenuView`):
+logo `Ui/menu_logo` (yoksa `Ui/title`; oturumda bir kez yukarıdan düşer — batchmode'da yok —, bir tuş / tık yerine koyar; sonra `Ui/menu_glint`
+harf üstlerinde), düğmeler `Ui/menu_box` (9-slice, Tiled) içinde iki sütun (tek sütun 7 × 32 px logonun altına sığmıyor), alev imleci
+`Ui/menu_cursor` (düğmenin 12 px solu; `IMenuCommands.MoveMenuSelection / PressMenuSelection` → `IMainMenuView.MoveSelection /
+PressSelection`; fare `ButtonFeel.Entered` ile imleci taşır; `ButtonFeel.Selected / LightUp`: yanınca kor derisi + yazı 1 px yukarı),
+devam kartı (`ContinueCard`, `IChapterSession.ContinueCard`, `IMainMenuView.SetContinueCard`, `UiText.ContinueCardLines`; simülatörde yok),
+HATA / ÖNERİ sol altta, simülatörün yazısı DEMO'nun yerinde. Zemin `pixel_menu.py` yeniden çizildi (aşağıdaki **Ana menü zemini**).
+PlayMode testleri test klavyesi ekler (`MenuGridTests.Tap`: `InputSystem.AddDevice<Keyboard>`, odak yokken `IgnoreFocus`).
+
 **Demo 3.2** (etiket `v3.2-demo`): **masa düzeni** `Views/TableLayout` (tek yer; `TableLayoutKind` Simulator / Chapter, ekran boyundan ve
 blok boylarından hesaplanır; `ITableView.SetLayout`, presenter masaya otururken çağırır). Bölüm masası: şeytan sütunu sağ üstte
 (`TableLayout.RightX` = W − 4 − 104: `DealerView`, `MaliceView` — niyet hover'ı sola —, `BossBarWidget` adın altında, bardan yükselen yüzde
@@ -39,7 +51,7 @@ başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
 yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.2-win64.zip` (bundleVersion **3.2.0-demo**: menüde "Demo 3.2" + DEMO
-etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
+etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol altında (Demo 3.3) HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
 da kopyalanır; kutu açıkken klavye sadece Esc'i dinler.
@@ -367,9 +379,10 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Rekorlar** (`RecordBook`, `run.records`):
   - koşu, aklanma, lanet, şeytan başına aklanma (Lucifer'de biten koşu gelinen şeytana yazılır), en hızlı aklanma;
   - Lucifer'e ulaşma, Lucifer'i yenme, en az denemede yenme, Wild Bill kaçışları (satırlar isteğe bağlı, eski defter okunur).
-- **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): üç sekme, sekme butonları ya da **Q / E** (sol / sağ ok) ile döner, Esc menüye döner,
+- **Ayarlar** (`GameSettings`, PlayerPrefs `settings.*`): dört sekme (OYUN, GÖRÜNTÜ, SES, DİL), sekme butonları ya da **Q / E** (sol / sağ ok) ile döner, Esc menüye döner,
   satırlar 30 px, OYUN sekmesinde DÖRT RENKLİ DESTE de (`SettingsView`, `SettingsPresenter.Tab`, `ISettingsCommands.NextTab / PreviousTab / IsSettingsOpen`):
-  - **OYUN:** animasyon hızı, el rehberi, ipuçları, **dil** (`settings.language`, adıyla).
+  - **OYUN:** animasyon hızı, el rehberi, ipuçları, dört renkli deste.
+  - **DİL** (Demo 3.3): diller listesi (`settings.language`, adıyla; yukarı / aşağı + Enter ya da tık).
   - **GÖRÜNTÜ:** GÖRÜNTÜ MODU tam ekran (kenarlıksız) / pencere (Alt+Enter; `settings.display.mode` 0 / 1; eski `settings.fullscreen`
     taşınır ve hâlâ yazılır); PENCERE BOYUTU OTOMATİK (varsayılan, ekranın %85'ine sığan en büyük kat) ya da ×2'den ekrana sığan en büyük
     kata kadar (`WindowScales`: yükseklik %92 — başlık çubuğu ve görev çubuğu; sığmayan kat listede yok, kaydedilmiş ama sığmayan kat
@@ -393,10 +406,9 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
   - İlk açılış (kayıtlı dil yok): `Application.systemLanguage` Türkçe ise Türkçe, değilse İngilizce
     (`HellPokerBootstrap.FirstLanguageFor`); sonra kayıtlı seçim. Batchmode'da ilk dil hep İngilizce; EditMode testleri
     `EnglishByDefault` (SetUpFixture) ile İngilizce başlar, dili değiştiren test TearDown'da geri alır.
-  - Değiştirme **sadece ana menüden**: menünün sağ üst köşesindeki küçük buton (gideceği dili gösterir: "TR" / "EN"), Ayarlar'daki
-    DİL / LANGUAGE satırı (Ayarlar ana menüden açılır) ve **L** tuşu — L yalnızca menünün kök ekranında (`IMenuCommands.IsAtMenuRoot`:
-    uyarı ya da kurallar açık değilken) çalışır; masada, onay kutularında, alt ekranlarda hiçbir şey yapmaz. Masada dil butonu yok
-    (`ITableView` `ILanguageButton` değil). Hepsi `SettingsPresenter.CycleLanguage` → kayıt → `Lang.Changed`.
+  - Değiştirme **sadece Ayarlar ▸ DİL**'de (Demo 3.3; Ayarlar ana menüden açılır): liste `Lang.All`, her dil kendi adıyla. Menüde dil
+    düğmesi ve L tuşu yok; masada dil düğmesi yok. `SettingsPresenter.ChooseLanguage` → `GameSettings.SetLanguage` → kayıt → `Lang.Changed`.
+    Yeni dil: `Language` enum'una + `Lang.All` / `NativeName`'e bir satır (liste kendiliğinden uzar).
   - Güncelleme, sahne yeniden yüklenmez: sabit etiketler `UiFactory.Localized(() => UiText.X)` (`LocalizedText`; OnEnable'da ve
     `Lang.Changed`'da yeniden yazar). Dil masa görünmezken değişir; `TablePresenter.OnLanguageChanged` koşu sürüyorsa metinleri
     **sessizce** yeniler: şeytanın adı / unvanı (`IDealerView.Relabel`), ödeme tablosu, ceza satırı, mesaj, butonlar (`_relabelling`
@@ -826,9 +838,14 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
   - Değişim anında eski masanın son anlar / çıkış butonu sıfırlanır. Atlama çalışır, anında değişim `Abort` eder.
 - Importer 2048 px'ten geniş dokuyu küçültür: her şerit ≤ 2048 px (katmanlı zemin bu yüzden var).
 - **Ana menü zemini** (`Ui/menu.png` tek kare + `menu_*` katmanları + `menu_motion.txt`, `pixel_menu.py`):
-  - Konu: cehennemin dibi. Gökte Lucifer'in kanatları ve logonun üstünde iki gözü (o kadar), ufukta ateş denizi ve yanan şehir.
-  - Kenarlarda Mammon'un altını / sandığı, Lilith'in hilali, Belial'in yılanlı sütunu, Dead Man's Hand kartları.
-  - Orta sütun (x 70-410, y 25-260) iki adım koyulaştırılmış, altındaki ateş denizi sakin. `MenuBackdropTests` en az %80 koyu ister.
+  - Konu (Demo 3.3): cehennemin dibinde bir kumarhane, doğrudan 640×360. Uzakta Lucifer'in tahtı (basamaklar, dikenli sırt, zincirler;
+    kızıl, koyu bir parıltının önünde kara silüet — `MenuBackdropTests.LucifersThrone...` %90 koyu ister) ve en üstte iki göz (12 karede bir
+    kırpar), ateş denizi (kenarları dalgalanır: `fire_left/right`), uzak alev dilleri (`flames_*`), iki katmanlı yanan şehir, kızıl bulutlar
+    (yanlarda 2 px salınır), solda Mammon'un altın yığını, sandığı ve terazisi (parıltılar), sağda Belial'in perdesi ve yılanlı sütunu
+    (yılan kıvrılır), Lilith'in hilali (önünden yarasa geçer), sağ altta yere gömülü A♠ A♣ 8♠ 8♣, kaya kemer, köşelerde sallanan zincirler,
+    düşen kıvılcımlar, logonun arkasında üç parçalı kızıl hale. Ayrıca `menu_logo`, `menu_box`, `menu_cursor`, `menu_glint`.
+  - Orta sütun koyulaştırılmış (`quiet_middle`), altındaki ateş denizi sakin. `MenuBackdropTests` en az %80 koyu ister. `MENU_TEXT`: DEMO,
+    yazılar, kutu + imleç, devam kartı, alt satır, sürüm, HATA / ÖNERİ.
   - `MenuBackdrop.Create` menü, ayarlar ve rekorlar ekranında oynar (kurallar menü canvas'ında, zemin arkada kalır).
     Yedek zinciri: `Ui/menu` → `Ui/background` → düz renk (`MenuBackdropLibrary`). Sağ alt köşede sürüm (`Application.version`).
 - **FPS:** development build'de (ve editörde) F3 sol üstte FPS (ortalama + en yavaş kare) gösterir. Hedef sabit 60 (vSync).
@@ -903,7 +920,7 @@ Builds\WindowsDev\HellPoker.exe -fpstour -screen-fullscreen 0 -screen-width 1920
 
 Editör açıkken: Window ▸ General ▸ Test Runner. Oynamak için menüden **Hell Poker ▸ Play** (Ctrl+Shift+P)
 ya da `Assets/Scenes/HellPoker.unity` → Play.
-Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K sınıf gücünü kullan (Kral: kart seç), C karşıla, F çekil, 1-5 kart seç, H el tablosu, L dil (sadece ana menüde), Q / E (ya da oklar) ayar sekmeleri, Esc bir üst ekran,
+Kısayollar: Space/Enter dağıt · çek · pas · karşıla, R artır, D check to draw, K sınıf gücünü kullan (Kral: kart seç), C karşıla, F çekil, 1-5 kart seç, H el tablosu, oklar + Enter ana menüde düğme seç, Q / E (ya da oklar) ayar sekmeleri, Esc bir üst ekran,
 Alt+Enter tam ekran. Animasyon sürerken herhangi bir tuş / tık animasyonu atlatır.
 
 Git: GitHub Desktop kullanılıyor (`git` PATH'te yok). Remote: https://github.com/deniztaylanyildiz/HellPoker

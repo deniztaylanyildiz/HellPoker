@@ -7,8 +7,9 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// Keyboard shortcuts: Esc one screen up, Alt+Enter full screen; at the table Space/Enter main action, pass or call,
-    /// R raise, D check to draw, S shuffle (between hands), K the class's power (the King: protect a card), C call, F fold, 1-5 pick cards, H hand ranks, the arrows the joker picker; L the language, on the title menu only;
-    /// Q / E or the arrows switch the settings' tabs. While the table animates any of them hurries the animation instead.
+    /// R raise, D check to draw, S shuffle (between hands), K the class's power (the King: protect a card), C call, F fold, 1-5 pick cards, H hand ranks, the arrows the joker picker;
+    /// Q / E or the left / right arrows switch the settings' tabs, up / down and Enter pick in its LANGUAGE tab (Demo 3.3: no L key any more);
+    /// on the title menu the arrows move its cursor and Enter / Space press the button under it. While the table animates any of them hurries the animation instead.
     /// Nothing is read while a screen change plays.
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
@@ -84,6 +85,9 @@ namespace HellPoker.Presentation
             {
                 if (keyboard.qKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame) _settings.PreviousTab();
                 else if (keyboard.eKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame) _settings.NextTab();
+                else if (_settings.IsLanguageTab && keyboard.upArrowKey.wasPressedThisFrame) _settings.StepLanguage(-1);
+                else if (_settings.IsLanguageTab && keyboard.downArrowKey.wasPressedThisFrame) _settings.StepLanguage(1);
+                else if (_settings.IsLanguageTab && (enter || keyboard.spaceKey.wasPressedThisFrame)) _settings.ConfirmLanguage();
                 return;
             }
 
@@ -95,17 +99,21 @@ namespace HellPoker.Presentation
                 return;
             }
 
-            // The language changes on the title menu only — never at the table, under a warning or on a sub-screen.
-            if (keyboard.lKey.wasPressedThisFrame && _menu.IsAtMenuRoot)
-            {
-                _settings?.CycleLanguage();
-                return;
-            }
-
             // F9 on the title menu: the Boss Simulator (the old demo, a developer's mode) — or back to the game.
             if (keyboard.f9Key.wasPressedThisFrame && _menu.IsAtMenuRoot)
             {
                 _menu.ToggleSimulator();
+                return;
+            }
+
+            // Demo 3.3: the title menu's cursor — the arrows move it, Enter / Space press the button under it.
+            if (_menu.IsAtMenuRoot)
+            {
+                if (keyboard.leftArrowKey.wasPressedThisFrame) _menu.MoveMenuSelection(-1, 0);
+                else if (keyboard.rightArrowKey.wasPressedThisFrame) _menu.MoveMenuSelection(1, 0);
+                else if (keyboard.upArrowKey.wasPressedThisFrame) _menu.MoveMenuSelection(0, -1);
+                else if (keyboard.downArrowKey.wasPressedThisFrame) _menu.MoveMenuSelection(0, 1);
+                else if (keyboard.spaceKey.wasPressedThisFrame || enter) _menu.PressMenuSelection();
                 return;
             }
 

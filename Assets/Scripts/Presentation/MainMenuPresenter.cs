@@ -584,7 +584,19 @@ namespace HellPoker.Presentation
             _chapterChoice = false;
             _menu.SetSimulator(InSimulator);
             _menu.Show(CanContinue);
+            // Demo 3.3: the game's run that waits, on a card beside CONTINUE (the Boss Simulator's has none).
+            _menu.SetContinueCard(CanContinue && !InSimulator ? _chapters?.ContinueCard : null);
             Curtain();
+        }
+
+        public void MoveMenuSelection(int dx, int dy)
+        {
+            if (IsAtMenuRoot) _menu.MoveSelection(dx, dy);
+        }
+
+        public void PressMenuSelection()
+        {
+            if (IsAtMenuRoot) _menu.PressSelection();
         }
 
         // ------------------------------------------------------------------ the game, or the Boss Simulator

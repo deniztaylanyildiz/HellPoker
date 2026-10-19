@@ -26,9 +26,16 @@ namespace HellPoker.Core.Tests
 
             public void SetSimulator(bool simulator) => Simulator = simulator;
             public event Action Confirmed;
-            public event Action LanguagePressed;
 
-            public void PressLanguage() => LanguagePressed?.Invoke();
+            /// <summary>Demo 3.3: the run that waits, as the card beside CONTINUE shows it (null: no card).</summary>
+            public ContinueCard Card { get; private set; }
+            public void SetContinueCard(ContinueCard card) => Card = card;
+
+            /// <summary>The cursor's moves and presses the keys made (Demo 3.3).</summary>
+            public List<(int dx, int dy)> Moves { get; } = new List<(int, int)>();
+            public int Presses { get; private set; }
+            public void MoveSelection(int dx, int dy) => Moves.Add((dx, dy));
+            public void PressSelection() => Presses++;
 
             public void PressRecords() => RecordsPressed?.Invoke();
 
@@ -220,14 +227,14 @@ namespace HellPoker.Core.Tests
             public event Action HandGuidePressed;
             public event Action ResetTipsPressed;
             public event Action BackPressed;
-            public event Action LanguagePressed;
+            public event Action<int> LanguageChosen;
             public event Action MasterPressed;
             public event Action MusicPressed;
             public event Action SfxPressed;
             public void PressMusic() => MusicPressed?.Invoke();
             public void PressSfx() => SfxPressed?.Invoke();
             public void PressMaster() => MasterPressed?.Invoke();
-            public void PressLanguage() => LanguagePressed?.Invoke();
+            public void ChooseLanguage(int index) => LanguageChosen?.Invoke(index);
             public void PressTab(SettingsTab tab) => TabPressed?.Invoke(tab);
             public void PressWindowScale() => WindowScalePressed?.Invoke();
             public void PressPixelScale() => PixelScalePressed?.Invoke();

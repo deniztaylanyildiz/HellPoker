@@ -41,6 +41,7 @@ namespace HellPoker.Core.Tests
         {
             public bool HasRun { get; set; }
             public bool CanContinue => HasRun;
+            public ContinueCard ContinueCard => HasRun ? new ContinueCard(Core.Sinners.Peasant.ClassId, 1, 2, 90, 6500, 0) : null;
             public Core.Chapters.ChapterRecords Records { get; } = new Core.Chapters.ChapterRecords();
             public bool IsVisible { get; private set; }
             public string MusicId => "mammon";
@@ -266,6 +267,34 @@ private MainMenuPresenterTests.FakeMenuView _menu;
             Assert.AreEqual(Presentation.Ui.UiText.CircleNote(2), _sinners.Note, "its rules under the title");
             _sinners.Choose(0);
             Assert.AreEqual(2, _chapters.StartedCircle);
+        }
+
+        [Test]
+        public void TheMenusCard_IsTheRunThatWaits_AndNoneWithoutOne()
+        {
+            Assert.IsNull(_menu.Card, "no run, no card");
+            _menu.PressNewGame();
+            _sinners.Choose(0);
+            _chapters.AskForMenu();
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsNotNull(_menu.Card, "the card beside CONTINUE");
+            Assert.AreEqual(Peasant.ClassId, _menu.Card.ClassId);
+            Assert.AreEqual(90, _menu.Card.Coins);
+        }
+
+        [Test]
+        public void TheArrowsAndEnter_ReachTheMenusCursor_OnlyOnItsRoot()
+        {
+            _presenter.MoveMenuSelection(1, 0);
+            _presenter.PressMenuSelection();
+            CollectionAssert.AreEqual(new[] { (1, 0) }, _menu.Moves);
+            Assert.AreEqual(1, _menu.Presses);
+
+            _menu.PressNewGame();   // the class choice is open: the menu's cursor is not there
+            _presenter.MoveMenuSelection(0, 1);
+            _presenter.PressMenuSelection();
+            Assert.AreEqual(1, _menu.Moves.Count);
+            Assert.AreEqual(1, _menu.Presses);
         }
     }
 }

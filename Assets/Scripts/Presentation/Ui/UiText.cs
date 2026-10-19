@@ -93,6 +93,30 @@ namespace HellPoker.Presentation.Ui
         public static string Back => L("BACK", "GERİ");
         public static string MenuFooter => L("Esc — menu", "Esc — menü");
 
+        // Demo 3.3: the card of the run that waits, beside CONTINUE (under the class's name).
+        public static string ContinueCardChapterFormat => L("CHAPTER {0}", "{0}. BÖLÜM");
+        public static string ContinueCardFloorFormat => L("FLOOR {0}", "{0}. KAT");
+        public static string ContinueCardLucifer => L("AT LUCIFER'S TABLE", "SABAH YILDIZI'NDA");
+        public static string ContinueCardCoinsFormat => L("{0} COINS", "{0} COIN");
+        public static string ContinueCardSentenceFormat => L("{0} YEARS LEFT", "{0} YIL CEZA");
+
+        /// <summary>The card's lines: where the run stands, its purse, its sentence (when kept) and its circle (above 0).</summary>
+        public static string ContinueCardLines(int chapter, int floor, int coins, int sentence, int circle)
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            if (chapter >= 4)
+                lines.Add(ContinueCardLucifer);
+            else
+            {
+                lines.Add(string.Format(ContinueCardChapterFormat, chapter));
+                if (floor > 0) lines.Add(string.Format(ContinueCardFloorFormat, floor));
+            }
+            lines.Add(string.Format(ContinueCardCoinsFormat, coins));
+            if (sentence >= 0) lines.Add(string.Format(ContinueCardSentenceFormat, sentence));
+            if (circle > 0) lines.Add(string.Format(CircleLabelFormat, circle));
+            return string.Join("\n", lines);
+        }
+
         /// <summary>The build's version in the menu's corner ("v0.1.1").</summary>
         /// <summary>Under the title of a demo build (the same in both languages).</summary>
         public static string DemoLabel => L("DEMO", "DEMO");
@@ -320,6 +344,8 @@ namespace HellPoker.Presentation.Ui
         public static string SettingsTabGame => L("GAME", "OYUN");
         public static string SettingsTabDisplay => L("DISPLAY", "GÖRÜNTÜ");
         public static string SettingsTabSound => L("SOUND", "SES");
+        public static string SettingsTabLanguage => L("LANGUAGE", "DİL");
+        public static string SettingsLanguageListHint => L("Click a language, or the up / down arrows and Enter.", "Bir dile tıkla ya da yukarı / aşağı oklar ve Enter.");
         public static string SettingsTabsHint => L("Q / E or the arrow keys switch tabs. Esc: back.", "Q / E ya da ok tuşları sekmeyi değiştirir. Esc: geri.");
 
         public static string SettingWindowMode => L("DISPLAY MODE", "GÖRÜNTÜ MODU");
@@ -344,8 +370,6 @@ namespace HellPoker.Presentation.Ui
             "Elinin adını söyler, hangi kartları tutacağını gösterir.");
         public static string SettingTips => L("FIRST-GAME TIPS", "İLK OYUN İPUÇLARI");
         public static string SettingTipsHint => L("The dealers explain each new moment once.", "Şeytanlar her yeni anı bir kez anlatır.");
-        public static string SettingLanguage => L("LANGUAGE / DİL", "DİL / LANGUAGE");
-        public static string SettingLanguageHint => L("On the title menu, L switches it too.", "Ana menüde L tuşu da değiştirir.");
         public static string SettingFourColor => L("FOUR-COLOUR DECK", "DÖRT RENKLİ DESTE");
         public static string SettingFourColorHint => L("Spades black, hearts red, clubs green, diamonds blue.", "Maça siyah, kupa kırmızı, sinek yeşil, karo mavi.");
         public static string SettingMusic => L("MUSIC", "MÜZİK");
@@ -364,7 +388,6 @@ namespace HellPoker.Presentation.Ui
         public static string LanguageName(Language language) => language == Language.Turkish ? "TÜRKÇE" : "ENGLISH";
 
         /// <summary>The language button's label: the one a press switches to.</summary>
-        public static string LanguageButton => L("TR", "EN");
 
         public static string SpeedName(HellPoker.Presentation.Settings.AnimationSpeed speed)
         {

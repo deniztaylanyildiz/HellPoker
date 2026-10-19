@@ -31,7 +31,6 @@ namespace HellPoker.Presentation.Views
         private Text _speed;
         private Text _handGuide;
         private Text _tips;
-        private Text _language;
         private Text _fourColor;
         private ButtonFeel _tipsFeel;
         private Text _windowMode;
@@ -50,7 +49,7 @@ namespace HellPoker.Presentation.Views
         public event Action HandGuidePressed;
         public event Action ResetTipsPressed;
         public event Action FourColorPressed;
-        public event Action LanguagePressed;
+        public event Action<int> LanguageChosen;
         public event Action FullscreenPressed;
         public event Action WindowScalePressed;
         public event Action PixelScalePressed;
@@ -86,6 +85,7 @@ namespace HellPoker.Presentation.Views
             Tab(screen, SettingsTab.Game, "SettingsTabGame", () => UiText.SettingsTabGame);
             Tab(screen, SettingsTab.Display, "SettingsTabDisplay", () => UiText.SettingsTabDisplay);
             Tab(screen, SettingsTab.Sound, "SettingsTabSound", () => UiText.SettingsTabSound);
+            Tab(screen, SettingsTab.Language, "SettingsTabLanguage", () => UiText.SettingsTabLanguage);
 
             Transform game = Page(screen, SettingsTab.Game);
             _speed = Row(game, 0, () => UiText.SettingSpeed, () => UiText.SettingSpeedHint, "SpeedButton", () => SpeedPressed?.Invoke(), out _);
@@ -94,9 +94,8 @@ namespace HellPoker.Presentation.Views
             _tips = Row(game, 2, () => UiText.SettingTips, () => UiText.SettingTipsHint, "ResetTipsButton", () => ResetTipsPressed?.Invoke(),
                 out Button tips);
             _tipsFeel = tips.GetComponent<ButtonFeel>();
-            _language = Row(game, 3, () => UiText.SettingLanguage, () => UiText.SettingLanguageHint, "SettingsLanguageButton",
-                () => LanguagePressed?.Invoke(), out _);
-            _fourColor = Row(game, 4, () => UiText.SettingFourColor, () => UiText.SettingFourColorHint, "FourColorButton",
+            // Demo 3.3: the language has its own tab; the rows close up.
+            _fourColor = Row(game, 3, () => UiText.SettingFourColor, () => UiText.SettingFourColorHint, "FourColorButton",
                 () => FourColorPressed?.Invoke(), out _);
 
             Transform display = Page(screen, SettingsTab.Display);
@@ -111,6 +110,10 @@ namespace HellPoker.Presentation.Views
             _vSync = Row(display, 3, () => UiText.SettingVSync, () => UiText.SettingVSyncHint, "VSyncButton", () => VSyncPressed?.Invoke(), out _);
             _screenShake = Row(display, 4, () => UiText.SettingScreenShake, () => UiText.SettingScreenShakeHint, "ScreenShakeButton",
                 () => ScreenShakePressed?.Invoke(), out _);
+
+            _languagePage = Page(screen, SettingsTab.Language);
+            UiFactory.CreateText("LanguageHint", _languagePage, "", 8, Palette.BoneDark, TextAnchor.MiddleCenter).Localized(() => UiText.SettingsLanguageListHint)
+                .rectTransform.PlaceTL(32, RowsTop - 4, PixelScreen.Width - 64, 9);
 
             Transform sound = Page(screen, SettingsTab.Sound);
             _master = Row(sound, 0, () => UiText.SettingMaster, () => UiText.SettingMasterHint, "MasterButton", () => MasterPressed?.Invoke(), out _);
@@ -131,7 +134,8 @@ namespace HellPoker.Presentation.Views
         private void Tab(Transform screen, SettingsTab tab, string name, Func<string> label)
         {
             int count = _tabs.Count;
-            int left = (PixelScreen.Width - 3 * TabWidth - 2 * TabGap) / 2;
+            int tabs = Enum.GetValues(typeof(SettingsTab)).Length;
+            int left = (PixelScreen.Width - tabs * TabWidth - (tabs - 1) * TabGap) / 2;
             Button button = UiFactory.CreateButton(name, screen, "", 8, out Text text, ButtonSkin.Ember);
             text.Localized(label);
             ((RectTransform)button.transform).PlaceTL(left + count * (TabWidth + TabGap), TabsTop, TabWidth, 18);
@@ -173,7 +177,6 @@ namespace HellPoker.Presentation.Views
             _handGuide.text = screen.HandGuide ? UiText.On : UiText.Off;
             _tips.text = screen.TipsLeft ? UiText.ResetTips : UiText.TipsFresh;
             _tipsFeel.Locked = !screen.TipsLeft;
-            _language.text = screen.Language;
             _fourColor.text = screen.FourColor ? UiText.On : UiText.Off;
             _windowMode.text = screen.WindowMode;
             _windowScale.text = screen.WindowScale;
@@ -185,6 +188,61 @@ namespace HellPoker.Presentation.Views
             _master.text = screen.Master;
             _music.text = screen.Music;
             _sfx.text = screen.Sfx;
+            RenderLanguages(screen);
+        }
+
+        // ------------------------------------------------------------------ the LANGUAGE tab (Demo 3.3)
+
+        private const int LanguageWidth = 192, LanguageHeight = 20;
+        private Transform _languagePage;
+        private readonly List<(Button button, Text label, GameObject arrow, Outline frame)> _languageRows = new List<(Button, Text, GameObject, Outline)>();
+
+        /// <summary>The language list's rows (for tests): each language's button, by its place in the list.</summary>
+        public IReadOnlyList<Button> LanguageButtons => _languageRows.ConvertAll(r => r.button);
+
+        /// <summary>Which row the arrow marks (the language on), for tests.</summary>
+        public int LanguageMarked { get; private set; } = -1;
+
+        /// <summary>
+        /// Every language by its own name, in its own words, one under the other: the one on carries a pixel arrow and a gold frame, the one the
+        /// keys point at is bright (the others dull). The rows come from the screen's list — a new language is a new row, not a new button here.
+        /// </summary>
+        private void RenderLanguages(SettingsScreen screen)
+        {
+            IReadOnlyList<string> names = screen.Languages ?? new string[0];
+            while (_languageRows.Count < names.Count) _languageRows.Add(LanguageRow(_languageRows.Count));
+            for (int i = 0; i < _languageRows.Count; i++)
+            {
+                var (button, label, arrow, frame) = _languageRows[i];
+                bool shown = i < names.Count;
+                button.gameObject.SetActive(shown);
+                if (!shown) continue;
+                label.text = names[i];
+                bool marked = i == screen.LanguageSelected;
+                arrow.SetActive(marked);
+                frame.effectColor = marked ? Palette.GoldLight : Palette.Black;
+                button.GetComponent<ButtonFeel>().Locked = i != screen.LanguageCursor;
+            }
+            LanguageMarked = screen.LanguageSelected;
+        }
+
+        private (Button, Text, GameObject, Outline) LanguageRow(int index)
+        {
+            int x = (PixelScreen.Width - LanguageWidth) / 2, y = RowsTop + 12 + index * RowHeight;
+            Button button = UiFactory.CreateButton("SettingsLanguage" + index, _languagePage, "", 8, out Text label, ButtonSkin.Ember);
+            ((RectTransform)button.transform).PlaceTL(x, y, LanguageWidth, LanguageHeight);
+            button.onClick.AddListener(() => LanguageChosen?.Invoke(index));
+            Outline frame = UiFactory.AddBorder(button.gameObject, Palette.Black, 1f);
+            // A pixel arrow pointing at the language that is on: a 4×7 triangle, whole pixels.
+            RectTransform arrow = UiFactory.CreateRect("Marked", button.transform).PlaceTL(-10, (LanguageHeight - 7) / 2, 4, 7);
+            int[] widths = { 1, 2, 3, 4, 3, 2, 1 };
+            for (int row = 0; row < widths.Length; row++)
+            {
+                Image pixel = UiFactory.CreateImage("Row" + row, arrow, Palette.GoldLight);
+                pixel.raycastTarget = false;
+                pixel.rectTransform.PlaceTL(0, row, widths[row], 1);
+            }
+            return (button, label, arrow.gameObject, frame);
         }
 
         public void Show()

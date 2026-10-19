@@ -102,7 +102,7 @@ namespace HellPoker.Presentation
                 () => string.Format(UiText.RulesFormat, table.StartingYears, table.SoulThreshold, table.ForcedRaiseYears, table.Stakes.TableCapPercent,
                     table.LuciferGateYears, table.LuciferCastDownYears, DealerRoster.LuciferUnit, DealerRoster.LuciferCap),
                 DealerRoster.Mammon.Payouts, UiText.CheatsPage, UiText.SinnersPage);
-            _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode(), audio, menu);
+            _settingsPresenter = new SettingsPresenter(settings, settingsView, new UnityDisplayMode(), audio);
             DealerSelectView dealerSelect = DealerSelectView.Create(transform, UiArt.Dealers, UiArt.Salons);
             SinnerSelectView sinnerSelect = SinnerSelectView.Create(transform, UiArt.Salons);
             EndScreenView endScreen = EndScreenView.Create(transform, UiArt.Dealers);

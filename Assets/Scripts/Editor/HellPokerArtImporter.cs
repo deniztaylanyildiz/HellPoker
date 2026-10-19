@@ -28,6 +28,7 @@ namespace HellPoker.Editor
             { "button_blood", new Vector4(4, 4, 4, 4) },
             { "button_ember", new Vector4(4, 4, 4, 4) },
             { "button_ash", new Vector4(4, 4, 4, 4) },
+            { "menu_box", new Vector4(4, 4, 4, 4) },   // Demo 3.3: the title menu's iron frame (riveted corners; the middle tiles)
         };
 
         private void OnPreprocessTexture()

@@ -1,8 +1,10 @@
+using System;
 using System.Collections;
 using System.Linq;
 using System.Text;
 using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
+using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
 using UnityEngine;
 using UnityEngine.UI;
@@ -82,12 +84,54 @@ namespace HellPoker.Presentation
             yield return null;
         }
 
+        private static IEnumerator Shot(string name)
+        {
+            string folder = System.IO.Path.Combine(Application.persistentDataPath, "tour");
+            System.IO.Directory.CreateDirectory(folder);
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(folder, name + ".png"));
+            yield return new WaitForEndOfFrame();
+            yield return null;
+        }
+
+        /// <summary>
+        /// Demo 3.3: the title menu has no language button and a cursor; Settings ▸ LANGUAGE lists the languages and a choice rewrites the
+        /// screen (the tour picks the other language, looks, and puts the player's back). One log line ("Hell Poker menu ...") and two
+        /// screenshots in persistentDataPath/tour.
+        /// </summary>
+        private IEnumerator CheckTheMenu()
+        {
+            MainMenuView menu = FindFirstObjectByType<MainMenuView>();
+            bool languageButton = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None).Any(b => b.name == "MenuLanguageButton");
+            bool card = menu != null && menu.ContinueCardShown;
+            string cursor = menu?.SelectedButton;
+            yield return Shot("menu");
+            Press("SettingsButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+            Press("SettingsTabLanguage");
+            yield return new WaitForSecondsRealtime(0.3f);
+            int rows = FindObjectsByType<Button>(FindObjectsSortMode.None).Count(b => b.name.StartsWith("SettingsLanguage", StringComparison.Ordinal));
+            Language before = Lang.Current;
+            int other = Lang.All.ToList().IndexOf(before) == 0 ? 1 : 0;
+            Press("SettingsLanguage" + other);
+            yield return new WaitForSecondsRealtime(0.3f);
+            string tab = FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(b => b.name == "SettingsTabLanguage")?.GetComponentInChildren<Text>().text;
+            yield return Shot("settings_language");
+            Language chosen = Lang.Current;
+            Press("SettingsLanguage" + Lang.All.ToList().IndexOf(before));
+            yield return new WaitForSecondsRealtime(0.3f);
+            Debug.Log($"Hell Poker menu {Application.version}: language button {languageButton}, cursor on {cursor}, " +
+                      $"continue card {card}, languages {rows}, chose {chosen} (tab '{tab}'), back to {Lang.Current}");
+            Press("SettingsBackButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+        }
+
         private IEnumerator Tour()
         {
             _report.AppendLine($"Hell Poker FPS tour — {Screen.width}×{Screen.height}, vSync {QualitySettings.vSyncCount}, " +
                                $"target {Application.targetFrameRate}, {SystemInfo.graphicsDeviceName}");
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("menu");
+            yield return CheckTheMenu();
 
             // The game first: a saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE).
             if (_chapters != null)

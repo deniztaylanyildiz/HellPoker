@@ -2,7 +2,7 @@ using System;
 
 namespace HellPoker.Presentation.Abstractions
 {
-    public interface IMainMenuView : ILanguageButton
+    public interface IMainMenuView
     {
         event Action NewGamePressed;
         event Action ContinuePressed;
@@ -41,6 +41,16 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Shows the menu; Continue and Change Table only when a run is in progress.</summary>
         void Show(bool canContinue);
+
+        /// <summary>Demo 3.3: the card beside CONTINUE — the run that waits, in short; null: no card.</summary>
+        void SetContinueCard(ContinueCard card);
+
+        /// <summary>Demo 3.3: the arrows on the title menu move its cursor from button to button (<paramref name="dx"/> across the columns,
+        /// <paramref name="dy"/> down the rows).</summary>
+        void MoveSelection(int dx, int dy);
+
+        /// <summary>Demo 3.3: Enter / Space on the title menu press the button under the cursor.</summary>
+        void PressSelection();
 
         void Hide();
     }

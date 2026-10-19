@@ -46,11 +46,49 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
+        private bool _selected;
+        private bool _lifts;
+        private Sprite _sprite;
+        private Sprite _hotSprite;
+
+        /// <summary>Demo 3.3: the keys' cursor is on it (the title menu): it looks as it does under the mouse.</summary>
+        public bool Selected
+        {
+            get => _selected;
+            set
+            {
+                if (_selected == value) return;
+                _selected = value;
+                Apply();
+            }
+        }
+
+        /// <summary>True while it is lit: under the mouse or the cursor (for tests).</summary>
+        public bool Lit => (_hover || _selected) && !_locked;
+
+        /// <summary>Demo 3.3: the mouse came over it (the title menu moves its cursor here).</summary>
+        public event System.Action Entered;
+
+        /// <summary>
+        /// Demo 3.3, the title menu's buttons: lit (hover or cursor), the label rises a pixel and the button takes <paramref name="hot"/> (the
+        /// ember skin, its edge aglow); pressed, it sinks a pixel as before.
+        /// </summary>
+        public void LightUp(Sprite hot)
+        {
+            _lifts = true;
+            _hotSprite = hot;
+            Apply();
+        }
+
         public static ButtonFeel Attach(Button button, Text label)
         {
             var feel = button.gameObject.AddComponent<ButtonFeel>();
             feel._background = button.targetGraphic as Image;
-            if (feel._background != null) feel._backgroundColor = feel._background.color;
+            if (feel._background != null)
+            {
+                feel._backgroundColor = feel._background.color;
+                feel._sprite = feel._background.sprite;
+            }
             feel._label = label;
             feel._labelMin = label.rectTransform.offsetMin;
             feel._labelMax = label.rectTransform.offsetMax;
@@ -59,7 +97,11 @@ namespace HellPoker.Presentation.Ui
             return feel;
         }
 
-        public void OnPointerEnter(PointerEventData eventData) => Set(ref _hover, true);
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            Set(ref _hover, true);
+            Entered?.Invoke();
+        }
         public void OnPointerExit(PointerEventData eventData)
         {
             _hover = false;
@@ -86,12 +128,16 @@ namespace HellPoker.Presentation.Ui
         {
             if (_label == null) return;
 
-            Vector2 sink = _pressed ? new Vector2(0f, -1f) : Vector2.zero;
+            bool lit = (_hover || _selected) && !_locked;
+            Vector2 sink = _pressed ? new Vector2(0f, -1f) : _lifts && lit ? new Vector2(0f, 1f) : Vector2.zero;
             _label.rectTransform.offsetMin = _labelMin + sink;
             _label.rectTransform.offsetMax = _labelMax + sink;
-            _label.color = _locked ? Palette.BoneDark : _hover ? Palette.GoldLight : _labelColor;
+            _label.color = _locked ? Palette.BoneDark : lit ? Palette.GoldLight : _labelColor;
             if (_background != null)
+            {
                 _background.color = _locked ? _backgroundColor * LockedTint : _backgroundColor;
+                if (_hotSprite != null) _background.sprite = lit ? _hotSprite : _sprite;
+            }
         }
     }
 }

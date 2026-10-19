@@ -36,6 +36,24 @@ namespace HellPoker.Presentation.Ui
         public static T Pick<T>(T english, T turkish) => Current == Language.Turkish ? turkish : english;
 
         /// <summary>The language after <paramref name="language"/>, round and round.</summary>
-        public static Language Next(Language language) => language == Language.English ? Language.Turkish : Language.English;
+        public static Language Next(Language language)
+        {
+            int at = Array.IndexOf((Language[])All, language);
+            return All[(at + 1) % All.Count];
+        }
+
+        /// <summary>Demo 3.3: every language the game speaks, in order (the settings' LANGUAGE tab lists them; a new one is a new enum value
+        /// and its name below).</summary>
+        public static System.Collections.Generic.IReadOnlyList<Language> All { get; } = (Language[])Enum.GetValues(typeof(Language));
+
+        /// <summary>A language's own name, in its own words ("English", "Türkçe") — the same whatever language is on.</summary>
+        public static string NativeName(Language language)
+        {
+            switch (language)
+            {
+                case Language.Turkish: return "Türkçe";
+                default: return "English";
+            }
+        }
     }
 }

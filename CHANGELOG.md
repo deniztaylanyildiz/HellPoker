@@ -1,5 +1,27 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.3 (3.3.0-demo) — 2026-10-19 — Ana menü ve dil ayarı
+
+### Değişen
+- **Dil artık Ayarlar'da:** AYARLAR'ın dördüncü sekmesi DİL (OYUN, GÖRÜNTÜ, SES, DİL; Q / E ya da oklar sekmeleri döndürür). Her dil
+  kendi adıyla listelenir (English, Türkçe); tıkla ya da yukarı / aşağı ve Enter. Seçim hemen ayarları ve menüyü yeniden yazar, kaydedilir.
+  Ana menünün sağ üstündeki dil düğmesi ve L tuşu kalktı; OYUN sekmesindeki DİL satırı da.
+- **Yeni ana menü:** cehennemin dibinde bir kumarhane. Uzakta Lucifer'in tahtının karanlık silüeti ve iki yanan göz (arada bir kırpar),
+  ateş denizi ve yanan şehir (dalgalanan kenarlar, titreyen alevler, yükselen korlar, arada düşen bir kıvılcım, ağır ağır salınan kızıl
+  bulutlar), solda Mammon'un altın yığını ve terazisi, sağda Belial'in perdesi ve yılanlı sütunu, Lilith'in hilali (önünden bir yarasa
+  geçer), yere gömülü dev kartlar (A♠ A♣ 8♠ 8♣), kaya kemer ve köşelerde sallanan zincirler. Logonun arkasında yavaş kızıl bir hale.
+- **Yeni logo:** alevli kenarlı, altından ateşe akan harfler, harflerin içinde kart sembolleri, altında çatallı bir süs. Açılışta bir kez
+  yukarıdan düşer (bir tuş ya da tık hemen yerine koyar), sonra harflerin üstünde arada bir parıltı.
+- **Menü kutusu ve imleç:** düğmeler perçinli demir bir kutunun içinde, iki sütun. Seçili düğmenin solunda küçük bir alev; oklar onu
+  gezdirir, Enter / Space basar, fare üstüne gelince imleç oraya geçer (her değişimde tık sesi). Seçili / fare altındaki düğme kor rengine
+  döner, yazısı bir piksel kalkar; basınca bir piksel iner.
+- **Devam kartı:** kayıtlı koşu varken kutunun solunda: sınıfın portresi ve adı, bölüm ve kat, kese, kalan ceza, daire.
+- **HATA / ÖNERİ** düğmesi sol alt köşede, sürümün karşısında.
+- Boss Simülatörü (F9) aynı düzende, DEMO yazısının yerinde "BOSS SİMÜLATÖRÜ (F9)".
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.2 (3.2.0-demo) — 2026-10-19 — Masa yerleşimi: şeytan sağ üstte, oyuncu sol altta
 
 ### Değişen

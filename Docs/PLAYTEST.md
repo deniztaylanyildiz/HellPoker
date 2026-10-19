@@ -13,7 +13,7 @@ Dil: ____ (TR / EN) · Sınıf: ____ (Köylü / Büyücü / Kral / Soytarı) · 
 
 ## 1. İlk izlenim
 
-**Ana menü** (zemin, logo, butonlar, okunabilirlik, TR / EN butonu):
+**Ana menü** (zemin, logo, menü kutusu, imleç, devam kartı, okunabilirlik; dil: Ayarlar ▸ DİL):
 
 -
 -

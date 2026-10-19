@@ -1,10 +1,24 @@
 # Hell Poker backdrop motion (Tools/ArtGen). Generated: do not edit.
-layer menu_eyes 294 3 12 8 1 0 0 0
-layer menu_serpent 594 110 12 10 1 0 0 0
-layer menu_fire_left 0 291 12 8 1 0 0 0
-layer menu_fire_right 520 291 12 8 1 0 0 0
-layer menu_glint0 17 341 12 10 1 0 0 0
-layer menu_glint1 49 339 12 10 1 0 0 3
-layer menu_glint_cards 569 317 12 10 1 0 0 7
-particles embers 0 30 120 260 16
-particles embers 520 30 120 260 16
+layer menu_eyes 294 1 12 8 1 0 0 0
+layer menu_serpent 582 120 12 10 1 0 0 0
+layer menu_bat 486 170 12 8 1 0 0 0
+layer menu_halo_left 140 20 12 8 1 0 0 0
+layer menu_halo_middle 260 20 12 8 1 0 0 0
+layer menu_halo_right 380 20 12 8 1 0 0 0
+layer menu_fire_left 134 287 12 8 1 0 0 0
+layer menu_fire_right 560 287 12 8 1 0 0 0
+layer menu_flames_left 24 276 12 10 1 0 0 0
+layer menu_flames_right 496 276 12 10 1 0 0 0
+layer menu_chain_left 40 8 12 8 1 0 0 0
+layer menu_chain_right 592 8 12 8 1 0 0 0
+layer menu_spark_left 60 222 12 10 1 0 0 0
+layer menu_spark_right 550 216 12 10 1 0 0 5
+layer menu_glint0 37 339 12 10 1 0 0 0
+layer menu_glint1 81 335 12 10 1 0 0 3
+layer menu_glint2 25 238 12 10 1 0 0 6
+layer menu_glint_cards 497 317 12 10 1 0 0 7
+layer menu_cloud_a 28 52 12 8 1 0 0 0
+layer menu_cloud_b 490 132 12 8 1 0 0 0
+particles embers 24 30 120 104 10
+particles embers 24 240 120 46 8
+particles embers 500 30 116 256 16

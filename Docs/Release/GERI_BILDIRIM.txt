@@ -118,8 +118,15 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 16. OYUNCU PANELİ VE EL ANİMASYONLARI (Demo 3.1)
-    Sağdaki panel (portren, pasif gücün, emanetlerin) işine yaradı mı? Portrenin tepkileri (gülme, sevinç, burukluk, gerilme) hoşuna
+    Sol alttaki panel (portren, pasif gücün, emanetlerin) işine yaradı mı? Portrenin tepkileri (gülme, sevinç, burukluk, gerilme) hoşuna
     gitti mi? Güçlü ellerin animasyonları (Full, Kare, Floş) yeterince heyecanlı mı, yoksa uzun mu geldi? Ekran sarsıntısını kapattın mı?
+
+    >
+
+
+17. ANA MENÜ VE DİL (Demo 3.3)
+    Yeni ana menü (zemin, logo, demir kutu, alev imleci, devam kartı) nasıl? Oklarla ve fareyle gezmek rahat mı? Dili AYARLAR ▸ DİL
+    sekmesinden bulabildin mi?
 
     >
 

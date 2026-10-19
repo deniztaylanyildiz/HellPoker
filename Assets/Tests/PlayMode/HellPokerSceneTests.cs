@@ -47,18 +47,18 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheMenusLanguageButton_BringsThePlayerBackToATurkishTable_MidHand()
+        public IEnumerator SettingsLanguageTab_BringsThePlayerBackToATurkishTable_MidHand()
         {
             StartRun();
             Press("ActionButton");
             yield return WaitForTable();
             Assert.AreEqual("PASS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
             Assert.IsNull(Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .FirstOrDefault(b => b.name == "LanguageButton"), "No language button at the table.");
+                .FirstOrDefault(b => b.name == "LanguageButton" || b.name == "MenuLanguageButton"), "No language button at the table or on the menu.");
 
             Press("MenuButton");
             yield return new WaitForSeconds(0.4f);
-            Press("MenuLanguageButton");
+            yield return ChooseLanguage(1);   // Settings ▸ LANGUAGE ▸ Türkçe, then back to the menu
             Assert.AreEqual("YENİ OYUN", Find<Button>("NewGameButton").GetComponentInChildren<Text>().text);
             Press("ContinueButton");
             yield return WaitForTable();
@@ -70,8 +70,21 @@ namespace HellPoker.PlayMode.Tests
 
             Press("MenuButton");
             yield return new WaitForSeconds(0.4f);
-            Press("MenuLanguageButton");
+            yield return ChooseLanguage(0);
             Assert.AreEqual("NEW GAME", Find<Button>("NewGameButton").GetComponentInChildren<Text>().text);
+        }
+
+        /// <summary>From the title menu: Settings, its LANGUAGE tab, the language at <paramref name="index"/>, BACK.</summary>
+        private IEnumerator ChooseLanguage(int index)
+        {
+            Press("SettingsButton");
+            yield return new WaitForSeconds(0.4f);
+            Press("SettingsTabLanguage");
+            yield return null;
+            Press("SettingsLanguage" + index);
+            yield return null;
+            Press("SettingsBackButton");
+            yield return new WaitForSeconds(0.4f);
         }
 
         [UnityTest]

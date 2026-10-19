@@ -7,7 +7,10 @@ namespace HellPoker.Presentation.Abstractions
     {
         Game,
         Display,
-        Sound
+        Sound,
+
+        /// <summary>Demo 3.3: the languages, a list (the only place the language changes).</summary>
+        Language
     }
 
     /// <summary>Everything the settings screen shows, as words (the presenter picks them, the view lays them out).</summary>
@@ -52,12 +55,20 @@ namespace HellPoker.Presentation.Abstractions
         public string Master { get; set; }
         public string Music { get; set; }
         public string Sfx { get; set; }
+
+        // The language tab (Demo 3.3): every language by its own name, the one on (marked), the one the keys point at.
+        public System.Collections.Generic.IReadOnlyList<string> Languages { get; set; } = new string[0];
+        public int LanguageSelected { get; set; }
+        public int LanguageCursor { get; set; }
     }
 
     /// <summary>The settings screen: three tabs, one button per setting, each showing its current value.</summary>
-    public interface ISettingsView : ILanguageButton
+    public interface ISettingsView
     {
         event Action<SettingsTab> TabPressed;
+
+        /// <summary>Demo 3.3: a language of the LANGUAGE tab's list was clicked (its place in <see cref="SettingsScreen.Languages"/>).</summary>
+        event Action<int> LanguageChosen;
 
         event Action SpeedPressed;
         event Action HandGuidePressed;
@@ -86,13 +97,6 @@ namespace HellPoker.Presentation.Abstractions
 
         void Show();
         void Hide();
-    }
-
-    /// <summary>A screen with a language button (the table, the title menu, the settings).</summary>
-    public interface ILanguageButton
-    {
-        /// <summary>The language button was pressed: the next language, please.</summary>
-        event Action LanguagePressed;
     }
 
     /// <summary>The window and the display it sits on.</summary>

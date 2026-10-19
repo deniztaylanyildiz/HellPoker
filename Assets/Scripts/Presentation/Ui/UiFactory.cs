@@ -226,6 +226,9 @@ namespace HellPoker.Presentation.Ui
         /// <summary>Every button click (the bootstrap gives it the click sound).</summary>
         public static Action ButtonClicked;
 
+        /// <summary>Demo 3.3: the click sound for a keyboard move (the menu's cursor, the language list): the same as a button's.</summary>
+        public static void PlayClick() => ButtonClicked?.Invoke();
+
         public static void MakeClickOnly(Button button)
         {
             button.navigation = new Navigation { mode = Navigation.Mode.None };

@@ -30,6 +30,15 @@ namespace HellPoker.Presentation.Ui
         public const string CardJoker = "Ui/card_joker";
         public const string JokerSparkle = "Ui/joker_sparkle";
         public const string Title = "Ui/title";
+
+        /// <summary>Demo 3.3: the title screen's own logo (flame-edged, gold into fire, the suits in its letters), its glint (9×9 frames),
+        /// the menu's iron box (9-slice, a 4 px border) and its cursor (an 8×8 flame, 4 frames). All from Tools/ArtGen/pixel_menu.py.</summary>
+        public const string MenuLogo = "Ui/menu_logo";
+        public const string MenuGlint = "Ui/menu_glint";
+        public const int MenuGlintSize = 9;
+        public const string MenuBox = "Ui/menu_box";
+        public const string MenuCursor = "Ui/menu_cursor";
+        public const int MenuCursorSize = 8;
         public const string Divider = "Ui/divider";
         public const string Coin = "Ui/coin";
         public const string Flames = "Ui/flames";

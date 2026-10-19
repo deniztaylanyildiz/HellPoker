@@ -4053,3 +4053,59 @@ oyuncu paneli sol alta (kit hemen üstünde, emanet hover'ları sağa), sayaç s
 - Oyuncu paneli alt satırın üstüne sığdı: MENÜ / ELLER yerinde kaldı.
 - Ekran görüntüleri editörün PlayMode'unda verilen boyutta (build'in ekranı 1920×1080; 2560×1440 build'de pencere olarak açılamıyor);
   build'in kendi görüntüsü duman turundan.
+
+## 2026-10-19 — Demo 3.3: ana menü ve Ayarlar'da DİL
+
+### İstek (kullanıcı)
+"Demo 3.3": dil düğmesi ve L tuşu menüden kalksın, Ayarlar'a dördüncü sekme DİL (her dil kendi adıyla, liste `Lang`'dan); menü yeniden
+düzenlensin (HATA / ÖNERİ yerine otursun, animasyonlu imleç, devam kartı, logo girişi ve parıltısı, tek / iki sütun karşılaştırması);
+zemin zenginleşsin ("cehennemin dibinde bir kumarhane": Lucifer'in tahtının silüeti, ateş denizi ve şehir, üç şeytanın işaretleri, dev
+Ölü Adamın Eli kartları, kaya kemer, hareketler), yeni logo ve demir menü kutusu; testler, önce / sonra ekran görüntüleri, build
+3.3, yedek + 3 tur + geri yükleme, commit "Demo 3.3: ana menü, Ayarlar'da DİL", etiket v3.3-demo, push yok. Boss Simülatörü, demo
+kuralları, denge değişmez.
+
+### Yapılanlar
+- **DİL sekmesi:** `SettingsTab.Language`, `SettingsView` dil sayfası (ipucu satırı + `SettingsLanguage<i>` satırları, seçilide piksel ok ve
+  altın çerçeve, klavye imleci olmayan satırlar soluk), `SettingsPresenter.ChooseLanguage / StepLanguage / ConfirmLanguage`,
+  `Lang.All / NativeName`. OYUN sekmesinde DİL satırı yok (dört renkli deste yukarı kaydı). `ILanguageButton`, menünün `LanguagePressed`'i,
+  `ISettingsCommands.CycleLanguage` ve L tuşu silindi. Metinler: OKUBENI (kontroller, ayarlar dört sekme, HATA / ÖNERİ sol altta),
+  PLAYTEST, GERI_BILDIRIM (17. soru), CLAUDE.md.
+- **Menü:** `MainMenuView` baştan: logo `Ui/menu_logo` (oturumda bir kez düşer, tuş / tık yerine koyar, batchmode'da yok), `menu_glint`
+  harflerde 1.5-4 sn arayla; düğmeler `menu_box` içinde (Tiled 9-slice), iki sütun; `menu_cursor` alevi düğmenin 12 px solunda
+  (`MoveSelection`: sütunda aşağı / yukarı, alttan üste döner, satırda sağ / sol); fare `ButtonFeel.Entered` ile imleci taşır, her değişimde
+  tık sesi (`UiFactory.PlayClick`); yanınca kor derisi + yazı 1 px yukarı (`ButtonFeel.LightUp / Selected`); devam kartı (portre çerçevede,
+  sınıf, bölüm, kat, coin, kalan ceza, daire; `ChapterPresenter.ContinueCard`); HATA / ÖNERİ sol altta; simülatör yazısı DEMO'nun yerinde.
+- **Zemin:** `pixel_menu.py` baştan (640×360): tahtın silüeti kızıl parıltının önünde, gözler, ateş denizi kenarları, uzak alevler,
+  şehir, salınan bulutlar, Mammon'un yığını / sandığı / terazisi, Belial'in perdesi ve yılanı, Lilith'in hilali ve yarasa, gömülü
+  A♠ A♣ 8♠ 8♣, kaya kemer, zincirler, düşen kıvılcımlar, logo arkasında hale. `MENU_TEXT` yeni düzene göre (C# kopyası `BackdropMotionTests`).
+- **Testler:** `MenuGridTests` (+5: dil düğmesi yok / L bir şey yapmaz, DİL sekmesi iki dil, ok + Enter ve tıkla seçim ve kayıt, imleç oklar /
+  Enter / fare, devam kartı iki dilde sığar ve kutudan ayrı, kutu düğmeleri içerir ve HATA / ÖNERİ sol altta; test klavyesi
+  `InputSystem.AddDevice`), `MenuBackdropTests` (+2: tahtın silüeti %90 koyu, menü sprite'larının boyları), `ChapterMenuTests` (+2),
+  `SettingsTests` (dört sekme), `HellPokerSceneTests` dil testi Ayarlar ▸ DİL ile, chaos listesinde dil satırları. FpsTour menüyü ve
+  DİL sekmesini denetleyip `tour/menu.png`, `tour/settings_language.png` yazar ("Hell Poker menu ..." satırı).
+- Sonuçlar: EditMode 1177 (2 hata düzeltildi, ilgili gruplar yeniden geçti), PlayMode MenuGrid 6, HellPokerScene 10, RunJourney +
+  BackdropMotionPlay + HoverTip 7, TableLayout 10, ChapterJourney 5, HowToPlay + Salon + HandFanfarePlay 19, Cheat + Lucifer + Jester
+  journey 9, FullRun chaos 1 — hepsi geçti.
+- Ekran görüntüleri: `Screenshots/demo33/before` ve `after` (1920×1080 ve 2560×1440, en / tr; menü boş / kayıtlı, Ayarlar oyun / dil,
+  rekorlar, How to Play, simülatör menüsü).
+
+### Kararlar
+- **İki sütun:** tek sütunda 7 düğme × 32 px = 224 px, logonun (67 px) ve yazıların altına 360 px'te sığmıyor; iki sütun kutuyla 104-136 px.
+- Logo ayrı dosya (`menu_logo`); masanın başlığı `Ui/title` aynı kaldı. Simülatörün yazısı sol üst yerine DEMO'nun yerinde (zincirler
+  ve gözler köşeleri dolduruyor). Bulutlar ekranı boydan boya kaymıyor, yanlarda 2 px salınıyor (yazıların arkasında hareket olmasın).
+- Yarasa sürüklenen katman değil, hilalin önünden geçen 12 karelik bir katman (aynı neden).
+
+### Açık sorular
+- Zemindeki yoğunluk (özellikle sağ alttaki kartlar ve sol alttaki altın) ve logonun boyu (ekranın ~%63'ü) oyun testinde değerlendirilmeli.
+
+### Build ve turlar
+- `Builds/HellPoker-Demo-3.3-win64.zip` (3.3.0-demo). Kayıtlar yedeklendi, 3 tur (-fpstour, 1920×1080): üçü de çıkış 0, 24 FPS satırı,
+  "Hell Poker menu 3.3.0-demo: language button False, cursor on ContinueButton, continue card True, languages 2, chose English (tab
+  'LANGUAGE'), back to Turkish"; panel satırı aynı. Menü ortalama 58.9 FPS (ilk ölçüm, açılışta 2 takılma), diğer ekranlar 59.9.
+  İlk build'in log satırı devam kartını Ayarlar açıkken ölçüyordu (False); düzeltildi, build yenilendi. Kayıtlar geri yüklendi.
+  Build'in kendi görüntüleri: `Screenshots/demo33/build/` (menü kayıtlı, Ayarlar ▸ DİL).
+- Commit "Demo 3.3: ana menü, Ayarlar'da DİL", etiket `v3.3-demo`; push yok.
+
+### Sıradaki
+- Oyun testi: yeni menünün yoğunluğu, logo boyu, imleç ve kartın işe yararlığı.
+

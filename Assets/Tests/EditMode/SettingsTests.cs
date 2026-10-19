@@ -309,9 +309,13 @@ namespace HellPoker.Core.Tests
             presenter.NextTab();
             Assert.AreEqual(SettingsTab.Sound, view.Tab);
             presenter.NextTab();
+            Assert.AreEqual(SettingsTab.Language, view.Tab, "Demo 3.3: the fourth tab, LANGUAGE.");
+            presenter.NextTab();
             Assert.AreEqual(SettingsTab.Game, view.Tab, "E past the last tab: the first.");
             presenter.PreviousTab();
-            Assert.AreEqual(SettingsTab.Sound, view.Tab, "Q before the first: the last.");
+            Assert.AreEqual(SettingsTab.Language, view.Tab, "Q before the first: the last.");
+            presenter.PreviousTab();
+            Assert.AreEqual(SettingsTab.Sound, view.Tab);
 
             view.PressSpeed();
             Assert.AreEqual(SettingsTab.Sound, view.Tab, "A change keeps the tab.");

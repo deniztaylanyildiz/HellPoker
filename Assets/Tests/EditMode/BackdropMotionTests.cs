@@ -107,8 +107,10 @@ namespace HellPoker.Core.Tests
         };
         private static readonly RectInt[] MenuText =
         {
-            Box(40, 100, 600, 144), Box(176, 148, 464, 280), Box(240, 340, 400, 356), Box(544, 340, 639, 359), Box(280, 84, 360, 98), Box(0, 0, 120, 28),
-            Box(592, 0, 639, 28)
+            // Demo 3.3: DEMO / the simulator's label, the words, the menu's box with its cursor, the run's card, the footer, the version,
+            // BUG / IDEA in the bottom left corner (pixel_menu.MENU_TEXT).
+            Box(176, 94, 464, 106), Box(40, 110, 600, 152), Box(156, 150, 484, 296), Box(4, 148, 164, 236), Box(256, 338, 384, 356),
+            Box(528, 338, 639, 359), Box(0, 330, 120, 359)
         };
 
         private static RectInt Box(int x0, int y0, int x1, int y1) => new RectInt(x0, y0, x1 - x0 + 1, y1 - y0 + 1);

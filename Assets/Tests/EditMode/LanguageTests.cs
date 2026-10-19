@@ -82,25 +82,42 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void ALanguageButton_CyclesAndSaves()
+        public void TheLanguageTab_ListsEveryLanguageByItsOwnName_AndAChoiceSaves()
         {
             var store = new MemoryStore();
             var settings = new GameSettings(store);
             var settingsView = new MainMenuPresenterTests.FakeSettingsView();
-            var menu = new MainMenuPresenterTests.FakeMenuView();
-            using var presenter = new SettingsPresenter(settings, settingsView, new NoDisplay(), menu);
-            Assert.AreEqual("ENGLISH", settingsView.Language);
+            using var presenter = new SettingsPresenter(settings, settingsView, new NoDisplay());
+            CollectionAssert.AreEqual(new[] { "English", "Türkçe" }, settingsView.Screen.Languages, "from Lang, each in its own words");
+            Assert.AreEqual(0, settingsView.Screen.LanguageSelected);
 
-            menu.PressLanguage();
+            settingsView.ChooseLanguage(1);   // a click on Türkçe
 
             Assert.AreEqual(Language.Turkish, settings.Language);
-            Assert.AreEqual("Turkish", store.GetString("settings.language", null));
-            Assert.AreEqual("TÜRKÇE", settingsView.Language);
-            Assert.AreEqual("HIZLI", UiText.SpeedName(AnimationSpeed.Fast));
-            Assert.AreEqual("NORMAL", settingsView.Speed);
+            Assert.AreEqual("Turkish", store.GetString("settings.language", null), "the same key");
+            CollectionAssert.AreEqual(new[] { "English", "Türkçe" }, settingsView.Screen.Languages, "the names do not translate");
+            Assert.AreEqual(1, settingsView.Screen.LanguageSelected, "the mark moves");
+            Assert.AreEqual("NORMAL", settingsView.Speed, "the screen rewrote itself in Turkish");
 
-            settingsView.PressLanguage();
-            Assert.AreEqual(Language.English, settings.Language, "Round and round.");
+            // The keys: the tab open, up / down move, Enter chooses.
+            settingsView.Show();
+            presenter.ShowTab(SettingsTab.Language);
+            Assert.IsTrue(presenter.IsLanguageTab);
+            Assert.AreEqual(1, presenter.LanguageCursor, "the cursor starts on the language that is on");
+            presenter.StepLanguage(1);
+            Assert.AreEqual(0, settingsView.Screen.LanguageCursor, "round and round");
+            Assert.AreEqual(Language.Turkish, settings.Language, "a move chooses nothing");
+            presenter.ConfirmLanguage();
+            Assert.AreEqual(Language.English, settings.Language);
+        }
+
+        [Test]
+        public void TheGameTab_HasNoLanguageRow_AndTheMenuNoLanguageButton()
+        {
+            Assert.IsNull(typeof(IMainMenuView).GetEvent("LanguagePressed"), "no language button on the title menu");
+            Assert.IsNull(typeof(ISettingsCommands).GetMethod("CycleLanguage"), "no L key");
+            Assert.IsNull(typeof(UiText).GetProperty("SettingLanguage"), "no language row on the game tab");
+            Assert.AreEqual(4, Enum.GetValues(typeof(SettingsTab)).Length, "GAME, DISPLAY, SOUND, LANGUAGE");
         }
 
         private sealed class NoDisplay : IDisplayMode
@@ -314,6 +331,7 @@ namespace HellPoker.Core.Tests
         private TablePresenter _table;
         private MainMenuPresenter _menus;
         private SettingsPresenter _settings;
+        private MainMenuPresenterTests.FakeSettingsView _settingsView;
 
         private TablePresenter Table(RunArchive archive = null, Dealer finalDealer = null)
         {
@@ -334,7 +352,8 @@ namespace HellPoker.Core.Tests
             _menus = new MainMenuPresenter(_menu, _choice, settingsView, new MainMenuPresenterTests.FakeEndScreen(),
                 new MainMenuPresenterTests.FakeRecords(), _view, _table, new MainMenuPresenterTests.FakeQuitter(),
                 new MainMenuPresenterTests.FakeTransition(), DealerRoster.All);
-            _settings = new SettingsPresenter(new GameSettings(_store), settingsView, new NoDisplay(), _menu);
+            _settingsView = settingsView;
+            _settings = new SettingsPresenter(new GameSettings(_store), settingsView, new NoDisplay());
         }
 
         [TearDown]
@@ -351,12 +370,11 @@ namespace HellPoker.Core.Tests
         [Test]
         public void TheTable_HasNoLanguageButton()
         {
-            Assert.IsFalse(typeof(ILanguageButton).IsAssignableFrom(typeof(ITableView)));
             Assert.IsNull(typeof(ITableView).GetEvent("LanguagePressed"));
         }
 
         [Test]
-        public void TheLanguageKey_WorksOnTheTitleMenuOnly()
+        public void TheMenuRoot_IsTheTitleMenuOnly()
         {
             Game();
             Assert.IsTrue(_menus.IsAtMenuRoot, "The title menu.");
@@ -393,7 +411,7 @@ namespace HellPoker.Core.Tests
             int lines = _view.DealerView.LinesSaid;
             _view.PressMenu();
 
-            _menu.PressLanguage();
+            _settingsView.ChooseLanguage(1);   // Settings ▸ LANGUAGE ▸ Türkçe
             _menu.PressContinue();
 
             Assert.AreEqual(Language.Turkish, Lang.Current);
@@ -428,7 +446,7 @@ namespace HellPoker.Core.Tests
             int moments = _view.Moments.Count, hands = _table.Stats.HandsPlayed, years = _game.Years;
             _view.PressMenu();
 
-            _menu.PressLanguage();
+            _settingsView.ChooseLanguage(1);
             _menu.PressContinue();
 
             Assert.AreEqual(moments, _view.Moments.Count, "No moment plays again.");

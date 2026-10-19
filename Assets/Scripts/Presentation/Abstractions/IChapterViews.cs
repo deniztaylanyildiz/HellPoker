@@ -255,6 +255,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A run waits to be gone back to: in this session, or saved from an earlier one.</summary>
         bool CanContinue { get; }
 
+        /// <summary>Demo 3.3: the run that waits, in short (the title menu's card); null with none.</summary>
+        ContinueCard ContinueCard { get; }
+
         /// <summary>Phase 2's own records (for the records screen).</summary>
         Core.Chapters.ChapterRecords Records { get; }
 
