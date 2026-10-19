@@ -395,10 +395,11 @@ namespace HellPoker.PlayMode.Tests
             return save;
         }
 
-        /// <summary>The chapter's layout on the table as it stands: the blocks where <see cref="TableLayout"/> puts them, nothing over anything.</summary>
-        private static void AssertTheChapterLayout(TableView view, string where)
+        /// <summary>Every table's layout as it stands: the blocks where <see cref="TableLayout"/> puts them, no payouts panel, nothing over anything.</summary>
+        private static void AssertTheTablesLayout(TableView view, string where)
         {
-            Assert.AreEqual(TableLayoutKind.Chapter, view.Layout.Kind, where);
+            Assert.IsFalse(view.PayoutTableShown, where + ": no payouts panel on the table");
+            Assert.IsFalse(view.transform.GetComponentsInChildren<Transform>(false).Any(t => t.name == "Payouts"), where + ": nothing of it on show");
             Vector2 At(Component c) => ((RectTransform)c.transform).anchoredPosition;
             DealerView dealer = view.GetComponentInChildren<DealerView>(true);
             Assert.AreEqual(new Vector2(TableLayout.RightX, -TableLayout.Edge), At(dealer), where + ": the demon top right");
@@ -416,7 +417,7 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest, Timeout(600000)]
-        public IEnumerator TheChapterTables_PutTheDemonTopRight_AndThePlayerBottomLeft_InBothLanguages()
+        public IEnumerator EveryChapterTable_PutsTheDemonTopRight_AndThePlayerBottomLeft_InBothLanguages()
         {
             foreach (bool turkish in new[] { false, true })
             {
@@ -428,10 +429,10 @@ namespace HellPoker.PlayMode.Tests
                     yield return Settle();
                     TableView view = ChapterJourneyTests.ChapterTableView;
                     Assert.IsTrue(ChapterJourneyTests.Chapters.IsAtTable, match + lang);
-                    AssertTheChapterLayout(view, match + lang + ", before the deal");
+                    AssertTheTablesLayout(view, match + lang + ", before the deal");
                     ChapterJourneyTests.Chapters.Table.PerformAction();
                     yield return Settle();
-                    AssertTheChapterLayout(view, match + lang + ", in a hand");
+                    AssertTheTablesLayout(view, match + lang + ", in a hand");
                 }
 
                 // A demon's table, dealt: his bar under him (on the right), the cheat's sign on his portrait.
@@ -446,7 +447,7 @@ namespace HellPoker.PlayMode.Tests
                     ((RectTransform)boss.BossBar.transform).anchoredPosition, "the bar under the demon" + lang);
                 ChapterJourneyTests.Chapters.Table.PerformAction();
                 yield return Settle();
-                AssertTheChapterLayout(boss, "boss" + lang);
+                AssertTheTablesLayout(boss, "boss" + lang);
 
                 // Lucifer's call, then his table.
                 yield return Load(turkish, ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"));
@@ -457,30 +458,77 @@ namespace HellPoker.PlayMode.Tests
                 TableView lucifer = ChapterJourneyTests.ChapterTableView;
                 ChapterJourneyTests.Chapters.Table.PerformAction();
                 yield return Settle();
-                AssertTheChapterLayout(lucifer, "Lucifer" + lang);
+                AssertTheTablesLayout(lucifer, "Lucifer" + lang);
             }
         }
 
-        [UnityTest, Timeout(120000)]
-        public IEnumerator TheSimulatorsTable_KeepsItsOldLayout()
+        /// <summary>The Boss Simulator's table (TableCanvas) and its presenter.</summary>
+        private static TableView SimulatorTableView =>
+            UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsSortMode.None).First(t => t.name == "TableCanvas");
+
+        private static TablePresenter SimulatorTable =>
+            (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
+
+        [UnityTest, Timeout(600000)]
+        public IEnumerator TheSimulatorsTables_LookLikeEveryOtherTable_InBothLanguages()
         {
-            HellPokerBootstrap.BatchStore.Clear();
-            HellPokerBootstrap.BatchStore.SetString("settings.language", "English");
-            HellPokerBootstrap.ForceSimulator = true;
-            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
-            yield return new WaitForSeconds(0.5f);
-            HellPokerScreenshots.Press("NewGameButton");
-            yield return new WaitForSeconds(0.6f);
-            HellPokerScreenshots.Press("ChooseDealer0");
-            yield return new WaitForSeconds(0.6f);
-            TableView view = UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsSortMode.None).First(t => t.name == "TableCanvas");
-            Assert.AreEqual(TableLayoutKind.Simulator, view.Layout.Kind);
-            Vector2 At(Component c) => ((RectTransform)c.transform).anchoredPosition;
-            Assert.AreEqual(new Vector2(4, -4), At(view.GetComponentInChildren<DealerView>(true)), "the demon on the left, as he always was");
-            Assert.AreEqual(new Vector2(PixelScreen.Width - 108, -4), At(view.GetComponentInChildren<SentenceView>(true)), "the counter top right");
-            Assert.IsTrue(view.PayoutTableShown, "the payouts under it");
-            Assert.IsFalse(view.PlayerPanel.gameObject.activeInHierarchy, "no player's panel");
-            Assert.IsTrue(view.PortraitBadge.gameObject.activeInHierarchy, "the class badge on the portrait");
+            // Masa birliği: the Boss Simulator's tables are laid out as the game's — the demon top right, the counter top left, the player's
+            // panel bottom left (the class's portrait, its power's pips), no payouts panel; the demon's own table in the hands' panel.
+            foreach (bool turkish in new[] { false, true })
+            {
+                string lang = turkish ? " (tr)" : " (en)";
+                for (int dealer = 0; dealer < Core.Dealers.DealerRoster.All.Count; dealer++)
+                {
+                    HellPokerBootstrap.BatchStore.Clear();
+                    HellPokerBootstrap.BatchStore.SetString("settings.language", turkish ? "Turkish" : "English");
+                    HellPokerBootstrap.ForceSimulator = true;
+                    yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+                    yield return new WaitForSeconds(0.5f);
+                    HellPokerScreenshots.Press("NewGameButton");
+                    yield return new WaitForSeconds(0.6f);
+                    HellPokerScreenshots.Press("ChooseDealer" + dealer);
+                    yield return new WaitForSeconds(0.6f);
+                    yield return Settle();
+                    TableView view = SimulatorTableView;
+                    Core.Dealers.Dealer demon = Core.Dealers.DealerRoster.All[dealer];
+                    string where = "simulator " + demon.Id + lang;
+                    AssertTheTablesLayout(view, where + ", before the deal");
+                    Assert.IsNotNull(view.PlayerPanel.Badge.ClassId, where + ": the class on the panel");
+                    Assert.AreEqual(8, view.PlayerPanel.Sinner.Portrait.Clip?.Frames.Length, where + ": the class's idle loop");
+                    SimulatorTable.PerformAction();   // the deal
+                    yield return Settle();
+                    AssertTheTablesLayout(view, where + ", in a hand");
+
+                    // The demon's own payouts in the hands' panel (Belial pays more; Lilith's loss is heavier).
+                    SimulatorTable.ToggleHandRanks();
+                    yield return null;
+                    HandRanksPanel ranks = view.HandRanks;
+                    var categories = Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
+                    for (int i = 0; i < categories.Length; i++)
+                        Assert.AreEqual(demon.Payouts.IsAbsolution(categories[i]) ? UiText.Absolution : "×" + demon.Payouts.GetMultiplier(categories[i]),
+                            ranks.Values[i], where + ": " + categories[i] + " as the demon pays it");
+                    StringAssert.Contains(UiText.LossSurcharge(demon.Payouts.LossPercent), ranks.NotesShown, where + ": his loss in the notes");
+                    SimulatorTable.ToggleHandRanks();
+                    yield return null;
+
+                    // The portrait's click is K, as the badge's was.
+                    int before = SimulatorTable.Game.RoundNumber;
+                    view.PlayerPanel.PressPortrait();
+                    yield return Settle();
+                    Assert.AreEqual(before, SimulatorTable.Game.RoundNumber, where + ": K changes no hand");
+                }
+
+                // Lucifer's hall: a fresh table (between hands), brought down to his gate.
+                SimulatorTable.StartNewRun(Core.Dealers.DealerRoster.Lilith, Core.Sinners.SinnerRoster.Peasant);
+                yield return Settle();
+                SimulatorTable.Game.TakeOver(150, SimulatorTable.Game.RoundNumber);
+                SimulatorTable.SwitchTable(Core.Dealers.DealerRoster.Lilith);
+                yield return new WaitForSeconds(3f);
+                yield return Settle();
+                Assert.IsTrue(SimulatorTable.IsAtFinalTable, "Lucifer's table" + lang);
+                AssertTheTablesLayout(SimulatorTableView, "simulator Lucifer" + lang);
+            }
         }
 
         // ------------------------------------------------------------------ Demo 3.1: the player's panel

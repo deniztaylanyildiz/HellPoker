@@ -99,14 +99,8 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Opens the hand ranking panel with what each hand pays at this table.</summary>
         /// <param name="footnote">A line under the ranks (the demon's announced cheat and what it does); null for none.</param>
-        /// <param name="notes">How the table pays, under the ranks (a chapter's table, whose payouts panel is gone); null for none.</param>
+        /// <param name="notes">How the table pays, under the ranks (masa birliği: no table has a payouts panel any more); null for none.</param>
         void ShowHandRanks(IPayoutInfo payouts, string footnote = null, string notes = null);
-
-        /// <summary>Phase 3: false at a chapter's table — no payouts panel in the right column (they are in the hands' panel, H).</summary>
-        void SetPayoutTableShown(bool shown);
-
-        /// <summary>Demo 3.2: which table the screen lays out (the simulator's, or a chapter's: the demon top right, the player bottom left).</summary>
-        void SetLayout(TableLayoutKind kind);
 
         // ------------------------------------------------------------------ the demon's cheats
 

@@ -203,18 +203,15 @@ namespace HellPoker.Presentation.Views
 
         public void SetSinnerMood(SinnerMood mood) => _panel.SetMood(mood);
 
-        /// <summary>Demo 3.2: where the table's blocks stand now (the simulator's until a chapter's table says otherwise).</summary>
-        public TableLayout Layout { get; private set; } = TableLayout.For(TableLayoutKind.Simulator);
+        /// <summary>Where the table's blocks stand (masa birliği: one layout for every table, the Boss Simulator's too).</summary>
+        public TableLayout Layout { get; } = TableLayout.Table;
 
         /// <summary>
-        /// Demo 3.2: lays the table out — the Boss Simulator's (the demon left, the counter and the payouts right, the class badge and the
-        /// relics on the portrait) or a chapter's (the demon top right, the counter top left, the player's panel bottom left with the kit
-        /// over it). Every block's place comes from <see cref="TableLayout"/>; nothing else moves them.
+        /// Lays the table out: the demon top right, the counter top left, the player's panel bottom left with the kit (or LEAVE TABLE) over
+        /// it. Every block's place comes from <see cref="TableLayout"/>; nothing else moves them.
         /// </summary>
-        public void SetLayout(TableLayoutKind kind)
+        private void ApplyLayout()
         {
-            Layout = TableLayout.For(kind);
-            bool chapter = kind == TableLayoutKind.Chapter;
             Move(_dealer.transform, Layout.Dealer);
             Move(_malice.transform, Layout.Dealer);
             _malice.SetTipsLeft(Layout.DealerTipsLeft);
@@ -224,13 +221,15 @@ namespace HellPoker.Presentation.Views
             Move(_panel.transform, Layout.Panel);
             _panel.SetTipsRight(Layout.PanelTipsRight);
             _kit.MoveTo(Layout.KitX, Layout.KitY, Layout.KitFromBottom);
+            ((RectTransform)_leaveButton.transform).PlaceTL(Layout.Leave.x, Layout.Leave.y, TableLayout.LeaveWidth, TableLayout.LeaveHeight);
             _cheatEffects.DealerPoint = Layout.DealerPoint;
             _fanfare.SetTargets(new Vector2Int(Layout.Counter.x + SentenceView.Width / 2, Layout.Counter.y + 10),
                 new Vector2Int(Layout.Bar.x + TableLayout.BarWidth / 2, Layout.Bar.y + 3));
-            // The player's own panel at a chapter's table; the simulator keeps the class badge and the relics on the demon's portrait.
-            _panel.gameObject.SetActive(chapter);
-            _sinner.gameObject.SetActive(!chapter);
-            _relics.gameObject.SetActive(!chapter);
+            // The player's own panel on every table; the old badge and relics on the demon's portrait stay hidden.
+            _panel.gameObject.SetActive(true);
+            _sinner.gameObject.SetActive(false);
+            _relics.gameObject.SetActive(false);
+            SetPayoutTableShown(false);
         }
 
         private static void Move(Transform widget, Vector2Int topLeft) => ((RectTransform)widget).anchoredPosition = new Vector2(topLeft.x, -topLeft.y);
@@ -408,7 +407,7 @@ namespace HellPoker.Presentation.Views
             _handRanks = HandRanksPanel.Create(screen, (W - HandRanksPanel.Width) / 2, 50, () => UiText.HandRanksTableFooter);
             BuildResults(screen);
             _stage = new Stage(this);
-            SetLayout(TableLayoutKind.Simulator);
+            ApplyLayout();
         }
 
         // ------------------------------------------------------------------ a hand's result, plainly (2.1.1)
@@ -805,10 +804,10 @@ namespace HellPoker.Presentation.Views
         private Text _hint;
         private const int HintX = 126, WideHintX = 146, HandsWidth = 56, WideHandsWidth = 76;
 
-        /// <summary>True while the payouts panel stands in the right column (the simulator); a chapter's table puts them in the hands' panel.</summary>
+        /// <summary>Masa birliği: always false — no table has a payouts panel; they are in the hands' panel (H).</summary>
         public bool PayoutTableShown { get; private set; } = true;
 
-        public void SetPayoutTableShown(bool shown)
+        private void SetPayoutTableShown(bool shown)
         {
             PayoutTableShown = shown;
             ((PayoutTableView)Payouts).gameObject.SetActive(shown);

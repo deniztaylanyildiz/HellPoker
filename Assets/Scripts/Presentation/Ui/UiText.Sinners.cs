@@ -90,6 +90,19 @@ namespace HellPoker.Presentation.Ui
 
         public static string WardFlash => L("WARD", "KORUMA");
 
+        /// <summary>Masa birliği: the Boss Simulator's power on the player's panel (its row names it; the charge pips stand over it); null
+        /// for a class with no power there.</summary>
+        public static string DemoPowerName(string id)
+        {
+            switch (id)
+            {
+                case Peasant.ClassId: return L("Honest heart", "Dürüst kalp");
+                case Warlock.ClassId: return L("Ward", "Koruma");
+                case King.ClassId: return L("Crown", "Taç");
+                default: return null;
+            }
+        }
+
         /// <summary>The King's crown refused a cheat.</summary>
         public static string CrownFlash => L("CROWN", "TAÇ");
         public static string CrownRaisedMessage => L("The crown guards your hand: no cheat may touch your cards this hand.",

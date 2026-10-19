@@ -1884,6 +1884,15 @@ namespace HellPoker.Presentation
 
         /// <summary>A save placed for the tour and the scene tests: Mammon's spoils ("loot"), a chapter's opening words ("chapter",
         /// with <paramref name="chapter"/>) or Lucifer's call after Lilith ("lucifer").</summary>
+        /// <summary>The FPS tour's table shots: the run in memory is let go and <paramref name="save"/> stands in the archive, so the menu's
+        /// CONTINUE picks it up.</summary>
+        internal void ForgetForTour(ChapterSave save)
+        {
+            _archive?.SaveRun(save);
+            _journey = null;
+            _ended = false;
+        }
+
         internal void PrepareSave(SinnerClass sinnerClass, int chapter, string pending) =>
             _archive?.SaveRun(PlacedSave(sinnerClass, _newSeed(), chapter, pending));
 

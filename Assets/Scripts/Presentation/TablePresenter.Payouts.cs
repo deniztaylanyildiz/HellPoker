@@ -11,10 +11,11 @@ namespace HellPoker.Presentation
     /// </summary>
     public sealed partial class TablePresenter
     {
-        /// <summary>The notes under the hands' panel at a chapter's table, a line each; null at a demo table (its payouts panel says it).</summary>
+        /// <summary>The notes under the hands' panel, a line each (masa birliği: the Boss Simulator's tables too — the demon's own table,
+        /// Belial's high multipliers, Lilith's heavier loss); null with no table.</summary>
         internal string PayoutNotes()
         {
-            if (_seat == null) return null;
+            if (_game == null || _dealer == null) return null;
             IPayoutInfo payouts = ShownPayouts;
             var lines = new List<string> { UiText.PayoutNoteAnte };
             string fold = payouts.FoldPercentBeforeDraw == payouts.FoldPercentAfterDraw

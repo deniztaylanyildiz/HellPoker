@@ -30,6 +30,11 @@ namespace HellPoker.Presentation
 
         public static bool IsRequested => System.Environment.GetCommandLineArgs().Contains(Argument);
 
+        /// <summary>Masa birliği: with <c>-tableshots</c> the tour also sits at a warden's table, each chapter demon's and Lucifer's and saves
+        /// a screenshot of each (persistentDataPath/tour/table_*.png), plus one of every Boss Simulator hall.</summary>
+        public const string TableShotsArgument = "-tableshots";
+        private static bool TableShots => System.Environment.GetCommandLineArgs().Contains(TableShotsArgument);
+
         /// <param name="chapters">Phase 2's chapters: the tour also crosses from the first chapter into the second (a run saved at
         /// Mammon's spoils, continued from the menu). Null: the demo alone.</param>
         /// <param name="menu">The title menu: the tour switches it to the Boss Simulator (F9's way) for the demons' halls.</param>
@@ -63,6 +68,63 @@ namespace HellPoker.Presentation
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 belial imp");
             yield return CheckThePlayersPanel("p2_belial_imp");
+            if (TableShots) yield return TableLeg();
+        }
+
+        /// <summary>A save placed at a table, picked up from the menu's CONTINUE; one hand dealt; a screenshot.</summary>
+        private IEnumerator SitAndShoot(ChapterSave save, string shot, bool luciferCall = false)
+        {
+            Press("MenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+            _chapters.ForgetForTour(save);
+            Press("ContinueButton");
+            yield return new WaitForSecondsRealtime(Settle);
+            if (luciferCall)
+            {
+                Press("PanelOption0");
+                yield return new WaitForSecondsRealtime(Settle * 3);
+            }
+            _chapters.Table?.PerformAction();   // the deal
+            yield return new WaitForSecondsRealtime(Settle * 2);
+            Debug.Log($"Hell Poker table shot {shot}: at the table {_chapters.IsAtTable}, demon {_chapters.Run?.Rules.BossId}");
+            yield return Shot("table_" + shot);
+        }
+
+        /// <summary>Masa birliği: a warden's table, Mammon's, Belial's, Lilith's and Lucifer's, each on screen once.</summary>
+        private IEnumerator TableLeg()
+        {
+            yield return SitAndShoot(WardenSave(), "warden");
+            for (int chapter = 1; chapter <= 3; chapter++)
+                yield return SitAndShoot(new ChapterSave
+                {
+                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = chapter, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                    BossBar = 1600, NodeDone = false
+                }, "boss" + chapter);
+            yield return SitAndShoot(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"), "lucifer", luciferCall: true);
+            Press("MenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+        }
+
+        /// <summary>A save standing on the first chapter's nearest warden (a path walked to it).</summary>
+        private static ChapterSave WardenSave()
+        {
+            ChapterJourney journey = ChapterJourney.Begin(Core.Sinners.SinnerRoster.Peasant, 11);
+            ChapterMap map = journey.Run.Map;
+            var paths = map.Floors[0].Select(n => new System.Collections.Generic.List<MapNode> { n }).ToList();
+            System.Collections.Generic.List<MapNode> found = null;
+            while (paths.Count > 0 && found == null)
+            {
+                found = paths.FirstOrDefault(p => p.Last().Kind == NodeKind.Warden);
+                if (found != null) break;
+                paths = paths.SelectMany(p => map.NextFrom(p.Last()).Select(n => new System.Collections.Generic.List<MapNode>(p) { n })).ToList();
+            }
+            ChapterSave save = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 11, 1, "");
+            save.Trail = found?.Select(n => n.Lane).ToList() ?? new System.Collections.Generic.List<int>();
+            save.NodeDone = false;
+            save.Coins = 200;
+            save.Match = "warden";
+            save.MatchHouse = 50;
+            return save;
         }
 
         /// <summary>
@@ -160,6 +222,13 @@ namespace HellPoker.Presentation
                 Press("ChooseDealer" + dealer);
                 yield return new WaitForSecondsRealtime(Settle);
                 yield return Measure(DealerRoster.All[dealer].Id);
+                if (TableShots)
+                {
+                    // A hand dealt — but not at the last one: Lucifer's summons below waits for a table between hands.
+                    if (dealer < DealerRoster.All.Count - 1) _table.PerformAction();
+                    yield return new WaitForSecondsRealtime(Settle * 2);
+                    yield return Shot("sim_" + DealerRoster.All[dealer].Id);
+                }
             }
 
             // Lucifer's hall: brought down to his gate, the game summons the player between hands.
@@ -168,6 +237,7 @@ namespace HellPoker.Presentation
             // The summoning scene (the dark falling, his words) plays out before the hall is measured.
             yield return new WaitForSecondsRealtime(Settle * 4);
             yield return Measure(_table.IsAtFinalTable ? "lucifer" : "lucifer (not summoned)");
+            if (TableShots) yield return Shot("sim_lucifer");
 
             Debug.Log(_report.ToString());
             Application.Quit();

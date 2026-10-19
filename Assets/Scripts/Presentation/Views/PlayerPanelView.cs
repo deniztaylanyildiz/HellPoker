@@ -234,7 +234,8 @@ namespace HellPoker.Presentation.Views
             _passiveIcon.sprite = UiArt.PassiveIcon(badge.ClassId) ?? UiArt.SinnerIcon(badge.ClassId);
             _passiveIcon.enabled = _passiveIcon.sprite != null;
             _passiveName.text = badge.ShowsJokers ? string.Format(UiText.PanelJokersFormat, badge.Jokers)
-                : UiText.ChapterPassiveName(badge.ClassId) ?? badge.Name;
+                : badge.Passive ? UiText.ChapterPassiveName(badge.ClassId) ?? badge.Name
+                : UiText.DemoPowerName(badge.ClassId) ?? badge.Name;   // the Boss Simulator: the demo's power, charged by the pips
             _passiveName.color = Palette.Bone;
 
             _ready.gameObject.SetActive(!badge.Passive || badge.Usable || badge.PowerOn);

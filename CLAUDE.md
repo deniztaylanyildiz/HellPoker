@@ -15,6 +15,17 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Masa birliği** (Demo 3.4'ün ilk aşaması, DEVLOG 2026-10-20): **oyundaki her poker masası aynı görünür** (kullanıcının kuralı) — kat, bekçi,
+boss, Lucifer ve Boss Simülatörü'nün masaları: sol altta oyuncu paneli, sağ üstte şeytan, sayaç sol üstte, ödeme çarpanları masada değil
+H panelinde. `TableLayout` tek düzen (`TableLayout.Table`; `TableLayoutKind`, `ITableView.SetLayout` / `SetPayoutTableShown` silindi),
+simülatörün LEAVE TABLE / SOUL BOUND / NO ESCAPE düğmesi panelin üstünde (`TableLayout.Leave`, kit'in yeri). Simülatörde panelin satırı demo
+gücünün adı (`UiText.DemoPowerName`; şarj pipleri adın üstünde), portre tık = K; H panelinde şeytanın kendi tablosu ve notlar
+(`TablePresenter.PayoutNotes` artık her masada). **Simülatör geliştirici aracı:** F9 ve menüdeki izi yalnız editörde, development build'de,
+`HELLPOKER_DEV=1`'de, batchmode'da ve `-fpstour`'da (`HellPokerBootstrap.SimulatorAllowed` → `MainMenuPresenter(simulatorAllowed)`);
+oyuncu build'inde `run.save` DEVAM ET'i etkilemez. `-fpstour -tableshots`: bekçi, üç boss, Lucifer ve simülatör salonlarının görüntüleri
+(`persistentDataPath/tour/table_*.png`, `sim_*.png`; `ChapterPresenter.ForgetForTour`). Testler: `TableLayoutTests.TheSimulatorsTables_LookLike...`,
+`EveryChapterTable_...`, `ChapterMenuTests.APlayersBuild_HasNoSimulator...`, `PhaseThreeTableTests.TheSimulatorsHandsPanel...`.
+
 **Demo 3.3** (etiket `v3.3-demo`, bundleVersion **3.3.0-demo**): **dil Ayarlar'da** — `SettingsTab.Language` dördüncü sekme (liste
 `Lang.All`, her dil kendi adıyla `Lang.NativeName`; satırlar `SettingsLanguage<i>`, seçili olanda piksel ok + altın çerçeve; tık
 `ISettingsView.LanguageChosen`, klavye `ISettingsCommands.IsLanguageTab / StepLanguage / ConfirmLanguage`); menünün dil düğmesi,
@@ -33,7 +44,7 @@ blok boylarından hesaplanır; `ITableView.SetLayout`, presenter masaya otururke
 orta sütunla şeytan sütunu arasındaki boşlukta), sayaç / ruh lambası sol üstte (4, 4), oyuncu paneli sol altta (alt satırın 4 px üstünde;
 hover'ları sağa: `PlayerPanelView.SetTipsRight`, `RelicBarView.TipsRight`), kit panelin hemen üstünde ve yukarı büyür (`KitView.MoveTo(...,
 fromBottom)`); coin uçuşu sayaca, bar vuruşu şeytanın barına (`HandFanfareView.SetTargets`), haraç sikkeleri şeytana (`CheatEffects.DealerPoint`).
-Simülatör: eski yerler (şeytan solda, sayaç ve ödemeler sağda, rozet ve emanetler portrede). Zeminlerin yazı bölgeleri (`TABLE_TEXT`) iki
+Simülatör: masa birliğinden beri aynı düzen (aşağıdaki **Masa birliği**). Zeminlerin yazı bölgeleri (`TABLE_TEXT`) iki
 düzenin birleşimi (sağdaki ad satırı, iki yandaki yüzde), sağdaki parçacık alanı adın üstü / altı (`RIGHT_HIGH/LOW`). Şeytanın adı sığmazsa
 metin fontuna geçer (`DealerView.FitName`). Testler: `TableLayoutTests.TheChapterTables_PutTheDemonTopRight...`, `TheSimulatorsTable_KeepsItsOldLayout`.
 
@@ -44,8 +55,8 @@ ayarı (aşağıdaki **Demo 3.1** paragrafı). Demo 3.0.1 / 3.0.2: How to Play r
 masalarında her el taze deste, uzun kat / harita müzikleri, hover kutuları en üstte (aşağıdaki **Phase 3 (1)** paragrafı ve görsel kurallar).
 
 **Tek oyun (1.4.0):** ana menünün YENİ OYUN / DEVAM ET düğmeleri Phase 2 koşusunu açar (sınıf → harita); "PHASE 2" düğmeleri yok.
-Eski demo silinmedi: **Boss Simülatörü** (geliştirici kipi; `MainMenuPresenter.InSimulator`): ana menüde **F9** (`IMenuCommands.ToggleSimulator`,
-sadece menü kökünde) ya da `HELLPOKER_DEV=1`; batchmode'da (testler) varsayılan simülatör, oyunun testleri `HellPokerBootstrap.ForceSimulator =
+Eski demo silinmedi: **Boss Simülatörü** (geliştirici aracı; `MainMenuPresenter.InSimulator`): ana menüde **F9** (`IMenuCommands.ToggleSimulator`,
+sadece menü kökünde; masa birliğinden beri yalnız editör / development build / `HELLPOKER_DEV=1` / batchmode / `-fpstour`) ya da `HELLPOKER_DEV=1`; batchmode'da (testler) varsayılan simülatör, oyunun testleri `HellPokerBootstrap.ForceSimulator =
 false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MASA DEĞİŞTİR / YENİ OYUN → şeytan, demo kuralları, demo rekorları,
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER

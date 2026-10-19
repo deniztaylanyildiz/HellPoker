@@ -86,19 +86,19 @@ private MainMenuPresenterTests.FakeMenuView _menu;
         [SetUp]
         public void SetUp() => Build(simulator: false);
 
-        private void Build(bool simulator)
+        private void Build(bool simulator, bool simulatorAllowed = true, bool simulatorSaved = false, bool gameSaved = false)
         {
             _presenter?.Dispose();
             _menu = new MainMenuPresenterTests.FakeMenuView();
-            _session = new MainMenuPresenterTests.FakeSession();
+            _session = new MainMenuPresenterTests.FakeSession { CanContinue = simulatorSaved };
             _records = new MainMenuPresenterTests.FakeRecords();
             _dealers = new MainMenuPresenterTests.FakeDealerSelectView();
             _sinners = new FakeSinnerSelect();
-            _chapters = new FakeChapters();
+            _chapters = new FakeChapters { HasRun = gameSaved };
             _presenter = new MainMenuPresenter(_menu, _dealers, new MainMenuPresenterTests.FakeSettingsView(),
                 new MainMenuPresenterTests.FakeEndScreen(), _records, new FakeTableView(), _session,
                 new MainMenuPresenterTests.FakeQuitter(), new MainMenuPresenterTests.FakeTransition(), DealerRoster.All, null, _sinners,
-                SinnerRoster.All, null, _chapters, simulator);
+                SinnerRoster.All, null, _chapters, simulator, simulatorAllowed);
         }
 
         [TearDown]
@@ -267,6 +267,34 @@ private MainMenuPresenterTests.FakeMenuView _menu;
             Assert.AreEqual(Presentation.Ui.UiText.CircleNote(2), _sinners.Note, "its rules under the title");
             _sinners.Choose(0);
             Assert.AreEqual(2, _chapters.StartedCircle);
+        }
+
+        [Test]
+        public void APlayersBuild_HasNoSimulator_F9DoesNothing_AndASimulatorSaveNeverBecomesContinue()
+        {
+            // Masa birliği: a player's build (no editor, no development build, no HELLPOKER_DEV, no batch run, no tour).
+            Assert.IsFalse(HellPokerBootstrap.SimulatorAllowed(false, false, null, false, false));
+            Assert.IsTrue(HellPokerBootstrap.SimulatorAllowed(true, false, null, false, false), "a development build");
+            Assert.IsTrue(HellPokerBootstrap.SimulatorAllowed(false, true, null, false, false), "the editor");
+            Assert.IsTrue(HellPokerBootstrap.SimulatorAllowed(false, false, "1", false, false), "HELLPOKER_DEV=1");
+            Assert.IsTrue(HellPokerBootstrap.SimulatorAllowed(false, false, null, true, false), "the tests");
+            Assert.IsTrue(HellPokerBootstrap.SimulatorAllowed(false, false, null, false, true), "the FPS tour");
+
+            // An old simulator run in run.save: the game's menu has nothing to continue, and F9 does not open the simulator.
+            Build(simulator: true, simulatorAllowed: false, simulatorSaved: true);
+            Assert.IsFalse(_presenter.InSimulator, "never the simulator in a player's build");
+            Assert.IsFalse(_menu.Simulator, "no trace of it on the menu");
+            Assert.IsFalse(_menu.ContinueShown, "the simulator's save is not the game's");
+            _presenter.ToggleSimulator();
+            Assert.IsFalse(_presenter.InSimulator, "F9 does nothing");
+            Assert.IsFalse(_menu.Simulator);
+
+            // The game's own save: CONTINUE leads to it, the simulator's save untouched.
+            Build(simulator: false, simulatorAllowed: false, simulatorSaved: true, gameSaved: true);
+            Assert.IsTrue(_menu.ContinueShown);
+            _menu.PressContinue();
+            Assert.IsTrue(_chapters.IsVisible, "the game's run");
+            Assert.AreEqual(0, _session.NewRuns);
         }
 
         [Test]

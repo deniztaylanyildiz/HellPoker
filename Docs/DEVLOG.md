@@ -4109,3 +4109,35 @@ kuralları, denge değişmez.
 ### Sıradaki
 - Oyun testi: yeni menünün yoğunluğu, logo boyu, imleç ve kartın işe yararlığı.
 
+## 2026-10-20 — Masa birliği (Demo 3.4, Aşama 1): simülatör de yeni masada, F9 sadece geliştiricide
+
+### İstek (kullanıcı)
+İki aşamalı iş. Aşama 1: oyundaki her poker masası aynı görünsün (kat, bekçi, boss, Lucifer ve Boss Simülatörü: sol altta oyuncu paneli,
+sağ üstte şeytan, ödemeler H panelinde); simülatörün kuralları, şeytan seçimi, yıl sayacı, ruh, Lucifer kapısı, KARIŞTIR, rekorları aynen;
+F9 yalnız geliştiricide; oyuncu build'inde simülatör izi olmasın; ekran görüntüleri `Screenshots/demo334/`; commit, etiket yok. Şeytan AI'ına
+ve demo kurallarına dokunma.
+
+### Yapılanlar
+- `TableLayout` tek düzen; `TableLayoutKind`, `ITableView.SetLayout`, `SetPayoutTableShown` kalktı (TableView ödemeler panelini hiç göstermez).
+  Simülatörün LEAVE TABLE / SOUL BOUND / KAÇIŞ YOK düğmesi oyuncu panelinin üstünde (bölüm masasında kit'in durduğu yer).
+- Oyuncu paneli simülatörde: sınıfın portresi (idle), adı, şarj pipleri, satırda demo gücünün adı (`UiText.DemoPowerName`: Dürüst kalp,
+  Koruma, Taç; Soytarı'da joker sayısı), portreye / satıra tık = K.
+- H paneli her masada notlarla: `PayoutNotes` simülatörde de (ante, kayıp ve çekilme; Lilith'in ×1.25'i, Belial'in yüksek çarpanları).
+- F9: `HellPokerBootstrap.SimulatorAllowed(debugBuild, editor, HELLPOKER_DEV, batchmode, -fpstour)`; değilse `MainMenuPresenter`
+  simülatöre geçmez, menüde yazısı çıkmaz; simülatörün kaydı oyunun DEVAM ET'ini etkilemez (test).
+- FpsTour `-tableshots`: bekçi, Mammon / Belial / Lilith boss'u, Lucifer (bölüm masaları) ve simülatörün dört salonu, bir el dağıtılmış.
+- OKUBENI / GERI_BILDIRIM / How to Play'de F9 geçmiyordu (yalnız CHANGELOG'un geçmiş kayıtlarında; dokunulmadı). CLAUDE.md güncellendi.
+- Testler: EditMode 1178 geçti; PlayMode TableLayout 10 (simülatör testi yeni: dört şeytan + Lucifer, iki dil), HellPokerScene + RunJourney +
+  LuciferJourney 13, Cheat + Jester + Salon + HoverTip 16, HandFanfare + Backdrop + ChapterJourney + HowToPlay + MenuGrid 27,
+  FullRunTests.Peasant_English — hepsi geçti.
+- Ekran görüntüleri: `Screenshots/demo334/player/` (oyuncu build'i: table_warden, table_boss1-3, table_lucifer, p2_belial_imp; ayrıca tur
+  simülatörün salonlarını da gezdiği için sim_*) ve `Screenshots/demo334/development/` (development build, sim_mammon / belial / lilith / lucifer).
+  Hepsinde portre ve panel var, ×2 / ×3 tablosu yok. Kayıtlar yedeklenip geri yüklendi.
+
+### Kararlar
+- Tek düzen kaldı, `Simulator` düzeni silindi (spec'in iki seçeneğinden daha sade olanı).
+- `-fpstour` oyuncu build'inde de simülatörü açabilir (duman testi salonları geziyor); normal açılışta yok.
+
+### Sıradaki
+- Aşama 2: zorluk seviyeleri ve KAYDET (Demo 3.4).
+

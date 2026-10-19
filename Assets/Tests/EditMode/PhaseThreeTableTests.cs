@@ -193,7 +193,6 @@ namespace HellPoker.Core.Tests
         public void TheHandsPanel_HoldsTheTablesOwnPayouts_AndHowItPays()
         {
             ContinueAtTheDemon(1);
-            Assert.IsFalse(_tableView.PayoutTableShown, "no payouts panel at a chapter's table");
             _table.ToggleHandRanks();
             Assert.IsTrue(_tableView.HandRanksOpen);
             Assert.AreEqual(DealerRoster.Mammon.Payouts.GetMultiplier(HandCategory.RoyalFlush), _tableView.HandRanksPayouts.GetMultiplier(HandCategory.RoyalFlush),
@@ -215,7 +214,6 @@ namespace HellPoker.Core.Tests
             _panel.Press(0);
             _map.Press(_map.State.Choices.First(n => n.Kind == NodeKind.Table));
             Assert.IsTrue(_chapters.IsAtTable);
-            Assert.IsFalse(_tableView.PayoutTableShown);
             _table.ToggleHandRanks();
             var payouts = _tableView.HandRanksPayouts;
             Assert.IsInstanceOf<FloorPayoutTable>(payouts);
@@ -224,12 +222,18 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheSimulatorsTable_KeepsItsPayoutsPanel()
+        public void TheSimulatorsHandsPanel_HoldsTheDemonsOwnPayouts()
         {
-            _table.StartNewRun(DealerRoster.Mammon, SinnerRoster.Peasant);
-            Assert.IsTrue(_tableView.PayoutTableShown);
+            // Masa birliği: the Boss Simulator's tables have no payouts panel either; Belial's high multipliers and Lilith's heavier loss
+            // are in the hands' panel.
+            _table.StartNewRun(DealerRoster.Belial, SinnerRoster.Peasant);
             _table.ToggleHandRanks();
-            Assert.IsNull(_tableView.HandRanksNotes, "the demo's panel says it");
+            Assert.AreEqual(DealerRoster.Belial.Payouts.GetMultiplier(HandCategory.RoyalFlush), _tableView.HandRanksPayouts.GetMultiplier(HandCategory.RoyalFlush));
+            StringAssert.Contains(UiText.PayoutNoteAnte, _tableView.HandRanksNotes);
+            _table.ToggleHandRanks();
+            _table.StartNewRun(DealerRoster.Lilith, SinnerRoster.Peasant);
+            _table.ToggleHandRanks();
+            StringAssert.Contains(UiText.LossSurcharge(DealerRoster.Lilith.Payouts.LossPercent), _tableView.HandRanksNotes, "her loss ×1.25");
         }
     }
 }

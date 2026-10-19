@@ -128,7 +128,9 @@ namespace HellPoker.Presentation
 
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter,
-                StartsInSimulator(System.Environment.GetEnvironmentVariable(DevVariable), Application.isBatchMode, ForceSimulator));
+                StartsInSimulator(System.Environment.GetEnvironmentVariable(DevVariable), Application.isBatchMode, ForceSimulator),
+                SimulatorAllowed(Debug.isDebugBuild, Application.isEditor, System.Environment.GetEnvironmentVariable(DevVariable), Application.isBatchMode,
+                    FpsTour.IsRequested));
 
             // The tester's bug report / idea box, from the title menu (also the game's pause menu): mail and the clipboard.
             FeedbackView feedbackView = FeedbackView.Create(transform);
@@ -175,6 +177,13 @@ namespace HellPoker.Presentation
         /// simulator; the game's tests say so with <see cref="ForceSimulator"/>). F9 on the menu switches at any time.
         /// </summary>
         internal static bool StartsInSimulator(string devValue, bool batchMode, bool? forced) => forced ?? (devValue == "1" || batchMode);
+
+        /// <summary>
+        /// Masa birliği: whether the Boss Simulator exists at all (F9, the menu's label): the editor, a development build, HELLPOKER_DEV=1, a
+        /// batch run (the tests) or the FPS tour (it walks the demons' halls). A player's build without them never shows it.
+        /// </summary>
+        internal static bool SimulatorAllowed(bool debugBuild, bool editor, string devValue, bool batchMode, bool fpsTour) =>
+            debugBuild || editor || devValue == "1" || batchMode || fpsTour;
 
         /// <summary>The in-memory store of batch runs (tests may clear it).</summary>
         public static readonly MemoryStore BatchStore = new MemoryStore();

@@ -63,10 +63,12 @@ namespace HellPoker.Presentation
         public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
             IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
             IReadOnlyList<Dealer> dealers, Dealer finalDealer = null, ISinnerSelectView sinnerSelect = null,
-            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null, bool simulator = false)
+            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null, bool simulator = false,
+            bool simulatorAllowed = true)
         {
             _chapters = chapters;
-            _simulator = simulator;
+            _simulatorAllowed = simulatorAllowed;
+            _simulator = simulator && simulatorAllowed;
             _audio = audio ?? NullAudio.Instance;
             _sinnerSelect = sinnerSelect;
             _classes = (classes ?? SinnerRoster.All).ToArray();
@@ -609,9 +611,13 @@ namespace HellPoker.Presentation
         /// <summary>CONTINUE: the game's run that waits — or the simulator's.</summary>
         private bool CanContinue => InSimulator ? _session.CanContinue : _chapters.CanContinue;
 
+        /// <summary>Masa birliği: the Boss Simulator is a developer's tool — F9 works only in the editor, a development build, with
+        /// HELLPOKER_DEV=1, in batch runs (the tests) and on the FPS tour; a player's build has no trace of it.</summary>
+        private readonly bool _simulatorAllowed;
+
         public void ToggleSimulator()
         {
-            if (_chapters == null || !IsAtMenuRoot) return;
+            if (_chapters == null || !_simulatorAllowed || !IsAtMenuRoot) return;
             _simulator = !_simulator;
             OpenMenu();
         }
