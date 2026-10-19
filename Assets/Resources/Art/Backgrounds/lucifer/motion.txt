@@ -5,4 +5,5 @@ layer chain2 535 0 8 8 1 0 0 0
 layer chain3 601 0 8 8 1 0 0 0
 particles embers 0 0 136 100 8
 particles embers 0 134 136 202 10
-particles embers 504 0 136 336 18
+particles embers 504 0 136 100 9
+particles embers 504 134 136 202 9

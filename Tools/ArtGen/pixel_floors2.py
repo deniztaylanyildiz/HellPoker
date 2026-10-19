@@ -239,7 +239,7 @@ def belial_imp_hall_base():
 def belial_imp_hall():
     layers = [S.glint_layer(f"glint{i}", x, y, offset=(i * 5) % S.LAYER_FRAMES, colors=(C.WHITE, C.LILAC_LIGHT, C.LILAC), vignette=S.readable_middle)
               for i, (x, y) in enumerate(((70, 40), (114, 54), (368, 40), (412, 54), (100, 256), (380, 256)))]
-    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("motes", *S.RIGHT_SIDE, 8)]
+    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("motes", *S.RIGHT_HIGH, 4), Particles("motes", *S.RIGHT_LOW, 4)]
     return belial_imp_hall_base(), layers, particles
 
 
@@ -269,7 +269,7 @@ def prophet_hall_base():
 def prophet_hall():
     layers = [S.glint_layer(f"glint{i}", x, y, offset=(i * 3 + 1) % S.LAYER_FRAMES, vignette=S.readable_middle)
               for i, (x, y) in enumerate(((22, 17), (58, 17), (422, 17), (458, 17), (87, 235), (395, 235)))]
-    particles = [Particles("embers", *S.LEFT_LOW, 5), Particles("motes", *S.RIGHT_SIDE, 8)]
+    particles = [Particles("embers", *S.LEFT_LOW, 5), Particles("motes", *S.RIGHT_HIGH, 4), Particles("motes", *S.RIGHT_LOW, 4)]
     return prophet_hall_base(), layers, particles
 
 
@@ -337,7 +337,7 @@ def nurse_hall_base():
 def nurse_hall():
     layers = [S.glint_layer(f"glint{i}", x, y, offset=(i * 6) % S.LAYER_FRAMES, colors=(C.WHITE, C.AMBER, C.ORANGE), vignette=S.readable_middle)
               for i, (x, y) in enumerate(((52, 39), (426, 39)))]
-    particles = [Particles("wisps", *S.LEFT_LOW, 5), Particles("wisps", *S.RIGHT_SIDE, 7)]
+    particles = [Particles("wisps", *S.LEFT_LOW, 5), Particles("wisps", *S.RIGHT_HIGH, 3), Particles("wisps", *S.RIGHT_LOW, 4)]
     return nurse_hall_base(), layers, particles
 
 

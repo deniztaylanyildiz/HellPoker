@@ -24,15 +24,20 @@ LAYER_FPS = 10
 # the shortcut line along the bottom. Everything else with words is on a panel.
 # Phase 3: on the 640×360 table (the halls are drawn on 480×270 and widened, see pixel_layers.write): the name, the middle column, the
 # shortcut line along the bottom.
-TABLE_TEXT = ((0, 104, 112, 132), (186, 106, 454, 292), (118, 341, 636, 356))
+# Demo 3.2: the halls serve both layouts (the Boss Simulator's: the demon left; a chapter's: the demon top right), so the zones are
+# both: the name on the left and on the right, the percent floating beside the demon's bar on either side.
+TABLE_TEXT = ((0, 104, 112, 132), (186, 106, 454, 292), (118, 341, 636, 356), (528, 104, 639, 132), (110, 100, 160, 130), (480, 100, 532, 130))
 
 # The halls are widened to 640×360 (pixel_layers): the readability darkening is laid over the widened picture (readable_middle_wide).
 WIDE = True
 
 # Particles keep to the sides, clear of the words: above and below the demon's name on the left, beside the panels on the right.
 LEFT_HIGH, LEFT_LOW, RIGHT_SIDE = (0, 0, 136, 100), (0, 134, 136, 112), (344, 0, 136, 246)
+# Demo 3.2: at a chapter's table the demon's name stands on the right too: the right side's particles keep above and below it.
+RIGHT_HIGH, RIGHT_LOW = (344, 0, 136, 100), (344, 134, 136, 112)
 # The same on the 640×360 table (the halls drawn on it directly).
 WIDE_LEFT_LOW, WIDE_RIGHT_SIDE = (0, 134, 136, 202), (504, 0, 136, 336)
+WIDE_RIGHT_HIGH, WIDE_RIGHT_LOW = (504, 0, 136, 100), (504, 134, 136, 202)
 
 # One step darker for every palette colour (used for the central vignette).
 DARKER = {
@@ -247,7 +252,7 @@ def mammon():
     glints = [(118, 150), (348, 160), (362, 136), (60, 254), (462, 244), (132, 172), (36, 200), (452, 186), (124, 96), (366, 110)]
     for i, (x, y) in enumerate(glints):
         layers.append(glint_layer(f"glint{i}", x, y, offset=(i * 5) % LAYER_FRAMES, vignette=readable_middle))
-    particles = [Particles("motes", *LEFT_LOW, 8), Particles("motes", *RIGHT_SIDE, 10)]
+    particles = [Particles("motes", *LEFT_LOW, 8), Particles("motes", *RIGHT_HIGH, 5), Particles("motes", *RIGHT_LOW, 5)]
     return mammon_base(), layers, particles
 
 
@@ -553,7 +558,7 @@ def chain_layer(name, x0, x1, y1):
 def lucifer():
     layers = [chain_layer(f"chain{i}", x0, x1, y1) for i, (x0, x1, y1) in enumerate(SWAYING_CHAINS)]
     # Embers rise through the sides of the hall (never across the cards and the words).
-    particles = [Particles("embers", *LEFT_HIGH, 8), Particles("embers", *WIDE_LEFT_LOW, 10), Particles("embers", *WIDE_RIGHT_SIDE, 18)]
+    particles = [Particles("embers", *LEFT_HIGH, 8), Particles("embers", *WIDE_LEFT_LOW, 10), Particles("embers", *WIDE_RIGHT_HIGH, 9), Particles("embers", *WIDE_RIGHT_LOW, 9)]
     return lucifer_base(), layers, particles
 
 

@@ -4015,3 +4015,41 @@ Boss Simülatörü, demo masası, kurallar ve denge aynen.
 - İki çiftin hareketi: çiftler ayrı ayrı (yüksek önce). Çift / yüksek kart: çift bir kez vurur, coin uçar.
 - Büyük kaybın ölçüsü: 4 ante (coin sesindeki "büyük" ölçüsüyle aynı).
 - Sarsıntı kapalıyken: büyük kaybın kırmızı kenarı yine titrer (flaş değil), sarsıntı ve üçlünün vuruşu yok.
+
+## 2026-10-19 — Demo 3.2: bölüm masalarının yerleşimi — şeytan sağ üstte, oyuncu sol altta
+
+Kullanıcı: bölüm masalarında şeytan bloğu sağ üste (portre, ad / unvan, can barı ve yüzde, kötülük göstergesi ve niyet, diyalog),
+oyuncu paneli sol alta (kit hemen üstünde, emanet hover'ları sağa), sayaç sol üste; orta sütun yerinde; yerleşim tek yerde, ekran boyundan,
+`SetPayoutTableShown` yan etkisine bağlı değil; zeminlerin yazı bölgeleri; testler; build 3.2. Simülatör, demo masası, kurallar ve denge aynen.
+
+- `Views/TableLayout` (+ `Abstractions/TableLayoutKind` Simulator / Chapter): yan sütunlar 104 px, kenardan 4 px, yerler ekranın boyundan ve
+  blokların boylarından (`DealerView.Height`, `PlayerPanelView.Height`, alt satır H − 22). `TableView.SetLayout` hepsini taşır (şeytan,
+  kötülük, bar, sayaç, ruh lambası, panel, kit, haraç sikkelerinin hedefi, coin uçuşu ve bar vuruşu hedefleri, yüzde) ve panel / rozet /
+  emanet görünürlüğünü belirler; `ITableView.SetLayout`, presenter masaya otururken çağırır (simülatör / bölüm). `SetPayoutTableShown` artık
+  yalnız ödemeleri ve ELLER düğmesini ayarlar.
+- Bölüm masası: şeytan sütunu (532, 4); niyet hover'ı portrenin soluna (`MaliceView.SetTipsLeft`); bar adın altında (536, 122); bardan
+  yükselen yüzde orta sütun ile şeytan sütunu arasında (482..530); sayaç (4, 4); oyuncu paneli (4, 160) — alt satırın 4 px üstünde, MENÜ /
+  ELLER yerinde kaldı (taşınan düğme yok); kit panelin 3 px üstünde ve yukarı büyür (`KitView.MoveTo(..., fromBottom)`); panelin ve
+  emanetlerin hover'ları sağa (`PlayerPanelView.SetTipsRight`, `RelicBarView.TipsRight`).
+- Zeminler: `TABLE_TEXT` iki düzenin birleşimi (+ sağdaki ad satırı, iki yandaki yüzde bölgesi); sağdaki parçacık alanı adın üstü / altı
+  (`RIGHT_HIGH/LOW`, `WIDE_RIGHT_HIGH/LOW`). Salonlar yeniden üretildi: yeni bölgelere giren hareketli parçalar (Belial'in perde ve sütun
+  kenarları, Lucifer'in iki zinciri, Mammon'un bir parıltısı) orada 0. karesinde durur. Lucifer karanlık kuralı aynı.
+- Düzeltme: Lucifer'in adı bölüm masasında başlık fontunda iki satıra kırılıp barın üstüne biniyordu — sığmayan ad metin fontuna geçer
+  (`DealerView.FitName`, dil değişince de).
+- How to Play: kat / boss / hile / sınıflar / emanetler resimleri yeni yerlerden yeniden çekildi; sınıflar sayfasının metni "sol alttaki
+  panelin" (iki dil); OKUBENI'de masa tarifi.
+- Testler: PlayMode `TableLayoutTests.TheChapterTables_PutTheDemonTopRight_AndThePlayerBottomLeft_InBothLanguages` (kat, bekçi, boss,
+  Lucifer × iki dil: blokların yeri, kit panelin üstünde, hiçbir yazı / düğme çakışmıyor), `TheSimulatorsTable_KeepsItsOldLayout`; panel testi
+  emanet hover'ını karoların sağında arar. EditMode 1172 (1167 geçti, 5 Explicit); PlayMode 13 grup tek tek (TableLayout 10); FullRunTests 8 +
+  kaos tek tek geçti. (FullRunTests'in ilk grubu araç süresini aşıp arka plana düştü, ikinci grubu ben başlattım; zaman damgalarına göre
+  testler üst üste binmedi, ikinci Unity proje kilidini bekledi.)
+- [Explicit] `Demo32Shots` (kat, bekçi, altı sınıfın boss masası, Lucifer) → `Screenshots/demo32/after` (1920×1080, 2560×1440; önce:
+  `before`). Build'den: `after/build_floor_table.png` (duman turunun kat masası görüntüsü).
+- Sürüm 3.2.0-demo; build `Builds/HellPoker-Demo-3.2-win64.zip` (Success). Kayıtlar yedeklendi; zipten 3 tur: biri çıkış 0 ama log'da FPS
+  satırı yok (taze açılmış zipte ilk çalıştırma; tekrar denenince üretilemedi), diğer ikisi ve iki ek tur tam (19 FPS satırı, panel görünür);
+  yedek geri kondu. Etiket `v3.2-demo`; push yok.
+
+### Varsayılanla seçilen
+- Oyuncu paneli alt satırın üstüne sığdı: MENÜ / ELLER yerinde kaldı.
+- Ekran görüntüleri editörün PlayMode'unda verilen boyutta (build'in ekranı 1920×1080; 2560×1440 build'de pencere olarak açılamıyor);
+  build'in kendi görüntüsü duman turundan.

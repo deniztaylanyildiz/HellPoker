@@ -371,6 +371,118 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
+        // ------------------------------------------------------------------ Demo 3.2: the demon top right, the player bottom left
+
+        /// <summary>A save standing on a node of <paramref name="kind"/> of the first chapter (a path walked to it).</summary>
+        private static ChapterSave AtNode(Core.Sinners.SinnerClass cls, NodeKind kind, string match)
+        {
+            ChapterJourney journey = ChapterJourney.Begin(cls, 11);
+            ChapterMap map = journey.Run.Map;
+            var paths = map.Floors[0].Select(n => new List<MapNode> { n }).ToList();
+            List<MapNode> found = null;
+            while (paths.Count > 0 && found == null)
+            {
+                found = paths.FirstOrDefault(p => p.Last().Kind == kind);
+                if (found != null) break;
+                paths = paths.SelectMany(p => map.NextFrom(p.Last()).Select(n => new List<MapNode>(p) { n })).ToList();
+            }
+            ChapterSave save = ChapterPresenter.PlacedSave(cls, 11, 1, "");
+            save.Trail = found?.Select(n => n.Lane).ToList() ?? new List<int>();
+            save.NodeDone = false;
+            save.Coins = 200;
+            save.Match = match;
+            save.MatchHouse = 50;
+            return save;
+        }
+
+        /// <summary>The chapter's layout on the table as it stands: the blocks where <see cref="TableLayout"/> puts them, nothing over anything.</summary>
+        private static void AssertTheChapterLayout(TableView view, string where)
+        {
+            Assert.AreEqual(TableLayoutKind.Chapter, view.Layout.Kind, where);
+            Vector2 At(Component c) => ((RectTransform)c.transform).anchoredPosition;
+            DealerView dealer = view.GetComponentInChildren<DealerView>(true);
+            Assert.AreEqual(new Vector2(TableLayout.RightX, -TableLayout.Edge), At(dealer), where + ": the demon top right");
+            Assert.AreEqual(TableLayout.RightX + TableLayout.Column, PixelScreen.Width - TableLayout.Edge, where + ": against the right edge, on screen");
+            Assert.AreEqual(new Vector2(TableLayout.RightX, -TableLayout.Edge), At(view.GetComponentInChildren<MaliceView>(true)), where + ": his malice on him");
+            Assert.AreEqual(new Vector2(TableLayout.LeftX, -TableLayout.Edge), At(view.GetComponentInChildren<SentenceView>(true)), where + ": the counter top left");
+            PlayerPanelView panel = view.PlayerPanel;
+            Assert.IsTrue(panel.gameObject.activeInHierarchy, where + ": the player's panel");
+            Assert.AreEqual(new Vector2(TableLayout.LeftX, -(TableLayout.BottomY - TableLayout.Edge - PlayerPanelView.Height)), At(panel), where + ": bottom left");
+            Assert.LessOrEqual(-At(panel).y + PlayerPanelView.Height, TableLayout.BottomY, where + ": over the bottom row");
+            KitView kit = view.Kit;
+            if (!kit.Shown.IsHidden)
+                Assert.AreEqual(-At(panel).y - 3, -At(kit).y + kit.Height, where + ": the kit just over the panel");
+            AssertNothingOverlaps(view, where);
+        }
+
+        [UnityTest, Timeout(600000)]
+        public IEnumerator TheChapterTables_PutTheDemonTopRight_AndThePlayerBottomLeft_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            {
+                string lang = turkish ? " (tr)" : " (en)";
+                // A floor's table and a warden's: the Peasant, his satchel's kit over the panel.
+                foreach (var (kind, match) in new[] { (NodeKind.Table, "imp"), (NodeKind.Warden, "warden") })
+                {
+                    yield return Load(turkish, AtNode(Core.Sinners.SinnerRoster.Peasant, kind, match));
+                    yield return Settle();
+                    TableView view = ChapterJourneyTests.ChapterTableView;
+                    Assert.IsTrue(ChapterJourneyTests.Chapters.IsAtTable, match + lang);
+                    AssertTheChapterLayout(view, match + lang + ", before the deal");
+                    ChapterJourneyTests.Chapters.Table.PerformAction();
+                    yield return Settle();
+                    AssertTheChapterLayout(view, match + lang + ", in a hand");
+                }
+
+                // A demon's table, dealt: his bar under him (on the right), the cheat's sign on his portrait.
+                yield return Load(turkish, new ChapterSave
+                {
+                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                    BossBar = 1600, NodeDone = false, Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).ToList(), Taxes = 20
+                });
+                yield return Settle();
+                TableView boss = ChapterJourneyTests.ChapterTableView;
+                Assert.AreEqual(new Vector2(TableLayout.RightX + TableLayout.BarInset, -(TableLayout.Edge + TableLayout.BarTop)),
+                    ((RectTransform)boss.BossBar.transform).anchoredPosition, "the bar under the demon" + lang);
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle();
+                AssertTheChapterLayout(boss, "boss" + lang);
+
+                // Lucifer's call, then his table.
+                yield return Load(turkish, ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"));
+                HellPokerScreenshots.Press("PanelOption0");
+                yield return Settle();
+                yield return new WaitForSeconds(0.5f);
+                yield return Settle();
+                TableView lucifer = ChapterJourneyTests.ChapterTableView;
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle();
+                AssertTheChapterLayout(lucifer, "Lucifer" + lang);
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheSimulatorsTable_KeepsItsOldLayout()
+        {
+            HellPokerBootstrap.BatchStore.Clear();
+            HellPokerBootstrap.BatchStore.SetString("settings.language", "English");
+            HellPokerBootstrap.ForceSimulator = true;
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            HellPokerScreenshots.Press("NewGameButton");
+            yield return new WaitForSeconds(0.6f);
+            HellPokerScreenshots.Press("ChooseDealer0");
+            yield return new WaitForSeconds(0.6f);
+            TableView view = UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsSortMode.None).First(t => t.name == "TableCanvas");
+            Assert.AreEqual(TableLayoutKind.Simulator, view.Layout.Kind);
+            Vector2 At(Component c) => ((RectTransform)c.transform).anchoredPosition;
+            Assert.AreEqual(new Vector2(4, -4), At(view.GetComponentInChildren<DealerView>(true)), "the demon on the left, as he always was");
+            Assert.AreEqual(new Vector2(PixelScreen.Width - 108, -4), At(view.GetComponentInChildren<SentenceView>(true)), "the counter top right");
+            Assert.IsTrue(view.PayoutTableShown, "the payouts under it");
+            Assert.IsFalse(view.PlayerPanel.gameObject.activeInHierarchy, "no player's panel");
+            Assert.IsTrue(view.PortraitBadge.gameObject.activeInHierarchy, "the class badge on the portrait");
+        }
+
         // ------------------------------------------------------------------ Demo 3.1: the player's panel
 
         [UnityTest, Timeout(480000)]
@@ -436,8 +548,9 @@ namespace HellPoker.PlayMode.Tests
                 Assert.IsNotNull(tip, where + ": a relic's hover box");
                 Assert.IsTrue(tip.Visible, where + ": drawn");
                 Rect tipBox = Box((RectTransform)tip.transform);
-                Rect tile = Box(panel.Relics.TileOf(0));
-                Assert.IsTrue(tipBox.xMin >= screen.xMin - 0.5f && tipBox.xMax <= tile.xMin + 0.5f, where + ": the relic's box on screen, left of its tile");
+                // Demo 3.2: the panel at the left edge — the box opens to the right of the tiles.
+                Rect tile = Box(panel.Relics.TileOf(2));
+                Assert.IsTrue(tipBox.xMax <= screen.xMax + 0.5f && tipBox.xMin >= tile.xMax - 0.5f, where + ": the relic's box on screen, right of the tiles");
                 int die = relics.IndexOf(Core.Relics.RelicIds.BoneDie);
                 panel.Relics.Press(die);
                 yield return Settle();

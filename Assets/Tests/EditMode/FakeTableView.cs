@@ -156,6 +156,9 @@ namespace HellPoker.Core.Tests
         public bool PayoutTableShown { get; private set; } = true;
         public void SetPayoutTableShown(bool shown) => PayoutTableShown = shown;
 
+        public TableLayoutKind Layout { get; private set; } = TableLayoutKind.Simulator;
+        public void SetLayout(TableLayoutKind kind) => Layout = kind;
+
         public MaliceGauge Malice { get; private set; } = MaliceGauge.Hidden;
         public CheatCard Intent { get; private set; }
         public List<CheatCard> Lies { get; } = new List<CheatCard>();

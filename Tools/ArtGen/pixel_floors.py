@@ -257,7 +257,7 @@ def imp_hall_base():
 def imp_hall():
     layers = [S.glint_layer(f"glint{i}", x, y, offset=(i * 4) % S.LAYER_FRAMES, vignette=S.readable_middle)
               for i, (x, y) in enumerate(((22, 34), (70, 66), (402, 34), (450, 66), (120, 184), (360, 170), (36, 254), (446, 252)))]
-    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("motes", *S.RIGHT_SIDE, 8)]
+    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("motes", *S.RIGHT_HIGH, 4), Particles("motes", *S.RIGHT_LOW, 4)]
     return imp_hall_base(), layers, particles
 
 
@@ -302,7 +302,7 @@ def collector_hall():
     layers = [S.glint_layer(f"eye{i}", x, 63, offset=i * 6 % S.LAYER_FRAMES, vignette=S.readable_middle) for i, x in enumerate((54, 422))]
     layers += [S.glint_layer(f"glint{i}", x, y, offset=(i * 5 + 2) % S.LAYER_FRAMES, vignette=S.readable_middle)
                for i, (x, y) in enumerate(((43, 240), (437, 240), (118, 210), (362, 214)))]
-    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("embers", *S.RIGHT_SIDE, 6)]
+    particles = [Particles("motes", *S.LEFT_LOW, 6), Particles("embers", *S.RIGHT_HIGH, 3), Particles("embers", *S.RIGHT_LOW, 3)]
     return collector_hall_base(), layers, particles
 
 

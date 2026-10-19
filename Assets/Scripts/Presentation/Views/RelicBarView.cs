@@ -30,6 +30,9 @@ namespace HellPoker.Presentation.Views
         public const int GridStep = Tile + 2;
         private const int GridTipWidth = 160;
 
+        /// <summary>Demo 3.2: the grid's hover box opens to the right of the tiles (the panel at the screen's left edge), not to the left.</summary>
+        public bool TipsRight { get; set; }
+
         private bool _grid;
 
         /// <summary>The bar laid out as the panel's grid (true) or down the portrait box's edge.</summary>
@@ -149,7 +152,9 @@ namespace HellPoker.Presentation.Views
             _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, 300);
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(_grid ? -(width + 6) : Tile + 6, Place(slot).y, width, textHeight + 4);
+            int gridWidth = GridColumns * GridStep - 2;
+            int x = !_grid ? Tile + 6 : TipsRight ? gridWidth + 6 : -(width + 6);
+            ((RectTransform)_tooltip.transform).PlaceTL(x, Place(slot).y, width, textHeight + 4);
             _tooltip.SetActive(true);
         }
 

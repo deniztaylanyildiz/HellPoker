@@ -105,6 +105,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Phase 3: false at a chapter's table — no payouts panel in the right column (they are in the hands' panel, H).</summary>
         void SetPayoutTableShown(bool shown);
 
+        /// <summary>Demo 3.2: which table the screen lays out (the simulator's, or a chapter's: the demon top right, the player bottom left).</summary>
+        void SetLayout(TableLayoutKind kind);
+
         // ------------------------------------------------------------------ the demon's cheats
 
         /// <summary>The malice gauge under the demon's portrait.</summary>

@@ -1,5 +1,17 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.2 (3.2.0-demo) — 2026-10-19 — Masa yerleşimi: şeytan sağ üstte, oyuncu sol altta
+
+### Değişen
+- **Bölüm masalarının yeni düzeni:** şeytan sağ üstte (portresi, adı, can barı ve bardan yükselen yüzde, kötülük göstergesi ve
+  hile niyeti, konuşma kutusu); sen sol alttasın: sayaç (kese / ceza ve son eller) sol üstte, sınıfının kartları (heybe, önsezi, göz ucu,
+  vergi, iblisler) ve oyuncu panelin sol altta. Orta sütun (kartlar, mesaj, düğmeler) aynı yerde. Açıklama kutuları ortaya doğru açılır.
+- Lucifer'in adı bölüm masasında artık barın üstüne taşmıyor.
+- Boss Simülatörü'nün masası eskisi gibi.
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.1.1 (3.1.1-demo) — 2026-10-19 — Her elin kendi hareketi, büyük kayıp
 
 ### Değişen

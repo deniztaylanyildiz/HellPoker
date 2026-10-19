@@ -8,4 +8,5 @@ layer glint5 517 167 12 10 1 0 0 8
 layer glint6 33 341 12 10 1 0 0 0
 layer glint7 603 339 12 10 1 0 0 4
 particles motes 0 134 136 202 6
-particles motes 504 0 136 336 8
+particles motes 504 0 136 190 4
+particles motes 504 134 136 202 4

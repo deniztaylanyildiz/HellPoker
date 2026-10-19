@@ -113,6 +113,7 @@ namespace HellPoker.Presentation.Views
                 if (dealer.Id != _dealerId) return;
                 _name.text = dealer.Name;
                 _title.text = dealer.IsFinalTable ? "" : dealer.Title;
+                SpeakLike(dealer.IsFinalTable);   // the name's font again: the other language's name may be wider or narrower
             });
         }
 
@@ -142,6 +143,16 @@ namespace HellPoker.Presentation.Views
             // "THE MORNING STAR" is too long for the blocky capitals on one line: his name plate uses the small pixel font.
             Font font = finalTable ? UiArt.Body : UiArt.Display;
             if (font != null) _name.font = font;
+            FitName();
+        }
+
+        /// <summary>Demo 3.2: a name too wide for the plate in the blocky capitals (Lucifer at a chapter's table) is written in the narrow
+        /// text font — it never wraps onto the demon's bar.</summary>
+        private void FitName()
+        {
+            _name.horizontalOverflow = HorizontalWrapMode.Overflow;
+            if (UiArt.Body != null && _name.font != UiArt.Body && _name.preferredWidth > _name.rectTransform.rect.width)
+                _name.font = UiArt.Body;
         }
 
         /// <summary>True while a line is still typing out.</summary>

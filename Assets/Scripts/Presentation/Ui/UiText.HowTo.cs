@@ -98,8 +98,8 @@ namespace HellPoker.Presentation.Ui
                 case 6:
                     return new[]
                     {
-                        L("Six sinners: a power and a passive, both on their own; your panel (right, under the counter) shows them.",
-                            "Altı günahkâr: bir güç ve bir pasif, ikisi de kendiliğinden; sağdaki panelin (sayacın altında) gösterir."),
+                        L("Six sinners: a power and a passive, both on their own; your panel (bottom left) shows them.",
+                            "Altı günahkâr: bir güç ve bir pasif, ikisi de kendiliğinden; sol alttaki panelin gösterir."),
                         L("PEASANT: satchel, its first card unseen. ORACLE: foresight, sees lies.", "KÖYLÜ: heybe, ilk kartı görünmez. KÂHİN: önsezi, yalanı görür."),
                         L("KING: taxes, seizure at half. SUMMONER: imps, the first one free.", "KRAL: vergi, yarı fiyata müsadere. ÇAĞIRICI: iblis, ilki bedava."),
                         L("THIEF: a glance; K steals until the showdown. JESTER: jokers.", "HIRSIZ: göz ucu; K ile showdown'a kadar çalar. SOYTARI: joker."),

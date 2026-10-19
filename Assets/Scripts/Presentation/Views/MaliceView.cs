@@ -105,6 +105,10 @@ namespace HellPoker.Presentation.Views
 
         private GameObject _ward;
 
+        /// <summary>Demo 3.2: the intent's hover box opens beside the portrait towards the middle — to its left when the demon sits at the
+        /// screen's right edge (a chapter's table), to its right otherwise.</summary>
+        public void SetTipsLeft(bool left) => ((RectTransform)_tooltip.transform).PlaceTL(left ? -(188 + 2) : _size + 2, 2, 188, 30);
+
         /// <summary>Whether the Warlock's shield shows (for tests and screenshots).</summary>
         public bool WardShown => _ward.activeSelf;
 

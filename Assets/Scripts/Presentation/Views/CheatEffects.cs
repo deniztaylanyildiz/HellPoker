@@ -33,6 +33,13 @@ namespace HellPoker.Presentation.Views
         private HandView _player;
         private HandView _house;
         private Vector2Int _dealerPoint;
+
+        /// <summary>Demo 3.2: where the demon's portrait is now (the tithe's coins fly there).</summary>
+        public Vector2Int DealerPoint
+        {
+            get => _dealerPoint;
+            set => _dealerPoint = value;
+        }
         private readonly Dictionary<CardView, Image> _signs = new Dictionary<CardView, Image>();
         private readonly List<Image> _coins = new List<Image>();
         private readonly List<CardView> _shaking = new List<CardView>();

@@ -635,6 +635,7 @@ namespace HellPoker.Presentation
 
             _view.Dealer.SetDealer(DealerCards.Describe(dealer), change);
             _view.Payouts.SetTable(dealer.Payouts);
+            _view.SetLayout(TableLayoutKind.Simulator);
             _view.SetPayoutTableShown(true);
             _view.SetSoul(SoulGauge.Hidden);
             if (!_game.IsSoulAtStake)
@@ -824,6 +825,7 @@ namespace HellPoker.Presentation
             _view.SetCurrency(CoinMode ? Currency.Coins : Currency.Bar);
             _view.Dealer.SetDealer(SeatCard());
             _view.Payouts.SetTable(seat.Payouts);
+            _view.SetLayout(TableLayoutKind.Chapter);   // Demo 3.2: the demon top right, the player bottom left
             _view.SetPayoutTableShown(false);
             _view.SetSoul(SoulGauge.Hidden);
             if (!_game.IsSoulAtStake)

@@ -35,12 +35,12 @@ namespace HellPoker.PlayMode.Tests
         {
             [0] = new RectInt(0, 0, 256, 144),      // the chapter's card beside the map: the purse, the demon's bar, the sentence, the tribute
             [1] = new RectInt(150, 12, 256, 144),    // the map's first floors
-            [2] = new RectInt(0, 0, 256, 144),      // a floor's table: the imp, his purse and ante
+            [2] = new RectInt(384, 0, 256, 144),    // a floor's table: the imp, his purse and ante (Demo 3.2: the demon top right)
             [3] = new RectInt(222, 130, 256, 144),   // a hand at the draw: two cards to throw, DRAW
-            [4] = new RectInt(0, 16, 256, 144),     // the demon's bar under him, glowing: the last blow
-            [5] = new RectInt(0, 0, 256, 144),      // the cheat announced over the demon, his gauge
-            [6] = new RectInt(384, 62, 256, 144),   // Demo 3.1.1: the player's panel — the class's portrait, its level, its passive, its relics
-            [7] = new RectInt(380, 150, 256, 144),  // the relics on the panel, one hovered: its gift and its curse
+            [4] = new RectInt(384, 16, 256, 144),   // the demon's bar under him, glowing: the last blow
+            [5] = new RectInt(384, 0, 256, 144),    // the cheat announced over the demon, his gauge
+            [6] = new RectInt(0, 160, 256, 144),    // Demo 3.2: the player's panel bottom left — the class's portrait, its level, its passive, its relics
+            [7] = new RectInt(0, 206, 256, 144),    // the relics on the panel, one hovered (its box opens to the right): its gift and its curse
             [8] = new RectInt(188, 100, 256, 144),  // a market's seller and his wares
         };
 

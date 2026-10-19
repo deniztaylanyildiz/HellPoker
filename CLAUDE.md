@@ -15,6 +15,16 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Demo 3.2** (etiket `v3.2-demo`): **masa düzeni** `Views/TableLayout` (tek yer; `TableLayoutKind` Simulator / Chapter, ekran boyundan ve
+blok boylarından hesaplanır; `ITableView.SetLayout`, presenter masaya otururken çağırır). Bölüm masası: şeytan sütunu sağ üstte
+(`TableLayout.RightX` = W − 4 − 104: `DealerView`, `MaliceView` — niyet hover'ı sola —, `BossBarWidget` adın altında, bardan yükselen yüzde
+orta sütunla şeytan sütunu arasındaki boşlukta), sayaç / ruh lambası sol üstte (4, 4), oyuncu paneli sol altta (alt satırın 4 px üstünde;
+hover'ları sağa: `PlayerPanelView.SetTipsRight`, `RelicBarView.TipsRight`), kit panelin hemen üstünde ve yukarı büyür (`KitView.MoveTo(...,
+fromBottom)`); coin uçuşu sayaca, bar vuruşu şeytanın barına (`HandFanfareView.SetTargets`), haraç sikkeleri şeytana (`CheatEffects.DealerPoint`).
+Simülatör: eski yerler (şeytan solda, sayaç ve ödemeler sağda, rozet ve emanetler portrede). Zeminlerin yazı bölgeleri (`TABLE_TEXT`) iki
+düzenin birleşimi (sağdaki ad satırı, iki yandaki yüzde), sağdaki parçacık alanı adın üstü / altı (`RIGHT_HIGH/LOW`). Şeytanın adı sığmazsa
+metin fontuna geçer (`DealerView.FitName`). Testler: `TableLayoutTests.TheChapterTables_PutTheDemonTopRight...`, `TheSimulatorsTable_KeepsItsOldLayout`.
+
 **Demo 3.1** (etiket `v3.1-demo`): oyuncu paneli, animasyonlu sınıf portresi, el gücüne göre kademeli el animasyonları, EKRAN SARSINTISI
 ayarı (aşağıdaki **Demo 3.1** paragrafı). Demo 3.0.1 / 3.0.2: How to Play resimleri 256×144, siyah hover kutusu düzeltmesi.
 
@@ -28,7 +38,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.1.1-win64.zip` (bundleVersion **3.1.1-demo**: menüde "Demo 3.1.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.2-win64.zip` (bundleVersion **3.2.0-demo**: menüde "Demo 3.2" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -188,7 +198,7 @@ satır 32; PlayMode `MenuGridTests`); `pixel_menu.py` sadeleşti, `MENU_TEXT` = 
 (menü, harita, kat, şeytan, How to Play; `HELLPOKER_SHOT_SIZE`, `HELLPOKER_SHOTS`).
 
 **Demo 3.1** (DEVLOG 2026-10-19 A–C; Boss Simülatörü, demo masası, kurallar ve denge aynen): **Oyuncu paneli** `PlayerPanelView` (bölüm
-masasında sağ sütunda sayacın altında, `TableView.PanelY` 62, 104×174; görünürlüğü `SetPayoutTableShown(false)`'a bağlı — presenter değişmedi):
+masasında — Demo 3.2'den beri sol altta, `TableLayout` —, 104×174; görünürlüğü `SetPayoutTableShown(false)`'a bağlı — presenter değişmedi):
 72'lik kutuda 64×64 `SinnerView`, sınıf adı + seviye pipleri, yükseltmeler kutunun köşesinde, pasif satırı (`UiArt.PassiveIcon` 12×12 +
 `UiText.ChapterPassiveName`; Soytarı'da JOKER ×N; pasif çalışınca parlar), emanetler aynı `RelicBarView` ile ızgarada (`grid: true`, 3 + 3,
 hover karonun solunda; Kemik Zar tıkı, nadirlik çerçevesi, yeni parlaması aynı). Portre ve pasif satırı tık = K (`SinnerPressed`), hover =
@@ -749,7 +759,8 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
 - **Ekran (Phase 3):** her şey 640×360 piksellik `Screen` rect'i içinde, tam sayı piksellerle (`UiFactory.PlaceTL`). `PixelScreen`
   bunu tam sayı katıyla ölçekler: 1366×768 ×2 (+kenar), 1920×1080 ×3, 2560×1440 ×4, 3840×2160 ×6 — yaygın çözünürlüklerde kenar yok,
   EKRANI DOLDUR'a gerek kalmaz. Pencere katları (`WindowScales`) 640×360'ın katları (1080p'de pencere ×2). Yerleşim ekran boyundan
-  hesaplanır (`PixelScreen.Width/Height`): masa (`TableView`: orta sütun 320 px ortalı, sağ sütun W−108, alt satır H−22, diyalog 96 px),
+  hesaplanır (`PixelScreen.Width/Height`): masa (`TableView` + `TableLayout`: orta sütun 320 px ortalı, yan sütunlar 104 px kenardan 4 px —
+  bölüm masasında şeytan sağda, sayaç ve oyuncu paneli solda; simülatörde tersi —, alt satır H−22, diyalog 96 px),
   menü (`MainMenuView` 8 px ızgara), harita (şerit 80, kat en çok 36), ortalı paneller. Fazla alan ölçeğe değil nefese gider: kart
   32×48, portre 96×96, ikon ve font boyları aynı. PlayMode `TableLayoutTests.TheTable_IsLaidOutOnThe640By360Grid`.
 

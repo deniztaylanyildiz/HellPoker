@@ -6,4 +6,5 @@ layer glint1 594 327 12 10 1 0 0 7
 layer glint2 115 297 12 10 1 0 0 0
 layer glint3 519 301 12 10 1 0 0 5
 particles motes 0 134 136 202 6
-particles embers 504 0 136 336 6
+particles embers 504 0 136 100 3
+particles embers 504 134 136 202 3

@@ -2,4 +2,5 @@
 layer glint0 49 36 12 10 1 0 0 0
 layer glint1 583 36 12 10 1 0 0 6
 particles wisps 0 134 136 202 5
-particles wisps 504 0 136 336 7
+particles wisps 504 0 136 190 3
+particles wisps 504 134 136 202 4

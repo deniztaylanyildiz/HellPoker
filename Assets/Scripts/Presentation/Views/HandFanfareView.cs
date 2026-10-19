@@ -199,6 +199,13 @@ namespace HellPoker.Presentation.Views
             return image;
         }
 
+        /// <summary>Demo 3.2: where the coins fly — the counter (a floor) and the demon's bar (his table), wherever the layout put them.</summary>
+        public void SetTargets(Vector2Int purse, Vector2Int bar)
+        {
+            _purse = purse;
+            _bar = bar;
+        }
+
         /// <summary>Queues the fanfare: one step of the table's queue (what comes after waits for its end).</summary>
         public void Play(HandFanfare fanfare)
         {

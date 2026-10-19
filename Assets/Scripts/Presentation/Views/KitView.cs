@@ -168,6 +168,24 @@ namespace HellPoker.Presentation.Views
 
         public void Set(KitDisplay kit) => _sequencer.Do(() => Apply(kit ?? KitDisplay.Hidden));
 
+        private bool _fromBottom;
+
+        /// <summary>Demo 3.2: where the panel stands — its top (under the demon's dialog box, the simulator) or its bottom (just over the
+        /// player's panel at a chapter's table: it grows upwards, whatever it holds).</summary>
+        public void MoveTo(int x, int y, bool fromBottom)
+        {
+            _x = x;
+            _y = y;
+            _fromBottom = fromBottom;
+            PlaceRoot(Height == CardsHeight);
+        }
+
+        private void PlaceRoot(bool cards)
+        {
+            int top = _fromBottom ? _y - Height : cards ? _y - CardsLift : _y;
+            _root.PlaceTL(_x, top, Width, Height);
+        }
+
         private void Apply(KitDisplay kit)
         {
             _shown = kit;
@@ -179,7 +197,7 @@ namespace HellPoker.Presentation.Views
             }
             bool cards = kit.Cards.Count > 0 && kit.Buttons.Count == 0;
             Height = cards ? CardsHeight : ButtonsHeight;
-            _root.PlaceTL(_x, cards ? _y - CardsLift : _y, Width, Height);
+            PlaceRoot(cards);
             _frame.rectTransform.PlaceTL(0, 0, Width, Height);
             _title.text = kit.Title;
             _note.text = kit.Note ?? "";

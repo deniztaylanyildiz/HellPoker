@@ -203,6 +203,38 @@ namespace HellPoker.Presentation.Views
 
         public void SetSinnerMood(SinnerMood mood) => _panel.SetMood(mood);
 
+        /// <summary>Demo 3.2: where the table's blocks stand now (the simulator's until a chapter's table says otherwise).</summary>
+        public TableLayout Layout { get; private set; } = TableLayout.For(TableLayoutKind.Simulator);
+
+        /// <summary>
+        /// Demo 3.2: lays the table out — the Boss Simulator's (the demon left, the counter and the payouts right, the class badge and the
+        /// relics on the portrait) or a chapter's (the demon top right, the counter top left, the player's panel bottom left with the kit
+        /// over it). Every block's place comes from <see cref="TableLayout"/>; nothing else moves them.
+        /// </summary>
+        public void SetLayout(TableLayoutKind kind)
+        {
+            Layout = TableLayout.For(kind);
+            bool chapter = kind == TableLayoutKind.Chapter;
+            Move(_dealer.transform, Layout.Dealer);
+            Move(_malice.transform, Layout.Dealer);
+            _malice.SetTipsLeft(Layout.DealerTipsLeft);
+            Move(_bossBar.transform, Layout.Bar);
+            Move(_sentence.transform, Layout.Counter);
+            Move(_soul.transform, Layout.Counter);
+            Move(_panel.transform, Layout.Panel);
+            _panel.SetTipsRight(Layout.PanelTipsRight);
+            _kit.MoveTo(Layout.KitX, Layout.KitY, Layout.KitFromBottom);
+            _cheatEffects.DealerPoint = Layout.DealerPoint;
+            _fanfare.SetTargets(new Vector2Int(Layout.Counter.x + SentenceView.Width / 2, Layout.Counter.y + 10),
+                new Vector2Int(Layout.Bar.x + TableLayout.BarWidth / 2, Layout.Bar.y + 3));
+            // The player's own panel at a chapter's table; the simulator keeps the class badge and the relics on the demon's portrait.
+            _panel.gameObject.SetActive(chapter);
+            _sinner.gameObject.SetActive(!chapter);
+            _relics.gameObject.SetActive(!chapter);
+        }
+
+        private static void Move(Transform widget, Vector2Int topLeft) => ((RectTransform)widget).anchoredPosition = new Vector2(topLeft.x, -topLeft.y);
+
         private HandFanfareView _fanfare;
 
         /// <summary>The hand endings' animations (for tests and screenshots).</summary>
@@ -376,6 +408,7 @@ namespace HellPoker.Presentation.Views
             _handRanks = HandRanksPanel.Create(screen, (W - HandRanksPanel.Width) / 2, 50, () => UiText.HandRanksTableFooter);
             BuildResults(screen);
             _stage = new Stage(this);
+            SetLayout(TableLayoutKind.Simulator);
         }
 
         // ------------------------------------------------------------------ a hand's result, plainly (2.1.1)
@@ -462,9 +495,11 @@ namespace HellPoker.Presentation.Views
                 _float.color = Palette.For(tone);
                 // Over the counter's number (top right), or beside the demon's bar (Demo 3.1: right of it, in the gap before the middle
                 // column — over the bar it rose through his name and the malice pips).
-                _floatX = overBar ? BarFloatX : RightX;
-                _floatY = overBar ? 120 : 22;
-                _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? Middle - BarFloatX - 2 : SentenceView.Width, 8);
+                // Demo 3.2: wherever the layout put the counter and the bar.
+                RectInt bar = Layout.BarFloat;
+                _floatX = overBar ? bar.x : Layout.Counter.x;
+                _floatY = overBar ? bar.y : Layout.Counter.y + 18;
+                _float.rectTransform.PlaceTL(_floatX, _floatY, overBar ? bar.width : SentenceView.Width, 8);
                 _float.transform.SetAsLastSibling();
                 _float.enabled = true;
                 _floatLeft = FloatSeconds;
@@ -777,10 +812,6 @@ namespace HellPoker.Presentation.Views
         {
             PayoutTableShown = shown;
             ((PayoutTableView)Payouts).gameObject.SetActive(shown);
-            // Demo 3.1: the player's panel takes the payouts' place; the badge and the relics leave the demon's portrait.
-            _panel.gameObject.SetActive(!shown);
-            _sinner.gameObject.SetActive(shown);
-            _relics.gameObject.SetActive(shown);
             _handsLabel.text = shown ? UiText.HandsButton : UiText.HandsPayoutsButton;
             ((RectTransform)_hands.transform).PlaceTL(64, BottomY, shown ? HandsWidth : WideHandsWidth, 18);
             int hintX = shown ? HintX : WideHintX;

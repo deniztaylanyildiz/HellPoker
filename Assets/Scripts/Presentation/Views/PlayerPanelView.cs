@@ -180,11 +180,20 @@ namespace HellPoker.Presentation.Views
             _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, 300);
             int textHeight = Mathf.Max(18, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(-(width + 4), y, width, textHeight + 6);
+            ((RectTransform)_tooltip.transform).PlaceTL(_tipsRight ? Width + 4 : -(width + 4), y, width, textHeight + 6);
             _tooltip.SetActive(true);
         }
 
         public void Set(SinnerBadge badge) => _sequencer.Do(() => Apply(badge ?? SinnerBadge.Hidden));
+
+        private bool _tipsRight;
+
+        /// <summary>Demo 3.2: the hover boxes (the class, the relics) open to the right — the panel stands at the screen's left edge.</summary>
+        public void SetTipsRight(bool right)
+        {
+            _tipsRight = right;
+            Relics.TipsRight = right;
+        }
 
         public void SetMood(SinnerMood mood) => _sinner.SetMood(mood);
 

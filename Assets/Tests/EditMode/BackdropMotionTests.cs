@@ -101,7 +101,10 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the generated art
 
         /// <summary>Words on the table over the hall, and on the title screen (must match TABLE_TEXT / MENU_TEXT in Tools/ArtGen).</summary>
-        private static readonly RectInt[] TableText = { Box(0, 104, 112, 132), Box(186, 106, 454, 292), Box(118, 341, 636, 356) };
+        private static readonly RectInt[] TableText =
+        {
+            Box(0, 104, 112, 132), Box(186, 106, 454, 292), Box(118, 341, 636, 356), Box(528, 104, 639, 132), Box(110, 100, 160, 130), Box(480, 100, 532, 130)
+        };
         private static readonly RectInt[] MenuText =
         {
             Box(40, 100, 600, 144), Box(176, 148, 464, 280), Box(240, 340, 400, 356), Box(544, 340, 639, 359), Box(280, 84, 360, 98), Box(0, 0, 120, 28),
