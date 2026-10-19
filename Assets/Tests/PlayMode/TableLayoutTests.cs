@@ -371,6 +371,90 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
+        // ------------------------------------------------------------------ Demo 3.1: the player's panel
+
+        [UnityTest, Timeout(480000)]
+        public IEnumerator ThePlayersPanel_StandsUnderTheCounter_ClearOfEverything_AndTheDemonsPortraitIsClean_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            foreach (Core.Sinners.SinnerClass cls in Core.Sinners.SinnerRoster.PhaseTwo)
+            {
+                // The class's three relics, the Bone Die and the step upgrade: a full panel.
+                var relics = Core.Relics.ChapterRelics.ClassChain(cls.Id).ToList();
+                relics.Add(Core.Relics.RelicIds.BoneDie);
+                string step = ClassKit.StepUpgradeOf(cls.Id);
+                var save = new ChapterSave
+                {
+                    ClassId = cls.Id, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600, BossBar = 1600, NodeDone = false,
+                    Relics = relics, Taxes = 20
+                };
+                if (step != null) save.Upgrades.Add(step);
+                yield return Load(turkish, save);
+                yield return Settle();
+                TableView view = ChapterJourneyTests.ChapterTableView;
+                string where = cls.Id + (turkish ? " (tr)" : " (en)");
+                PlayerPanelView panel = view.PlayerPanel;
+
+                // Where it stands: in the right column under the counter, the badge and the relics gone from the demon's portrait.
+                Assert.IsTrue(panel.gameObject.activeInHierarchy, where + ": the panel at a chapter's table");
+                Assert.IsFalse(view.PortraitBadge.gameObject.activeInHierarchy, where + ": no class badge on the demon's portrait");
+                Assert.IsFalse(view.PortraitRelics.gameObject.activeInHierarchy, where + ": no relics on the demon's portrait");
+                Assert.AreEqual(cls.Id, panel.Badge.ClassId, where);
+                Assert.AreEqual(relics.Count, panel.Relics.Relics.Count, where + ": every worn relic on the panel");
+
+                ChapterJourneyTests.Chapters.Table.PerformAction();   // the deal: the bet row, the class's panel at work
+                yield return Settle();
+                Canvas.ForceUpdateCanvases();
+                Rect box = Box((RectTransform)panel.transform), screen = Box(HoverTip.ScreenOf(panel.transform));
+                Rect counter = Box((RectTransform)view.transform.GetComponentsInChildren<Transform>(false).First(t => t.name == "Sentence"));
+                Assert.IsTrue(box.xMax <= screen.xMax + 0.5f && box.yMin >= screen.yMin - 0.5f, where + ": on the 640×360 screen");
+                Assert.LessOrEqual(box.yMax, counter.yMin + 0.5f, where + ": under the counter");
+                AssertNothingOverlaps(view, where + ", the panel in a hand");
+
+                // Nothing else on it: no text and no button outside the panel touches it (the bet row, the counter, the hints).
+                var problems = new List<string>();
+                foreach (Text text in view.GetComponentsInChildren<Text>(false).Where(t => t.isActiveAndEnabled && !string.IsNullOrWhiteSpace(t.text)
+                             && t.color.a > 0.01f && !Under(t.transform, "PlayerPanel") && t.name != "ResultFloat" && t.name != "HandFlare"))
+                    if (Overlaps(box, Glyphs(text))) problems.Add($"the words '{Short(text)}' ({text.name})");
+                foreach (Button button in view.GetComponentsInChildren<Button>(false).Where(b => b.isActiveAndEnabled && !Under(b.transform, "PlayerPanel")))
+                    if (Overlaps(box, Box((RectTransform)button.transform))) problems.Add("the button " + button.name);
+                Assert.IsEmpty(problems, where + ": over the player's panel\n" + string.Join("\n", problems));
+
+                // Its words fit: the class's name on its line, the passive's name in its row.
+                Assert.LessOrEqual(panel.ClassName.preferredWidth, PlayerPanelView.Width - 4, where + ": the class's name fits");
+                Text passive = panel.PassiveName;
+                Assert.IsNotEmpty(passive.text, where + ": the passive's row");
+                Assert.LessOrEqual(passive.preferredHeight, passive.rectTransform.rect.height + 0.5f, $"{where}: '{passive.text}' fits its row");
+
+                // The relics answer as they did on the portrait: the hover opens on screen, left of the tiles; the Bone Die picks a card.
+                panel.Relics.PointAt(0);
+                yield return null;
+                yield return null;
+                HoverTip tip = panel.Relics.GetComponentsInChildren<HoverTip>(false).SingleOrDefault();
+                Assert.IsNotNull(tip, where + ": a relic's hover box");
+                Assert.IsTrue(tip.Visible, where + ": drawn");
+                Rect tipBox = Box((RectTransform)tip.transform);
+                Rect tile = Box(panel.Relics.TileOf(0));
+                Assert.IsTrue(tipBox.xMin >= screen.xMin - 0.5f && tipBox.xMax <= tile.xMin + 0.5f, where + ": the relic's box on screen, left of its tile");
+                int die = relics.IndexOf(Core.Relics.RelicIds.BoneDie);
+                panel.Relics.Press(die);
+                yield return Settle();
+                Assert.IsTrue(panel.Relics.Relics.First(r => r.Id == Core.Relics.RelicIds.BoneDie).Selecting, where + ": the Bone Die picks a card from the panel");
+                panel.Relics.Press(die);   // put away again
+                yield return Settle();
+
+                // The portrait and the passive's row do what K does.
+                panel.PressPortrait();
+                yield return Settle();
+                if (cls.Id != Core.Sinners.Thief.ClassId)
+                    StringAssert.StartsWith(turkish ? "Güçlerin" : "Your powers", view.MessageShown, where + ": the portrait tells the passive");
+                panel.PressPassive();
+                yield return Settle();
+                if (cls.Id != Core.Sinners.Thief.ClassId)
+                    StringAssert.StartsWith(turkish ? "Güçlerin" : "Your powers", view.MessageShown, where + ": so does the passive's row");
+            }
+        }
+
         /// <summary>The class panel's frame touches no card of the player's hand, no text and no button outside it.</summary>
         internal static void AssertPanelKeepsClear(TableView view, string where)
         {
@@ -434,7 +518,7 @@ namespace HellPoker.PlayMode.Tests
         {
             Transform pa = a.transform.parent, pb = b.transform.parent;
             if (pa == pb && pa != null && pa.GetComponent<TableView>() == null && pa.name != "Screen") return true;
-            foreach (string widget in new[] { "Card", "ClassKit", "SinnerBadge", "Sentence", "Payouts", "PayoutTable", "Dealer", "RelicBar", "Malice", "BossBar" })
+            foreach (string widget in new[] { "Card", "ClassKit", "SinnerBadge", "Sentence", "Payouts", "PayoutTable", "Dealer", "RelicBar", "Malice", "BossBar", "PlayerPanel" })
                 if (Under(a.transform, widget) && Under(b.transform, widget)) return true;
             return false;
         }
@@ -442,7 +526,7 @@ namespace HellPoker.PlayMode.Tests
         /// <summary>A text inside the same widget as the button (the class panel's title over its own buttons).</summary>
         private static bool OwnWidget(Text text, Button button)
         {
-            foreach (string widget in new[] { "ClassKit", "RelicBar", "SinnerBadge", "Card" })
+            foreach (string widget in new[] { "ClassKit", "RelicBar", "SinnerBadge", "Card", "PlayerPanel" })
                 if (Under(text.transform, widget) && Under(button.transform, widget)) return true;
             return false;
         }

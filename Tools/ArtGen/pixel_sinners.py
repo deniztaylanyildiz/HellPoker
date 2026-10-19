@@ -278,6 +278,63 @@ def icon(class_id):
     return img
 
 
+PASSIVE = 12
+
+
+def passive_icon(class_id):
+    """Demo 3.1: the passive's 12x12 icon on the player's panel (the Jester's: a joker card)."""
+    img = Img(PASSIVE, PASSIVE)
+    if class_id == "peasant":
+        # SILENT FIELD: a closed eye over the furrows.
+        img.paint(img.m_rect(0, 9, 11, 11), C.GREEN_DARK)
+        for x in range(1, 11, 3):
+            img.put(x, 9, C.GREEN)
+        img.paint(img.m_line([(2, 4), (5, 6), (8, 6), (10, 4)], 1), C.BONE)
+        for x in (3, 6, 9):
+            img.put(x, 7, C.BONE_DARK)
+    elif class_id == "warlock":
+        # SEES THE TRUTH: an open eye, a violet iris.
+        eye = img.m_ellipse(6, 6, 5.5, 3)
+        img.paint(eye, C.WHITE)
+        img.paint(img.m_ellipse(6, 6, 2, 2), C.VIOLET)
+        img.put(6, 6, C.BLACK)
+        img.put(5, 5, C.LILAC_LIGHT)
+        img.inner_outline(eye, C.LILAC)
+    elif class_id == "king":
+        # ROYAL DISCOUNT: a gold coin cut in half.
+        coin = img.m_ellipse(6, 6, 5, 5)
+        img.paint(coin, C.GOLD)
+        img.inner_outline(coin, C.GOLD_MID)
+        img.put(5, 5, C.GOLD_LIGHT)
+        img.put(6, 4, C.GOLD_LIGHT)
+        img.paint(img.m_line([(9, 1), (3, 11)], 1), C.BLACK)
+    elif class_id == "jester":
+        # His jokers: a joker card, a fool's cap on it.
+        card = img.m_rect(2, 0, 9, 11)
+        img.paint(card, C.BONE)
+        img.inner_outline(card, C.BONE_SHADE)
+        img.put(4, 4, C.CRIMSON)
+        img.put(5, 3, C.GOLD)
+        img.put(6, 3, C.GOLD)
+        img.put(7, 4, C.VIOLET)
+        img.paint(img.m_rect(4, 5, 7, 5), C.GOLD_MID)
+        img.put(5, 7, C.BLACK)
+        img.put(6, 7, C.BLACK)
+    elif class_id == "summoner":
+        # LOYAL IMP: a small imp's head.
+        _imp(img, 6, 6, C.RED, C.AMBER)
+    elif class_id == "thief":
+        # GLANCE: a closed card, one corner lifted, a glint under it.
+        card = img.m_rect(1, 2, 8, 11)
+        img.paint(card, C.CRIMSON)
+        img.inner_outline(card, C.BLOOD_DARK)
+        img.paint(img.m_poly([(8, 2), (11, 1), (9, 6)]), C.BONE)
+        img.put(10, 7, C.WHITE)
+        img.put(11, 8, C.GOLD_LIGHT)
+    img.outline(C.BLACK)
+    return img
+
+
 PORTRAITS = {"peasant": peasant, "warlock": oracle, "king": king, "jester": jester, "summoner": summoner, "thief": thief}
 
 
@@ -292,4 +349,7 @@ def write_all(art_dir):
     strip = os.path.join(art_dir, "Ui", "sinner_icons.png")
     sheet([icon(c) for c in ORDER]).save(strip)
     out.append(strip)
+    passives = os.path.join(art_dir, "Ui", "passive_icons.png")
+    sheet([passive_icon(c) for c in ORDER]).save(passives)
+    out.append(passives)
     return out

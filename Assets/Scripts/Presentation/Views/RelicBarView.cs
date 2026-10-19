@@ -24,9 +24,21 @@ namespace HellPoker.Presentation.Views
         private const int RewardSlot = 5;
         private const int RowStep = Tile + 1;
 
-        /// <summary>Where a slot's tile sits from the bar's corner: the right column 0, 1, 3; the left column (the reward), 2, 4.</summary>
-        private static Vector2Int Place(int slot)
+        /// <summary>Demo 3.1: the player's panel lays the tiles out in a grid, three a row (the five worn, the earned one last), and the hover
+        /// box opens to their left (the panel stands at the screen's right edge).</summary>
+        public const int GridColumns = 3;
+        public const int GridStep = Tile + 2;
+
+        private bool _grid;
+
+        /// <summary>The bar laid out as the panel's grid (true) or down the portrait box's edge.</summary>
+        public bool IsGrid => _grid;
+
+        /// <summary>Where a slot's tile sits from the bar's corner: the right column 0, 1, 3; the left column (the reward), 2, 4. In the grid:
+        /// row by row, three a row.</summary>
+        private Vector2Int Place(int slot)
         {
+            if (_grid) return new Vector2Int(slot % GridColumns * GridStep, slot / GridColumns * GridStep);
             switch (slot)
             {
                 case 0: return new Vector2Int(0, 0);
@@ -56,10 +68,22 @@ namespace HellPoker.Presentation.Views
         /// <summary>The relics on show (for tests and screenshots).</summary>
         public IReadOnlyList<RelicBadge> Relics => _relics;
 
-        public static RelicBarView Create(Transform screen, int x, int y, AnimationSequencer sequencer, Action<string> pressed)
+        /// <summary>Points at a tile as the pointer would (tests): its hover box opens.</summary>
+        public void PointAt(int slot) => ShowTip(slot);
+
+        /// <summary>Clicks a tile as the pointer would (tests).</summary>
+        public void Press(int slot) => _tiles[slot].tile.GetComponent<Button>().onClick.Invoke();
+
+        /// <summary>A tile's place (for tests).</summary>
+        public RectTransform TileOf(int slot) => (RectTransform)_tiles[slot].tile.transform;
+
+        public static RelicBarView Create(Transform screen, int x, int y, AnimationSequencer sequencer, Action<string> pressed, bool grid = false)
         {
-            RectTransform root = UiFactory.CreateRect("Relics", screen).PlaceTL(x, y, Tile, Slots * (Tile + 2));
+            RectTransform root = grid
+                ? UiFactory.CreateRect("PanelRelics", screen).PlaceTL(x, y, GridColumns * GridStep - 2, (Slots + GridColumns - 1) / GridColumns * GridStep - 2)
+                : UiFactory.CreateRect("Relics", screen).PlaceTL(x, y, Tile, Slots * (Tile + 2));
             var view = root.gameObject.AddComponent<RelicBarView>();
+            view._grid = grid;
             view._sequencer = sequencer;
             view._pressed = pressed;
             view.Build(root);
@@ -121,7 +145,7 @@ namespace HellPoker.Presentation.Views
             // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
             _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(Tile + 6, Place(slot).y, 196, textHeight + 4);
+            ((RectTransform)_tooltip.transform).PlaceTL(_grid ? -(196 + 6) : Tile + 6, Place(slot).y, 196, textHeight + 4);
             _tooltip.SetActive(true);
         }
 

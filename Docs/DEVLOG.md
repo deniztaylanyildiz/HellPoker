@@ -3914,3 +3914,26 @@ commit + etiket. Boss Simülatörü, demo kuralları, denge: dokunulmadı.
 
 ### Testler
 PlayMode HoverTipTests 2/2, TableLayoutTests 7/7; EditMode 1123 (1118 geçti, 5 Explicit). Tek Unity, sırayla, düşük öncelik + mola.
+
+## 2026-10-19 — Demo 3.1 (A): oyuncu paneli
+
+Kullanıcı (Demo 3.1 prompt'u, parça parça geldi): oyuncu paneli ve el animasyonları; Boss Simülatörü'ne, demo masasına, demo kurallarına ve
+dengeye dokunma (sadece görsel ve yerleşim). Testler tek Unity, tek tek; her aşamada EditMode + DEVLOG + ara commit; push yok. A) PAYOUTS'un
+boşalttığı sağ sütunda sayacın altına oyuncu paneli (portre, pasif satırı: ikon + kısa ad, emanet kutuları 20×20; emanet hover / tık /
+nadirlik / yeni parlaması aynen); şeytan portresinin üstündeki emanet ve rozet bölüm masalarında kalksın, K'nin işi portreye ya da pasif
+satırına tıkla; bahis satırıyla çakışmasın. B) sınıf portresi animasyonları (SinnerView, SinnerMood). C) el gücüne göre kademeli kazanç /
+kayıp animasyonları, EKRAN SARSINTISI ayarı. D) testler. E) build 3.1.
+
+- `PlayerPanelView` (104×174, `TableView.PanelY` 62, `RightX`): 72'lik kutuda 64×64 `SinnerView` (yükseltmeler köşede altın pip, "HAZIR: K" /
+  "GÜÇ AÇIK" portrenin altında), sınıf adı, seviye pipleri, pasif satırı (`UiArt.PassiveIcon` 12×12 — `pixel_sinners.passive_icon`,
+  `Ui/passive_icons.png` — + `UiText.ChapterPassiveName`; Soytarı'da "JOKER ×N"; pasif çalışınca / joker sayısı değişince satır parlar),
+  emanetler aynı `RelicBarView` ile ızgara düzeninde (`grid: true`, 3 + 3: beş takılı + kazanılmış ödül son yuvada; hover kutusu karonun
+  solunda). Portre ve pasif satırı tık = K (`SinnerPressed`), hover = sınıfın tam metni (panelin solunda).
+- Görünürlük `SetPayoutTableShown`'a bağlı (presenter değişmedi): bölüm masasında panel açık, şeytan portresindeki `SinnerBadgeView` ve
+  `RelicBarView` kapalı; simülatörün masası aynen. Veriler ikisine birden gider (`SetSinner`, `SetRelics`).
+- Bahis satırı: geniş satır x 504'te biter, panel 532'den başlar: çakışma yok, satır geniş kaldı.
+- `SinnerAnimationLibrary` (yedek zinciri: durum → idle → 48×48 tek portre, ortalı, büyütülmez → düz renk), `SinnerView`, `SinnerMood`,
+  `ITableView.SetSinnerMood` (B'de presenter'dan beslenecek). Şimdilik idle yok: 48'lik portre 64'lük kutuda ortalı.
+- Testler: EditMode `SinnerAnimationTests` (10); PlayMode `TableLayoutTests.ThePlayersPanel_...` (6 sınıf × 2 dil: sayacın altında, ekranda,
+  hiçbir yazı / düğmeyle çakışmıyor, şeytan portresinde rozet / emanet yok, yazılar sığıyor, emanet hover'ı ekranda ve karonun solunda, Kemik
+  Zar panelden kart seçer, portre ve pasif satırı K gibi). EditMode 1133 (1128 geçti, 5 Explicit), TableLayoutTests 8/8.

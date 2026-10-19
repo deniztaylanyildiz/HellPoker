@@ -93,6 +93,22 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The class's portrait (48×48, "Sinners/&lt;id&gt;"); null if missing.</summary>
         public static Sprite SinnerPortrait(string classId) => Sprite("Sinners/" + classId);
 
+        public const string PassiveIcons = "Ui/passive_icons";
+        public const int PassiveIconSize = 12;
+
+        /// <summary>Demo 3.1: the class's passive as a 12×12 icon (the Jester's: a joker), same order as the class icons; null if missing.</summary>
+        public static Sprite PassiveIcon(string classId)
+        {
+            int index = -1;
+            for (int i = 0; i < HellPoker.Core.Sinners.SinnerRoster.PhaseTwo.Count; i++)
+                if (HellPoker.Core.Sinners.SinnerRoster.PhaseTwo[i].Id == classId) index = i;
+            Sprite[] icons = Strip(PassiveIcons, PassiveIconSize);
+            return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
+        }
+
+        /// <summary>Demo 3.1: the animated class portraits of a chapter's table, loaded from Resources/Art.</summary>
+        public static readonly SinnerAnimationLibrary Sinners = new SinnerAnimationLibrary(path => Resources.Load<Texture2D>("Art/" + path));
+
         public static Sprite MalicePip(string dealerId, bool full)
         {
             int index = Array.IndexOf(MalicePipOrder, dealerId);

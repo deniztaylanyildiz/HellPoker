@@ -180,7 +180,28 @@ namespace HellPoker.Presentation.Views
 
         public void SetKit(KitDisplay kit) => _kit.Set(kit);
 
-        public void SetRelics(System.Collections.Generic.IReadOnlyList<RelicBadge> relics) => _relics.Set(relics);
+        public void SetRelics(System.Collections.Generic.IReadOnlyList<RelicBadge> relics)
+        {
+            _relics.Set(relics);
+            _panel.SetRelics(relics);
+        }
+
+        // ------------------------------------------------------------------ the player's panel (Demo 3.1)
+
+        /// <summary>Under the counter in the right column, where the payouts stood (a chapter's table hides them).</summary>
+        public const int PanelY = 62;
+
+        private PlayerPanelView _panel;
+
+        /// <summary>The player's panel (for tests and screenshots): shown at a chapter's table, in place of the payouts.</summary>
+        public PlayerPanelView PlayerPanel => _panel;
+
+        /// <summary>The class badge and the relics on the demon's portrait (the Boss Simulator's table; hidden at a chapter's).</summary>
+        public SinnerBadgeView PortraitBadge => _sinner;
+
+        public RelicBarView PortraitRelics => _relics;
+
+        public void SetSinnerMood(SinnerMood mood) => _panel.SetMood(mood);
 
         private EventPanelView _event;
 
@@ -198,7 +219,11 @@ namespace HellPoker.Presentation.Views
 
         private SinnerBadgeView _sinner;
 
-        public void SetSinner(SinnerBadge badge) => _sinner.Set(badge);
+        public void SetSinner(SinnerBadge badge)
+        {
+            _sinner.Set(badge);
+            _panel.Set(badge);
+        }
 
         public bool HandRanksOpen => _handRanks.IsOpen;
 
@@ -326,6 +351,9 @@ namespace HellPoker.Presentation.Views
             _scenes = TableScenes.Create(screen, _sequencer, _dealer);
             // The relics down the portrait box's right edge, under the intent sign.
             _relics = RelicBarView.Create(screen, 4 + DealerView.PortraitSize + 8 - 22, 24, _sequencer, id => RelicPressed?.Invoke(id));
+            // Demo 3.1: a chapter's table shows the class and the relics in the player's own panel instead (the portrait stays clean).
+            _panel = PlayerPanelView.Create(screen, RightX, PanelY, _sequencer, UiArt.Sinners, () => SinnerPressed?.Invoke(), id => RelicPressed?.Invoke(id));
+            _panel.gameObject.SetActive(false);
             // Phase 2's class panel: under the dialog box, where a chapter's table has no LEAVE TABLE.
             _kit = KitView.Create(screen, 4, DealerBottom + 3, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
             // Phase 2: the demon's health bar, under the name (in place of the line under it).
@@ -736,6 +764,10 @@ namespace HellPoker.Presentation.Views
         {
             PayoutTableShown = shown;
             ((PayoutTableView)Payouts).gameObject.SetActive(shown);
+            // Demo 3.1: the player's panel takes the payouts' place; the badge and the relics leave the demon's portrait.
+            _panel.gameObject.SetActive(!shown);
+            _sinner.gameObject.SetActive(shown);
+            _relics.gameObject.SetActive(shown);
             _handsLabel.text = shown ? UiText.HandsButton : UiText.HandsPayoutsButton;
             ((RectTransform)_hands.transform).PlaceTL(64, BottomY, shown ? HandsWidth : WideHandsWidth, 18);
             int hintX = shown ? HintX : WideHintX;
@@ -854,6 +886,7 @@ namespace HellPoker.Presentation.Views
             _cheatEffects.Finish();
             _malice.Finish();
             _scenes.Finish();
+            _panel.Finish();
             FinishResults();
         }
 
