@@ -12,8 +12,8 @@ namespace HellPoker.Presentation.Views
     /// </summary>
     public sealed class HowToPlayView : MonoBehaviour
     {
-        /// <summary>The picture's box: a crop of the 480×270 screen at its own pixels.</summary>
-        public const int ImageWidth = 200, ImageHeight = 112;
+        /// <summary>The picture's box: a 16:9 crop of the 640×360 screen at its own pixels (Phase 3: larger, never scaled up — one pixel size).</summary>
+        public const int ImageWidth = 256, ImageHeight = 144;
 
         private const int Left = 12, Top = 40, Gap = 10, LineGap = 4;
 

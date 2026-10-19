@@ -16,8 +16,8 @@ using Object = UnityEngine.Object;
 namespace HellPoker.PlayMode.Tests
 {
     /// <summary>
-    /// Demo 2.2: the pictures of How to Play, taken from the game itself. Each scene is set up, drawn at 1920×1080 (×4), brought back to
-    /// its own 480×270 pixels (one pixel of every 4×4 block — nothing is smoothed) and cropped to <see cref="Presentation.Views.HowToPlayView.ImageWidth"/>
+    /// Demo 2.2: the pictures of How to Play, taken from the game itself. Each scene is set up, drawn at 2560×1440 (×4), brought back to
+    /// its own 640×360 pixels (one pixel of every 4×4 block — nothing is smoothed) and cropped to <see cref="Presentation.Views.HowToPlayView.ImageWidth"/>
     /// × ImageHeight; saved to Assets/Resources/Art/HowTo/&lt;page&gt;_&lt;en|tr&gt;.png (the full frames to Screenshots/howto). Not a real
     /// test (Explicit): run it again when the screens change.
     /// </summary>
@@ -33,15 +33,15 @@ namespace HellPoker.PlayMode.Tests
         /// <summary>The crop of each page's scene (x, y from the top left of the 640×360 screen).</summary>
         private static readonly Dictionary<int, RectInt> Crops = new Dictionary<int, RectInt>
         {
-            [0] = new RectInt(0, 0, 200, 112),      // the chapter's card beside the map: the purse, the demon's bar, the sentence, the tribute
-            [1] = new RectInt(160, 22, 200, 112),    // the map's first floors
-            [2] = new RectInt(0, 0, 200, 112),      // a floor's table: the imp, his purse and ante
-            [3] = new RectInt(220, 132, 200, 112),   // a hand at the draw: two cards to throw
-            [4] = new RectInt(0, 20, 200, 112),     // the demon's bar under him, glowing: the last blow
-            [5] = new RectInt(0, 0, 200, 112),      // the cheat announced over the demon, his gauge
-            [6] = new RectInt(4, 160, 200, 112),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
-            [7] = new RectInt(180, 95, 200, 112),   // the relics: worn and in the bag
-            [8] = new RectInt(190, 62, 200, 112),   // a market's seller
+            [0] = new RectInt(0, 0, 256, 144),      // the chapter's card beside the map: the purse, the demon's bar, the sentence, the tribute
+            [1] = new RectInt(150, 12, 256, 144),    // the map's first floors
+            [2] = new RectInt(0, 0, 256, 144),      // a floor's table: the imp, his purse and ante
+            [3] = new RectInt(222, 130, 256, 144),   // a hand at the draw: two cards to throw, DRAW
+            [4] = new RectInt(0, 16, 256, 144),     // the demon's bar under him, glowing: the last blow
+            [5] = new RectInt(0, 0, 256, 144),      // the cheat announced over the demon, his gauge
+            [6] = new RectInt(0, 138, 256, 144),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
+            [7] = new RectInt(180, 92, 256, 144),   // the relics: worn and in the bag
+            [8] = new RectInt(188, 100, 256, 144),  // a market's seller and his wares
         };
 
         private static string LangCode => HellPoker.Presentation.Ui.Lang.Current == Language.Turkish ? "tr" : "en";

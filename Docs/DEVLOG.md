@@ -3857,3 +3857,19 @@ FullRunTests 8 + kaos geçti.
 2. Yeni kat / harita müzikleri (`AudioCompare/old` ↔ `new`): beğenildi mi?
 3. 1366×768'de pencere kipinde yalnız ×1 (640×360) sığıyor (tam ekran ×2): kabul mü?
 4. How to Play resmi 200×112 doğal pikselde; ×2 gösterilsin mi (metin alanı daralır)?
+
+## 2026-10-19 — Kararlar: denge sabit, görseller öncelik
+
+Kullanıcı: "oyun dengesini şimdilik elleme, görselleri güzelleştirmeye çalışıyoruz; optimal kararları seçip uygula."
+
+- **Denge (karar 1):** dokunulmadı; taze destenin Köylü −9.2 / Kral +4.8 farkı kayıtta kalıyor, sonra bakılacak.
+- **Müzik (karar 2):** yeni kat / harita müzikleri kalıyor (`AudioCompare/` karşılaştırma için duruyor).
+- **1366×768 pencere (karar 3):** kabul. Tam sayı ölçek kuralı bozulmaz; o ekranda varsayılan tam ekran zaten ×2 (+43/24 kenar).
+- **How to Play resimleri (karar 4):** ×2 değil, **256×144 doğal piksel** (16:9). ×2 büyütme ekranda iki farklı piksel boyu (UI ×1, resim ×2)
+  demekti; piksel sanatta karışık piksel yoğunluğu çirkin durur. Bunun yerine geniş paneldeki boşluk kullanıldı: kırpma %64 daha büyük,
+  metin sütunu yine 334 px. `HowToPlayView.ImageWidth/Height` 256×144; `HowToShots` kırpmaları yeni ekranlara göre (el: DRAW düğmesi
+  dahil, sınıflar: başlıklar dahil); PlayMode `HowToPlayTests` resmin 256×144 ve ekranda 1:1 olduğunu ölçer. Sayfa görüntüleri
+  `Screenshots/phase3/howto/`.
+
+### Testler
+EditMode 1123 (1118 geçti, 5 Explicit); PlayMode HowToPlayTests 2/2; HowToShots yeniden üretildi.

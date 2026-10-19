@@ -123,7 +123,7 @@ coin, `ClassKit.SealCoins`, sonuç "sealed"). Kör Kâhin olayı Türkçede KÖR
 **Harita sürüm 3** (`ChapterMap.CurrentVersion`; 2.1 kayıtları sürüm 2 ile aynı haritayı alır): yol üzerinde iki pazar ("?" içeriği dahil)
 ya da iki kamp arasında en az 2 kat, yolda en çok 2 pazar (`MapMaker.FloorsBetween / MostMarketsOnAPath / SpaceTheMarkets / NearA`).
 **How to Play** (oyun): 10 resimli sayfa (`HowToPlayView`, `UiText.HowTo.cs`; resimler `Resources/Art/HowTo/<nn_ad>_<en|tr>.png`,
-[Explicit] `HowToShots` üretir: 2560×1440 → 640×360 doğal piksel → 200×112 kırpma; oklar / Q-E `IMenuCommands.TurnRulesPage`);
+[Explicit] `HowToShots` üretir: 2560×1440 → 640×360 doğal piksel → 256×144 kırpma, ekranda 1:1 — büyütülmez, tek piksel boyu; PlayMode `HowToPlayTests` ölçer; oklar / Q-E `IMenuCommands.TurnRulesPage`);
 simülatörün sayfaları aynı. **Günlük:** bölüm masaları elleri, hileleri, güçleri ve reddedilen K'yi bölümün `RunLog`'una yazar
 (`TablePresenter.ChapterLog`). Tek kopya (`forceSingleInstance`). Hata avı düzeltmeleri: Çağırıcı LEJYON sonrası ücret, müsadere seçimi
 draw ile kapanır, Ayna metinleri (`LuciferMirror.DrewTop / UsedBag`), ipuçları yükseltmelerle. Testler: `OracleTests`, `PowerHuntTests`,

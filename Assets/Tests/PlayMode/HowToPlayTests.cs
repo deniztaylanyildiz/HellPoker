@@ -61,6 +61,13 @@ namespace HellPoker.PlayMode.Tests
                         Assert.LessOrEqual(pages.TextBottom, pagerY - 2, $"{language} page {page + 1}: the lines stay above the pager");
                         bool made = HowToPlayView.ImageOf(page) != null;
                         Assert.AreEqual(made, pages.ImageShown, $"{language} page {page + 1}: the picture, when it was made");
+                        if (made)
+                        {
+                            // The picture's pixels are the screen's own: one texel to one screen pixel, never doubled or squeezed.
+                            Rect texels = HowToPlayView.ImageOf(page).rect;
+                            Assert.AreEqual(new Vector2(HowToPlayView.ImageWidth, HowToPlayView.ImageHeight), texels.size, $"{language} page {page + 1}: the picture's size");
+                            Assert.AreEqual(texels.size, pages.ImageRect.sizeDelta, $"{language} page {page + 1}: shown at its own pixels");
+                        }
                         foreach (Text line in pages.Lines)
                         {
                             if (string.IsNullOrEmpty(line.text)) continue;
