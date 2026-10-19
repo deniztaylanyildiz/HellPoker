@@ -3842,3 +3842,18 @@ FullRunTests 8 + kaos geçti.
 ### Açık / not
 - How to Play resmi 200×112 doğal piksel kaldı; geniş panelde metne daha çok yer kaldı (resmi ×2 göstermek metni daraltırdı).
 - Yeni masada kontrollerin altında (y 270–338) boşluk var: nefes olarak bırakıldı.
+
+## 2026-10-19 — Demo 3.0: sürüm ve build (Phase 3 başlangıcı)
+
+- bundleVersion **3.0.0-demo** (menüde "Demo 3.0"); CHANGELOG "Demo 3.0 — Phase 3 başlangıcı", OKUBENI (2K notu, ödemeler H'de, taze deste),
+  GERI_BILDIRIM (müzik ve görüntü soruları), CLAUDE.md (durum), PHASE2_CHAPTERS (Phase 3 notu ve deste tablosu).
+- HATA / ÖNERİ yeni ızgarada: ChapterJourneyTests kutuyu açıp yazıyor, FeedbackTests iki konuyu ("[Hell Poker HATA]" / "[Hell Poker ÖNERİ]")
+  ve caveengine@gmail.com'u denetliyor; MenuGridTests düğmenin ızgarada ve yazısının sığdığını.
+- Build `Builds/HellPoker-Demo-3.0-win64.zip` (40.7 MB, Result: Success). Kayıtlar yedeklendi; zipten 3 × `-fpstour`: çıkış 0, hata 0,
+  19 FPS satırı (~60 FPS); yedek geri kondu. Etiket `v3.0-demo` (annotated); push yok — push ederken etiketleri de gönder (`git push --tags`).
+
+### Kullanıcıdan beklenen kararlar
+1. Taze deste ile Köylü −9.2 (%39 → %30), Kral +4.8 (%27 → %32): telafi edilsin mi?
+2. Yeni kat / harita müzikleri (`AudioCompare/old` ↔ `new`): beğenildi mi?
+3. 1366×768'de pencere kipinde yalnız ×1 (640×360) sığıyor (tam ekran ×2): kabul mü?
+4. How to Play resmi 200×112 doğal pikselde; ×2 gösterilsin mi (metin alanı daralır)?

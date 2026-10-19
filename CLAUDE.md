@@ -15,6 +15,9 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Phase 3 başladı: Demo 3.0** (etiket `v3.0-demo`, DEVLOG 2026-10-19): 640×360 ızgara, yeni ana menü, ödemeler H panelinde, bölüm
+masalarında her el taze deste, uzun kat / harita müzikleri, hover kutuları en üstte (aşağıdaki **Phase 3 (1)** paragrafı ve görsel kurallar).
+
 **Tek oyun (1.4.0):** ana menünün YENİ OYUN / DEVAM ET düğmeleri Phase 2 koşusunu açar (sınıf → harita); "PHASE 2" düğmeleri yok.
 Eski demo silinmedi: **Boss Simülatörü** (geliştirici kipi; `MainMenuPresenter.InSimulator`): ana menüde **F9** (`IMenuCommands.ToggleSimulator`,
 sadece menü kökünde) ya da `HELLPOKER_DEV=1`; batchmode'da (testler) varsayılan simülatör, oyunun testleri `HellPokerBootstrap.ForceSimulator =
@@ -22,7 +25,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-2.3.1-win64.zip` (bundleVersion **2.3.1-demo**: menüde "Demo 2.3.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.0-win64.zip` (bundleVersion **3.0.0-demo**: menüde "Demo 3.0" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya

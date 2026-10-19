@@ -791,3 +791,20 @@ Kalkan seviye başına 1: %17.2 · **seviye başına 2 (masada): %23.0** (seçil
 | Hırsız | %30.0 | %36.3 | **%37.4** | 1.2 / 2.1 / 2.4 |
 
 Koşu başına sınıf emaneti ~1.1 (2.3: ~2.1). Hepsi hedef aralıklarında (Soytarı %20-30, Kâhin %35-45, diğerleri %20-45).
+
+## Phase 3 notu — Demo 3.0 (2026-10-19)
+
+Phase 2'nin bölüm kuralları aynen sürer; Phase 3 sunumla başladı (640×360 ızgara, ana menü, ödemeler H panelinde, müzikler, hover).
+Tek kural değişikliği: **bölüm masalarında her el taze, karılmış 52'lik deste** (`ChapterTuning.FreshDeckEveryHand`; simülasyonda eski
+sayılan deste `HELLPOKER_CHAPTER_DECK=0`). Aynı tohumlarla 500 koşu, daire 0:
+
+| sınıf | sayılan deste | taze deste | fark |
+|---|---|---|---|
+| Köylü | %39.0 | %29.8 | −9.2 |
+| Kâhin | %40.6 | %41.0 | +0.4 |
+| Kral | %27.4 | %32.2 | +4.8 |
+| Soytarı | %23.0 | %23.0 | 0 (zaten her el taze) |
+| Çağırıcı | %30.4 | %32.6 | +2.2 |
+| Hırsız | %39.0 | %39.4 | +0.4 |
+
+Köylü ve Kral ±3'ün dışında; dokunulmadı (karar bekliyor).

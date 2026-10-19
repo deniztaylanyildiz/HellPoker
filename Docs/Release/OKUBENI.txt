@@ -8,7 +8,8 @@ Mammon'un Kasası, Belial'in Sahnesi, Lilith'in Gecesi; sonunda Lucifer. Oyun bi
 değişebilir.
 
 Bilinen sınırlamalar:
-  - 2K gibi yüksek çözünürlüklü ekranlarda yazılar bulanık görünürse Ayarlar > GÖRÜNTÜ > PİKSEL ÖLÇEĞİ'nde TAM PİKSEL'i seç.
+  - Oyun 640×360'lık bir piksel ızgarasında: 1080p, 1440p (2K) ve 4K ekranlarda tam sayı katında, kenarsız ve keskin görünür.
+    1366×768 gibi ekranlarda kenarda ince siyah bant kalır (bilerek).
   - Denge hâlâ test aşamasında: sınıflar arasında fark var (Soytarı çok zor); yeni olayların, pazarların ve emanetlerin sayıları
     ilk tahmin.
   - Hata / öneri butonu e-posta uygulamanı açar; açılmazsa rapor panoya kopyalanır, bir e-postaya yapıştırman yeter.
@@ -104,9 +105,11 @@ Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR: 10 kısa, re
 el tablosu).
 Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüde sağ üstteki TR / EN butonuyla ya da L tuşuyla değiştirirsin.
 Poker bilmiyorsan dert etme:
-  - H tuşu hangi elin hangisini yendiğini gösterir.
+  - H tuşu (ELLER / ÖDEMELER) hangi elin hangisini yendiğini ve o masada ne ödediğini gösterir.
   - Oyun elinin adını söyler ("NOW: ONE PAIR").
   - Kart değiştirirken tutman iyi olan kartlar altın çerçeveyle parlar.
+
+Bölüm masalarında her el yeni, karılmış bir desteyle başlar (deste saymak yok).
 
 Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür. Bir elin ortasında oyunu kapatırsan o el kaybedilmiş sayılır.
 
@@ -120,7 +123,7 @@ KONTROLLER
   D               kart değiştirmeye kadar pas geç (check to draw)
   C               şeytanın artırmasını karşıla (call)
   1-5             kart seç (atmak için)
-  H               el sıralaması
+  H               el sıralaması ve ödemeler
   K               Hırsız: ÇAL · diğer sınıflar: sınıfının ne yaptığı (güçler kendiliğinden çalışır)
   L               dil değiştir (sadece ana menüde)
   Esc             bir önceki ekran / menü

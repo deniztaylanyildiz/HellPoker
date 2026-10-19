@@ -101,9 +101,18 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 14. SES, MÜZİK, DİL VE KARTLAR
-    Rahatsız eden ya da çok sessiz kalan bir şey var mıydı? Hangi dilde oynadın, garip okunan bir cümle gördün mü?
+    Rahatsız eden ya da çok sessiz kalan bir şey var mıydı? Kat ve harita müzikleri uzun dinleyince yordu mu?
+    Hangi dilde oynadın, garip okunan bir cümle gördün mü?
     Kartlar artık klasik iki renkte (Ayarlar > OYUN > DÖRT RENKLİ DESTE ile değişir): hangisini tercih ettin? Paneldeki büyük kartlar
     (Önsezi, heybe) okunaklı mıydı?
+
+    >
+
+
+15. GÖRÜNTÜ VE YENİ MASA (Demo 3.0)
+    Ekran çözünürlüğün neydi? Görüntü keskin miydi, kenarda siyah bant kaldı mı? Yeni ana menü nasıl?
+    Ödemeleri ELLER / ÖDEMELER (H) panelinde buldun mu? Her elin taze desteyle başlaması fark edildi mi?
+    Bir ipucu kutusu (hover) başka bir şeyin arkasında kaldı mı ya da ekrandan taştı mı?
 
     >
 

@@ -1,5 +1,27 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.0 (3.0.0-demo) — 2026-10-19 — Phase 3 başlangıcı
+
+### Yeni
+- **2K'da kusursuz görüntü:** oyun artık 640×360 piksellik bir ızgarada. 1920×1080 ×3, 2560×1440 ×4, 3840×2160 ×6 — kenar boşluğu ve
+  eşitsiz piksel yok (1366×768'de ×2, ince kenar). Bütün ekranlar yeni ızgaraya taşındı; fazladan alan büyütmeye değil nefese gitti:
+  daha geniş orta sütun, daha uzun diyalog kutusu, aralıklı harita. Zeminler (salonlar, katlar, menü, haritalar) 640×360.
+- **Yeni ana menü:** düğmeler aynı boyda ve 8 piksellik ızgarada, logo tam katında, zemin sadeleşti (daha az yıldız, pencere ve parıltı;
+  ateş denizinin ortası sakin).
+- **Ödemeler ELLER panelinde:** bölüm masalarındaki ÖDEMELER paneli kalktı; ELLER / ÖDEMELER düğmesi (H) her elin yanında o masanın
+  çarpanını ve altında masanın nasıl ödediğini gösterir (şeytan masasında barın ölçeği, Mammon'un faizi). Bahis düğmeleri genişledi.
+- **Her el taze deste:** bölüm masalarında her el karılmış 52'lik desteyle başlar (Soytarı'da jokerli). Deste sayacı, KARIŞTIR ve S yok;
+  deste masadan masaya, bölümden bölüme ve kayda taşınmaz. Heybedeki kartlar desteden çıkmış sayılır, ÖNSEZİ karılmış destenin üstünü görür.
+- **Yeni kat ve harita müzikleri:** iki dakikalık döngüler, A / B bölümleri ve nefes araları, yumuşak bas, seyrek ve pes örs.
+
+### Düzeltilen
+- Hover kutuları (son eller, rozet, emanetler, can barı, harita, sınıf kartı...) artık her zaman en üstte ve ekranın içinde: kat
+  masasında son ellerin ipucu ödemeler panelinin arkasında kalıyordu.
+
+### Denge
+- Her el taze desteyle (simülasyon, sınıf başına 500 koşu, aynı tohumlar; önceki sayılan desteye göre): Köylü %30 (−9), Kâhin %41,
+  Kral %32 (+5), Soytarı %23, Çağırıcı %33, Hırsız %39. Köylü ve Kral değişimi oyun testinden sonra değerlendirilecek.
+
 ## Demo 2.3.1 (2.3.1-demo) — 2026-10-17 — Büyüme hızı, Kâhin ve Soytarı dengesi
 
 ### Değişen
