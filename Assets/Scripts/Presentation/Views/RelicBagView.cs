@@ -103,6 +103,7 @@ namespace HellPoker.Presentation.Views
             _tipText = UiFactory.CreateText("BagTipText", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
             _tipText.rectTransform.PlaceTL(4, 3, Width - (Left + RelicBagState.Worn * Step + 4) - 16, BagY + Tile - WornY - 2);
             _tip = tip.gameObject;
+            _tip.SetActive(false);   // only while the bag is open and there is something to tell
 
             _totals = UiFactory.CreateText("BagTotals", panel.transform, "", 8, Palette.GoldLight, TextAnchor.UpperLeft);
             _totals.rectTransform.PlaceTL(Left, BagY + Tile + 8, Width - 2 * Left, 20);
@@ -129,7 +130,14 @@ namespace HellPoker.Presentation.Views
         {
             RelicBadge relic = _state != null && place >= 0 && place < _state.Places.Count ? _state.Places[place] : null;
             _tipText.text = relic == null ? (_state?.Editable ?? false ? UiText.BagHint : "") : relic.Name + (relic.Forged ? " " + UiText.BagForgedMark : "") + "\n" + relic.Description;
+            _tip.SetActive(IsOpen && !string.IsNullOrEmpty(_tipText.text));
         }
+
+        /// <summary>The hover's box is open (tests).</summary>
+        public bool TipShown => _tip.activeSelf;
+
+        /// <summary>Points at a place as the pointer would (tests).</summary>
+        public void PointAt(int place) => ShowTip(place);
 
         public void Show(RelicBagState state)
         {
@@ -158,6 +166,7 @@ namespace HellPoker.Presentation.Views
         {
             _canvas.enabled = false;
             GetComponent<GraphicRaycaster>().enabled = false;
+            _tip.SetActive(false);
         }
     }
 }

@@ -3887,3 +3887,30 @@ Kullanıcı: "dengeye karışma, diğer işleri nasıl iyi görüyorsan yap ve b
 
 ### Açık
 - Denge (taze destede Köylü −9.2, Kral +4.8): kullanıcı şimdilik dokunulmamasını istedi.
+
+## 2026-10-19 — Demo 3.0.2: siyah hover kutusu düzeltmesi
+
+Kullanıcı: 3.0.1'de haritada ve bölüm giriş panelinde ("1. BÖLÜM: MAMMON'UN KASASI", "Kapıda Mammon 260 ..." satırının üstünde) boş, siyah,
+ince leylak çerçeveli bir dikdörtgen duruyor. BagTip kurulunca gizli olsun, diğer HoverTip'ler de denetlensin, PlayMode testi, build 3.0.2,
+commit + etiket. Boss Simülatörü, demo kuralları, denge: dokunulmadı.
+
+- **Gerçek neden:** kutu, kapalı emanet çantasının açıklama kutusu `BagTip`'ti. Çanta kendini `GameObject` ile değil kök Canvas'ını
+  `enabled = false` yaparak gizler. Phase 3 (1)'de `HoverTip.Make` her kutuya kendi iç Canvas'ını verdi (en üstte çizilsin diye);
+  iç içe Canvas, üstündeki Canvas kapalıyken de kendi başına çizilir. `BagTip` kurulunca açık bırakılmıştı (çanta kapalıyken görünmüyordu,
+  çünkü eskiden çantanın Canvas'ıyla birlikte çiziliyordu) → 3.0'dan beri haritanın ve panellerin üstünde, sıra 50 + 15'te, boş.
+  Neden TableLayoutTests yakalamadı: hover testi açık kutuların sırasını ve ekranda kalışını ölçüyordu, açık olmaması gereken kutuyu değil.
+- **Düzeltme:** `HoverTip.ScreenShown` (üstündeki her Canvas açık mı) her karede: kapalıysa kutu çizilmez ve kendini kapatır (işaretçi
+  ekran kapanırken üstündeyse çıkış olayı gelmez), açılışta da ona göre. `BagTip` kurulunca gizli; yalnız çanta açıkken ve anlatacak bir şey
+  varken (imleçteki / üzerine gelinen emanet ya da kampın düzenleme ipucu) açılır; çanta kapanınca kapanır. Diğer bütün `HoverTip.Make`
+  kutuları (can barı, harita düğümü, kit, kötülük niyeti, emanet çubuğu, son eller, rozet, sınıf kartı, deste, mesaj, ELLER) zaten kurulunca
+  gizleniyordu; artık hepsi ekranları kapalıyken de çizilmez.
+- **Test:** PlayMode `HoverTipTests`: (1) harita, bölüm paneli, kat masası, pazar, kamp, olay, ganimet, boss masası, Lucifer'in çağrısı ve
+  masası açıkken hiçbir şeyin üstüne gelinmemişken çizilen (`HoverTip.Visible`: açık + kendi Canvas'ı açık) kutu yok — düzeltme geçici
+  olarak geri alınınca "BagTip under BagPanel" ile düştüğü görüldü; (2) çanta: imleç / hover'da kutu çantanın içinde ve çantanın ölçeğinde,
+  boş yerde kapalı, TAMAM'la kapanır, yeniden açılınca yalnız imleçteki emanet için. [Explicit] `CaptureTheScreens` → `Screenshots/demo302/{en,tr}`.
+- Sürüm **3.0.2-demo**, CHANGELOG, CLAUDE.md (Phase 3 (1) paragrafı, build satırı).
+- Build `Builds/HellPoker-Demo-3.0.2-win64.zip` (40.7 MB, Success). Kayıtlar yedeklendi (53 dosya + kayıt defteri), zipten 3 × `-fpstour`:
+  çıkış 0, hata 0, 19 FPS satırı; yedek geri kondu. Etiket `v3.0.2-demo`; push yok (`git push --tags`).
+
+### Testler
+PlayMode HoverTipTests 2/2, TableLayoutTests 7/7; EditMode 1123 (1118 geçti, 5 Explicit). Tek Unity, sırayla, düşük öncelik + mola.

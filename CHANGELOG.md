@@ -1,5 +1,15 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.0.2 (3.0.2-demo) — 2026-10-19 — Siyah kutu düzeltmesi
+
+### Düzeltilen
+- Haritada ve bölüm panellerinde (ör. "1. BÖLÜM: MAMMON'UN KASASI") metnin üstünde duran boş, siyah, ince leylak çerçeveli dikdörtgen
+  kalktı: kapalı emanet çantasının açıklama kutusuydu. Açıklama kutuları artık yalnız bir şeyin üstüne gelindiğinde görünür, ekranları
+  kapanınca onlar da kapanır.
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.0.1 (3.0.1-demo) — 2026-10-19 — Görüntü düzeltmesi
 
 ### Değişen

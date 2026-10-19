@@ -25,7 +25,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.0.1-win64.zip` (bundleVersion **3.0.1-demo**: menüde "Demo 3.0.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.0.2-win64.zip` (bundleVersion **3.0.2-demo**: menüde "Demo 3.0.2" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -168,7 +168,12 @@ FullRunTests şeytan masasında barı eller arasında başlangıcın yarısında
 Kral %28.9, Soytarı %21.7, Çağırıcı %32.2, Hırsız %37.4.
 
 **Phase 3 (1)** (DEVLOG 2026-10-19): **hover kutuları** `Ui/HoverTip` (kendi Canvas'ı, overrideSorting = ekranın sırası + 15, her karede ekrana
-geri iter; yeni ipucu `HoverTip.Make(tip.gameObject)` ile kurulur; PlayMode `TableLayoutTests.EveryHoverBox...`). **Ödemeler H panelinde:**
+geri iter; yeni ipucu `HoverTip.Make(tip.gameObject)` ile kurulur ve **kurulunca gizlenir** (`SetActive(false)`), sadece hover'da açılır;
+PlayMode `TableLayoutTests.EveryHoverBox...`). **Demo 3.0.2:** iç içe Canvas, üstündeki Canvas kapalıyken de çizilir (çanta ve harita
+kendilerini `Canvas.enabled = false` ile gizler: 3.0.1'de boş `BagTip` haritada / bölüm panelinde siyah, leylak çerçeveli kutu olarak
+kalıyordu). `HoverTip` her karede ekranına bakar (`ScreenShown`: üstündeki her Canvas açık mı); kapalıysa çizmez ve kendini kapatır.
+`BagTip` yalnız çanta açıkken ve anlatacak bir şey varken (imleçteki emanet ya da kamp ipucu). PlayMode `HoverTipTests`: harita, bölüm
+paneli, pazar, kamp, olay, ganimet, kat / boss / Lucifer masası açıkken hiçbir şeyin üstüne gelinmemişken görünür kutu yok (`HoverTip.Visible`). **Ödemeler H panelinde:**
 bölüm masalarında `ITableView.SetPayoutTableShown(false)` (PAYOUTS gizli, düğme ELLER / ÖDEMELER, bahis satırı sağ sütuna uzar), notlar
 `HandRanksPanel.Show(payouts, footnote, notes)` ← `TablePresenter.PayoutNotes` (oyunun kendi tablosu `HellPokerGame.Payouts`: şeytanın ölçeği,
 katın kazancı, Mammon'un faizi); simülatör aynen. **Her el taze deste:** `ChapterTuning.FreshDeckEveryHand` (bölüm masalarında
