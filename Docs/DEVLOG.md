@@ -3873,3 +3873,17 @@ Kullanıcı: "oyun dengesini şimdilik elleme, görselleri güzelleştirmeye ça
 
 ### Testler
 EditMode 1123 (1118 geçti, 5 Explicit); PlayMode HowToPlayTests 2/2; HowToShots yeniden üretildi.
+
+## 2026-10-19 — Demo 3.0.1 build
+
+Kullanıcı: "dengeye karışma, diğer işleri nasıl iyi görüyorsan yap ve build al."
+
+- Denge dokunulmadı. Sürüm **3.0.1-demo** (How to Play'in 256×144 resimleri yeni bir zip istediği için 3.0'ın üstüne yazılmadı);
+  CHANGELOG "Demo 3.0.1 — Görüntü düzeltmesi", CLAUDE.md build satırı.
+- Build `Builds/HellPoker-Demo-3.0.1-win64.zip` (40.7 MB, Result: Success). Kayıtlar yedeklendi; zipten 3 × `-fpstour`: çıkış 0,
+  hata 0, 19 FPS satırı (~60 FPS); yedek geri kondu. Not: zip'i scratchpad'in uzun yoluna açmak Expand-Archive'da yol sınırına
+  takılıyor, `%TEMP%\hp301` gibi kısa bir klasöre aç.
+- Etiket `v3.0.1-demo`; push yok (`git push --tags`).
+
+### Açık
+- Denge (taze destede Köylü −9.2, Kral +4.8): kullanıcı şimdilik dokunulmamasını istedi.

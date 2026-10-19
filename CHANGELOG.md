@@ -1,5 +1,15 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.0.1 (3.0.1-demo) — 2026-10-19 — Görüntü düzeltmesi
+
+### Değişen
+- **How to Play resimleri büyüdü:** her sayfanın resmi oyunun 640×360 ekranından daha geniş bir kesit (256×144), pikselleri ekranın
+  kendi pikselleriyle aynı boyda (büyütülmüş, bulanık ya da çift boy piksel yok). Kart değiştirme resminde KART DEĞİŞ düğmesi, sınıf
+  resminde kartların başlıkları da görünür.
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.0 (3.0.0-demo) — 2026-10-19 — Phase 3 başlangıcı
 
 ### Yeni
