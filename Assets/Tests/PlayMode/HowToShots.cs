@@ -39,8 +39,8 @@ namespace HellPoker.PlayMode.Tests
             [3] = new RectInt(222, 130, 256, 144),   // a hand at the draw: two cards to throw, DRAW
             [4] = new RectInt(0, 16, 256, 144),     // the demon's bar under him, glowing: the last blow
             [5] = new RectInt(0, 0, 256, 144),      // the cheat announced over the demon, his gauge
-            [6] = new RectInt(0, 138, 256, 144),    // Demo 2.3: the class cards' words — the main power and the PASSIVE
-            [7] = new RectInt(180, 92, 256, 144),   // the relics: worn and in the bag
+            [6] = new RectInt(384, 62, 256, 144),   // Demo 3.1.1: the player's panel — the class's portrait, its level, its passive, its relics
+            [7] = new RectInt(380, 150, 256, 144),  // the relics on the panel, one hovered: its gift and its curse
             [8] = new RectInt(188, 100, 256, 144),  // a market's seller and his wares
         };
 
@@ -256,20 +256,17 @@ namespace HellPoker.PlayMode.Tests
             yield return Settle(0.8f);
             yield return Picture(5);
 
-            // 7: the class cards.
-            yield return Load(language);
-            HellPokerScreenshots.Press("NewGameButton");
-            yield return new WaitForSeconds(0.8f);
+            // 7-8 (Demo 3.1.1): the player's panel at a demon's table — the King, his class's relics and the Bone Die; then one hovered.
+            ChapterSave panel = Boss(Core.Sinners.SinnerRoster.King, 1600, 1600);
+            panel.Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).Concat(new[] { Core.Relics.RelicIds.BoneDie }).ToList();
+            yield return Load(language, panel);
+            yield return Settle();
+            ChapterJourneyTests.Chapters.Table.PerformAction();
+            yield return Settle(0.8f);
             yield return Picture(6);
-
-            // 8: the camp's bag: five worn, three carried.
-            ChapterSave camp = AtNode(Core.Sinners.SinnerRoster.Peasant, 11, NodeKind.PurgatoryFire, "fire");
-            camp.Relics = five.ToList();
-            camp.Bag = new List<string> { Core.Relics.ChapterRelicIds.RustedChain, Core.Relics.ChapterRelicIds.LiarsTongue, Core.Relics.RelicIds.RustyCrown };
-            yield return Load(language, camp);
-            yield return new WaitForSeconds(0.3f);
-            HellPokerScreenshots.Press("PanelOption4");
-            yield return new WaitForSeconds(0.3f);
+            ChapterJourneyTests.ChapterTableView.PlayerPanel.Relics.PointAt(2);
+            yield return null;
+            yield return null;
             yield return Picture(7);
 
             // 9: a market.

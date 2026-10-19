@@ -28,7 +28,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.1-win64.zip` (bundleVersion **3.1.0-demo**: menüde "Demo 3.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.1.1-win64.zip` (bundleVersion **3.1.1-demo**: menüde "Demo 3.1.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol üstünde HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -202,7 +202,13 @@ kırpma, ifade, sınıfın hareketi) tam piksel; 48'lik kart portreleri birebir 
 (`TierOf`, `GroupsOf`, `SecondsOf`: Plain 0.8, Good 1.5, Strong 1.7, Full 2.0, Quads 2.3, Blaze 2.9, HouseStrong 0.7 sn) + `HandFanfareView`
 (`ITableView.PlayHand`; kuyrukta tek adım: şeytanın sözü ve bar vuruşu ondan sonra; atlanınca ekranda hiçbir şey kalmaz), presenter
 `PlayHandEnding` (ses kademeye göre, Blaze `win_blaze`; şeytan masasında Ölü Adamın Eli kendi sahnesi). **EKRAN SARSINTISI** (GÖRÜNTÜ sekmesi,
-`settings.shake`, `Animation.ScreenShake`): kapalıyken sarsıntı ve beyaz flaş yok. Testler: `SinnerAnimationTests`, `HandFanfareTests`,
+`settings.shake`, `Animation.ScreenShake`): kapalıyken sarsıntı ve beyaz flaş yok. **Demo 3.1.1:** her elin kendi hareketi
+(`HandTier` TwoPair: çiftler ayrı ayrı; Trips: üçü birlikte + altın kıvılcım halkası + ekran 1 px vuruş `Knock`; Straight: soldan dalga +
+son kartta parıltı; Flush: rengin sembolleri yağar `SuitRain` + kartlar rengin tonunda çerçeve `ToneFlash`, siyah renkte gümüş); büyük kayıp
+`HandFanfare.BigLoss` (`IsBigLoss`: ≥ 4 ante — katta coin, şeytan masasında barın yılı; kasanın çiftiyle de): kısa sarsıntı + kenarda
+kırmızı dither titremesi (`RedFlicker`, kodla üretilen 4×4 palet dokusu, alfa yok), HouseStrong ile birlikteyse ondan sonra; sarsıntı
+kapalıyken sarsıntı / vuruş yok, titreme var. Duman turu bölüm masasında paneli denetler: "Hell Poker panel ..." log satırı +
+`persistentDataPath/tour/p2_belial_imp.png`. Testler: `SinnerAnimationTests`, `HandFanfareTests`,
 PlayMode `HandFanfarePlayTests`, `TableLayoutTests.ThePlayersPanel_...`; [Explicit] `Demo31Shots` (`Screenshots/demo31/`).
 
 ## Oyun

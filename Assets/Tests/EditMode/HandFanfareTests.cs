@@ -19,10 +19,10 @@ namespace HellPoker.Core.Tests
 
         [TestCase(HandCategory.HighCard, HandTier.Plain)]
         [TestCase(HandCategory.OnePair, HandTier.Plain)]
-        [TestCase(HandCategory.TwoPair, HandTier.Good)]
-        [TestCase(HandCategory.ThreeOfAKind, HandTier.Good)]
-        [TestCase(HandCategory.Straight, HandTier.Strong)]
-        [TestCase(HandCategory.Flush, HandTier.Strong)]
+        [TestCase(HandCategory.TwoPair, HandTier.TwoPair)]
+        [TestCase(HandCategory.ThreeOfAKind, HandTier.Trips)]
+        [TestCase(HandCategory.Straight, HandTier.Straight)]
+        [TestCase(HandCategory.Flush, HandTier.Flush)]
         [TestCase(HandCategory.FullHouse, HandTier.Full)]
         [TestCase(HandCategory.FourOfAKind, HandTier.Quads)]
         [TestCase(HandCategory.StraightFlush, HandTier.Blaze)]
@@ -48,7 +48,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void EveryTier_HoldsLongerThanTheOneBefore()
         {
-            HandTier[] wins = { HandTier.Plain, HandTier.Good, HandTier.Strong, HandTier.Full, HandTier.Quads, HandTier.Blaze };
+            HandTier[] wins = { HandTier.Plain, HandTier.TwoPair, HandTier.Trips, HandTier.Straight, HandTier.Flush, HandTier.Full, HandTier.Quads, HandTier.Blaze };
             for (int i = 1; i < wins.Length; i++)
                 Assert.Greater(HandFanfare.SecondsOf(wins[i]), HandFanfare.SecondsOf(wins[i - 1]), wins[i].ToString());
             Assert.AreEqual(0f, HandFanfare.SecondsOf(HandTier.None));
@@ -127,7 +127,7 @@ namespace HellPoker.Core.Tests
         public void TearDown() => _chapters.Dispose();
 
         /// <summary>A hand at Mammon's table from a stacked deck (the player's five, the House's five, the draws), played to its end by passing.</summary>
-        private void PlayAtTheDemon(string player, string house, bool fold = false)
+        private void PlayAtTheDemon(string player, string house, bool fold = false, bool raise = false)
         {
             _chapters.Dispose();
             var store = new MemoryStore();
@@ -152,12 +152,22 @@ namespace HellPoker.Core.Tests
                 return;
             }
             int guard = 0;
-            while (_table.Game.Phase != GamePhase.RoundOver && !_table.Game.IsGameOver && guard++ < 30) _table.PerformAction();
+            while (_table.Game.Phase != GamePhase.RoundOver && !_table.Game.IsGameOver && guard++ < 30)
+            {
+                GamePhase before = _table.Game.Phase;
+                bool deciding = before == GamePhase.PlayerReveal || before == GamePhase.DrawReveal || before == GamePhase.HouseReveal;
+                // Raising every decision it may (a big stake); a refused raise (the table full) passes instead.
+                if (raise && deciding) _table.Bet(BetAction.Raise);
+                else if (raise && before == GamePhase.HouseReRaise) _table.Bet(BetAction.Call);
+                if (!raise || _table.Game.Phase == before && _table.Game.Phase != GamePhase.HouseReRaise && (deciding || before == GamePhase.Drawing)) _table.PerformAction();
+            }
         }
 
         [TestCase("AS AD 7C 3C JS", HandTier.Plain)]
-        [TestCase("AS AD 7C 7H JS", HandTier.Good)]
-        [TestCase("9S 8D 7C 6H 5S", HandTier.Strong)]
+        [TestCase("AS AD 7C 7H JS", HandTier.TwoPair)]
+        [TestCase("QS QD QC 4C 3H", HandTier.Trips)]
+        [TestCase("9S 8D 7C 6H 5S", HandTier.Straight)]
+        [TestCase("2H 6H 9H JH KH", HandTier.Flush)]
         [TestCase("KS KD KC 5S 5C", HandTier.Full)]
         [TestCase("QS QD QC QH JS", HandTier.Quads)]
         [TestCase("AS KS QS JS 10S", HandTier.Blaze)]
@@ -170,7 +180,57 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(fanfare.CoinsToBar, "at a demon's table the coins fly at his bar");
             Assert.AreEqual(tier == HandTier.Plain, fanfare.Title == null, "the big name from two pair up");
             Assert.IsTrue(fanfare.Groups.SelectMany(g => g).All(i => i >= 0 && i < Hand.Size));
-            Assert.Contains(tier >= HandTier.Strong ? SinnerMood.Elated : SinnerMood.Pleased, _tableView.SinnerMoods);
+            Assert.Contains(tier >= HandTier.Straight ? SinnerMood.Elated : SinnerMood.Pleased, _tableView.SinnerMoods);
+            Assert.IsFalse(fanfare.BigLoss);
+            Assert.AreEqual(tier == HandTier.Flush ? Suit.Hearts : (Suit?)null, fanfare.FlushSuit, "a flush rains its own suit");
+        }
+
+        [Test]
+        public void TwoPairTripsStraightAndFlush_EachHaveTheirOwnMotion_AndItsCards()
+        {
+            PlayAtTheDemon("AS AD 7C 7H JS", HouseNothing);
+            HandFanfare two = _tableView.Fanfares.Single();
+            Assert.AreEqual(2, two.Groups.Count, "two pair: each pair on its own");
+            CollectionAssert.AreEquivalent(new[] { 0, 1 }, two.Groups[0], "the aces first");
+            PlayAtTheDemon("QS QD QC 4C 3H", HouseNothing);
+            HandFanfare trips = _tableView.Fanfares.Single();
+            CollectionAssert.AreEquivalent(new[] { 0, 1, 2 }, trips.Groups.Single(), "trips: the three together");
+            PlayAtTheDemon("9S 8D 7C 6H 5S", HouseNothing);
+            HandFanfare straight = _tableView.Fanfares.Single();
+            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4 }, straight.Groups.Select(g => g.Single()), "a straight: a wave from the left");
+            PlayAtTheDemon("2H 6H 9H JH KH", HouseNothing);
+            HandFanfare flush = _tableView.Fanfares.Single();
+            Assert.AreEqual(Suit.Hearts, flush.FlushSuit, "a flush: its suit rains");
+            CollectionAssert.AllItemsAreUnique(new[] { two.Tier, trips.Tier, straight.Tier, flush.Tier }, "four motions, not one tier");
+        }
+
+        [Test]
+        public void ABigLoss_PlaysWithTheHousesPairToo()
+        {
+            PlayAtTheDemon("3D 5C 7H JC KD", "AS AD 9C 6D 2C", raise: true);
+            Assert.AreEqual(HandOutcome.Loss, _tableView.Band?.Outcome);
+            HandFanfare fanfare = _tableView.Fanfares.Single();
+            Assert.AreEqual(HandTier.None, fanfare.Tier, "a pair is no strong hand of the House's");
+            Assert.IsTrue(fanfare.BigLoss, "but four antes and more lost: the big loss");
+            Assert.IsTrue(fanfare.Plays);
+            Assert.Contains(SinnerMood.Hurt, _tableView.SinnerMoods);
+        }
+
+        [Test]
+        public void ASmallLossToAPair_PlaysNothing()
+        {
+            PlayAtTheDemon("3D 5C 7H JC KD", "AS AD 9C 6D 2C");
+            Assert.AreEqual(HandOutcome.Loss, _tableView.Band?.Outcome);
+            Assert.IsEmpty(_tableView.Fanfares, "an ante lost to a pair: no animation");
+        }
+
+        [Test]
+        public void BigLoss_IsFourAntesAndUp()
+        {
+            Assert.IsTrue(HandFanfare.IsBigLoss(HandOutcome.Loss, 20, 5));
+            Assert.IsFalse(HandFanfare.IsBigLoss(HandOutcome.Loss, 19, 5));
+            Assert.IsFalse(HandFanfare.IsBigLoss(HandOutcome.Fold, 40, 5), "a fold is no loss at the showdown");
+            Assert.IsFalse(HandFanfare.IsBigLoss(HandOutcome.Loss, 40, 0));
         }
 
         [Test]
@@ -180,6 +240,7 @@ namespace HellPoker.Core.Tests
             HandFanfare fanfare = _tableView.Fanfares.Single();
             Assert.AreEqual(HandTier.HouseStrong, fanfare.Tier);
             Assert.IsTrue(fanfare.OnHouseSide);
+            Assert.IsTrue(fanfare.BigLoss, "the House's quads take ten antes: the House's cards hit, then the edge flickers");
             CollectionAssert.AreEquivalent(new[] { 0, 1, 2, 3 }, fanfare.Groups.Single(), "the House's four nines");
             Assert.Contains(SinnerMood.Hurt, _tableView.SinnerMoods);
         }

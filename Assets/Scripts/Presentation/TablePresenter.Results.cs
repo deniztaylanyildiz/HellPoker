@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HellPoker.Core.Cards;
 using HellPoker.Core.Evaluation;
 using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
@@ -145,7 +146,7 @@ namespace HellPoker.Presentation
                 _view.PlaySfx(tier == HandTier.Plain ? SfxIds.WinSmall : SfxIds.WinBig);
             else if (outcome == HandOutcome.Loss || (round.Folded && !round.FreeFold))
                 _view.PlaySfx(SfxIds.Loss);
-            if (CoinMode && tier >= HandTier.Good && tier <= HandTier.Quads) _view.PlaySfx(SfxIds.WinBig);
+            if (CoinMode && tier >= HandTier.TwoPair && tier <= HandTier.Quads) _view.PlaySfx(SfxIds.WinBig);
             if (tier == HandTier.Blaze) _view.PlaySfx(SfxIds.WinBlaze);
 
             if (player == HandCategory.DeadMansHand && !CoinMode)
@@ -153,12 +154,16 @@ namespace HellPoker.Presentation
                 _view.PlayMoment(TableMoment.DeadMansHand, playerCards: DeadMansCards(_game.PlayerHand));
                 return;
             }
-            if (tier == HandTier.None) return;
+            // Demo 3.1.1: a big loss (four antes and up: the purse's coins, the bar's years) — with the House's strong hand or its pair.
+            int lost = CoinMode ? -(_seat?.LastHand?.Coins ?? -round.YearsChange) : round.YearsChange;
+            bool bigLoss = HandFanfare.IsBigLoss(outcome, lost, _game.Ante);
+            if (tier == HandTier.None && !bigLoss) return;
             IReadOnlyList<IReadOnlyList<int>> groups = tier == HandTier.HouseStrong ? HandFanfare.GroupsOf(s.House.Hand, s.House.Category)
-                : player.HasValue ? HandFanfare.GroupsOf(s.Player.Hand, player.Value) : Array.Empty<IReadOnlyList<int>>();
-            string title = tier >= HandTier.Good && tier != HandTier.HouseStrong && player.HasValue
+                : player.HasValue && tier != HandTier.None ? HandFanfare.GroupsOf(s.Player.Hand, player.Value) : Array.Empty<IReadOnlyList<int>>();
+            string title = tier >= HandTier.TwoPair && tier != HandTier.HouseStrong && player.HasValue
                 ? string.Format(UiText.GoodHandFormat, UiText.CategoryNameUpper(player.Value)) : null;
-            _view.PlayHand(new HandFanfare(tier, title, groups, coinsToBar: !CoinMode));
+            Suit? flushSuit = tier == HandTier.Flush ? s.Player.Hand[0].Suit : (Suit?)null;
+            _view.PlayHand(new HandFanfare(tier, title, groups, coinsToBar: !CoinMode, bigLoss: bigLoss, flushSuit: flushSuit));
         }
 
         private static string CoinAmount(int coins) => coins == 0 ? UiText.BandCoinsStay : string.Format(UiText.BandCoinsFormat, UiText.SignedYears(coins));

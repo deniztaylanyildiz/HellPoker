@@ -1,5 +1,19 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.1.1 (3.1.1-demo) — 2026-10-19 — Her elin kendi hareketi, büyük kayıp
+
+### Değişen
+- **Her el kendi hareketiyle biter:** iki çiftte çiftler ayrı ayrı vurur (yüksek olan önce); üçlüde üç kart birlikte vurur, etraflarında
+  altın kıvılcımlar döner, ekran bir piksel yukarı-aşağı vurur; kentte kartlar soldan sağa dalga gibi kalkıp parlar, son kartta bir
+  parıltı; renkte o rengin sembolleri kartların üstüne yağar, kartlar rengin tonunda bir kez parlar. Full, Kare ve Floş eskisi gibi.
+- **Büyük kayıp:** dört ante ve üstü kaybedilen elde (kasa sadece bir çiftle kazansa bile) kısa sarsıntı ve ekran kenarında kırmızı
+  titreme; portre yüzünü buruşturur, şeytan sırıtır. Kasanın üçlü ve üstüyle kayıpta önce kasanın kartları vurur, sonra kenar titrer.
+  EKRAN SARSINTISI kapalıyken sarsıntı ve üçlünün vuruşu olmaz (kırmızı kenar yine titrer).
+- **How to Play:** sınıflar ve emanetler sayfalarının resimleri yeni oyuncu panelinden; metinler panelin yerini söyler.
+
+### Denge
+- Değişiklik yok.
+
 ## Demo 3.1 (3.1.0-demo) — 2026-10-19 — Oyuncu paneli ve el animasyonları
 
 ### Yeni

@@ -54,10 +54,32 @@ namespace HellPoker.Presentation
             Press("PanelOption0");   // DESCEND
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 belial map");
-            MapNode first = _chapters.Run?.Choices.OrderBy(n => n.Lane).FirstOrDefault();
+            // An imp's table (Demo 3.1.1: the map's leftmost node is not always one — a market or an offer left the panel unchecked).
+            MapNode first = _chapters.Run?.Choices.Where(n => n.Kind == NodeKind.Table).OrderBy(n => n.Lane).FirstOrDefault()
+                            ?? _chapters.Run?.Choices.OrderBy(n => n.Lane).FirstOrDefault();
             if (first != null) Press($"Node{first.Floor}_{first.Lane}");
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 belial imp");
+            yield return CheckThePlayersPanel("p2_belial_imp");
+        }
+
+        /// <summary>
+        /// Demo 3.1.1: at a chapter's table the player's panel stands under the counter with the class's animated portrait (a player missed
+        /// it in a 3.0.2 build): one log line ("Hell Poker panel ...") and a screenshot in persistentDataPath/tour.
+        /// </summary>
+        private IEnumerator CheckThePlayersPanel(string shot)
+        {
+            TableView view = FindObjectsByType<TableView>(FindObjectsSortMode.None).FirstOrDefault(t => t.name == "ChapterTableCanvas");
+            PlayerPanelView panel = view != null ? view.PlayerPanel : null;
+            int frames = panel != null && panel.Sinner.Portrait.Clip != null ? panel.Sinner.Portrait.Clip.Frames.Length : 0;
+            Debug.Log($"Hell Poker panel {Application.version}: shown {panel != null && panel.gameObject.activeInHierarchy}, class {panel?.Badge.ClassId}, " +
+                      $"portrait frames {frames}, relics {panel?.Relics.Relics.Count ?? 0}, " +
+                      $"badge on the demon {view != null && view.PortraitBadge.gameObject.activeInHierarchy}");
+            string folder = System.IO.Path.Combine(Application.persistentDataPath, "tour");
+            System.IO.Directory.CreateDirectory(folder);
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(folder, shot + ".png"));
+            yield return new WaitForEndOfFrame();
+            yield return null;
         }
 
         private IEnumerator Tour()

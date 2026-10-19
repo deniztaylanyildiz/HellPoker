@@ -98,7 +98,8 @@ namespace HellPoker.Presentation.Ui
                 case 6:
                     return new[]
                     {
-                        L("Six sinners: a main power and a passive, both on their own.", "Altı günahkâr: bir ana güç ve bir pasif, ikisi de kendiliğinden."),
+                        L("Six sinners: a power and a passive, both on their own; your panel (right, under the counter) shows them.",
+                            "Altı günahkâr: bir güç ve bir pasif, ikisi de kendiliğinden; sağdaki panelin (sayacın altında) gösterir."),
                         L("PEASANT: satchel, its first card unseen. ORACLE: foresight, sees lies.", "KÖYLÜ: heybe, ilk kartı görünmez. KÂHİN: önsezi, yalanı görür."),
                         L("KING: taxes, seizure at half. SUMMONER: imps, the first one free.", "KRAL: vergi, yarı fiyata müsadere. ÇAĞIRICI: iblis, ilki bedava."),
                         L("THIEF: a glance; K steals until the showdown. JESTER: jokers.", "HIRSIZ: göz ucu; K ile showdown'a kadar çalar. SOYTARI: joker."),
@@ -108,7 +109,8 @@ namespace HellPoker.Presentation.Ui
                     return new[]
                     {
                         L("A relic is a gift and a curse at once.", "Her emanet hem bir lütuf hem bir lanettir."),
-                        string.Format(L("You wear {0} and carry {1} more in the bag.", "{0} tanesini takarsın, {1} tanesi çantada durur."), ChapterRelics.Slots, ChapterRelics.BagSlots),
+                        string.Format(L("You wear {0} (on your panel: hover one) and carry {1} more in the bag.",
+                            "{0} tanesini takarsın (panelinde: üstüne gel), {1} tanesi çantada durur."), ChapterRelics.Slots, ChapterRelics.BagSlots),
                         L("Wardens, markets and spoils give relics; your class's three come in order.",
                             "Bekçi, pazar ve ganimet emanet verir; sınıfının üç emaneti sırayla gelir."),
                         string.Format(L("A camp gives one act: {0}, {1}, {2} or {3}.", "Kamp bir eylem verir: {0}, {1}, {2} ya da {3}."), CampRest, CampWhet, CampRite, CampForge),

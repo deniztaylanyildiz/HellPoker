@@ -28,6 +28,7 @@ namespace HellPoker.Presentation.Views
         /// box opens to their left (the panel stands at the screen's right edge).</summary>
         public const int GridColumns = 3;
         public const int GridStep = Tile + 2;
+        private const int GridTipWidth = 160;
 
         private bool _grid;
 
@@ -142,10 +143,13 @@ namespace HellPoker.Presentation.Views
             RelicBadge relic = _bySlot[slot];
             if (relic == null) return;
             _tooltipText.text = relic.Name + "\n" + relic.Description;
-            // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels.
+            // As tall as the words (the Bone Die's gift wraps to more lines than the others), whole pixels. The panel's grid opens it a
+            // little narrower, left of the tiles (Demo 3.1.1: it and the tiles fit How to Play's picture together).
+            int width = _grid ? GridTipWidth : 196;
+            _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, 300);
             int textHeight = Mathf.Max(34, Mathf.CeilToInt(_tooltipText.preferredHeight));
-            _tooltipText.rectTransform.PlaceTL(4, 3, 188, textHeight);
-            ((RectTransform)_tooltip.transform).PlaceTL(_grid ? -(196 + 6) : Tile + 6, Place(slot).y, 196, textHeight + 4);
+            _tooltipText.rectTransform.PlaceTL(4, 3, width - 8, textHeight);
+            ((RectTransform)_tooltip.transform).PlaceTL(_grid ? -(width + 6) : Tile + 6, Place(slot).y, width, textHeight + 4);
             _tooltip.SetActive(true);
         }
 

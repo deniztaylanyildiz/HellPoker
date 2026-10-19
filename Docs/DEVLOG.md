@@ -3978,3 +3978,40 @@ kayıp animasyonları, EKRAN SARSINTISI ayarı. D) testler. E) build 3.1.
   kasanın Karesi, çekilme, simülatörde kademe yok, ayar); PlayMode `HandFanfarePlayTests` (her kademe sahnede doğru, bar animasyonu bekler,
   atlama hiçbir şey bırakmaz, Full kendi süresinde biter, sarsıntı kapalıyken flaş ve sarsıntı yok). [Explicit] `Demo31Shots` →
   `Screenshots/demo31/`. EditMode 1166 (1161 geçti, 5 Explicit), TableLayoutTests 8/8, HandFanfarePlayTests 8/8.
+
+## 2026-10-19 — Demo 3.1.1: eksikler — her elin kendi hareketi, büyük kayıp, How to Play
+
+Kullanıcı: oyunda oyuncu portresini göremedi; önce 3.1 build'inin alınıp alınmadığına bak, yeni build ile koşuda doğrula. İki çift / üçlü /
+kent / renk ayrı hareket; büyük kayıp (kısa sarsıntı + kenarda kırmızı titreme, portre hurt, şeytan gloat; kasanın üçlü+ kaybında önce kasa
+kartları, sonra kenar); How to Play 07 / 08 resimleri panelden, metinlerde yer tarifi; testler, `Screenshots/demo311/`, commit + v3.1.1-demo.
+Boss Simülatörü, demo masası, kurallar ve denge aynen.
+
+- **Kontrolde bulunan:** 3.1 build'i hiç alınmamıştı — kapanıştaki test turu bellek azaldığı için Claude Code tarafından durdurulmuş, build,
+  duman turları ve etiket ondan sonraydı. `Builds/` içinde en yeni zip 3.0.2, `Builds/Windows/HellPoker.exe` 10:36 (3.0.2): oyuncunun
+  oynadığı oyunda panel yoktu (portre kodu doğruydu). Kapanışın belge / sürüm değişikliklerini kullanıcı `a10d3e9` ile commit etmişti.
+- **Gerçek build'de doğrulama:** duman turu bölüm masasında paneli denetler (`FpsTour.CheckThePlayersPanel`: "Hell Poker panel ..." log
+  satırı + `persistentDataPath/tour/p2_belial_imp.png`); tur artık haritada bir masa düğümü seçer (rastgele haritada en soldaki düğüm bazen
+  pazar / olaydı: bir turda panel denetlenemedi). 3 tur: `shown True, portrait frames 8, badge on the demon False`.
+- **Her elin hareketi** (`HandTier` TwoPair / Trips / Straight / Flush ayrı; `HandFanfareView`): iki çift çiftleri ayrı ayrı (yüksek önce);
+  üçlü üçü birlikte + altın kıvılcım halkası (`Sparks`) + ekran 1 px yukarı-aşağı (`Knock`, sarsıntı kapalıyken yok); kent soldan dalga
+  (`Wave`) + son kartta parıltı; renk sembolleri yağar (`SuitRain`, 11×11 renk sprite'ları) + kartlar rengin tonunda 2 px çerçeveyle bir kez
+  parlar (`ToneFlash`; siyah renkte gümüş, dört renkli destede kendi rengi). Plain'de çift bir kez vurur. Süreler: Plain 0.8, İki Çift 1.3,
+  Üçlü 1.4, Kent 1.6, Renk 1.8, Full 2.0, Kare 2.3, Floş 2.9, kasa 0.7, büyük kayıp +0.6 sn.
+- **Büyük kayıp** (`HandFanfare.BigLoss`, `IsBigLoss`: ≥ 4 ante — katta coin, şeytan masasında barın yılı; kasa çiftle kazansa da): kısa
+  sarsıntı + kenarda kırmızı titreme (`RedFlicker`: kodla üretilen 4×4 palet dokusu, iki yoğunluk, açılıp kapanır; alfa yok); HouseStrong ile
+  birlikteyse önce kasanın kartları; sarsıntı kapalıyken titreme var, sarsıntı yok. Portre Hurt, şeytan Gloating (zaten).
+- **How to Play:** 07 (sınıflar) ve 08 (emanetler) resimleri boss masasındaki oyuncu panelinden (08: bir emanetin hover'ı açık); panelde
+  emanet hover kutusu 160 px (karonun solunda, resme sığar). Metinlere panelin yeri eklendi (iki dil); eski yer tarifi yoktu.
+- Testler: EditMode `HandFanfareTests` (iki çift / üçlü / kent / renk ayrı hareket ve kartları, rengin sembolü, kasanın çiftiyle büyük
+  kayıp, küçük kayıpta hiçbir şey, kasanın Karesinde HouseStrong + büyük kayıp, 4 ante sınırı); PlayMode `HandFanfarePlayTests` (her el
+  sahnede, hareket işaretleri, büyük kayıpta kenar kasadan sonra, sarsıntı kapalıyken ekran hiç kımıldamaz ama kenar titrer). [Explicit]
+  `Demo311Shots` → `Screenshots/demo311/{en,tr}`.
+- Sonuç: EditMode 1172 (1167 geçti, 5 Explicit); PlayMode 13 grup tek tek (HellPokerScene 10, SalonRegression 5, RunJourney 2, LuciferJourney 1,
+  JesterJourney 1, CheatJourney 7, BackdropMotion 2, ChapterJourney 5, MenuGrid 1, HoverTip 3, HowToPlay 2, TableLayout 8, HandFanfare 12);
+  FullRunTests 8 + kaos tek tek geçti. Build `Builds/HellPoker-Demo-3.1.1-win64.zip` (Success); kayıtlar yedeklendi, 3 tur (çıkış 0, hata 0,
+  19 FPS satırı, panel görünür), yedek geri kondu. Etiket `v3.1.1-demo`; push yok (`git push --tags`).
+
+### Varsayılanla tamamlanan (prompt'un kesik satırları)
+- İki çiftin hareketi: çiftler ayrı ayrı (yüksek önce). Çift / yüksek kart: çift bir kez vurur, coin uçar.
+- Büyük kaybın ölçüsü: 4 ante (coin sesindeki "büyük" ölçüsüyle aynı).
+- Sarsıntı kapalıyken: büyük kaybın kırmızı kenarı yine titrer (flaş değil), sarsıntı ve üçlünün vuruşu yok.
