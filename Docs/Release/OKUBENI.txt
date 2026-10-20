@@ -51,8 +51,9 @@ başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne oldu
   - Yabancı (kukuletalı): yardım eder, dolandırır ya da cehennemin kendisidir; iki-üç seçenek, bazıları zara bağlı. Dolandırıcının
     sözlerinde küçük bir ipucu vardır (Kâhin tuzağı açıkça görür, Çağırıcı 5 coin'e iblisine baktırır).
   - Bilinmeyen (?): içinde ne olduğu girince belli olur.
-  - Kara Pazar (terazi): altı satıcıdan biri (kaçakçı, rehinci, kemik tüccarı, simyacı, kumarbaz, terzi), her birinin kendi malı.
-    Her pazarda bir kez pazarlık, bir kez vitrin yenileme. Hazine: bedava coin.
+  - Kara Pazar (terazi): altı satıcıdan biri (kaçakçı, rehinci, kemik tüccarı, simyacı, kumarbaz, terzi), her birinin kendi tezgâhı.
+    Mallar tezgâhta kart olarak durur (fiyatı kartın altında; alınan kart SATILDI diye yerinde kalır), hizmetler altındaki küçük
+    karolarda (üzerine gelince ne yaptığı yazar). Her pazarda bir kez pazarlık, bir kez vitrin yenileme. Hazine: bedava coin.
   - Bir yolda iki pazar ya da iki kamp arka arkaya gelmez: aralarında en az iki kat vardır (bir yolda en çok iki pazar).
   - Kamp (ateş; bölümün ortasında ve son katta): bir şey yap — DİNLEN (cezan düşer, şeytanın barı biraz kısalır), RUHUNU BİLE (sınıf
     yükseltmesi, bar uzar), TÖREN (ilk hileyi boz ya da bir laneti sustur) ya da DÖV (bir emanetin lütfu artar).
@@ -64,7 +65,8 @@ SINIF EMANETLERİ: her sınıfın üç emaneti var (yaygın, nadir, efsanevi); s
 olarak — ilk bölümde sık, sonra seyrek. Takılıyken her biri sınıfının ana gücünü bir adım büyütür (çantadayken etkisizdir); kampta
 DÖVÜLÜRSE bir adım daha. Sınıf zayıf başlar, gücü yolda büyür: haritanın sağında "ÖNSEZİ 2/4" gibi yazar. Sınıf kartının ve masadaki
 sınıf rozetinin üzerine gelince sınıfın bütün kuralları yazar.
-Şeytanı yenince ganimetinde onun iki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin).
+Şeytanı yenince (Mammon, Belial) ganimeti kart olarak dağıtılır: onun iki emaneti, bir SINIF YÜKSELTMESİ ve 30 coin; birini seç.
+YENİLE (bir kez) emanet kartlarını aynı nadirlikten başka emanetlerle değiştirir.
 Yükseltmeler sınıfını kalıcı olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
 
 KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür (Orta ve üstünde daha hızlı), kazanç en çok ×3 öder.
@@ -112,7 +114,7 @@ Rozetin yanındaki noktalar gücün seviyesi (0-3); üzerine gelince gücün şu
 
 Şeytanlar hile de yapar: portrenin üstünde bir sonraki hilesi duyurulur (niyet), hile kartlarda görünür vurur.
 
-Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR: 10 kısa, resimli sayfa (oklar ya da Q / E ile gezilir; sonuncusu
+Kurallar oyunun içinde: Ana menü → HOW TO PLAY / NASIL OYNANIR: 12 kısa, resimli sayfa (oklar ya da Q / E ile gezilir; sonuncusu
 el tablosu).
 Windows'un dili Türkçeyse oyun Türkçe açılır. Dili ana menüden AYARLAR ▸ DİL sekmesinde değiştirirsin (oklar ve Enter ya da tıklama).
 Poker bilmiyorsan dert etme:

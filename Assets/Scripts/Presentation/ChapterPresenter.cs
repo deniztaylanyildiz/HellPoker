@@ -1003,7 +1003,12 @@ namespace HellPoker.Presentation
             if (vendor == MarketVendor.GamblersStall && market.Box != null)
                 text += "\n" + string.Format(UiText.MarketBoxBoughtFormat, UiText.RarityName(market.Box.Value));
             if (_marketLine != null) text += "\n" + _marketLine;
-            if (bought != null) text += "\n" + string.Format(UiText.MarketBoughtFormat, bought);
+            if (bought != null)
+            {
+                // "Bought: X." — what the class's power is now (a class relic) on a line of its own after it.
+                int cut = bought.IndexOf('\n');
+                text += "\n" + string.Format(UiText.MarketBoughtFormat, cut < 0 ? bought : bought.Substring(0, cut)) + (cut < 0 ? "" : bought.Substring(cut));
+            }
             _marketLine = null;
 
             if (_marketView != null && _marketPick != null)

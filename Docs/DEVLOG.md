@@ -4398,3 +4398,26 @@ eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yed
 - Uçuş hedefleri sahnenin kendi kesesi ve "EMANETLER" yazısı (sahne haritanın üstünü kapatıyor).
 - Satıcı portresi 48'lik tasarımın 96'da yeniden çizimi (yeni tasarım değil).
 
+## 2026-10-20 — Demo 3.5 (E): How to Play, belgeler, build, etiket
+
+### Yapılanlar
+- **How to Play** 12 sayfa: 10. sayfa GANİMET (`UiText.HowTo`: dağıtım, iki emanet / yükseltme / coin, YENİLE, çanta dolu, Lilith'in
+  ganimeti yok); pazar sayfasının ikinci satırı yeni tezgâhı anlatır. Resimler yeniden çekildi (`HowToShots`: pazar kırpması Kemik
+  Tüccarı'nın kartları + "+40 yıl", ganimet kırpması alt başlık + ilk kartlar; `10_difficulty` → `11_difficulty`).
+- **Pazar düzeltmesi:** "Alındı: X." satırına sınıf gücü eklenince çift nokta çıkıyordu ("...taşır.."); güç satırı artık ayrı satırda
+  (eski panelde de).
+- `-fpstour` pazarı da gezer (`FpsTour.MarketLeg`: Kemik Tüccarı, bir emanet alınır; "Hell Poker market: ..." satırı, `-tableshots` ile
+  `tour/market.png`); kamp kaydı `NodeSave` ile ortak.
+- Belgeler: CHANGELOG (Demo 3.5), OKUBENI (pazar, ganimet, 12 sayfa), CLAUDE.md (Demo 3.5 paragrafı, build adı). bundleVersion **3.5.0-demo**.
+- Testler: EditMode 1195 geçti (LanguageTests dahil); PlayMode tek tek: BackdropMotion / HandFanfare / Scene / HowToPlay / MenuGrid /
+  RelicCard (31), TableLayout (11), ChapterJourney / HoverTip / BossLoot / Market / DevJump (18), `FullRunTests.Thief_Hard_English`.
+- Ekran görüntüleri: `Screenshots/demo35/after/` (önceki listeyle aynı + ganimet animasyonunun 12 karesi; 1920×1080 ve 2560×1440, iki
+  dil; ayrıca 1080p İngilizce pazar seçimi ve satın alma anı).
+- Build: `Builds/HellPoker-Demo-3.5-win64.zip` (39 MB). Kayıtlar yedeklendi, üç duman turu (1920×1080; 2560×1440 `-tableshots`;
+  1280×720 `-difficulty=Ironman`): hata yok, ganimet ve pazar sahneleri açık, her ekran ~60 FPS (menü ilk karede bir takılma); kayıtlar
+  geri yüklendi.
+
+### Açık sorular (kullanıcıya)
+- YENİLE kaldı (simülasyonda fark yok; bot hep yükseltmeyi seçtiği için hiç kullanmadı). Bot emaneti seçseydi Orta'da +1.4 puan.
+- Push buradan yapılamıyor (kimlik bilgisi yok): `git push origin main --tags` kullanıcıda.
+

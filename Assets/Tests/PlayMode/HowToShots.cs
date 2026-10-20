@@ -39,8 +39,9 @@ namespace HellPoker.PlayMode.Tests
             [5] = new RectInt(384, 0, 256, 144),    // the cheat announced over the demon, his gauge
             [6] = new RectInt(0, 160, 256, 144),    // Demo 3.2: the player's panel bottom left — the class's portrait, its level, its passive, its relics
             [7] = new RectInt(0, 206, 256, 144),    // the relics on the panel, one hovered (its box opens to the right): its gift and its curse
-            [8] = new RectInt(188, 100, 256, 144),  // a market's seller and his wares
-            [9] = new RectInt(192, 212, 256, 144),  // Demo 3.4: the difficulty row under the class cards, its words over it
+            [8] = new RectInt(216, 104, 256, 144),  // Demo 3.5: the bone merchant's stall — two cards, their prices, his years under them
+            [9] = new RectInt(184, 30, 256, 144),   // Demo 3.5: the spoils — "Mammon has fallen", the first cards dealt
+            [10] = new RectInt(192, 212, 256, 144), // Demo 3.4: the difficulty row under the class cards, its words over it
         };
 
         private static string LangCode => HellPoker.Presentation.Ui.Lang.Current == Language.Turkish ? "tr" : "en";
@@ -274,13 +275,19 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(0.4f);
             yield return Picture(8);
 
-            // 10 (Demo 3.4): the class choice's difficulty row (Medium), its words open.
+            // 10 (Demo 3.5): Mammon's spoils, the cards dealt.
+            yield return Load(language, BossLootPlayTests.Spoils(1));
+            Object.FindFirstObjectByType<Presentation.Views.BossLootView>().Skip();
+            yield return null;
+            yield return Picture(9);
+
+            // 11 (Demo 3.4): the class choice's difficulty row (Medium), its words open.
             yield return Load(language);
             HellPokerScreenshots.Press("NewGameButton");
             yield return new WaitForSeconds(0.8f);
             Object.FindFirstObjectByType<Presentation.Views.SinnerSelectView>().PointAtDifficulty();
             yield return null;
-            yield return Picture(9);
+            yield return Picture(10);
         }
 
         /// <summary>The screen at its own pixels, cropped for <paramref name="page"/>; the full frame beside the screenshots.</summary>

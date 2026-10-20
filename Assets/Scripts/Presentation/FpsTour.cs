@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
+using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace HellPoker.Presentation
     /// Measures the frame rate on every screen with moving backdrops, in the real player: started with the command line
     /// argument <c>-fpstour</c> (any build: it is also the release build's smoke test). It walks the game through its own
     /// buttons — the menu and its settings, a run crossing from Mammon's spoils into Belial's chapter, a floor's table, then each
-    /// demon's table and Lucifer's (runs placed in the save and picked up with CONTINUE) — measures a few seconds on each, writes the
+    /// demon's table and Lucifer's, then a black market (runs placed in the save and picked up with CONTINUE) — measures a few seconds on each, writes the
     /// results to the log ("Hell Poker FPS ...") and quits. Not part of normal play; it writes over the player's saved run.
     /// </summary>
     public sealed class FpsTour : MonoBehaviour
@@ -110,7 +111,38 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>A save standing at the first chapter's nearest camp, its panel waiting.</summary>
-        private static ChapterSave CampSave(Core.Sinners.SinnerClass cls, Difficulty difficulty)
+        private static ChapterSave CampSave(Core.Sinners.SinnerClass cls, Difficulty difficulty) => NodeSave(cls, difficulty, NodeKind.PurgatoryFire, "fire");
+
+        /// <summary>Demo 3.5: the black market's scene — the bone merchant's stall measured, a relic bought (its moment plays), the way out.</summary>
+        private IEnumerator MarketLeg()
+        {
+            ChapterSave save = NodeSave(Core.Sinners.SinnerRoster.Peasant, TourDifficulty, NodeKind.BlackMarket, "market");
+            save.Vendor = (int)MarketVendor.BoneMerchant;
+            _chapters.ForgetForTour(save);
+            Press("ContinueButton");
+            yield return new WaitForSecondsRealtime(Settle);
+            yield return Measure("p2 market");
+            var market = FindFirstObjectByType<MarketView>();
+            int places = market?.Scene?.Slots.Count ?? 0;
+            int buy = -1;
+            for (int i = 0; i < places && buy < 0; i++)
+                if (market.Scene.Slots[i].Kind == MarketSlotKind.Stall && market.Scene.Slots[i].Enabled) buy = i;
+            int held = _chapters.Run?.Effects.AllHeld.Count() ?? 0;
+            if (buy >= 0) Press("PanelOption" + buy);
+            yield return null;
+            bool moment = market != null && market.IsAnimating;
+            yield return new WaitForSecondsRealtime(Settle);
+            Debug.Log($"Hell Poker market: scene {market != null && market.IsOpen}, vendor {market?.Scene?.VendorId}, places {places}, " +
+                      $"moment {moment}, bought {(_chapters.Run?.Effects.AllHeld.Count() ?? 0) - held}, purse {_chapters.Run?.Purse.Coins}");
+            if (TableShots) yield return Shot("market");
+            if (market?.Scene != null) Press("PanelOption" + (market.Scene.Slots.Count - 1));   // LEAVE
+            yield return new WaitForSecondsRealtime(0.6f);
+            Press("MapMenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+        }
+
+        /// <summary>A save standing at the first chapter's nearest node of <paramref name="kind"/>, its panel waiting.</summary>
+        private static ChapterSave NodeSave(Core.Sinners.SinnerClass cls, Difficulty difficulty, NodeKind kind, string pending)
         {
             ChapterJourney journey = ChapterJourney.Begin(cls, 11, difficulty);
             ChapterMap map = journey.Run.Map;
@@ -118,14 +150,14 @@ namespace HellPoker.Presentation
             System.Collections.Generic.List<MapNode> found = null;
             while (paths.Count > 0 && found == null)
             {
-                found = paths.FirstOrDefault(p => p.Last().Kind == NodeKind.PurgatoryFire);
+                found = paths.FirstOrDefault(p => p.Last().Kind == kind);
                 if (found != null) break;
                 paths = paths.SelectMany(p => map.NextFrom(p.Last()).Select(n => new System.Collections.Generic.List<MapNode>(p) { n })).ToList();
             }
             ChapterSave save = journey.Capture();
             save.Trail = found?.Select(n => n.Lane).ToList() ?? new System.Collections.Generic.List<int>();
             save.NodeDone = false;
-            save.Pending = "fire";
+            save.Pending = pending;
             save.Coins = 300;
             return save;
         }
@@ -294,6 +326,7 @@ namespace HellPoker.Presentation
             // A saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE), then every demon's table.
             yield return ChapterLeg();
             yield return HallLeg();
+            yield return MarketLeg();
             if (TourDifficulty == Difficulty.Ironman) yield return IronmanLeg();
 
             Debug.Log(_report.ToString());

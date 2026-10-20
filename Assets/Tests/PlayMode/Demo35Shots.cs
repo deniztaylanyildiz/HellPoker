@@ -78,6 +78,31 @@ namespace HellPoker.PlayMode.Tests
                 yield return Load(Full(market));
                 yield return HellPokerScreenshots.Shot($"{stage}_market_{vendor.ToString().ToLowerInvariant()}_{Tag}");
             }
+            if (stage == "after")
+            {
+                // The scene's own steps: the pawnshop's relics to sell (a pick), a purchase's moment half way.
+                ChapterSave pawn = AtNode(SinnerRoster.Find(Jester.ClassId), 11, NodeKind.BlackMarket, "market");
+                pawn.Vendor = (int)MarketVendor.Pawnshop;
+                yield return Load(Full(pawn));
+                var market = Object.FindFirstObjectByType<Presentation.Views.MarketView>();
+                int sell = Enumerable.Range(0, market.Scene.Slots.Count).First(i => market.Scene.Slots[i].Service == Presentation.Abstractions.MarketService.Sell &&
+                                                                                   market.Scene.Slots[i].Kind == Presentation.Abstractions.MarketSlotKind.Service);
+                HellPokerScreenshots.Press("PanelOption" + sell);
+                yield return null;
+                yield return HellPokerScreenshots.Shot($"after_market_pick_{Tag}");
+
+                ChapterSave buy = AtNode(SinnerRoster.Find(Jester.ClassId), 11, NodeKind.BlackMarket, "market");
+                buy.Vendor = (int)MarketVendor.Smuggler;
+                yield return Load(buy);
+                market = Object.FindFirstObjectByType<Presentation.Views.MarketView>();
+                market.ManualClock = true;
+                HellPokerScreenshots.Press("PanelOption0");
+                market.Advance(0.3f);
+                yield return null;
+                yield return HellPokerScreenshots.Shot($"after_market_buying_{Tag}");
+                market.ManualClock = false;
+                market.Skip();
+            }
 
             yield return Load(Full(AtNode(SinnerRoster.King, 11, NodeKind.Treasure, "treasure")));
             yield return HellPokerScreenshots.Shot($"{stage}_treasure_{Tag}");

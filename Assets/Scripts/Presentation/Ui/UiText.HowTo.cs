@@ -4,18 +4,18 @@ using HellPoker.Core.Relics;
 namespace HellPoker.Presentation.Ui
 {
     /// <summary>
-    /// Demo 2.2's How to Play: ten short pages (Demo 3.4: eleven, the difficulty's before the hands), each a picture from the game (Art/HowTo/&lt;page&gt;_&lt;lang&gt;.png, made by the PlayMode
+    /// Demo 2.2's How to Play: ten short pages (Demo 3.4: eleven, the difficulty's before the hands; Demo 3.5: twelve, the spoils' after the markets), each a picture from the game (Art/HowTo/&lt;page&gt;_&lt;lang&gt;.png, made by the PlayMode
     /// HowToShots) beside at most five short lines; the tenth is the hands table.
     /// </summary>
     internal static partial class UiText
     {
         /// <summary>How many pages the game's How to Play has (the last: the hands table).</summary>
-        public const int HowToPages = 11;
+        public const int HowToPages = 12;
 
         /// <summary>The picture's file name (without the language): "01_goal" ...</summary>
         public static string HowToImage(int page)
         {
-            string[] names = { "goal", "map", "floor", "hand", "boss", "cheats", "classes", "relics", "markets", "difficulty", "hands" };
+            string[] names = { "goal", "map", "floor", "hand", "boss", "cheats", "classes", "relics", "markets", "spoils", "difficulty", "hands" };
             return $"{page + 1:00}_{names[page]}";
         }
 
@@ -32,7 +32,8 @@ namespace HellPoker.Presentation.Ui
                 case 6: return L("SINNERS AND POWERS", "GÜNAHKÂRLAR VE GÜÇLER");
                 case 7: return L("RELICS AND CAMPS", "EMANETLER VE KAMP");
                 case 8: return L("MARKETS AND STRANGERS", "PAZARLAR VE OLAYLAR");
-                case 9: return L("DIFFICULTY AND SAVING", "ZORLUK VE KAYIT");
+                case 9: return L("THE SPOILS", "GANİMET");
+                case 10: return L("DIFFICULTY AND SAVING", "ZORLUK VE KAYIT");
                 default: return L("THE HANDS", "ELLER");
             }
         }
@@ -121,12 +122,21 @@ namespace HellPoker.Presentation.Ui
                     return new[]
                     {
                         L("Six kinds of sellers keep the markets, each once a chapter.", "Pazarları altı çeşit satıcı tutar, her biri bölümde bir kez."),
-                        L("Haggle, or pay to refresh the stall.", "Pazarlık et ya da tezgâhı yenilemek için öde."),
+                        L("Buy a card off the stall; services are the tiles under it.", "Tezgâhtan bir kart al; hizmetler altındaki karolar."),
                         L("Strangers on the map: some need help, some swindle.", "Haritada yabancılar: kimi yardım ister, kimi dolandırır."),
                         L("A swindler drops a hint; the Oracle sees the trap plainly.", "Dolandırıcı bir ipucu bırakır; Kâhin tuzağı açıkça görür."),
                         L("Each stranger comes once a run.", "Her yabancı koşuda bir kez gelir.")
                     };
                 case 9:
+                    return new[]
+                    {
+                        L("Beat Mammon or Belial: his spoils are dealt as cards.", "Mammon'u ya da Belial'i yen: ganimeti kart olarak dağıtılır."),
+                        L("Two of his relics, an upgrade or the coins: take one.", "İki emaneti, bir yükseltme ya da coin: birini al."),
+                        L("REROLL once: the relic cards turn to others of their rarity.", "YENİLE bir kez: emanet kartları aynı nadirlikten başkalarına döner."),
+                        L("The bag full: choose which relic stays behind.", "Çanta doluysa: hangi emanetin kalacağını seç."),
+                        L("Lilith leaves no spoils: Lucifer calls at once.", "Lilith ganimet bırakmaz: Lucifer hemen çağırır.")
+                    };
+                case 10:
                     return new[]
                     {
                         L("Choose the level under the class cards: Easy, Medium, Hard, Ironman.", "Seviyeyi sınıf kartlarının altında seç: Kolay, Orta, Zor, Ironman."),

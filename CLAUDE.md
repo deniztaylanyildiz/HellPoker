@@ -43,6 +43,32 @@ Development build `-devjumpshots`: liste ve Belial masası ekran görüntüsü (
 şey gerekmez (partial metotlar derleyiciyle düşer). Testleri (`Tests/EditMode/DevJumpShortcutTests.cs`, `Tests/PlayMode/DevJumpShortcutPlayTests.cs`)
 kısayolu yansımayla bulur: dosya gidince derleme bozulmaz, kendiliğinden atlanırlar (istersen onları da sil). 2026-10-20'de denendi (iki kez; sınıf / zorluk satırlarıyla da): dosya + satır kaldırıldı, derlendi, testler geçti, F9'unkiler atlandı, geri kondu. `DevJumpShortcutTests.EveryClass_AtEveryDifficulty_...`: 6 sınıf × 4 zorluk, her biri bir hedefe atlar, kayıt / rekor değişmez.
 
+**Demo 3.5** (etiket `v3.5-demo`, bundleVersion **3.5.0-demo**; DEVLOG 2026-10-20 A–E): **emanet görselleri, Kara Pazar ve ganimet** —
+oyunun kuralları, fiyatları, teklif sayıları ve dengesi aynı (tek istisna YENİLE). **Emanet resmi** `Tools/ArtGen/pixel_relic_art.py`
+(`generate_art.py relics`): `pixel_relics.icon(id, img)` tuvalden bağımsız, `Big` tuval 16→32 (ışık, dış çizgi, nadirlik halesi, şeytan /
+sınıf işareti) → `Ui/relic_art.png` (`RelicRoster.IconOrder`), efsanevilere `Ui/RelicGlint/<id>.png` (6 kare), `Screenshots/demo35/relic_sheet.png`;
+`UiArt.RelicArt / RelicGlint / CardCoins / CardUpgrade / LootSigil / LootFallen`. **Ortak kart** `Views/RelicCardView` (128×200; küçük 136×24;
+hover 2 px, seçili kor çerçeve, Unavailable soluk, Taken "SATILDI" damgası, `SetBack / SetShade / SetSqueeze / MoveTo`) + veri
+`Abstractions/RelicCard.cs` (`RelicCardData`, `RelicCardKind`, `RelicCardState`), kurucu `RelicCards` (Relic / Small / Upgrade / Coins / Box),
+metinler `UiText.Cards.cs`; panelde `PanelOption.Card`, `PanelCard.Showcase` (hazine, maç sonu, bekçi emaneti; bekçinin emaneti yer varsa
+kendiliğinden, çanta doluysa kart + coin / AL → `ShowWardenSwap`). **Ganimet sahnesi** `Views/BossLootView` (Canvas 47; `IBossLootView`,
+`BossLootState`, `LootFlight`; salon Bayer ¾ karartma, `Ui/loot_fallen_<boss>` `pixel_loot.py`; kartlar sırayla gelir, döner, kıvılcım;
+seçilen ortaya, ödül haritanın yan paneline uçar; `ManualClock / Advance` ekran görüntüleri için), sunucu `ChapterPresenter` (`loot`
+parametresi; yoksa eski panel), **YENİLE** `ChapterRun.RerollLoot / CanRerollLoot / LootRerolled` (kendi zarı `RerollStream` 14; aynı
+nadirlik, şeytanın emaneti → öbür şeytanınki; kayıt `loot.rerolled`; simülasyon `HELLPOKER_LOOT_REROLL`). Lilith'in ganimeti yok.
+**Kara Pazar sahnesi** `Views/MarketView` (Canvas 47; `IMarketView`, `MarketScene` + `Grid / Move`, `MarketSlot` Stall / Pick / Service /
+Leave, `MarketService` = `Ui/market_services.png` sırası, `MarketFeel` / `MarketMoment` Bought / Paid / Refused / Rerolled): tezgâh
+`Backgrounds/market_<satıcı>` (`pixel_market.py`, `generate_art.py market`: iki fener + yer eşyası, parçacıklar, `MARKET_TEXT` =
+`BackdropMotionTests.MarketText`), portre `Market/<satıcı>.png` 96×96 (`pixel_strangers` tasarımı `Twice` tuvalinde), kese / başlık /
+"EMANETLER n/10" üstte, balon yazı kadar uzar, kartlar sağda (fiyat ayakta, `Under` altta: kemik yılları, kutunun fiyatı), karolar 128×24
+üçer, AYRIL altta; at / sat tek karonun arkasında (`_marketPick`), pota / lanet silme seçim görünümü. Sunucu `ShowMarket` tek giriş listesi
+(`MarketEntry`: panel cevabı + sahne yeri; `SceneOnly`, `Group`) → `PresentMarket`; sahnede `Panel` = `MarketSlot.AsOption`, düğmeler
+`PanelOption{i}`, `IsMarketOpen`, `PanelUp`; alınamayan yer `Answer`'da sallanır + neden (`Refusal`). How to Play 12 sayfa (10: GANİMET).
+`-fpstour` ganimeti ve pazarı ölçer ("Hell Poker spoils / market" satırları). F9: sınıf (sol / sağ) ve zorluk (yukarı / aşağı) satırları,
+`JumpTraceless(boss, class, difficulty)`, ganimete atlama (5, 6; `DevJumpLoot0/1`). Testler: `RelicArtTests`, `RelicCardFlowTests`,
+`LootRerollTests`, `BossLootTests`, `MarketSceneTests`, PlayMode `RelicCardTests`, `BossLootPlayTests`, `MarketScenePlayTests`,
+`DevJumpShortcutPlayTests`; [Explicit] `Demo35Shots` (`HELLPOKER_STAGE=before|after`, `Screenshots/demo35/`).
+
 **Demo 3.4** (etiket `v3.4-demo`, bundleVersion **3.4.0-demo**; DEVLOG 2026-10-20, PHASE2_CHAPTERS "Zorluk"): **zorluk seviyeleri** (Cehennem
 Daireleri'nin yerine; `Core/Chapters/Difficulty.cs`: `Difficulty` Easy / Medium (varsayılan) / Hard / Ironman, bütün sayılar `DifficultyRules`'ta,
 simülasyon `ChapterSimulation.Difficulties`, düğme `HELLPOKER_DIFF`). Her seviye öncekini taşır: 1 kat antesi her 3 / 2 / 1 elde
@@ -106,7 +132,7 @@ masalarında her el taze deste, uzun kat / harita müzikleri, hover kutuları en
 **Tek oyun (1.4.0):** ana menünün YENİ OYUN / DEVAM ET düğmeleri Phase 2 koşusunu açar (sınıf → harita); "PHASE 2" düğmeleri yok.
 Demo 3.4.1'den beri **Boss Simülatörü yok** (yukarıdaki **Demo 3.4.1**; geçici geliştirici kısayolu: **Geçici: F9**). Rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play `HowToPlayView`'in resimli sayfaları. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.4.1-win64.zip` (bundleVersion **3.4.1-demo**: menüde "Demo 3.4.1" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.5-win64.zip` (bundleVersion **3.5.0-demo**: menüde "Demo 3.5" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol altında (Demo 3.3) HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya

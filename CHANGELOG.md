@@ -1,5 +1,26 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.5 (3.5.0-demo) — 2026-10-20 — Emanet görselleri, Kara Pazar ve ganimet
+
+### Yeni
+- **Emanet kartları:** her emanetin büyük bir resmi var (nadirliğine göre parıltı, efsanevilerde ara sıra ışıltı; şeytanın ve sınıfın
+  emanetlerinde küçük işaret). Bekçinin emaneti, hazine ve maç sonu aynı kartla gösterilir.
+- **Ganimet sahnesi** (Mammon ve Belial yenilince): şeytanın salonu kararır, tahtı yerde; kartlar sırayla gelip döner (efsanevide daha
+  çok kıvılcım). Birini seç: seçtiğin kart ortaya gelir, ödülü haritanın yan paneline uçar. **YENİLE** (bir kez): emanet kartları aynı
+  nadirlikten başka emanetlere döner (yükseltme ve coin kalır).
+- **Kara Pazar dükkânı:** her satıcının kendi tezgâhı (fenerler, raflar, satıcının büyük portresi ve sözleri). Mallar kart olarak
+  tezgâhta, fiyatları altında (Kemik Tüccarı'nda "+40 yıl" da); hizmetler küçük karolarda. Alınca coinler keseden uçar, emanet
+  "EMANETLER"e uçar, satıcı teşekkür eder; coin yetmezse kart sallanır ve satıcı nedenini söyler. Rehincide satma, kaçakçıda atma,
+  simyacıda pota ve lanet silme aynı ekranda taşınan emanetlerin küçük kartlarıyla seçilir.
+- How to Play'e GANİMET sayfası (12 sayfa); pazar ve emanet resimleri yenilendi.
+
+### Değişmeyen
+- Fiyatlar, teklif sayıları, hizmetler, şeytanların oyunu ve denge aynı (tek istisna: ganimetteki YENİLE; simülasyonda kurtuluş
+  oranları değişmedi).
+
+### Geliştirici
+- F9 kısayolunda sınıf (sol / sağ) ve zorluk (yukarı / aşağı) seçimi; ganimet sahnelerine atlama (5, 6).
+
 ## Demo 3.4.1 (3.4.1-demo) — 2026-10-20 — Boss Simülatörü kalktı, F9 geçici test kısayolu
 
 ### Değişen
