@@ -46,6 +46,8 @@ namespace HellPoker.Presentation
             _view.SetKit(KitDisplay.Hidden);
             _view.SetCarriedRule(null, null);
             _view.SetEnraged(false);
+            _gaugesShown = null;
+            _view.SetSeatGauges(SeatGauges.Hidden);
         }
 
         private void SeatKit(IHellPokerGame game)
@@ -671,6 +673,66 @@ namespace HellPoker.Presentation
             SoulWarningSound();
         }
 
+        /// <summary>The gauges as last shown (sent again only when they change).</summary>
+        private string _gaugesShown;
+
+        /// <summary>
+        /// Demo 3.5.1: the gauges under the demon's name — a floor's imp: his purse (and its bar) and the ante with a dot for every hand
+        /// before it grows (or the free hands); a demon's table: the fixed ante under his bar, his rule, a carried rule and his rage as icons.
+        /// </summary>
+        private void ShowSeatGauges()
+        {
+            SeatGauges gauges = SeatGaugesNow();
+            if (gauges.Key == _gaugesShown) return;
+            _gaugesShown = gauges.Key;
+            _view.SetSeatGauges(gauges);
+        }
+
+        private SeatGauges SeatGaugesNow()
+        {
+            if (_seat == null) return SeatGauges.Hidden;
+            if (CoinMode)
+            {
+                FloorTable floor = _seat.Floor;
+                if (floor.HousePurse == null) return SeatGauges.Hidden;   // the ghost's one hand keeps its line
+                string purseTip = floor.IsWarden ? UiText.GaugeWardenPurseTip : UiText.GaugePurseTip;
+                if (floor.FreeHandsLeft > 0)
+                    return new SeatGauges(true, floor.HousePurse.Coins, floor.HouseStart, purseTip, string.Format(UiText.GaugeNoAnteFormat, floor.FreeHandsLeft),
+                        0, string.Format(UiText.GaugeNoAnteTipFormat, floor.FreeHandsLeft), null);
+                int next = floor.HandsToNextAnte;
+                int grown = floor.AnteNow + _seat.Run.Rules.AnteStep;
+                string anteTip = next <= 1 ? string.Format(UiText.GaugeAnteNextTipFormat, next, grown) : string.Format(UiText.GaugeAnteTipFormat, next, grown);
+                return new SeatGauges(true, floor.HousePurse.Coins, floor.HouseStart, purseTip, string.Format(UiText.GaugeAnteFormat, floor.AnteNow),
+                    next, anteTip, null);
+            }
+            if (!BarMode) return SeatGauges.Hidden;
+            var icons = new List<SeatIcon>();
+            DemonRule rule = _kit?.Rule;
+            if (rule != null)
+            {
+                string line = UiText.DemonRuleLine(rule);
+                if (!string.IsNullOrEmpty(line)) icons.Add(new SeatIcon(RuleIcon(rule.Id), line));
+            }
+            string carried = _kit?.Carried?.Id;
+            if (carried != null)
+                icons.Add(new SeatIcon(RuleIcon(carried), string.Format(UiText.CarriedRuleFormat, UiText.CarriedRuleName(carried), UiText.CarriedRuleText(carried))));
+            if (rule != null && rule.Enraged)
+                icons.Add(new SeatIcon(SeatIcon.Rage, string.Format(UiText.RageHintFormat, DifficultyRules.RageStakePercent)));
+            return new SeatGauges(true, -1, 0, null, string.Format(UiText.GaugeAnteBarFormat, Shown(_game.UpcomingAnte)), 0, UiText.GaugeAnteFixedTip, icons);
+        }
+
+        /// <summary>A demon's rule's icon: the cheat icon of his own kind.</summary>
+        private static string RuleIcon(string ruleId)
+        {
+            switch (ruleId)
+            {
+                case "interest": return "tithe";
+                case "role_swap": return "serpent_swap";
+                case "temptation": return "thorn";
+                default: return "gaze";
+            }
+        }
+
         /// <summary>The beat between a hand's own change of the bar and Mammon's interest on it.</summary>
         private const float InterestPause = 0.5f;
 
@@ -679,7 +741,7 @@ namespace HellPoker.Presentation
             bool fall = _seat.CastDown != null;
             int played = Math.Max(1, _game.RoundNumber + (_game.Phase == GamePhase.Betting ? 1 : 0));
             string label = UiText.Upper(string.Format(UiText.BarLabelFormat, UiText.GenitiveOf(_dealerText)));
-            string hint = string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
+            string hint = UiText.BossBarExplain + "\n" + string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
                 fall ? UiText.BarMarkFall : UiText.BarMarkSoul) + "\n" + UiText.BarLeft(value, _seat.BarStart);
             DemonRule rule = _kit?.Rule;
             if (rule != null && rule.Enraged) hint += "\n" + string.Format(UiText.RageHintFormat, DifficultyRules.RageStakePercent);

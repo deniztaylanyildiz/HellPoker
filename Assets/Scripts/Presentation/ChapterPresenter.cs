@@ -1774,13 +1774,21 @@ namespace HellPoker.Presentation
             else if (arrival != null && arrival.LoanRepaid == 0) lines.Add(UiText.GateLoanFled);
             if (arrival != null && arrival.InsurerGone) lines.Add(UiText.GateInsurerGone);
             lines.Add(string.Format(UiText.GateTextFormat, boss, tribute, coins));
-            lines.Add(missing > 0 ? string.Format(UiText.GateShortFormat, missing)
-                : string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
+            // (Lilith's gate: what is left does not go on with the player — it is her Last Bribe, said below.)
+            if (missing > 0) lines.Add(string.Format(UiText.GateShortFormat, missing));
+            else if (!_run.Bribes) lines.Add(string.Format(UiText.GatePaidFormat, coins - _run.TributePaid(coins)));
             if (_run.YearsOwed > 0) lines.Add(UiText.GateOwed);
+            // Demo 3.5.1, Lilith's gate: what is left after the tribute goes to her, and her bar shrinks before the table.
+            int left = coins - _run.TributePaid(coins);
+            int bribe = _run.Bribes && left > 0 ? ChapterRun.BribePercentFor(left) : 0;
+            if (_run.Bribes && left > 0) lines.Add(string.Format(UiText.GateBribeFormat, left, bribe));
             lines.Add(string.Format(UiText.GateSentenceFormat, _journey.Sentence.Years + missing * rules.YearsPerMissingCoin));
             lines.Add(UiText.GateAfter);
+            int unbribed = _run.BarAfterGate(coins, bribe: false);
             ShowPanel(new PanelCard(rules.BossId, UiText.Dealer(rules.BossId).Name, UiText.GateTitle(rules.Number), string.Join("\n", lines),
-                new[] { new PanelOption(UiText.GatePay) }, bar: BarAt(after, after), barLabel: BarLabel()), new Action[] { SitWithTheDemon }, "gate");
+                new[] { new PanelOption(UiText.GatePay) }, bar: BarAt(after, bribe > 0 ? unbribed : after), barLabel: BarLabel(),
+                barBefore: bribe > 0 ? BarAt(unbribed, unbribed) : null), new Action[] { SitWithTheDemon }, "gate");
+            if (bribe > 0) _audio.PlaySfx(SfxIds.CoinLoss);
         }
 
         private void SitWithTheDemon()
@@ -1793,7 +1801,8 @@ namespace HellPoker.Presentation
                 KeepRecords();
             }
             Note($"chapter {_journey.Chapter} gate: tribute {_run.Tribute}, had {toll.CoinsBefore}, missing {toll.Missing} (+{toll.YearsForMissing} years)" +
-                 (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}, sentence {_journey.Sentence.Years}");
+                 (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}, sentence {_journey.Sentence.Years}" +
+                 (toll.BribeCoins > 0 ? $", the last bribe {toll.BribeCoins} coins (bar -{toll.BribePercent}%)" : ""));
             _bossGame = _run.OpenBossTable(_bossTable);
             Note($"{_run.Rules.BossId}'s table: bar {_run.BossBarStart} years, soul line {_bossGame.Rules.SoulThreshold}");
             SitAtBoss();

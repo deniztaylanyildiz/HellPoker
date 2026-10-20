@@ -873,8 +873,8 @@ namespace HellPoker.Presentation
             {
                 FloorTable floor = _seat.Floor;
                 if (floor.HousePurse == null) return string.Format(UiText.GambleSeatTitleFormat, floor.AnteNow);
-                if (floor.FreeHandsLeft > 0) return string.Format(UiText.FloorFreeSeatTitleFormat, floor.HousePurse.Coins, floor.FreeHandsLeft);
-                return string.Format(UiText.FloorSeatTitleFormat, floor.HousePurse.Coins, floor.AnteNow, floor.HandsToNextAnte);
+                // Demo 3.5.1: the imp's purse and the ante are gauges under the name (ShowSeatGauges), not a line.
+                return "";
             }
             // A demon's table: the health bar sits where this line was (the hand and the soul are in its hover).
             return "";
@@ -1845,6 +1845,7 @@ namespace HellPoker.Presentation
                 SettleChapterHand();
             }
             ShowSeatTitle();
+            ShowSeatGauges();
             // The result band lasts until the next hand is dealt (NEXT HAND brings the table back to betting).
             if (_game.Phase != GamePhase.RoundOver && !_game.IsGameOver) TakeBandDown();
             // A power switched on stays on through bets, turned cards and the draw prompt — it closes only when used, switched off,

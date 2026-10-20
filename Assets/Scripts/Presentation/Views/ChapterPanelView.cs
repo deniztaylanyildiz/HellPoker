@@ -118,8 +118,55 @@ namespace HellPoker.Presentation.Views
         /// <summary>Down to the 8 px grid (the cards' places in the panel).</summary>
         private static int Snap(int v) => v / 8 * 8;
 
+        /// <summary>Demo 3.5.1: the Last Bribe's moment (coins from the words to the bar, then the bar shrinks).</summary>
+        private string _bribeShownFor;
+        private Vector2 _bribeFrom, _bribeTo;
+        private float _bribeTime = -1f;
+        private readonly List<Image> _bribeCoins = new List<Image>();
+        private const int BribeCoinCount = 5;
+        private const float BribeCoinSeconds = 0.4f, BribeStagger = 0.07f;
+
+        /// <summary>True while the Last Bribe's coins fly (for tests).</summary>
+        public bool BribePlaying => _bribeTime >= 0f;
+
+        private void Update()
+        {
+            if (_bribeTime < 0f || Card == null) return;
+            _bribeTime += Time.unscaledDeltaTime * Mathf.Max(1f, AnimationClock.Speed);
+            RectTransform box = _box;
+            while (_bribeCoins.Count < BribeCoinCount)
+            {
+                Image coin = UiFactory.CreateImage("BribeCoin", box, Color.white);
+                coin.raycastTarget = false;
+                coin.sprite = UiArt.Sprite(UiArt.Coin);
+                coin.color = coin.sprite != null ? Color.white : Palette.Gold;
+                coin.gameObject.SetActive(false);
+                _bribeCoins.Add(coin);
+            }
+            for (int k = 0; k < _bribeCoins.Count; k++)
+            {
+                float u = (_bribeTime - k * BribeStagger) / BribeCoinSeconds;
+                bool on = u > 0f && u < 1f;
+                _bribeCoins[k].gameObject.SetActive(on);
+                if (!on) continue;
+                Vector2 at = Vector2.Lerp(_bribeFrom, _bribeTo, u) + new Vector2(0f, -Mathf.Sin(u * Mathf.PI) * 10f);
+                _bribeCoins[k].rectTransform.PlaceTL(Mathf.RoundToInt(at.x) - 6, Mathf.RoundToInt(at.y) - 6, 12, 12);
+            }
+            if (_bribeTime >= (BribeCoinCount - 1) * BribeStagger + BribeCoinSeconds) SkipBribe();
+        }
+
+        /// <summary>The Last Bribe's moment to its end: the coins gone, the bar shrunk.</summary>
+        public void SkipBribe()
+        {
+            if (_bribeTime < 0f) return;
+            _bribeTime = -1f;
+            foreach (Image coin in _bribeCoins) coin.gameObject.SetActive(false);
+            if (Card != null) _bar.Apply(Card.Bar, animate: true);
+        }
+
         public void Show(PanelCard card)
         {
+            if (_bribeTime >= 0f && Card != null && card != null && card.Text != Card.Text) SkipBribe();
             Card = card ?? throw new ArgumentNullException(nameof(card));
             _canvas.enabled = true;
             GetComponent<GraphicRaycaster>().enabled = true;
@@ -171,7 +218,18 @@ namespace HellPoker.Presentation.Views
                 ((RectTransform)_bar.transform).PlaceTL(left, textBottom + 14, 160, 6);
                 textBottom += 22;
             }
-            _bar.Apply(card.Bar, animate: false);
+            // Demo 3.5.1: Lilith's gate opens on her bar before the Last Bribe, the coins fly to it and it shrinks (once a panel).
+            bool bribe = bar && card.BarBefore != null && !card.BarBefore.IsHidden && (_bribeShownFor == null || _bribeShownFor != card.Text);
+            if (bribe)
+            {
+                _bribeShownFor = card.Text;
+                _bar.Apply(card.BarBefore, animate: false);
+                _bribeFrom = new Vector2(left + 8, textBottom - 18);
+                _bribeTo = new Vector2(left + 80, textBottom - 22 + 14);
+                _bribeTime = 0f;
+            }
+            else _bar.Apply(card.Bar, animate: false);
+            if (!bar || card.BarBefore == null) _bribeShownFor = null;
             int header = Math.Max(card.PortraitId != null ? 8 + Portrait + 4 : 0, textBottom);
             bool details = false;
             foreach (int i in buttons) details |= card.Options[i].Detail.Length > 0;

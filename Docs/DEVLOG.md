@@ -4421,3 +4421,40 @@ eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yed
 - YENİLE kaldı (simülasyonda fark yok; bot hep yükseltmeyi seçtiği için hiç kullanmadı). Bot emaneti seçseydi Orta'da +1.4 puan.
 - Push buradan yapılamıyor (kimlik bilgisi yok): `git push origin main --tags` kullanıcıda.
 
+## 2026-10-20 — Demo 3.5.1: şeytan bloğu daha anlaşılır, Son Rüşvet
+
+**İstek (kullanıcı):** iblis / bekçi masasında kese ve ante tek satır yerine görsel göstergeler; boss ve Lucifer'de ante + kural ikonları;
+Lilith'in kapısında kalan altın rüşvet olur, barı küçültür (tek denge değişikliği). AI ve kurallara dokunma.
+
+### Yapılanlar
+- **Göstergeler** `Views/SeatGaugesView` + `Abstractions/SeatGauges` (+ `SeatIcon`), `ITableView.SetSeatGauges`; presenter
+  `TablePresenter.ShowSeatGauges / SeatGaugesNow` (Kit.cs; anahtar değişince gönderir). Şeytan sütununda adın altında: KESE satırı (y 120:
+  `Ui/seat_gauges` sikke, "KESE 14", altın çubuk 36 px — kısalınca kaybedilen kısım kor parlar), ANTE satırı (y 136: fiş, "ANTE 4", her kalan el
+  bir nokta — azalınca söner, ante artınca yazı parlar; ante'siz eller "ANTE'SİZ: 2"); boss / Lucifer'de ANTE (bar yüzdesi, sabit: nokta yok) +
+  sağda 16 px ikonlar: kural (`tithe` / `serpent_swap` / `thorn` / `gaze`), taşınan kural, öfke (`Ui/seat_rage`). Hover'lar sola, `HoverTip`.
+  Diyalog kutusu 28 px aşağı (`DealerView.DialogTop` 156, `Height` 252); eski "Kesesi 14 · ante 4" satırı ve portrenin solundaki taşınan kural
+  ikonu kalktı (hayaletin tek eli satırını tutar). Kat masasında kazanç sikkeleri kese çubuğuna uçar. Can barı hover'ının başında
+  `UiText.BossBarExplain`. Metinler `UiText.SeatGauges.cs`, çizim `Tools/ArtGen/pixel_gauges.py` (`generate_art.py gauges`).
+- **Son Rüşvet** (Core): `ChapterRun.PayTribute` Lilith'in kapısında (`ChapterRules.BribeChapter` 3) haraçtan sonra kalan coin'in hepsini
+  alır, `Years`'ı `BribePercentFor` kadar küçültür (`BribeCoinsPerPercent` 5, `BribeMostPercent` 15), `GateToll.BribeCoins / BribePercent`,
+  `ChapterRun.BribeCoins` (kayıt `bribe.coins`); `BarAfterGate(coins, bribe)` paneli önceden söyler. Kayıt: rüşvet kapıda tek basışta
+  uygulanır, masanın kaydı barın başlangıcını tutar — iki kez olmaz. Altın Diş: Lilith `GateCoins`, Lucifer kese + `BribeCoins`. Kapı
+  paneli: "Kalan 85 coin Lilith'e rüşvet: barı %15 küçüldü." (Lilith'te "seninle devam eder" satırı yok), `PanelCard.BarBefore` → panel eski
+  barla açılır, 5 sikke bara uçar, bar küçülür (`ChapterPanelView.BribePlaying / SkipBribe`).
+- **Simülasyon** (PHASE2_CHAPTERS "Son Rüşvet"): Orta 27.8 → 28.0 (10 coin: +0.0, 5: +0.2, 2: +0.1) — hedef (+1..+4) tutmadı; oran 5'e
+  indirildi, tavan %15 bırakıldı (kullanıcının kararı). Rüşvetsiz sonuçlar önceki tabloyla birebir aynı.
+- Testler: EditMode `LastBribeTests` (oran ve tavan, kapıda küçülme, az coin, Mammon / Belial'de yok, Altın Diş, kayıtla bir kez),
+  `ChapterPresenterTests` (göstergeler, noktalar azalır / ante artınca döner, boss'ta sabit ante + kural ikonu); PlayMode
+  `TableLayoutTests.AssertTheGauges` (kat, bekçi, üç boss, Lucifer × iki dil: 8 px ızgara, sığma, çakışma yok, hover kapalı),
+  `LastBribePlayTests` (kapı iki dilde, an biter, masa öngörülen barla). EditMode 1209 geçti; TableLayout + LastBribe geçti.
+- Ekran görüntüleri `Screenshots/demo351/` (1920×1080, iki dil: iblis masası, Belial masası, Lilith'in kapısı).
+
+### Kararlar (varsayılanla)
+- Boss / Lucifer masasında ante büyümüyor (sabit bahis): ANTE göstergesi noktasız.
+- Taşınan kural ikonu portrenin solundan bloğa taşındı (iki kez görünmesin).
+- Kat masasında kazanç sikkeleri artık sayaca değil iblisin kese çubuğuna uçar (boss'ta bara uçtuğu gibi).
+- Kalan 1-4 coin de Lilith'e gider (%0); satır yine görünür.
+
+### Açık soru
+- Son Rüşvet'in tavanı: %15 ile Orta'da etki gürültü içinde. Daha belirgin olsun istenirse tavan yükseltilmeli.
+

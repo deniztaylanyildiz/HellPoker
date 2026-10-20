@@ -165,6 +165,12 @@ namespace HellPoker.Core.Chapters
 
         public const int Chapters = 3;
 
+        /// <summary>Demo 3.5.1, the Last Bribe (every difficulty alike): at this chapter's gate (Lilith's) every coin left after the tribute
+        /// goes to the demon, her bar one percent shorter for every <see cref="BribeCoinsPerPercent"/> coins, at most
+        /// <see cref="BribeMostPercent"/>. Settable for the simulation (HELLPOKER_BRIBE="coins,most").</summary>
+        public const int BribeChapter = 3;
+        public static int BribeCoinsPerPercent = 5, BribeMostPercent = 15;   // simulated 2026-10-20: 10 / 5 / 2 coins all within noise at Medium (PHASE2_CHAPTERS)
+
         /// <summary>The boss tables' payout percents (BossSimulation 2026-10-10, see PHASE2_CHAPTERS.md): Belial 16.5 hands / 20.5% damned,
         /// Lilith 23.1 / 22.1%. The losses are the sentence's: since Demo 2.1 a loss heals the bar by half of it
         /// (<see cref="BossTable.BarHealPercent"/>), so they are twice the bar's old percents (125 / 110 / 55 / 45).</summary>

@@ -51,10 +51,18 @@ namespace HellPoker.Core.Chapters
         public int YearsAfter { get; }
         public int CoinsLeft { get; }
 
+        /// <summary>Demo 3.5.1, Lilith's gate: the coins left after the tribute, given to her (the Last Bribe), and how much (percent) her
+        /// bar shrank for them; 0 elsewhere.</summary>
+        public int BribeCoins { get; }
+        public int BribePercent { get; }
+
         public bool PaidInFull => Missing == 0;
 
-        public GateToll(int coinsBefore, int paid, int missing, int yearsForMissing, int yearsOwed, int yearsAfter, int coinsLeft)
+        public GateToll(int coinsBefore, int paid, int missing, int yearsForMissing, int yearsOwed, int yearsAfter, int coinsLeft, int bribeCoins = 0,
+            int bribePercent = 0)
         {
+            BribeCoins = bribeCoins;
+            BribePercent = bribePercent;
             CoinsBefore = coinsBefore;
             Paid = paid;
             Missing = missing;
@@ -220,9 +228,11 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The demon's bar as his table will begin with <paramref name="coins"/> paid at the gate: the share, the tribute's missing
         /// coins, what is owed; then the fire (a rest shorter, a whetted soul longer) and the relics' percent.</summary>
-        public int BarAfterGate(int coins)
+        /// <param name="bribe">false: the bar before Lilith's Last Bribe (her gate's panel shows it shrink).</param>
+        public int BarAfterGate(int coins, bool bribe = true)
         {
             int bar = Years + TributeYears(coins) + YearsOwed;
+            if (Bribes && bribe) bar = Bribed(bar, BribePercentFor(coins - TributePaid(coins)));
             if (CampBarPercent != 0) bar = Math.Max(1, (int)((long)bar * (100 + CampBarPercent) / 100));
             int percent = Effects.CombinedRelics.BossBarPercent;
             return percent == 100 ? bar : Math.Max(1, bar * percent / 100);
@@ -820,8 +830,34 @@ namespace HellPoker.Core.Chapters
             int owed = YearsOwed;
             YearsOwed = 0;
             Purse.Add(-paid);
-            return new GateToll(before, paid, missing, yearsForMissing, owed, Years, Purse.Coins);
+            // Demo 3.5.1, the Last Bribe: at Lilith's gate every coin left goes to her and her bar shrinks before the table (once: the
+            // table's save keeps the bar it began with, so a reload never pays it again).
+            int bribe = 0, bribePercent = 0;
+            if (Bribes && Purse.Coins > 0)
+            {
+                bribe = Purse.Coins;
+                bribePercent = BribePercentFor(bribe);
+                Purse.Add(-bribe);
+                Years = Bribed(Years, bribePercent);
+                BribeCoins = bribe;
+            }
+            return new GateToll(before, paid, missing, yearsForMissing, owed, Years, Purse.Coins, bribe, bribePercent);
         }
+
+        /// <summary>Demo 3.5.1: the coins given to Lilith at her gate (Mammon's Gold Tooth at Lucifer's still counts them); 0 before.</summary>
+        public int BribeCoins { get; private set; }
+
+        public void RestoreBribe(int coins) => BribeCoins = Math.Max(0, coins);
+
+        /// <summary>This chapter's gate takes the Last Bribe (Lilith's: <see cref="ChapterRules.BribeChapter"/>).</summary>
+        public bool Bribes => Rules.Number == ChapterRules.BribeChapter;
+
+        /// <summary>How much (percent) <paramref name="coins"/> shrink Lilith's bar: one percent for every
+        /// <see cref="ChapterRules.BribeCoinsPerPercent"/> coins, at most <see cref="ChapterRules.BribeMostPercent"/>.</summary>
+        public static int BribePercentFor(int coins) =>
+            ChapterRules.BribeCoinsPerPercent <= 0 ? 0 : Math.Max(0, Math.Min(ChapterRules.BribeMostPercent, coins / ChapterRules.BribeCoinsPerPercent));
+
+        private static int Bribed(int bar, int percent) => percent <= 0 ? bar : Math.Max(1, (int)((long)bar * (100 - percent) / 100));
 
         /// <summary>The chapter is over (after its demon): a silenced curse speaks again, a desired relic is itself again.</summary>
         public void EndChapter()

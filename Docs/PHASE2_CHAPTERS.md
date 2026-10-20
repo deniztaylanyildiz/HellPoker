@@ -868,3 +868,34 @@ Kullanıcı aşağıdakileri onayladı; kodda olduğu gibi kalır (`DifficultyTe
 - Zorluk satırı kartların altında tek satır; kamp sınırı ortadaki kamplar için; pazar ×1.2 / ×1.4 bölümün kendi fiyat artışının üstüne
   biner; Ironman kaydı oyun kapanırken yazılmaz.
 
+## Son Rüşvet (Demo 3.5.1, 2026-10-20)
+
+Lilith'in kapısında haraçtan sonra kesede kalan coin'in hepsi Lilith'e gider, barı masa başlamadan küçülür: her `ChapterRules.BribeCoinsPerPercent`
+coin %1, en çok `ChapterRules.BribeMostPercent` (bütün zorluklarda aynı; simülasyon düğmesi `HELLPOKER_BRIBE="coin,tavan"`, "0,0" = eski kapı).
+Mammon'un Altın Dişi: Lilith'te kapıya getirilen coin (`GateCoins`), Lucifer'de kese + rüşvet (`ChapterRun.BribeCoins`, kayıtta `bribe.coins`).
+
+Simülasyon (`ChapterSimulation.Difficulties`, 500 koşu / sınıf × zorluk, aynı tohumlar), kurtulma %:
+
+| ayar | Kolay | Orta | Zor | Ironman | Lilith'in kapısında kalan coin (Orta) | ort. küçülme (Orta) |
+|---|---|---|---|---|---|---|
+| yok (0,0) | 33.0 | 27.8 | 11.4 | 4.8 | 45 | — |
+| 10 coin = %1, en çok %15 | 33.3 | 27.8 | 11.4 | 4.8 | 45 | %3.9 |
+| **5 coin = %1, en çok %15 (seçilen)** | 33.7 | 28.0 | 11.4 | 4.9 | 45 | %5.6 |
+| 2 coin = %1, en çok %15 | 33.8 | 27.9 | 11.6 | 4.8 | 45 | %7.0 |
+
+Sınıf × zorluk, önce (rüşvet yok) → sonra (5 coin = %1):
+
+| sınıf | Kolay önce → sonra | Orta | Zor | Ironman |
+|---|---|---|---|---|
+| Köylü | 29.8 → 32.2 | 27.8 → 28.0 | 10.8 → 10.2 | 5.2 → 5.2 |
+| Kâhin | 41.0 → 42.8 | 36.4 → 36.8 | 16.2 → 16.2 | 6.2 → 6.2 |
+| Kral | 32.2 → 31.6 | 24.0 → 24.2 | 9.6 → 9.8 | 4.4 → 4.4 |
+| Soytarı | 23.0 → 23.0 | 17.2 → 16.6 | 8.4 → 8.6 | 4.2 → 4.2 |
+| Çağırıcı | 32.6 → 33.0 | 26.4 → 26.2 | 8.2 → 8.2 | 3.6 → 3.6 |
+| Hırsız | 39.4 → 39.6 | 34.8 → 36.0 | 15.0 → 15.4 | 5.2 → 5.6 |
+| hepsi | 33.0 → 33.7 | 27.8 → 28.0 | 11.4 → 11.4 | 4.8 → 4.9 |
+
+Hedef (Orta'da +1 … +4 puan) **tutmadı**: oran ne olursa olsun fark 500 koşunun gürültüsü içinde. Koşuların çoğu Lilith'in kapısına az coinle gelir
+(Orta ortalaması 45, Zor 20, Ironman 12; haraç kesenin payından alınıyor) ve Orta'da ölümlerin çoğu Lilith'in masasından çok Lucifer'de.
+Kurala göre oran artırıldı (10 → 5 coin); tavanı %15'in üstüne çıkarmak kullanıcının kararına bırakıldı.
+

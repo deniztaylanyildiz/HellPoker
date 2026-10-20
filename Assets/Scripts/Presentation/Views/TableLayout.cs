@@ -51,6 +51,10 @@ namespace HellPoker.Presentation.Views
         public Vector2Int Bar { get; }
         public RectInt BarFloat { get; }
 
+        /// <summary>Demo 3.5.1: the gauges under the demon's name (the imp's purse and ante; a demon's ante and rule icons).</summary>
+        public Vector2Int Gauges { get; }
+        public const int GaugesTop = 116;
+
         /// <summary>The middle of the demon's portrait (the tithe's coins fly there).</summary>
         public Vector2Int DealerPoint { get; }
 
@@ -75,6 +79,7 @@ namespace HellPoker.Presentation.Views
             Bar = new Vector2Int(Dealer.x + BarInset, Dealer.y + BarTop);
             int floatX = Middle + MiddleWidth + 2;
             BarFloat = new RectInt(floatX, Dealer.y + BarTop - 2, RightX - floatX - 2, 8);
+            Gauges = new Vector2Int(Dealer.x, Dealer.y + GaugesTop);
             DealerPoint = new Vector2Int(Dealer.x + Column / 2, Dealer.y + Column / 2);
         }
     }

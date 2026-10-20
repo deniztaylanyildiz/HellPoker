@@ -34,6 +34,9 @@ namespace HellPoker.Core.Tests
 
         private sealed class Tally
         {
+            /// <summary>Demo 3.5.1: the coins left after the tribute at the gates reached, and the Last Bribe's percents.</summary>
+            public long CoinsLeftAfter, BribePercents;
+
             public int Runs, Broke, BrokeAtImp, BrokeAtWarden, BrokeFloors, PaidFull, CoinsAtGate, YearsAtGate, Reached;
             public int Buyers, BuyersShort, BuyersPaidFull;
             public int ImpHands, ImpWins, ImpLosses, ImpFolds, ImpPushes, ImpHouseFolds;
@@ -70,6 +73,7 @@ namespace HellPoker.Core.Tests
 
             public void Add(Tally o)
             {
+                CoinsLeftAfter += o.CoinsLeftAfter; BribePercents += o.BribePercents;
                 foreach (var p in o.RelicPicks) Bump(RelicPicks, p.Key, p.Value);
                 foreach (var p in o.UpgradePicks) Bump(UpgradePicks, p.Key, p.Value);
                 Runs += o.Runs; Broke += o.Broke; BrokeAtImp += o.BrokeAtImp; BrokeAtWarden += o.BrokeAtWarden; BrokeFloors += o.BrokeFloors;
@@ -376,6 +380,9 @@ namespace HellPoker.Core.Tests
             tally.Gate.Add(coins);
             tally.YearsAtGate += toll.YearsForMissing + toll.YearsOwed;
             if (toll.PaidInFull) tally.PaidFull++;
+            // Demo 3.5.1: the coins left after the tribute (Lilith's: her Last Bribe).
+            tally.CoinsLeftAfter += toll.CoinsLeft + toll.BribeCoins;
+            tally.BribePercents += toll.BribePercent;
             if (boughtRelic)
             {
                 tally.Buyers++;
@@ -919,6 +926,16 @@ namespace HellPoker.Core.Tests
             Difficulty before = SimDifficulty;
             ChapterTuning.Reset();
             ApplyDifficulty(Environment.GetEnvironmentVariable("HELLPOKER_DIFF"));
+            // Demo 3.5.1: the Last Bribe tried (HELLPOKER_BRIBE="coins a percent,most percent"; "0,0": none, the old gate).
+            int bribeCoins = ChapterRules.BribeCoinsPerPercent, bribeMost = ChapterRules.BribeMostPercent;
+            string bribe = Environment.GetEnvironmentVariable("HELLPOKER_BRIBE");
+            if (!string.IsNullOrWhiteSpace(bribe))
+            {
+                int[] b = bribe.Split(',').Select(x => int.TryParse(x.Trim(), out int n) ? n : 0).ToArray();
+                ChapterRules.BribeCoinsPerPercent = b.Length > 0 ? b[0] : bribeCoins;
+                ChapterRules.BribeMostPercent = b.Length > 1 ? b[1] : bribeMost;
+            }
+            report.AppendLine($"Last Bribe: 1% a {ChapterRules.BribeCoinsPerPercent} coins, at most {ChapterRules.BribeMostPercent}%");
             try
             {
                 var freedTable = new StringBuilder("freed      " + string.Join(" ", levels.Select(l => $"{DifficultyRules.IdOf(l),8}")) + Environment.NewLine);
@@ -949,6 +966,8 @@ namespace HellPoker.Core.Tests
             {
                 SimDifficulty = before;
                 ChapterTuning.Reset();
+                ChapterRules.BribeCoinsPerPercent = bribeCoins;
+                ChapterRules.BribeMostPercent = bribeMost;
             }
             TestContext.Out.WriteLine(report.ToString());
         }
@@ -961,7 +980,8 @@ namespace HellPoker.Core.Tests
             string Paid(int ch) => Pct(t.Chapters[ch].PaidFull, t.Chapters[ch].Reached);
             string Rage(int b) => Pct(t.Enraged[b], t.BossSat[b]);
             return $"{name,-10} {Pct(t.Freed, t.Runs),6}   {Death(0)} / {Death(1)} / {Death(2)} / {lucifer}   {Paid(0)} / {Paid(1)} / {Paid(2)}   " +
-                   $"{Rage(0)} / {Rage(1)} / {Rage(2)} / {Rage(3)}   rerolls {t.Rerolls}";
+                   $"{Rage(0)} / {Rage(1)} / {Rage(2)} / {Rage(3)}   rerolls {t.Rerolls}   Lilith's gate: coins left {(t.Chapters[2].Reached == 0 ? 0 : t.Chapters[2].CoinsLeftAfter / t.Chapters[2].Reached)}, " +
+                   $"bribe {(t.Chapters[2].Reached == 0 ? 0.0 : t.Chapters[2].BribePercents / (double)t.Chapters[2].Reached):0.0}%";
         }
 
         /// <summary>"tribute=40.50.60,ante=3.2.1,rage=50,ragestake=150,camps=2.1.1,market=100.120.140,unknown=5.10.15,topup=100.75.50,

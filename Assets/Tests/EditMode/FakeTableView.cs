@@ -157,6 +157,9 @@ namespace HellPoker.Core.Tests
 
         public bool Enraged { get; private set; }
         public void SetEnraged(bool enraged) => Enraged = enraged;
+        public SeatGauges Gauges { get; private set; } = SeatGauges.Hidden;
+        public List<SeatGauges> GaugesShown { get; } = new List<SeatGauges>();
+        public void SetSeatGauges(SeatGauges gauges) { Gauges = gauges; GaugesShown.Add(gauges); }
         public string CarriedRule { get; private set; }
         public string CarriedRuleHover { get; private set; }
 

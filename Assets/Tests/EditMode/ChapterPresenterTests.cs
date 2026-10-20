@@ -151,8 +151,15 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(LeaveState.Hidden, _tableView.Leave, "no leaving a chapter's table");
             ChapterRules rules = _chapters.Run.Rules;
             Assert.AreEqual(15, rules.ImpCoinsAt(0), "the first floor's imp: half a purse, a warm-up");
-            Assert.AreEqual(string.Format(UiText.FloorSeatTitleFormat, 15, rules.Ante, rules.AnteStepHands),
-                _tableView.DealerView.Dealer.Title, "the imp's purse and the ante under its name");
+            // Demo 3.5.1: the imp's purse and the ante are gauges under the name, not a line.
+            Assert.AreEqual("", _tableView.DealerView.Dealer.Title);
+            SeatGauges gauges = _tableView.Gauges;
+            Assert.IsTrue(gauges.Shown && gauges.PurseShown);
+            Assert.AreEqual(15, gauges.Purse);
+            Assert.AreEqual(15, gauges.PurseStart);
+            Assert.AreEqual(string.Format(UiText.GaugeAnteFormat, rules.Ante), gauges.AnteLabel);
+            Assert.AreEqual(rules.AnteStepHands, gauges.AnteDots, "a dot for every hand before the ante grows");
+            Assert.AreEqual(UiText.GaugePurseTip, gauges.PurseTip);
         }
 
         [Test]
@@ -173,6 +180,58 @@ namespace HellPoker.Core.Tests
             Assert.IsTrue(_panel.IsOpen);
             Assert.AreEqual(UiText.MatchWonTitle, _panel.Card.Title);
             StringAssert.Contains(string.Format(UiText.MatchPurseFormat, _chapters.Run.Purse.Coins), _panel.Card.Text);
+        }
+
+        [Test]
+        public void TheAntesDots_GoDownEveryHand_AndComeBackWhenTheAnteGrows()
+        {
+            Begin();
+            _chapters.Run.Purse.Add(100000);
+            _map.Press(_map.State.Choices.First());
+            int step = _chapters.Run.Rules.AnteStepHands;
+            var seen = new List<(int dots, string ante, int purse)>();
+            int guard = 0, hands = 0;
+            while (_chapters.IsAtTable && guard++ < 2000)
+            {
+                Act();
+                if (_table.Floor != null) hands = Math.Max(hands, _table.Game.RoundNumber);
+                SeatGauges g = _tableView.Gauges;
+                if (g.Shown && g.PurseShown && (seen.Count == 0 || seen[seen.Count - 1] != (g.AnteDots, g.AnteLabel, g.Purse)))
+                    seen.Add((g.AnteDots, g.AnteLabel, g.Purse));
+            }
+            Assert.That(seen.Count, Is.GreaterThan(2));
+            bool grew = false;
+            for (int i = 1; i < seen.Count; i++)
+            {
+                Assert.That(seen[i].dots, Is.InRange(1, step), "a dot for every hand before the ante grows");
+                if (seen[i].ante != seen[i - 1].ante)
+                {
+                    grew = true;
+                    Assert.AreEqual(step, seen[i].dots, "the ante grew: the dots come back");
+                }
+                else if (seen[i].dots != seen[i - 1].dots) Assert.AreEqual(seen[i - 1].dots - 1, seen[i].dots, "a hand passed: one dot less");
+            }
+            if (hands > step + 1) Assert.IsTrue(grew, "the ante grew during the match");
+        }
+
+        [Test]
+        public void ADemonsTable_ShowsTheFixedAnte_AndHisRuleAsAnIcon()
+        {
+            var archive = new ChapterArchive(new MemoryStore());
+            archive.SaveRun(ChapterPresenter.PlacedSave(SinnerRoster.King, 11, 1, "gate"));
+            _chapters.Dispose();
+            _chapters = new ChapterPresenter(_map, _panel, () => (_table, _tableView), null, _audio, GameRules.Default, () => 4242, archive);
+            _chapters.Continue();
+            _panel.Press(0);   // pay the tribute: Mammon's table
+            Assert.IsTrue(_chapters.IsAtTable);
+            SeatGauges g = _tableView.Gauges;
+            Assert.IsTrue(g.Shown);
+            Assert.IsFalse(g.PurseShown, "a demon has a bar, not a purse");
+            Assert.AreEqual(0, g.AnteDots, "the ante is fixed at his table");
+            StringAssert.StartsWith("ANTE", g.AnteLabel);
+            Assert.AreEqual(1, g.Icons.Count, "his rule");
+            Assert.AreEqual("tithe", g.Icons[0].IconId);
+            StringAssert.Contains(UiText.DemonRuleName("interest"), g.Icons[0].Tip);
         }
 
         [Test]

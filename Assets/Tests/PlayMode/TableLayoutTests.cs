@@ -484,7 +484,7 @@ namespace HellPoker.PlayMode.Tests
         // ------------------------------------------------------------------ Demo 3.2: the demon top right, the player bottom left
 
         /// <summary>A save standing on a node of <paramref name="kind"/> of the first chapter (a path walked to it).</summary>
-        private static ChapterSave AtNode(Core.Sinners.SinnerClass cls, NodeKind kind, string match)
+        internal static ChapterSave AtNode(Core.Sinners.SinnerClass cls, NodeKind kind, string match)
         {
             ChapterJourney journey = ChapterJourney.Begin(cls, 11);
             ChapterMap map = journey.Run.Map;
@@ -524,6 +524,43 @@ namespace HellPoker.PlayMode.Tests
             if (!kit.Shown.IsHidden)
                 Assert.AreEqual(-At(panel).y - 3, -At(kit).y + kit.Height, where + ": the kit just over the panel");
             AssertNothingOverlaps(view, where);
+            AssertTheGauges(view, where);
+        }
+
+        /// <summary>Demo 3.5.1: the gauges under the demon's name — on the 8 px grid, between the name and the dialog, their words fitting,
+        /// a floor's purse row, a demon's icons; their hovers closed.</summary>
+        private static void AssertTheGauges(TableView view, string where)
+        {
+            SeatGaugesView gauges = view.Gauges;
+            Assert.IsTrue(gauges.gameObject.activeInHierarchy, where + ": the gauges");
+            Vector2 at = ((RectTransform)gauges.transform).anchoredPosition;
+            int top = -Mathf.RoundToInt(at.y);
+            Assert.AreEqual(TableLayout.Edge + TableLayout.GaugesTop, top, where + ": under the name");
+            Assert.AreEqual(0, top % 8, where + ": the purse row on the 8 px grid");
+            Assert.AreEqual(0, (top + SeatGaugesView.RowB) % 8, where + ": the ante row on the 8 px grid");
+            Assert.LessOrEqual(top + SeatGaugesView.Height, TableLayout.Edge + DealerView.DialogTop, where + ": over the dialog box");
+            Assert.GreaterOrEqual(top, TableLayout.Edge + 107 + 8, where + ": under the demon's name");
+            SeatGauges shown = gauges.Shown;
+            Assert.IsTrue(shown.Shown, where);
+            Assert.IsTrue(shown.AnteLabel.Contains("ANTE"), where + ": " + shown.AnteLabel);
+            Canvas.ForceUpdateCanvases();
+            if (shown.PurseShown)
+            {
+                Assert.IsTrue(gauges.PurseRow.gameObject.activeSelf, where + ": the purse row");
+                Assert.LessOrEqual(gauges.PurseText.preferredWidth, SeatGaugesView.BarX - 16, where + ": '" + gauges.PurseText.text + "' fits before its bar");
+                Assert.That(gauges.BarFillWidth, Is.InRange(1, SeatGaugesView.BarWidth), where + ": the purse's bar");
+                Assert.AreEqual(Mathf.Min(6, shown.AnteDots), gauges.DotsShown, where + ": the ante's dots");
+                Assert.AreEqual(0, gauges.IconsShown, where + ": no rule icons at a floor's table");
+            }
+            else
+            {
+                Assert.IsFalse(gauges.PurseRow.gameObject.activeSelf, where + ": a demon has his bar, not a purse");
+                Assert.GreaterOrEqual(gauges.IconsShown, 1, where + ": his rule's icon");
+                Assert.AreEqual(0, gauges.DotsShown, where + ": his ante is fixed");
+            }
+            int iconsLeft = SeatGaugesView.Width - 4 - gauges.IconsShown * (SeatGaugesView.Icon + SeatGaugesView.IconGap);
+            Assert.LessOrEqual(14 + gauges.AnteText.preferredWidth + 3 + gauges.DotsShown * 5, iconsLeft, where + ": '" + gauges.AnteText.text + "' and its dots fit");
+            Assert.IsFalse(gauges.GetComponentsInChildren<HoverTip>(true).Any(tip => tip.Visible), where + ": no hover box");
         }
 
         [UnityTest, Timeout(600000)]
@@ -545,19 +582,22 @@ namespace HellPoker.PlayMode.Tests
                     AssertTheTablesLayout(view, match + lang + ", in a hand");
                 }
 
-                // A demon's table, dealt: his bar under him (on the right), the cheat's sign on his portrait.
-                yield return Load(turkish, new ChapterSave
+                // Each demon's table, dealt: his bar under him (on the right), the cheat's sign on his portrait, his gauges.
+                for (int chapter = 1; chapter <= 3; chapter++)
                 {
-                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 1, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
-                    BossBar = 1600, NodeDone = false, Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).ToList(), Taxes = 20
-                });
-                yield return Settle();
-                TableView boss = ChapterJourneyTests.ChapterTableView;
-                Assert.AreEqual(new Vector2(TableLayout.RightX + TableLayout.BarInset, -(TableLayout.Edge + TableLayout.BarTop)),
-                    ((RectTransform)boss.BossBar.transform).anchoredPosition, "the bar under the demon" + lang);
-                ChapterJourneyTests.Chapters.Table.PerformAction();
-                yield return Settle();
-                AssertTheTablesLayout(boss, "boss" + lang);
+                    yield return Load(turkish, new ChapterSave
+                    {
+                        ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = chapter, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                        BossBar = 1600, NodeDone = false, Relics = Core.Relics.ChapterRelics.ClassChain(Core.Sinners.King.ClassId).ToList(), Taxes = 20
+                    });
+                    yield return Settle();
+                    TableView boss = ChapterJourneyTests.ChapterTableView;
+                    Assert.AreEqual(new Vector2(TableLayout.RightX + TableLayout.BarInset, -(TableLayout.Edge + TableLayout.BarTop)),
+                        ((RectTransform)boss.BossBar.transform).anchoredPosition, "the bar under the demon" + lang);
+                    ChapterJourneyTests.Chapters.Table.PerformAction();
+                    yield return Settle();
+                    AssertTheTablesLayout(boss, "boss " + chapter + lang);
+                }
 
                 // Lucifer's call, then his table.
                 yield return Load(turkish, ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"));

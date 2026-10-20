@@ -149,6 +149,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Demo 3.4: the demon is enraged (his burning look stays).</summary>
         void SetEnraged(bool enraged);
 
+        /// <summary>Demo 3.5.1: the gauges under the demon's name (the imp's purse and ante; a demon's ante and rule icons); Hidden: none.</summary>
+        void SetSeatGauges(SeatGauges gauges);
+
         /// <summary>Demo 3.4, Ironman: the other demon's rule this one carries — a small icon beside his portrait (<paramref name="ruleId"/>:
         /// "interest", "role_swap"; null: none) and its hover.</summary>
         void SetCarriedRule(string ruleId, string hover);

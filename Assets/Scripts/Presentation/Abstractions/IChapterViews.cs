@@ -204,9 +204,14 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Demo 3.5: cards only to look at (a treasure's coins, a relic won, the warden's relic waiting), in a row over the answers.</summary>
         public IReadOnlyList<RelicCardData> Showcase { get; }
 
+        /// <summary>Demo 3.5.1: the bar before something shrank it (Lilith's gate: the Last Bribe) — the panel opens on it, coins fly to it and
+        /// it shrinks to <see cref="Bar"/>; null: none.</summary>
+        public BossBarDisplay BarBefore { get; }
+
         public PanelCard(string portraitId, string owner, string title, string text, IReadOnlyList<PanelOption> options, int selected = 0,
-            BossBarDisplay bar = null, string barLabel = null, IReadOnlyList<RelicCardData> showcase = null)
+            BossBarDisplay bar = null, string barLabel = null, IReadOnlyList<RelicCardData> showcase = null, BossBarDisplay barBefore = null)
         {
+            BarBefore = barBefore;
             Showcase = showcase ?? Array.Empty<RelicCardData>();
             Bar = bar ?? BossBarDisplay.Hidden;
             BarLabel = barLabel ?? "";
@@ -220,7 +225,7 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>The same panel, the keys pointing at another answer (its cards, bar and words kept).</summary>
         public PanelCard WithSelected(int selected) =>
-            new PanelCard(PortraitId, Owner, Title, Text, Options, selected, Bar, BarLabel, Showcase);
+            new PanelCard(PortraitId, Owner, Title, Text, Options, selected, Bar, BarLabel, Showcase, BarBefore);
     }
 
     /// <summary>The panel over the chapter's map (the treasure, the market, an offer, the fire, the gate, a match's end...).</summary>

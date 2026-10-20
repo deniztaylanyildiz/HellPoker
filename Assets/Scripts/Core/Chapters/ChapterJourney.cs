@@ -203,7 +203,7 @@ namespace HellPoker.Core.Chapters
             Effects.SitAt(Dealers.DealerRoster.LuciferId, fresh: true);
             Dealers.Dealer lucifer = BossTable.Lucifer;
             HellPokerGame game = BossTable.Create(template, lucifer, LuciferBarStart, 101,
-                BossTable.WinWithRelics(ChapterRules.LuciferWinPercent, Effects.CombinedRelics, Run.Purse.Coins),
+                BossTable.WinWithRelics(ChapterRules.LuciferWinPercent, Effects.CombinedRelics, Run.Purse.Coins + Run.BribeCoins),   // the Last Bribe's coins still count
                 ChapterRules.LuciferLoss * DifficultyRules.BossLossFor(Difficulty, 3) / 100, RandomSeeds.Derive(Seed, LuciferStream), Sinner, Sinner,
                 DifficultyRules.MaliceShortFor(Difficulty, 3, lucifer.MaliceMax));
             game.UseEffects(Effects);
@@ -276,6 +276,7 @@ namespace HellPoker.Core.Chapters
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
             if (save.CampBar.HasValue) journey.Run.RestoreCampBar(save.CampBar.Value);
             journey.Run.RestoreGateCoins(save.GateCoins);
+            journey.Run.RestoreBribe(save.BribeCoins);
             int vendors = Enum.GetValues(typeof(MarketVendor)).Length;
             journey.Run.RestoreVendors(save.Vendors.Where(v => v >= 0 && v < vendors).Select(v => (MarketVendor)v),
                 save.Vendor >= 0 && save.Vendor < vendors ? (MarketVendor)save.Vendor : (MarketVendor?)null);
@@ -363,6 +364,7 @@ namespace HellPoker.Core.Chapters
                 Forged = Effects.Forged.ToList(),
                 CampBar = run.CampBarPercent,
                 GateCoins = run.GateCoins,
+                BribeCoins = run.BribeCoins,
                 Vendors = run.VendorsSeen.Select(v => (int)v).ToList(),
                 Vendor = run.MarketHere.HasValue ? (int)run.MarketHere.Value : -1,
                 Cleansed = Effects.Cleansed.ToList(),

@@ -17,8 +17,11 @@ namespace HellPoker.Presentation.Views
         public const int PortraitSize = 96;
 
         /// <summary>The whole column: the portrait box, the name and title, the dialog box (Phase 3: a taller box, 96 px).</summary>
-        public const int Height = 224;
+        public const int Height = 252;   // Demo 3.5.1: the gauges under the name push the dialog down
         private const int DialogHeight = 96;
+
+        /// <summary>The dialog box under the name and the gauges (Demo 3.5.1: 28 px lower, the gauges on the 8 px grid above it).</summary>
+        public const int DialogTop = 156;
         private const float CharactersPerSecond = 40f;
 
         private AnimationSequencer _sequencer;
@@ -73,7 +76,7 @@ namespace HellPoker.Presentation.Views
             _title.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             Image dialog = UiFactory.CreateDialog("Speech", root);
-            dialog.rectTransform.PlaceTL(0, 128, PortraitSize + 8, DialogHeight);
+            dialog.rectTransform.PlaceTL(0, DialogTop, PortraitSize + 8, DialogHeight);
             _dialog = dialog.gameObject;
             _dialogBox = dialog;
             _plainDialog = dialog.sprite;

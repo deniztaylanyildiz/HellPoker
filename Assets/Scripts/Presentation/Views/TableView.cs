@@ -173,6 +173,11 @@ namespace HellPoker.Presentation.Views
         /// <summary>The demon's health bar under the portrait (for tests and screenshots).</summary>
         public BossBarWidget BossBar => _bossBar;
 
+        private SeatGaugesView _gauges;
+
+        /// <summary>Demo 3.5.1: the gauges under the demon's name (for tests).</summary>
+        public SeatGaugesView Gauges => _gauges;
+
         public void SetBossBar(BossBarDisplay bar) => _sequencer.Do(() => _bossBar.Apply(bar, animate: true));
 
         /// <summary>Phase 2's class panel (for tests and screenshots).</summary>
@@ -216,6 +221,7 @@ namespace HellPoker.Presentation.Views
             Move(_malice.transform, Layout.Dealer);
             _malice.SetTipsLeft(Layout.DealerTipsLeft);
             Move(_bossBar.transform, Layout.Bar);
+            Move(_gauges.transform, Layout.Gauges);
             Move(_sentence.transform, Layout.Counter);
             Move(_soul.transform, Layout.Counter);
             Move(_panel.transform, Layout.Panel);
@@ -400,6 +406,7 @@ namespace HellPoker.Presentation.Views
             _kit = KitView.Create(screen, 4, DealerBottom + 3, _sequencer, i => KitCardPressed?.Invoke(i), i => KitButtonPressed?.Invoke(i));
             // Phase 2: the demon's health bar, under the name (in place of the line under it).
             _bossBar = BossBarWidget.Create(screen, "BossBar", 8, 122, 92, 7, hover: true);
+            _gauges = SeatGaugesView.Create(screen, 4, 120);
             // The joker picker sits where the bet controls do (they are hidden while it is open).
             _jokerPicker = JokerPickerView.Create(screen, Middle, ControlsY - 12, _sequencer, (rank, suit) => JokerStepPressed?.Invoke(rank, suit),
                 () => JokerConfirmPressed?.Invoke());
@@ -909,6 +916,15 @@ namespace HellPoker.Presentation.Views
 
         public void SetEnraged(bool enraged) => _sequencer.Do(() => _dealer.SetEnraged(enraged));
 
+        public void SetSeatGauges(SeatGauges gauges) => _sequencer.Do(() =>
+        {
+            _gauges.Show(gauges);
+            // A floor's won coins fly to the imp's purse bar (a demon's to his bar, as before); else to the counter.
+            Vector2Int purse = gauges != null && gauges.Shown && gauges.PurseShown ? _gauges.PurseBarPoint
+                : new Vector2Int(Layout.Counter.x + SentenceView.Width / 2, Layout.Counter.y + 10);
+            _fanfare.SetTargets(purse, new Vector2Int(Layout.Bar.x + TableLayout.BarWidth / 2, Layout.Bar.y + 3));
+        });
+
         private Image _carried;
         private GameObject _carriedTip;
         private Text _carriedTipText;
@@ -919,7 +935,7 @@ namespace HellPoker.Presentation.Views
         public void SetCarriedRule(string ruleId, string hover)
         {
             CarriedRuleShown = ruleId;
-            _carried.gameObject.SetActive(ruleId != null);
+            _carried.gameObject.SetActive(false);   // Demo 3.5.1: the carried rule is an icon in the gauges under the name
             if (ruleId == null) return;
             Sprite icon = UiArt.CheatIcon(ruleId == "interest" ? "tithe" : "serpent_swap");
             Image picture = _carried.transform.Find("Icon").GetComponent<Image>();

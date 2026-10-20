@@ -1,5 +1,18 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.5.1 (3.5.1-demo) — 2026-10-20 — Şeytan bloğu daha anlaşılır, Son Rüşvet
+
+### Değişen
+- **İblis ve bekçi masası:** şeytanın adının altında iki gösterge: KESE (sikke, sayı ve başlangıç kesesine göre altın çubuk; kazanılan
+  sikkeler çubuğa uçar) ve ANTE (ante artana kadar kalan her el için bir nokta; her elde bir nokta söner, ante artınca parlar).
+  Ante'siz eller işaretli masada "ANTE'SİZ: 2". Her birinin üzerine gelince ne olduğu yazar.
+- **Boss ve Lucifer masası:** can barının altında ANTE (bu masada sabit) ve şeytanın kuralı, taşıdığı kural ve öfkesi küçük ikonlar
+  olarak; can barının açıklaması da yeni.
+
+### Yeni
+- **Son Rüşvet:** Lilith'in kapısında haraçtan sonra kesende kalan coin'in hepsi Lilith'e gider; her 5 coin onun barını %1 küçültür (en
+  çok %15). Kapı panelinde coinler bara uçar, bar küçülür. Mammon'un Altın Dişi kaybettirmez (rüşvetten önceki coinleri sayar).
+
 ## Demo 3.5 (3.5.0-demo) — 2026-10-20 — Emanet görselleri, Kara Pazar ve ganimet
 
 ### Yeni
