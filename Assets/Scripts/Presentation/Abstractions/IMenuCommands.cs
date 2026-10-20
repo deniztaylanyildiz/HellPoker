@@ -6,7 +6,7 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>True on any screen but the table (the table is not taking input).</summary>
         bool IsMenuOpen { get; }
 
-        /// <summary>True on the title menu itself, with nothing open over it (no warning, no rules): F9, the arrows and the selection work
+        /// <summary>True on the title menu itself, with nothing open over it (no warning, no rules): the arrows and the selection work
         /// only here.</summary>
         bool IsAtMenuRoot { get; }
 
@@ -20,8 +20,8 @@ namespace HellPoker.Presentation.Abstractions
         bool IsTransitioning { get; }
 
         /// <summary>
-        /// Esc: one screen up. A warning closes, a sub-screen (rules, settings) returns to the menu, the dealer choice to where it
-        /// came from, the table to the menu, and the menu back into a run in progress.
+        /// Esc: one screen up. A warning closes, a sub-screen (rules, settings, records, the class choice) returns to the menu, the
+        /// chapter's screens to the menu, and the menu back into a run in progress.
         /// </summary>
         void GoBack();
 
@@ -30,12 +30,6 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <summary>Demo 3.3: Enter / Space on the title menu: the button under the cursor (nothing off the menu's root).</summary>
         void PressMenuSelection();
-
-        /// <summary>F9 on the title menu: the Boss Simulator (the old demo, kept as a developer's mode) on or off.</summary>
-        void ToggleSimulator();
-
-        /// <summary>True while the menu leads to the Boss Simulator instead of the game.</summary>
-        bool InSimulator { get; }
     }
 
     /// <summary>Setting shortcuts an input source can trigger.</summary>

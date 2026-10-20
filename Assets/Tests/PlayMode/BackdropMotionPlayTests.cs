@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
-using static HellPoker.PlayMode.Tests.CheatRig;
+using HellPoker.Core.Chapters;
 using static HellPoker.PlayMode.Tests.HellPokerScreenshots;
 using Object = UnityEngine.Object;
 
@@ -44,14 +44,20 @@ namespace HellPoker.PlayMode.Tests
             Assert.AreNotSame(before, eyes.sprite, "The layers step through their frames.");
         }
 
+        /// <summary>Each demon's hall at his own table (the game's: Mammon's, Belial's, Lilith's), then Lucifer's.</summary>
         [UnityTest]
         public IEnumerator EveryHall_HasItsMotion_OnWholePixels()
         {
-            for (int dealer = 0; dealer < 3; dealer++)
+            for (int chapter = 1; chapter <= 3; chapter++)
             {
-                yield return SitWith(dealer);
+                yield return ChapterJourneyTests.LoadWithSave(new ChapterSave
+                {
+                    ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = chapter, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
+                    BossBar = 1600, NodeDone = false
+                });
+                yield return WaitForTable();
                 BackdropMotionView motion = Salon.MotionView;
-                Assert.Greater(motion.LayerImages, 0, $"Hall {dealer}: nothing moves.");
+                Assert.Greater(motion.LayerImages, 0, $"Hall {chapter}: nothing moves.");
                 yield return new WaitForSeconds(0.5f);
                 foreach (RectTransform rect in motion.GetComponentsInChildren<RectTransform>().Where(r => r != motion.transform))
                 {
@@ -61,10 +67,12 @@ namespace HellPoker.PlayMode.Tests
                 }
             }
 
-            SetSentence(Presenter, 150);   // Lucifer's hall: chains and embers
+            // Lucifer's hall: chains and embers (his call answered).
+            yield return ChapterJourneyTests.LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"));
+            Press("PanelOption0");
+            yield return new WaitForSeconds(1.5f);
             yield return WaitForTable();
-            yield return new WaitForSeconds(1f);
-            Assert.IsTrue(Presenter.IsAtFinalTable);
+            Assert.AreEqual(JourneyStage.Lucifer, ChapterJourneyTests.Chapters.Journey.Stage);
             Assert.Greater(Salon.MotionView.LayerImages, 0);
             Assert.Greater(Salon.MotionView.ParticleCount, 0, "Embers rise in his hall.");
         }

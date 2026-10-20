@@ -27,8 +27,6 @@ namespace HellPoker.PlayMode.Tests
         private const int Scale = 4;
         private static readonly Vector2Int Size = new Vector2Int(Presentation.Ui.PixelScreen.Width * Scale, Presentation.Ui.PixelScreen.Height * Scale);
 
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
         /// <summary>The crop of each page's scene (x, y from the top left of the 640×360 screen).</summary>
         private static readonly Dictionary<int, RectInt> Crops = new Dictionary<int, RectInt>
@@ -158,7 +156,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             HellPokerBootstrap.BatchStore.SetString("settings.language", language);
             if (save != null) new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             if (save != null)

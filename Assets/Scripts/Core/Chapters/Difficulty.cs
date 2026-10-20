@@ -19,6 +19,7 @@ namespace HellPoker.Core.Chapters
 
     /// <summary>
     /// Every number of the difficulty levels in one place (the chapter simulation tries others; <see cref="Reset"/> puts the game's back).
+    /// Approved by the user on 2026-10-20 (Demo 3.4.1), exactly as written here; DifficultyTests.TheApprovedNumbers_EveryOne pins each one.
     /// Arrays are by chapter (Mammon, Belial, Lilith) or by demon (Mammon, Belial, Lilith, Lucifer). Nothing here is a new mechanic: each
     /// rule turns a number the game already has (the ante's pace, the tribute, the stakes, the camps, the market, the purse, the losses, the
     /// malice gauge, the demons' rules).
@@ -58,21 +59,23 @@ namespace HellPoker.Core.Chapters
 
         // ------------------------------------------------------------------ Medium (1-4)
 
-        /// <summary>1. The floors' ante grows by one every this many hands (Mammon, Belial, Lilith); Easy: every three.</summary>
+        /// <summary>1. The floors' ante grows by one every this many hands (Mammon, Belial, Lilith); Easy: every three. Lucifer has no floors:
+        /// no ante pace there (approved).</summary>
         public static int[] AnteStepHands = { 3, 2, 1 };
 
         /// <summary>2. The tribute is at least this share of the purse brought to the gate (Mammon, Belial, Lilith).</summary>
         public static int[] TributePursePercent = { 40, 50, 60 };
 
         /// <summary>3. Under this share of his bar's start a demon is enraged (once, for good): the stakes ×<see cref="RageStakePercent"/>
-        /// and his rule comes more often (an interval halved, a chance ×<see cref="RageRulePercent"/>, Mammon's interest ×it).</summary>
+        /// and his rule comes more often (an interval halved, a chance ×<see cref="RageRulePercent"/>, Mammon's interest ×it). Lucifer rages
+        /// too: his mirror's interval halved (approved).</summary>
         public static int RageBarPercent = 50;
         public static int RageStakePercent = 150;
         public static int RageRulePercent = 150;
 
-        /// <summary>4. The map: at most this many camps in the middle (the one before the gate apart), the black market's prices ×this
-        /// percent, an unknown node a warden this often (taken off the events' share) — and in Lilith's chapter every path from every start
-        /// meets a warden.</summary>
+        /// <summary>4. The map: at most this many camps in the middle (the one before the gate apart: approved), the black market's prices
+        /// ×this percent on top of the chapter's own price rise (approved), an unknown node a warden this often (taken off the events' share) —
+        /// and in Lilith's chapter every path from every start meets a warden.</summary>
         public static int[] MiddleCampsAtMost = { 2, 1, 1 };
         public static int[] MarketPercent = { 100, 120, 140 };
         public static int[] UnknownWardenPercent = { 5, 10, 15 };
@@ -87,16 +90,17 @@ namespace HellPoker.Core.Chapters
         /// <summary>6. A loss at a demon's table puts this much (percent) on his bar and the sentence (Mammon, Belial, Lilith, Lucifer).</summary>
         public static int[] BossLossPercent = { 100, 125, 150, 150 };
 
-        /// <summary>Ironman's own numbers of 5 and 6 (the simulation: 7 and 8 alone barely moved freedom): the purse topped up to less, the
-        /// losses heavier still.</summary>
+        /// <summary>Ironman's own numbers of 5 and 6 (the simulation: 7 and 8 alone barely moved freedom), approved 2026-10-20: the purse topped
+        /// up to Belial 50 % / Lilith 25 %, a demon's loss ×1.25 / ×1.5 / ×1.75 / ×1.75 (Mammon / Belial / Lilith / Lucifer).</summary>
         public static int[] IronmanPurseTopUpPercent = { 100, 50, 25 };
         public static int[] IronmanBossLossPercent = { 125, 150, 175, 175 };
 
         // ------------------------------------------------------------------ Ironman (7-9)
 
         /// <summary>7. A demon's malice gauge holds at most this many (Mammon, Belial, Lilith, Lucifer): it fills in that many hands. Only the
-        /// cheats' pace — never his play. (A gauge already that short stays as it is.) The asked 5 / 4 / 3 / 3 changed only Lilith's (the
-        /// gauges are 4 / 2 / 4 / 1); the simulation's 3 / 2 / 2 / 1 shortens Mammon's and Lilith's.</summary>
+        /// cheats' pace — never his play. (A gauge already that short stays as it is.) Approved 2026-10-20: 3 / 2 / 2 / 1 hands (Mammon /
+        /// Belial / Lilith / Lucifer; the gauges are 4 / 2 / 4 / 1, so Mammon's and Lilith's are shorter). The first ask, 5 / 4 / 3 / 3, changed
+        /// only Lilith's.</summary>
         public static int[] MaliceHands = { 3, 2, 2, 1 };
 
         /// <summary>8. A demon carries the rule of the one before him at this strength (percent): Belial Mammon's interest, Lilith Belial's
@@ -115,7 +119,7 @@ namespace HellPoker.Core.Chapters
         public static bool StackedRules(Difficulty d) => d >= Difficulty.Ironman;
 
         /// <summary>9. Ironman's saves: only at the camps (on the way in and out, and by hand there), once as the run begins; a death deletes
-        /// the save.</summary>
+        /// the save. Nothing is written as the game closes, and only QUIT warns (the menu keeps the run in memory) — approved.</summary>
         public static bool SavesOnlyAtCamps(Difficulty d) => d >= Difficulty.Ironman;
 
         /// <summary>The floors' ante pace in <paramref name="chapter"/> (1-3); null: the chapter's own.</summary>

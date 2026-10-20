@@ -1901,7 +1901,7 @@ namespace HellPoker.Presentation
             bool finalTable = _game.Rules.IsFinalTable;
             // While Lucifer waits below, an ordinary table never plays its final stretch: at the gate the next hand is his.
             bool luciferWaits = _finalDealer != null && _game.Rules.LuciferGateYears > 0;
-            // A chapter's table has no final stretch and no "last moments" (those are the Boss Simulator's, the old demo's): only its bar.
+            // A chapter's table has no final stretch and no "last moments" (those are the old demo's): only its bar.
             bool finalStretch = _seat == null && (finalTable ? IsLastMoments : _game.IsRaiseForced && !luciferWaits);
             _view.SetEnraged(BarMode && _kit?.Rule?.Enraged == true);   // Demo 3.4: an enraged demon keeps his burning look
             _view.SetFinalStretch(finalStretch, finalTable

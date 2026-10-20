@@ -11,7 +11,8 @@ using UnityEngine.UI;
 
 namespace HellPoker.PlayMode.Tests
 {
-    /// <summary>Loads the real game scene and plays a hand by pressing the actual UI buttons, waiting for animations.</summary>
+    /// <summary>Loads the real game scene and plays a hand at the first imp's table by pressing the actual UI buttons, waiting for animations
+    /// (Demo 3.4.1: the game's own table — the Boss Simulator's is gone).</summary>
     public class HellPokerSceneTests
     {
         private const string SceneName = "HellPoker";
@@ -26,30 +27,27 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
-        public IEnumerator Scene_BuildsTable()
+        public IEnumerator Scene_BuildsTheMenu_AndNewGameLeadsToATable()
         {
             Assert.IsNotNull(Object.FindFirstObjectByType<HellPokerBootstrap>(), "Bootstrap missing from scene.");
             Assert.IsNotNull(Object.FindFirstObjectByType<EventSystem>(), "No EventSystem, UI would not receive clicks.");
-            Assert.IsNotNull(Object.FindFirstObjectByType<TableView>(), "Table was not built.");
             Assert.IsTrue(Object.FindFirstObjectByType<MainMenuView>().IsVisible, "The game should open on the main menu.");
             Assert.IsFalse(IsActive("ContinueButton"), "Nothing to continue yet.");
 
             Press("NewGameButton");
             Assert.IsFalse(Object.FindFirstObjectByType<MainMenuView>().IsVisible);
-            Assert.IsTrue(Object.FindFirstObjectByType<DealerSelectView>().IsVisible, "New Game should ask for a dealer first.");
+            Assert.IsTrue(Object.FindFirstObjectByType<SinnerSelectView>().IsVisible, "New Game asks who the player was first.");
 
-            Press("ChooseDealer1");
-            Assert.IsFalse(Object.FindFirstObjectByType<DealerSelectView>().IsVisible);
+            yield return StartRun();
+            Assert.IsTrue(ChapterJourneyTests.Chapters.IsAtTable, "the first imp's table");
             Assert.AreEqual("DEAL", ActionLabel());
             Assert.IsFalse(IsActive("PassButton"));
-            Assert.AreEqual("BELIAL", Object.FindFirstObjectByType<DealerView>().transform.Find("Name").GetComponent<Text>().text);
-            yield return null;
         }
 
         [UnityTest]
         public IEnumerator SettingsLanguageTab_BringsThePlayerBackToATurkishTable_MidHand()
         {
-            StartRun();
+            yield return StartRun();
             Press("ActionButton");
             yield return WaitForTable();
             Assert.AreEqual("PASS", Find<Button>("PassButton").GetComponentInChildren<Text>().text);
@@ -88,58 +86,6 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheSinnerCards_TheirWordsFitAboveChoose_InBothLanguages()
-        {
-            Press("NewGameButton");
-            yield return new WaitForSeconds(0.4f);
-            Find<Button>("ChooseDealer0").onClick.Invoke();   // the class cards (not the tests' usual Peasant)
-            yield return new WaitForSeconds(0.4f);
-            try
-            {
-                foreach (HellPoker.Presentation.Ui.Language language in new[] { HellPoker.Presentation.Ui.Language.English, HellPoker.Presentation.Ui.Language.Turkish })
-                {
-                    HellPoker.Presentation.Ui.Lang.Set(language);   // the open screen is described again in it
-                    yield return null;
-                    for (int index = 0; index < HellPoker.Core.Sinners.SinnerRoster.All.Count; index++)
-                    {
-                        string id = HellPoker.Core.Sinners.SinnerRoster.All[index].Id;
-                        Transform card = Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                            .Single(t => t.name == "Sinner_" + id);
-                        var ability = (RectTransform)card.Find("Ability");
-                        var detail = (RectTransform)card.Find("Detail");
-                        var choose = (RectTransform)card.Find("ChooseSinner" + index);
-                        float Top(RectTransform r) => -r.anchoredPosition.y;
-                        float Bottom(RectTransform r) => Top(r) + r.rect.height;
-
-                        string what = $"{id} ({language})";
-                        Assert.LessOrEqual(ability.GetComponent<Text>().preferredHeight, ability.rect.height + 0.5f, $"{what}: the ability fits its box.");
-                        Assert.LessOrEqual(detail.GetComponent<Text>().preferredHeight, detail.rect.height + 0.5f, $"{what}: the price fits its box.");
-                        Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price starts under the ability.");
-                        Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: both end above CHOOSE.");
-                        var title = (RectTransform)card.Find("Title");
-                        Assert.LessOrEqual(title.GetComponent<Text>().preferredHeight, title.rect.height + 0.5f, $"{what}: who they were fits.");
-
-                        // Every card on the screen, side by side, none over another.
-                        var box = (RectTransform)card;
-                        float left = box.anchoredPosition.x;
-                        Assert.GreaterOrEqual(left, 0f, $"{what}: on screen (left).");
-                        Assert.LessOrEqual(left + box.rect.width, HellPoker.Presentation.Ui.PixelScreen.Width, $"{what}: on screen (right).");
-                        if (index > 0)
-                        {
-                            var previous = (RectTransform)Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                                .Single(t => t.name == "Sinner_" + HellPoker.Core.Sinners.SinnerRoster.All[index - 1].Id);
-                            Assert.GreaterOrEqual(left, previous.anchoredPosition.x + previous.rect.width, $"{what}: beside the card before it.");
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                HellPoker.Presentation.Ui.Lang.Set(HellPoker.Presentation.Ui.Language.English);
-            }
-        }
-
-        [UnityTest]
         public IEnumerator TheSettings_DisplayTab_WindowSize_IsSaved()
         {
             Press("SettingsButton");
@@ -165,7 +111,7 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest]
         public IEnumerator PlayingAHand_ThroughTheButtons()
         {
-            StartRun();
+            yield return StartRun();
             Press("ActionButton");
             yield return WaitForTable();
 
@@ -188,19 +134,14 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsTrue(IsActive("PassButton"), "Bet decision should follow the draw.");
             yield return PassWhileDeciding();
 
-            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
-            if (ActionLabel() == "NEXT HAND")
-            {
-                Press("ActionButton");
-                yield return WaitForTable();
-                Assert.AreEqual("DEAL", ActionLabel());
-            }
+            Assert.IsNotNull(ActionLabel(), "the showdown: one button to go on");
+            Assert.IsFalse(IsActive("PassButton"));
         }
 
         [UnityTest]
         public IEnumerator Folding_EndsTheHand()
         {
-            StartRun();
+            yield return StartRun();
             Press("ActionButton");
             yield return WaitForTable();
 
@@ -213,7 +154,7 @@ namespace HellPoker.PlayMode.Tests
             yield return WaitForTable();
 
             Assert.IsFalse(IsActive("FoldButton"));
-            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
+            Assert.IsNotNull(ActionLabel(), "the hand is over: one button to go on");
         }
 
         [UnityTest]
@@ -233,12 +174,10 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest]
         public IEnumerator APress_DuringTheDeal_SkipsToTheEnd()
         {
-            StartRun();
+            yield return StartRun();
             yield return WaitForTable();
-            var table = Object.FindFirstObjectByType<TableView>();
-            var presenter = (TablePresenter)typeof(HellPokerBootstrap)
-                .GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .GetValue(Object.FindFirstObjectByType<HellPokerBootstrap>());
+            var table = ChapterJourneyTests.ChapterTableView;
+            var presenter = (TablePresenter)ChapterJourneyTests.Chapters.Table;
 
             Press("ActionButton");   // deal: cards start flying
             yield return null;
@@ -249,83 +188,23 @@ namespace HellPoker.PlayMode.Tests
             Assert.IsFalse(table.IsBusy, "Everything landed at once.");
             Assert.AreEqual(HellPoker.Core.Game.GamePhase.PlayerReveal, presenter.Game.Phase, "The press was spent on the skip, not on a pass.");
             Assert.IsTrue(IsActive("PassButton"), "The decision is on screen.");
-            Assert.AreEqual(3, Find<Transform>("PlayerHand").GetComponentsInChildren<CardView>().Count(c => c.IsFaceUp));
+            Assert.AreEqual(3, FaceUp("PlayerHand"));
         }
-
-        [UnityTest]
-        public IEnumerator ASealedHand_PlaysOutOnItsOwn_WithoutBetButtons()
-        {
-            StartRun();   // Mammon, 1000 years: ante 100, the table full at 300
-            Press("ActionButton");
-            yield return WaitForTable();
-            Assert.IsTrue(IsActive("CheckToDrawButton"), "CHECK TO DRAW sits next to PASS before the draw.");
-            Press("RaiseButton");
-            yield return WaitForTable();
-
-            Press("RaiseButton");   // 300: the pact is sealed, the fifth card turns by itself
-            yield return PlayOutWithoutBetButtons();
-
-            Assert.AreEqual("STAND PAT", ActionLabel(), "The draw is still the player's.");
-            Assert.AreEqual(5, FaceUp("PlayerHand"));
-            Assert.IsFalse(IsActive("PassButton"));
-
-            Press("ActionButton");   // stand pat: the House's cards turn one by one into the showdown
-            float started = Time.time;
-            yield return PlayOutWithoutBetButtons();
-
-            Assert.Greater(Time.time - started, 2f, "Each of the House's cards waits its beat.");
-            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
-            Assert.AreEqual(5, FaceUp("HouseHand"));
-        }
-
-        [UnityTest]
-        public IEnumerator ASealedReveal_CanBeHurried()
-        {
-            StartRun();
-            Press("ActionButton");
-            yield return WaitForTable();
-            Press("RaiseButton");
-            yield return WaitForTable();
-            Press("RaiseButton");
-            yield return WaitForTable();
-            var table = Object.FindFirstObjectByType<TableView>();
-            TablePresenter presenter = Presenter();
-
-            Press("ActionButton");   // the House starts turning its cards
-            yield return null;
-            Assert.IsTrue(table.IsBusy);
-
-            presenter.PerformAction();   // Space
-
-            Assert.IsFalse(table.IsBusy, "A press brings the whole reveal to its end.");
-            Assert.AreEqual(5, FaceUp("HouseHand"));
-            StringAssert.IsMatch("NEXT HAND|THE END", ActionLabel());
-        }
-
-        private static TablePresenter Presenter() => (TablePresenter)typeof(HellPokerBootstrap)
-            .GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .GetValue(Object.FindFirstObjectByType<HellPokerBootstrap>());
 
         private static int FaceUp(string hand) => Find<Transform>(hand).GetComponentsInChildren<CardView>().Count(c => c.IsFaceUp);
 
-        /// <summary>Waits out the table's animations, checking at every frame that no bet button ever shows.</summary>
-        private static IEnumerator PlayOutWithoutBetButtons()
-        {
-            var table = Object.FindFirstObjectByType<TableView>();
-            float started = Time.time;
-            do
-            {
-                yield return null;
-                Assert.IsFalse(IsActive("PassButton"), "PASS showed while the sealed hand played out.");
-                Assert.IsFalse(IsActive("FoldButton"), "FOLD showed while the sealed hand played out.");
-                Assert.Less(Time.time - started, AnimationTimeout, "Table animations never finished.");
-            } while (table.IsBusy);
-        }
-
-        private static void StartRun(int dealer = 0)
+        /// <summary>NEW GAME, the Peasant (Medium), the chapter's opening words, the first imp's table among the starts.</summary>
+        private static IEnumerator StartRun()
         {
             Press("NewGameButton");
-            Press("ChooseDealer" + dealer);
+            ChooseSinner(0);
+            yield return new WaitForSeconds(0.6f);
+            Press("PanelOption0");   // DESCEND
+            yield return null;
+            HellPoker.Core.Chapters.MapNode start = ChapterJourneyTests.Chapters.Run.Choices.First(n => n.Kind == HellPoker.Core.Chapters.NodeKind.Table);
+            Press($"Node0_{start.Lane}");
+            yield return new WaitForSeconds(0.6f);
+            yield return WaitForTable();
         }
 
         private static IEnumerator PassWhileDeciding()
@@ -339,10 +218,10 @@ namespace HellPoker.PlayMode.Tests
 
         private static IEnumerator WaitForTable()
         {
-            var table = Object.FindFirstObjectByType<TableView>();
+            var table = ChapterJourneyTests.ChapterTableView;
             float started = Time.time;
             yield return null;
-            while (table.IsBusy)
+            while (table != null && table.IsBusy)
             {
                 Assert.Less(Time.time - started, AnimationTimeout, "Table animations never finished.");
                 yield return null;
@@ -358,8 +237,6 @@ namespace HellPoker.PlayMode.Tests
             button.onClick.Invoke();
             // New Game over a run asks first: the tests mean it.
             if (button.name == "NewGameButton") ConfirmNewGame();
-            // A new run asks who the player was: the tests play the Peasant unless they say otherwise.
-            if (button.name.StartsWith("ChooseDealer")) ChooseSinner(0);
         }
 
         private static void ChooseSinner(int index)

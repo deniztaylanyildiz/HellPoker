@@ -6,17 +6,9 @@ namespace HellPoker.Presentation.Abstractions
     {
         event Action NewGamePressed;
         event Action ContinuePressed;
-        event Action ChangeTablePressed;
         event Action QuitPressed;
         event Action SettingsPressed;
         event Action RecordsPressed;
-
-        /// <summary>
-        /// The menu leads to the game (NEW GAME / CONTINUE: the chapters; How to Play: the game's pages) or, <paramref name="simulator"/>, to
-        /// the Boss Simulator (the old demo: its run, CHANGE TABLE, its rules pages, a label under the title).
-        /// </summary>
-        void SetSimulator(bool simulator);
-
 
         /// <summary>The player accepted the warning open over the menu (New Game or Quit over a run in progress).</summary>
         event Action Confirmed;
@@ -39,7 +31,7 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Closes a panel open over the menu (the New Game warning, the rules); false when there was none.</summary>
         bool CloseOverlay();
 
-        /// <summary>Shows the menu; Continue and Change Table only when a run is in progress.</summary>
+        /// <summary>Shows the menu; CONTINUE only when a run waits.</summary>
         void Show(bool canContinue);
 
         /// <summary>Demo 3.3: the card beside CONTINUE — the run that waits, in short; null: no card.</summary>

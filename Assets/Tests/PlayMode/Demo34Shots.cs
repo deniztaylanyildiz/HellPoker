@@ -23,7 +23,6 @@ namespace HellPoker.PlayMode.Tests
         [TearDown]
         public void Restore()
         {
-            HellPokerBootstrap.ForceSimulator = null;
             ChapterUnlocks.AllClassesOpen = true;
         }
 
@@ -36,7 +35,6 @@ namespace HellPoker.PlayMode.Tests
             if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             if (save != null) new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             if (save == null) yield break;

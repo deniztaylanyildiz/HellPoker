@@ -14,8 +14,9 @@ namespace HellPoker.Presentation
     /// <summary>
     /// Measures the frame rate on every screen with moving backdrops, in the real player: started with the command line
     /// argument <c>-fpstour</c> (any build: it is also the release build's smoke test). It walks the game through its own
-    /// buttons — the menu, the choice of demon, each demon's hall, then Lucifer's (summoned the way the game summons) —
-    /// measures a few seconds on each, writes the results to the log ("Hell Poker FPS ...") and quits. Not part of normal play.
+    /// buttons — the menu and its settings, a run crossing from Mammon's spoils into Belial's chapter, a floor's table, then each
+    /// demon's table and Lucifer's (runs placed in the save and picked up with CONTINUE) — measures a few seconds on each, writes the
+    /// results to the log ("Hell Poker FPS ...") and quits. Not part of normal play; it writes over the player's saved run.
     /// </summary>
     public sealed class FpsTour : MonoBehaviour
     {
@@ -23,15 +24,13 @@ namespace HellPoker.Presentation
         private const float Settle = 1.5f;
         private const float Window = 4f;
 
-        private TablePresenter _table;
         private ChapterPresenter _chapters;
-        private MainMenuPresenter _menu;
         private readonly StringBuilder _report = new StringBuilder();
 
         public static bool IsRequested => System.Environment.GetCommandLineArgs().Contains(Argument);
 
-        /// <summary>Masa birliği: with <c>-tableshots</c> the tour also sits at a warden's table, each chapter demon's and Lucifer's and saves
-        /// a screenshot of each (persistentDataPath/tour/table_*.png), plus one of every Boss Simulator hall.</summary>
+        /// <summary>Masa birliği: with <c>-tableshots</c> the tour also sits at a warden's table and saves a screenshot of it and of each
+        /// demon's table and Lucifer's (persistentDataPath/tour/table_*.png).</summary>
         public const string TableShotsArgument = "-tableshots";
         private static bool TableShots => System.Environment.GetCommandLineArgs().Contains(TableShotsArgument);
 
@@ -41,14 +40,10 @@ namespace HellPoker.Presentation
             DifficultyRules.Parse(System.Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("-difficulty="))?.Substring("-difficulty=".Length));
         private static bool DifficultyShots => System.Environment.GetCommandLineArgs().Contains("-difficultyshots");
 
-        /// <param name="chapters">Phase 2's chapters: the tour also crosses from the first chapter into the second (a run saved at
-        /// Mammon's spoils, continued from the menu). Null: the demo alone.</param>
-        /// <param name="menu">The title menu: the tour switches it to the Boss Simulator (F9's way) for the demons' halls.</param>
-        public void Run(TablePresenter table, ChapterPresenter chapters = null, MainMenuPresenter menu = null)
+        /// <param name="chapters">The game's chapters: every leg of the tour is one of their screens.</param>
+        public void Run(ChapterPresenter chapters)
         {
-            _table = table;
-            _chapters = chapters;
-            _menu = menu;
+            _chapters = chapters ?? throw new ArgumentNullException(nameof(chapters));
             StartCoroutine(Tour());
         }
 
@@ -77,8 +72,6 @@ namespace HellPoker.Presentation
             yield return CheckThePlayersPanel("p2_belial_imp");
             var save = FindFirstObjectByType<SaveButtonView>();
             Debug.Log($"Hell Poker save button at the table: {save?.Place}, enabled {save?.Enabled}");
-            if (TableShots) yield return TableLeg();
-            if (TourDifficulty == Difficulty.Ironman) yield return IronmanLeg();
         }
 
         /// <summary>Demo 3.4: an Ironman run at a camp — SAVE there, left (as if the game closed), CONTINUE back at the camp; then it dies
@@ -166,8 +159,9 @@ namespace HellPoker.Presentation
             _chapters.DropForTour();
         }
 
-        /// <summary>A save placed at a table, picked up from the menu's CONTINUE; one hand dealt; a screenshot.</summary>
-        private IEnumerator SitAndShoot(ChapterSave save, string shot, bool luciferCall = false)
+        /// <summary>A save placed at a table, picked up from the menu's CONTINUE; one hand dealt; its hall measured (<paramref name="measure"/>);
+        /// a screenshot with <c>-tableshots</c>.</summary>
+        private IEnumerator SitAndShoot(ChapterSave save, string shot, bool luciferCall = false, string measure = null)
         {
             Press("MenuButton");
             yield return new WaitForSecondsRealtime(0.8f);
@@ -182,20 +176,23 @@ namespace HellPoker.Presentation
             _chapters.Table?.PerformAction();   // the deal
             yield return new WaitForSecondsRealtime(Settle * 2);
             Debug.Log($"Hell Poker table shot {shot}: at the table {_chapters.IsAtTable}, demon {_chapters.Run?.Rules.BossId}");
-            yield return Shot("table_" + shot);
+            if (measure != null) yield return Measure(measure);
+            if (TableShots) yield return Shot("table_" + shot);
         }
 
-        /// <summary>Masa birliği: a warden's table, Mammon's, Belial's, Lilith's and Lucifer's, each on screen once.</summary>
-        private IEnumerator TableLeg()
+        /// <summary>Every demon's hall at his own table (Mammon's, Belial's, Lilith's) and Lucifer's, each measured; a warden's table too
+        /// with <c>-tableshots</c>. (Demo 3.4.1: the halls were the Boss Simulator's leg; now they are the game's tables.)</summary>
+        private IEnumerator HallLeg()
         {
-            yield return SitAndShoot(WardenSave(), "warden");
+            if (TableShots) yield return SitAndShoot(WardenSave(), "warden");
             for (int chapter = 1; chapter <= 3; chapter++)
                 yield return SitAndShoot(new ChapterSave
                 {
                     ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = chapter, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600,
                     BossBar = 1600, NodeDone = false
-                }, "boss" + chapter);
-            yield return SitAndShoot(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"), "lucifer", luciferCall: true);
+                }, "boss" + chapter, measure: ChapterRules.For(chapter).BossId);
+            yield return SitAndShoot(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 3, "lucifer"), "lucifer", luciferCall: true,
+                measure: DealerRoster.LuciferId);
             Press("MenuButton");
             yield return new WaitForSecondsRealtime(0.8f);
         }
@@ -289,51 +286,12 @@ namespace HellPoker.Presentation
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("menu");
             yield return CheckTheMenu();
-            if (DifficultyShots && _chapters != null) yield return DifficultyLeg();
+            if (DifficultyShots) yield return DifficultyLeg();
 
-            // The game first: a saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE).
-            if (_chapters != null)
-            {
-                yield return ChapterLeg();
-                Press("MenuButton");
-                yield return new WaitForSecondsRealtime(0.8f);
-            }
-
-            // Then the Boss Simulator (the old demo, F9): every demon's hall and Lucifer's.
-            if (_menu != null && !_menu.InSimulator) _menu.ToggleSimulator();
-            yield return new WaitForSecondsRealtime(0.8f);
-            Press("NewGameButton");
-            yield return new WaitForSecondsRealtime(Settle);
-            yield return Measure("choose a demon");
-
-            for (int dealer = 0; dealer < DealerRoster.All.Count; dealer++)
-            {
-                if (dealer > 0)
-                {
-                    Press("MenuButton");
-                    yield return new WaitForSecondsRealtime(0.6f);
-                    Press("NewGameButton");
-                    yield return new WaitForSecondsRealtime(0.6f);
-                }
-                Press("ChooseDealer" + dealer);
-                yield return new WaitForSecondsRealtime(Settle);
-                yield return Measure(DealerRoster.All[dealer].Id);
-                if (TableShots)
-                {
-                    // A hand dealt — but not at the last one: Lucifer's summons below waits for a table between hands.
-                    if (dealer < DealerRoster.All.Count - 1) _table.PerformAction();
-                    yield return new WaitForSecondsRealtime(Settle * 2);
-                    yield return Shot("sim_" + DealerRoster.All[dealer].Id);
-                }
-            }
-
-            // Lucifer's hall: brought down to his gate, the game summons the player between hands.
-            _table.Game.TakeOver(150, _table.Game.RoundNumber);
-            _table.SwitchTable(DealerRoster.Lilith);
-            // The summoning scene (the dark falling, his words) plays out before the hall is measured.
-            yield return new WaitForSecondsRealtime(Settle * 4);
-            yield return Measure(_table.IsAtFinalTable ? "lucifer" : "lucifer (not summoned)");
-            if (TableShots) yield return Shot("sim_lucifer");
+            // A saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE), then every demon's table.
+            yield return ChapterLeg();
+            yield return HallLeg();
+            if (TourDifficulty == Difficulty.Ironman) yield return IronmanLeg();
 
             Debug.Log(_report.ToString());
             Application.Quit();
@@ -365,13 +323,6 @@ namespace HellPoker.Presentation
             }
             button.onClick.Invoke();
 
-            // A new run asks who the player was: the tour plays the Peasant.
-            if (name.StartsWith("ChooseDealer"))
-            {
-                Button sinner = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                    .FirstOrDefault(b => b.name == "ChooseSinner0" && b.gameObject.activeInHierarchy);
-                if (sinner != null) sinner.onClick.Invoke();
-            }
             // New Game over a run in progress asks first: the tour means it.
             if (name == "NewGameButton")
             {

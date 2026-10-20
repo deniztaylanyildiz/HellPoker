@@ -14,7 +14,7 @@ namespace HellPoker.Core.Sinners
         public static readonly SinnerClass Summoner = new Summoner();
         public static readonly SinnerClass Thief = new Thief();
 
-        /// <summary>The demo's classes (the Boss Simulator offers these).</summary>
+        /// <summary>The demo's classes (the demo's table engine and its tests; the game plays <see cref="PhaseTwo"/>).</summary>
         public static IReadOnlyList<SinnerClass> All { get; } = new[] { Peasant, Warlock, King, Jester };
 
         /// <summary>Phase 2's classes: the demo's, the Summoner and the Thief (Demo 2.2: all open from the start). The icon strip's order.</summary>

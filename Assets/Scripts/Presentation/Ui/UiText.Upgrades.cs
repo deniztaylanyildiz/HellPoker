@@ -92,7 +92,6 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The upgrades on the class's hover: {0} the list.</summary>
         public static string UpgradesLineFormat => L("Upgrades: {0}", "Yükseltmeler: {0}");
 
-
         public static string MapUpgradesLabel => L("UPGRADES", "YÜKSELTMELER");
 
         public static string FireWhet => L("WHET YOUR SOUL", "RUHUNU BİLE");

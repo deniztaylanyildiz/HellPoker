@@ -6,8 +6,8 @@ namespace HellPoker.Presentation.Views
     /// <summary>
     /// Demo 3.2: where the table's blocks stand, worked out from the screen's size (<see cref="PixelScreen.Width"/> /
     /// <see cref="PixelScreen.Height"/>) and the blocks' own sizes. Masa birliği: every poker table of the game looks the same — a floor's, a
-    /// warden's, a demon's, Lucifer's and the Boss Simulator's: the demon top right (his portrait, name, bar, malice and words), the counter
-    /// top left, the player's panel bottom left with the class's kit (or the simulator's LEAVE TABLE) just over it, the middle column (the
+    /// warden's, a demon's, Lucifer's (and a demo table's, in the tests): the demon top right (his portrait, name, bar, malice and words), the counter
+    /// top left, the player's panel bottom left with the class's kit (or a demo table's LEAVE TABLE) just over it, the middle column (the
     /// cards, the message, the controls, the band) between. The payouts are in the hands' panel (H), never on the table.
     /// </summary>
     public sealed class TableLayout
@@ -43,7 +43,7 @@ namespace HellPoker.Presentation.Views
         public int KitY { get; }
         public bool KitFromBottom => true;
 
-        /// <summary>The Boss Simulator's LEAVE TABLE / SOUL BOUND, where a chapter's table has its kit: just over the player's panel.</summary>
+        /// <summary>A demo table's LEAVE TABLE / SOUL BOUND (the table engine's tests), where a chapter's table has its kit: just over the player's panel.</summary>
         public Vector2Int Leave { get; }
         public const int LeaveWidth = Column, LeaveHeight = 18;
 

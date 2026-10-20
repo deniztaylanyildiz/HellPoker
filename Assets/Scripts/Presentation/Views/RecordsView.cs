@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using HellPoker.Core.Game;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Ui;
 using UnityEngine;
@@ -9,7 +8,7 @@ using UnityEngine.UI;
 
 namespace HellPoker.Presentation.Views
 {
-    /// <summary>The records across every run, in a menu box: runs, freedoms, damnations, the fastest freedom, and freedoms per demon.</summary>
+    /// <summary>The game's records across every run, in a menu box, line by line (the chapters' book), in one or two columns.</summary>
     public sealed class RecordsView : MonoBehaviour, IRecordsView
     {
         private const int SortingOrder = 105;
@@ -58,7 +57,7 @@ namespace HellPoker.Presentation.Views
             back.onClick.AddListener(() => BackPressed?.Invoke());
         }
 
-        /// <summary>Splits the lines into two columns (the game's records: the runs left, the circles and the locks right).</summary>
+        /// <summary>Splits the lines into two columns (the game's records: the runs left, the progress and the locks right).</summary>
         public const string ColumnBreak = RecordsLayout.ColumnBreak;
 
         private Image _panel;
@@ -76,7 +75,7 @@ namespace HellPoker.Presentation.Views
             GetComponent<GraphicRaycaster>().enabled = true;
         }
 
-        /// <summary>Two columns need the wide panel; one keeps the narrow, centred one (the Boss Simulator's).</summary>
+        /// <summary>Two columns need the wide panel; one keeps the narrow, centred one.</summary>
         private void LayOut(bool two)
         {
             _panel.rectTransform.PlaceTL(two ? 12 : 96, 24, two ? PixelScreen.Width - 24 : PixelScreen.Width - 192, PixelScreen.Height - 48);
@@ -84,40 +83,6 @@ namespace HellPoker.Presentation.Views
             _body.rectTransform.PlaceTL(two ? 24 : 104, 58, two ? ColumnWidth : PixelScreen.Width - 208, BodyHeight);
             _right.rectTransform.PlaceTL(PixelScreen.Width / 2 + 8, 58, ColumnWidth, BodyHeight);
             _right.gameObject.SetActive(two);
-        }
-
-        public void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
-        {
-            LayOut(false);
-            var lines = new List<string>
-            {
-                string.Format(UiText.RecordsRunsFormat, records.RunsStarted),
-                string.Format(UiText.RecordsAbsolvedFormat, records.Absolutions),
-                string.Format(UiText.RecordsDamnedFormat, records.Damnations),
-                records.FastestAbsolution.HasValue ? string.Format(UiText.RecordsFastestFormat, records.FastestAbsolution.Value) : UiText.RecordsFastestNone,
-                "",
-                string.Format(UiText.RecordsLuciferReachedFormat, records.LuciferReached),
-                string.Format(UiText.RecordsLuciferDefeatedFormat, records.LuciferDefeated),
-                records.FewestLuciferAttempts.HasValue
-                    ? string.Format(UiText.RecordsFewestAttemptsFormat, records.FewestLuciferAttempts.Value)
-                    : UiText.RecordsFewestAttemptsNone,
-                string.Format(UiText.RecordsWildBillFormat, records.WildBillEscapes),
-                string.Format(UiText.RecordsBackfiresFormat, records.BackfiresSeen),
-                ""
-            };
-            foreach (DealerCard dealer in dealers)
-                lines.Add(string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(dealer.Id)), records.AbsolutionsAt(dealer.Id)));
-            lines.Add(string.Format(UiText.RecordsClassesFormat, string.Join(" · ",
-                HellPoker.Core.Sinners.SinnerRoster.All.Select(c => UiText.SinnerName(c.Id) + " " + records.AbsolutionsAs(c.Id)))));
-            if (!string.IsNullOrEmpty(phase2))
-            {
-                lines.Add("");
-                lines.Add(phase2);
-            }
-            _body.text = string.Join("\n", lines);
-
-            _canvas.enabled = true;
-            GetComponent<GraphicRaycaster>().enabled = true;
         }
 
         public void Hide()

@@ -24,8 +24,6 @@ namespace HellPoker.PlayMode.Tests
         private const string HouseQuads = "9C 9D 9H 9S 2C";
         private const string Draws = " 3S 5H 7D 8H JD";
 
-        [TearDown]
-        public void Restore() => HellPokerBootstrap.ForceSimulator = null;
 
         private static ChapterSave Boss(Core.Sinners.SinnerClass cls) => new ChapterSave
         {

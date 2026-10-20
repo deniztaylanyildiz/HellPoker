@@ -1,5 +1,18 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.4.1 (3.4.1-demo) — 2026-10-20 — Boss Simülatörü kalktı, F9 geçici test kısayolu
+
+### Değişen
+- **Boss Simülatörü oyundan kalktı:** eski demonun menüsü, şeytan seçimi, MASA DEĞİŞTİR, son ekranı, rekorları ve How to Play'deki uzun
+  kural sayfaları yok. Menü yalnız oyunu açar.
+- Daha önce simülatörü oynadıysan onun kaydı ve rekorları ilk açılışta sessizce silinir; oyunun kendi kaydı ve rekorları olduğu gibi kalır.
+- Demo 3.4'ün zorluk sayıları ve kararları onaylandı; sayılar aynı.
+
+### Geliştirici
+- **F9 (geçici test kısayolu):** yalnız editörde, geliştirici sürümünde ya da HELLPOKER_DEV=1 ile; ana menüde dört şeytandan birinin
+  masasına bölüm akışıyla götürür. Bu koşu kaydı, rekorları, kilitleri ve koşu günlüğünü değiştirmez; masa bitince ana menüye döner.
+  Oyuncu sürümünde F9 hiçbir şey yapmaz.
+
 ## Demo 3.4 (3.4.0-demo) — 2026-10-20 — Zorluk seviyeleri ve kayıt
 
 ### Yeni

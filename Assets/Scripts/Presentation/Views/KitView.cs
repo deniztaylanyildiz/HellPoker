@@ -170,7 +170,7 @@ namespace HellPoker.Presentation.Views
 
         private bool _fromBottom;
 
-        /// <summary>Demo 3.2: where the panel stands — its top (under the demon's dialog box, the simulator) or its bottom (just over the
+        /// <summary>Demo 3.2: where the panel stands — its top (under the demon's dialog box, a demo table) or its bottom (just over the
         /// player's panel at a chapter's table: it grows upwards, whatever it holds).</summary>
         public void MoveTo(int x, int y, bool fromBottom)
         {

@@ -220,24 +220,22 @@ namespace HellPoker.Core.Tests
         // ------------------------------------------------------------------ the music follows the screen
 
         [Test]
-        public void TheMenu_PlaysItsTheme_TheTable_TheDemons()
+        public void TheMenu_PlaysItsTheme_TheChapter_Its()
         {
             var audio = new FakeAudio();
-            var session = new MainMenuPresenterTests.FakeSession();
             var menu = new MainMenuPresenterTests.FakeMenuView();
-            var choice = new MainMenuPresenterTests.FakeDealerSelectView();
-            var table = new FakeTableView();
-            using var presenter = new MainMenuPresenter(menu, choice, new MainMenuPresenterTests.FakeSettingsView(),
-                new MainMenuPresenterTests.FakeEndScreen(), new MainMenuPresenterTests.FakeRecords(), table, session,
-                new MainMenuPresenterTests.FakeQuitter(), new MainMenuPresenterTests.FakeTransition(), DealerRoster.All, audio: audio);
+            var sinners = new MainMenuPresenterTests.FakeSinnerSelect();
+            var chapters = new MainMenuPresenterTests.FakeChapters();
+            using var presenter = new MainMenuPresenter(menu, new MainMenuPresenterTests.FakeSettingsView(), new MainMenuPresenterTests.FakeRecords(),
+                new MainMenuPresenterTests.FakeQuitter(), new MainMenuPresenterTests.FakeTransition(), sinners, chapters, audio);
             Assert.AreEqual(SfxIds.MenuMusic, audio.Music.Last());
 
             menu.PressNewGame();
-            choice.Choose(1);
+            sinners.Choose(1);
 
-            Assert.AreEqual(DealerRoster.BelialId, audio.Music.Last());
+            Assert.AreEqual(chapters.MusicId, audio.Music.Last(), "the chapter's own music");
             CollectionAssert.Contains(audio.Sfx, SfxIds.Transition);
-            table.PressMenu();
+            chapters.AskForMenu();
             Assert.AreEqual(SfxIds.MenuMusic, audio.Music.Last());
         }
     }

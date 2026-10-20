@@ -11,7 +11,7 @@ namespace HellPoker.Presentation
     /// </summary>
     public sealed partial class TablePresenter
     {
-        /// <summary>The notes under the hands' panel, a line each (masa birliği: the Boss Simulator's tables too — the demon's own table,
+        /// <summary>The notes under the hands' panel, a line each (masa birliği: every table — the demon's own table,
         /// Belial's high multipliers, Lilith's heavier loss); null with no table.</summary>
         internal string PayoutNotes()
         {

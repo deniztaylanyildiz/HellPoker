@@ -4174,8 +4174,7 @@ eski kayıtlar Kolay; KAYDET düğmesi (masada kapalı), Ironman'da yalnız kamp
 - Taşınan kural yarım güçte kaldı (kullanıcının kuralı); denge Ironman'ın 5-7 sayılarıyla sağlandı.
 
 ### Açık sorular
-- Orta'da Mammon'daki ölüm %23 (hedef ~%10): Kolay'ın kendisi %20.6; Kolay'a dokunmadan inilemez.
-- Ironman'ın kendi 5 / 6 sayıları (spec'te yalnız Zor için vardı) kullanıcı onayı bekliyor.
+- (Kapandı 2026-10-20, Demo 3.4.1: kullanıcı Ironman'ın kendi 5 / 6 sayılarını, göstergeyi ve Orta'daki Mammon ölümünü onayladı — aşağıda.)
 
 ### Bitiş (build, ekran görüntüleri, turlar)
 - Demo34Shots ilk koşuda takıldı: Ironman'ın çıkış uyarısı için bastığı ÇIKIŞ, kaydedilmemiş ilerleme yokken oyunu gerçekten kapatıyordu
@@ -4190,5 +4189,64 @@ eski kayıtlar Kolay; KAYDET düğmesi (masada kapalı), Ironman'da yalnız kamp
 - EditMode 1190 geçti, PlayMode TableLayout 11 geçti. Commit "Demo 3.4: zorluk seviyeleri ve KAYDET", etiket `v3.4-demo` (push yok).
 
 ### Sıradaki
-- Kullanıcı kararları: Ironman'ın kendi 5 / 6 sayıları, gösterge 3 / 2 / 2 / 1, Orta'da Mammon ölümü, Ironman'da KAYDET yalnız kampta görünür.
+- (Kullanıcı kararları Demo 3.4.1'de verildi: aşağıdaki kayıt.)
 - Push (etiketlerle) kullanıcı isteyince.
+
+## 2026-10-20 — Demo 3.4.1: Boss Simülatörü kalktı, F9 geçici test kısayolu
+
+### İstek (kullanıcı)
+Boss Simülatörü oyundan tamamen kalksın; F9 geçici bir test kısayolu olsun (yalnız geliştiricide, gerçek bölüm akışıyla seçilen boss'a;
+kayda / rekora / kilide / günlüğe girmesin, bitince menü; tek dosya, "GEÇİCİ TEST KISAYOLU" yorumu, silmek için dosya + tek çağrı, bir
+denemeyle doğrula). Eski simülatör kaydı / rekoru çökertmesin, silinsin. Simülatöre bağlı Shots sınıfları taşınsın ya da silinsin. How to
+Play, OKUBENI, GERI_BILDIRIM, PLAYTEST, CLAUDE.md'den simülatör anlatımı kalksın. Demo 3.4'ün açık kararları onaylandı (belgeler ve testler
+sabitlesin, sayı değişmesin). Testler, ekran görüntüleri (demo341), build 3.4.1, kayıt yedeği + 3 duman turu, commit + etiket, push (etiketlerle).
+Şeytan AI'ına, demo kurallarına, zorluğa, dengeye dokunma.
+
+### Yapılanlar
+- **Silinen (oyun):** `DealerSelectView` + `IDealerSelectView` / `DealerChoice`, `EndScreenView` + `IEndScreenView`, `IRecordsView.Show(RecordBook)`,
+  menünün simülatör kipi (`SetSimulator`, `InSimulator`, `ToggleSimulator`, MASA DEĞİŞTİR, simülatör etiketi), How to Play'in eski uzun
+  sayfaları ve sayfa düğmesi, bootstrap'ın demo masası (`_tablePresenter`, "TableCanvas", olaylar, `RunArchive`, `ResumeSavedRun`),
+  `ForceSimulator` / `StartsInSimulator` / `SimulatorAllowed`, KeyboardInput'un demo masası ve F9'u, FpsTour'un simülatör bacağı, 47 UiText
+  metni (demo menüsü, şeytan seçimi, son ekranları, demo rekorları, eski kural sayfaları). `MainMenuPresenter` oyunun menüsü olarak yeniden yazıldı.
+- **Kalan:** demo motoru (Core + `TablePresenter`'ın demo yolu, `RunArchive`) — bölüm masaları aynı motoru kullanıyor ve EditMode testleri
+  masanın ortak davranışını onunla sınıyor; oyunda ona giden yol yok.
+- **Eski kayıtlar:** `SimulatorLeftovers.Forget` açılışta `run.save` / `run.records`'ı okumadan siler. Bu makinede gerçekten vardı: ilk duman
+  turunda silindi, `phase2.*` kaldı (sonra yedek geri kondu, yani anahtarlar oyuncunun ilk 3.4.1 açılışında silinecek).
+- **F9:** `DevJumpShortcut.cs` (MonoBehaviour + `ChapterPresenter`'ın partial parçası); ana dosyada yalnız partial metot kancaları
+  (`Traceless`, `TracelessEnds` → `IsTraceless`, `TracelessOver`, `KeepRecords`). Atlama: Köylü, Orta, `PlacedSave(..., "gate")` → `Resume` →
+  `SitWithTheDemon` (Lucifer: "lucifer" → `SitWithLucifer`). Rekorlar kopyada; kayıt / günlük yazılmaz; `ResolveBoss` / `ResolveLucifer` /
+  `FinishRun` başında koşu bırakılır, menü gelir. Liste açıkken `KeyboardInput` kapalı (Esc listeyi kapatır, 1-4 seçer). `-devjumpshots`.
+- **Silme denemesi:** dosya + `.meta` + bootstrap satırı kaldırıldı → derlendi; EditMode 1160 geçti (F9'un 2 testi atlandı), PlayMode
+  (DevJump + ChapterJourney + Scene) 12 geçti (2 atlandı); geri kondu. F9 testleri yansımayla (dosya gidince Ignore).
+- **Testler:** silinen PlayMode `SalonRegressionTests`, `RunJourneyTests`, `LuciferJourneyTests`, `CheatJourneyTests`, `CheatRig`,
+  `JesterJourneyTests`, `CheatScreenshots`, `JesterScreenshots`, `HellPokerScreenshots.CaptureScreens` (sınıf yardımcı olarak kaldı),
+  `HowToPlayTests.TheBossSimulator_KeepsItsOwnPages`, `TableLayoutTests.TheSimulatorsTables_...`, `HellPokerSceneTests`'in mühürlü el ve sınıf
+  kartı testleri (EditMode PactPresenterTests / PlayMode TableLayoutTests kapsıyor), EditMode menü testlerinin şeytan seçimi / masa
+  değiştirme / son ekranı / simülatör testleri, `LuciferPresenterTests.TheEndings_HaveTheirNames`. Taşınan: `HellPokerSceneTests` (ilk
+  iblis masası), `BackdropMotionPlayTests` (boss masaları + Lucifer), `MenuGridTests` (koşulu / koşusuz menü), `LanguageTests` (masa +
+  Ayarlar), `AudioTests` (menü ↔ bölüm müziği), `MainMenuPresenterTests` / `ChapterMenuTests` (oyunun menüsü). Shots: Demo31 / 311 / 32 /
+  34 / PhaseThree / Playtest / HowTo zaten bölüm akışındaydı (yalnız `ForceSimulator` satırları gitti), Demo33Shots'ın simülatör menüsü
+  karesi silindi. Yeni: `SimulatorLeftoversTests`, `DevJumpShortcutTests`, `DevJumpShortcutPlayTests`, `ChapterJourneyTests.TheSimulatorsOldSave...`,
+  `HowToPlayTests.TheSimulatorsOldPages_AreGone`, `TableLayoutTests.TheGameHasOneTable_...`, `DifficultyTests.TheApprovedNumbers_EveryOne`.
+- **Sonuçlar:** EditMode 1162 geçti (6 atlandı; LanguageTests dahil). PlayMode: ChapterJourney + MenuGrid + DevJump 13, Scene + HowToPlay +
+  HoverTip + Backdrop 14, TableLayout 11, HandFanfare 12 — hepsi geçti. FullRunTests Peasant_Medium_Turkish geçti.
+- **Build** `Builds/HellPoker-Demo-3.4.1-win64.zip` (3.4.1-demo). Yedek → 3 tur (1920 `-tableshots`, 2560 `-tableshots`, Ironman): hata
+  yok, FPS ~59.9, Ironman bacağı kampta kaydetti / devam etti / ölünce sildi → yedek geri. Development build `-devjumpshots`: liste + Belial,
+  "traceless True", phase2 kaydı ve rekorları değişmedi. Görüntüler `Screenshots/demo341/player/` ve `Screenshots/demo341/development/`.
+- **Onaylananlar** (2026-10-20, kodda olduğu gibi): CLAUDE.md Demo 3.4, PHASE2_CHAPTERS "Zorluk ▸ Onaylandı", `DifficultyRules` yorumları,
+  `DifficultyTests.TheApprovedNumbers_EveryOne`.
+
+### Kararlar (varsayılanla)
+- Demo motoru (TablePresenter'ın demo yolu, RunArchive, Core) silinmedi: bölüm masaları aynı motoru kullanıyor, yüzlerce EditMode testi onu sınıyor.
+- F9 koşusu: Köylü, Orta (sınıf / zorluk seçimi yok). Oyuncunun bellekteki koşusu bırakılır (kaydı arşivde durur; Ironman'ın kamptan sonraki
+  kaydedilmemiş ilerlemesi gider).
+- "Masa bitti" testi `ResolveBoss` / `ResolveLucifer`'i yansımayla çağırır (gerçek bir eli sonuna kadar oynatmak yerine).
+- F9 metinleri UiText'te değil, dosyanın içinde `Lang.Pick` ile (tek dosya kuralı); şeytan adları UiText'ten.
+- `-fpstour` hâlâ oyuncunun Phase 2 kaydının üstüne yazar (Ironman bacağı gerçek kaydı sınıyor); turlar yedekle çalıştırıldı.
+- Önceden de kullanılmayan bazı UiText metinleri (FireTitle, MarketTitle...) simülatörle ilgisiz oldukları için bırakıldı.
+
+### Açık sorular
+- Son mesajlardan biri bozuk geldi ("Yieâlrütybi ..."), okunamadı — kullanıcıya soruldu.
+
+### Sıradaki
+- Demo 3.5 (emanet görselleri, ortak emanet kartı, ganimet seçimi, Kara Pazar): istek parçalı geldi; eksik kısımlar kullanıcıya soruldu.

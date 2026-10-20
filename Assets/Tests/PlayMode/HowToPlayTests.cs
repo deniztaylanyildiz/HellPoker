@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Ui;
 using HellPoker.Presentation.Views;
@@ -11,17 +12,13 @@ using UnityEngine.TestTools;
 namespace HellPoker.PlayMode.Tests
 {
     /// <summary>Demo 2.2's How to Play: every page opens in both languages, its lines fit beside the picture and above the pager, the
-    /// pictures load, the arrows (and the keys' command) turn the pages; the Boss Simulator keeps its own pages.</summary>
+    /// pictures load, the arrows (and the keys' command) turn the pages.</summary>
     public class HowToPlayTests
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
-
         private static IEnumerator OpenHowToPlay(string language)
         {
             HellPokerBootstrap.BatchStore.Clear();
             HellPokerBootstrap.BatchStore.SetString("settings.language", language);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             HellPokerScreenshots.Press("HowToPlayButton");
@@ -89,18 +86,18 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
+        /// <summary>Demo 3.4.1: the Boss Simulator's long pages (RULES / HANDS / CHEATS / SINNERS and their switch) are gone.</summary>
         [UnityTest]
-        public IEnumerator TheBossSimulator_KeepsItsOwnPages()
+        public IEnumerator TheSimulatorsOldPages_AreGone()
         {
-            HellPokerBootstrap.BatchStore.Clear();
-            HellPokerBootstrap.ForceSimulator = true;
-            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
-            yield return new WaitForSeconds(0.5f);
-            HellPokerScreenshots.Press("HowToPlayButton");
-            yield return null;
+            yield return OpenHowToPlay("English");
             var menu = Object.FindFirstObjectByType<MainMenuView>();
-            Assert.IsFalse(menu.HowTo.gameObject.activeInHierarchy, "no paged How to Play in the simulator");
-            Assert.IsTrue(HellPokerScreenshots.Find<UnityEngine.UI.Button>("HandRanksPageButton").gameObject.activeInHierarchy);
+            Assert.IsTrue(menu.HowTo.gameObject.activeInHierarchy, "the game's paged How to Play");
+            var names = menu.GetComponentsInChildren<Transform>(true).Select(t => t.name).ToList();
+            foreach (string gone in new[] { "HandRanksPageButton", "Cheats", "Sinners", "ChapterRules", "GameRules", "SimulatorLabel" })
+                CollectionAssert.DoesNotContain(names, gone, $"{gone} is gone");
+            Assert.IsFalse(Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None).Any(b => b.name == "ChangeTableButton"),
+                "no CHANGE TABLE on the menu");
         }
     }
 }

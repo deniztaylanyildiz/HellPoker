@@ -22,7 +22,7 @@ namespace HellPoker.Presentation
     /// hand; a hand left in the middle is lost on the next launch. Knows the chapters' rules only through Core; the demo's run is never
     /// touched.
     /// </summary>
-    public sealed class ChapterPresenter : IChapterCommands, IChapterSession, IDisposable
+    public sealed partial class ChapterPresenter : IChapterCommands, IChapterSession, IDisposable
     {
         private readonly IChapterMapView _map;
         private readonly IChapterPanelView _panel;
@@ -230,7 +230,7 @@ namespace HellPoker.Presentation
             _selected = PickDefault(_run.Choices);
             _visible = true;
             _records.RunStarted();
-            _archive?.SaveRecords(_records);
+            KeepRecords();
             _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, _journey.Sentence.Years, DateTime.Now);
             Note($"phase 2 run: {sinnerClass.Id}, difficulty {DifficultyRules.IdOf(difficulty)}, {_run.Purse.Coins} coins, sentence {_journey.Sentence.Years} years");
             ShowMap();
@@ -677,7 +677,7 @@ namespace HellPoker.Presentation
                     if (!market.BuyRelic(id)) return;
                     Note($"black market ({vendor}): bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
                     _records.RelicBought();
-                    _archive?.SaveRecords(_records);
+                    KeepRecords();
                     // A class relic worn: what the main power is now ("FORESIGHT now sees 2 cards.").
                     bool step = ChapterRelics.IsClassRelic(id) && _run.Effects.Relics.Contains(id);
                     ShowMarket(market, UiText.RelicName(id) + (step ? "\n" + UiText.ClassPowerNow(_run.Kit) : ""));
@@ -1380,7 +1380,7 @@ namespace HellPoker.Presentation
             if (match.IsWarden && match.MatchWon && !gamble)
             {
                 _records.WardenBeaten(_run.WardensBeatenHere);
-                _archive?.SaveRecords(_records);
+                KeepRecords();
             }
             string given = _run.Effects.Relics.Count > relicsBefore ? _run.Effects.Relics.Last() : null;
             string kind = gamble ? "gambler's hand" : chase ? $"pickpocket's chase ({(_run.ChaseWon == true ? "caught" : "got away")})" : match.IsWarden ? "warden" : "imp's table";
@@ -1499,7 +1499,7 @@ namespace HellPoker.Presentation
             if (toll.PaidInFull)
             {
                 _records.TributePaidInFull();
-                _archive?.SaveRecords(_records);
+                KeepRecords();
             }
             Note($"chapter {_journey.Chapter} gate: tribute {_run.Tribute}, had {toll.CoinsBefore}, missing {toll.Missing} (+{toll.YearsForMissing} years)" +
                  (toll.YearsOwed > 0 ? $", owed +{toll.YearsOwed}" : "") + $", purse left {toll.CoinsLeft}, sentence {_journey.Sentence.Years}");
@@ -1522,6 +1522,7 @@ namespace HellPoker.Presentation
 
         private void ResolveBoss()
         {
+            if (TracelessOver()) return;
             HellPokerGame game = _bossGame;
             ChapterRules rules = _run.Rules;
             _journey.BossHands[_journey.BossIndex] = game.RoundNumber;
@@ -1538,7 +1539,7 @@ namespace HellPoker.Presentation
             }
             _run.LeaveBossTable(0);
             _records.BossBeaten(rules.BossId);
-            _archive?.SaveRecords(_records);
+            KeepRecords();
             Note($"{rules.BossId}: beaten in {game.RoundNumber} hands (sentence {_journey.Sentence.Years})");
             if (_journey.Chapter >= ChapterRules.Chapters)
             {
@@ -1656,6 +1657,7 @@ namespace HellPoker.Presentation
 
         private void ResolveLucifer()
         {
+            if (TracelessOver()) return;
             HellPokerGame game = _bossGame;
             _journey.BossHands[3] = game.RoundNumber;
             _bossGame = null;
@@ -1672,6 +1674,7 @@ namespace HellPoker.Presentation
 
         private void FinishRun(JourneyEnd end, bool show = true, string house = null, int hands = 0)
         {
+            if (TracelessOver()) return;
             ChapterJourney journey = _journey;
             int deepest = journey.Stage == JourneyStage.Lucifer ? 4 : journey.Chapter;
             journey.Finish(end);
@@ -1684,7 +1687,7 @@ namespace HellPoker.Presentation
             for (Difficulty d = Difficulty.Hard; d <= DifficultyRules.Hardest; d++)
                 if (!before.IsDifficultyOpen(d) && _records.IsDifficultyOpen(d)) levelOpened = d;
             if (opened.Count > 0) Note("unlocked: " + string.Join(", ", opened));
-            _archive?.SaveRecords(_records);
+            KeepRecords();
             _archive?.ClearRun();
             _log?.End(end.ToString().ToUpperInvariant(), journey.Sentence.Years, journey.TotalHands);
             CloseLog();
@@ -1755,7 +1758,7 @@ namespace HellPoker.Presentation
         /// </summary>
         private void SaveNow(bool force)
         {
-            if (_archive == null || _journey == null || _ended || _journey.IsOver) return;
+            if (_archive == null || _journey == null || _ended || _journey.IsOver || IsTraceless) return;
             if (Ironman && !force && !AtCamp)
             {
                 _ironmanBehind = true;
@@ -1810,7 +1813,7 @@ namespace HellPoker.Presentation
             try { journey = ChapterJourney.Restore(save); }
             catch (ArgumentException)
             {
-                _archive?.ClearRun();
+                if (!IsTraceless) _archive?.ClearRun();
                 return;
             }
             _journey = journey;
@@ -2010,6 +2013,41 @@ namespace HellPoker.Presentation
             return save;
         }
 
+        // ------------------------------------------------------------------ a run that leaves no trace
+
+        /// <summary>The records as they are, into the archive — never from a run that leaves no trace (it plays on a copy of them).</summary>
+        private void KeepRecords()
+        {
+            if (!IsTraceless) _archive?.SaveRecords(_records);
+        }
+
+        /// <summary>
+        /// A run that must leave no trace: no save, no records, no unlocks, no run log; when its demon's table ends it is let go and the
+        /// menu comes back (the player's own run waits in the save as it was). Only a temporary developer's shortcut starts one
+        /// (DevJumpShortcut.cs, which implements these partial methods); without that file the compiler drops them: never traceless.
+        /// </summary>
+        partial void Traceless(ref bool yes);
+
+        /// <summary>A traceless run's table is over (or the run would end): it goes, the menu comes; true when it was one.</summary>
+        partial void TracelessEnds(ref bool handled);
+
+        private bool IsTraceless
+        {
+            get
+            {
+                bool yes = false;
+                Traceless(ref yes);
+                return yes;
+            }
+        }
+
+        private bool TracelessOver()
+        {
+            bool handled = false;
+            TracelessEnds(ref handled);
+            return handled;
+        }
+
         // ------------------------------------------------------------------ the log
 
         private void Note(string text) => _log?.Note(text);
@@ -2017,7 +2055,7 @@ namespace HellPoker.Presentation
         /// <summary>The run's diary is written as it stands (the game closing; a run that ended).</summary>
         public void CloseLog()
         {
-            if (_log == null || _logSink == null) return;
+            if (_log == null || _logSink == null || IsTraceless) return;
             try { _logSink.Write(_log); }
             catch (Exception) { /* a log never stops the game */ }
         }

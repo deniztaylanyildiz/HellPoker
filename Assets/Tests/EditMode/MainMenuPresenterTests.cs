@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using HellPoker.Core.Dealers;
+using HellPoker.Core.Sinners;
 using HellPoker.Presentation;
 using HellPoker.Presentation.Abstractions;
 using HellPoker.Presentation.Settings;
@@ -8,6 +8,7 @@ using NUnit.Framework;
 
 namespace HellPoker.Core.Tests
 {
+    /// <summary>The title menu and its screens (Demo 3.4.1: the game's only — the Boss Simulator, its demon choice and end screen are gone).</summary>
     public class MainMenuPresenterTests
     {
         internal sealed class FakeMenuView : IMainMenuView
@@ -18,13 +19,8 @@ namespace HellPoker.Core.Tests
             public event Action NewGamePressed;
             public event Action ContinuePressed;
             public event Action QuitPressed;
-            public event Action ChangeTablePressed;
             public event Action SettingsPressed;
             public event Action RecordsPressed;
-            /// <summary>The menu leads to the Boss Simulator (the old demo).</summary>
-            public bool Simulator { get; private set; }
-
-            public void SetSimulator(bool simulator) => Simulator = simulator;
             public event Action Confirmed;
 
             /// <summary>Demo 3.3: the run that waits, as the card beside CONTINUE shows it (null: no card).</summary>
@@ -47,12 +43,14 @@ namespace HellPoker.Core.Tests
             public void TurnRulesPage(int step) => PagesTurned += step;
 
             public string ConfirmLabel { get; private set; }
+            public string CancelLabel { get; private set; }
 
             public void AskToConfirm(string taunt, string warning, string confirmLabel, string cancelLabel = null)
             {
                 Taunt = taunt;
                 Warning = warning;
                 ConfirmLabel = confirmLabel;
+                CancelLabel = cancelLabel;
                 IsConfirming = true;
             }
 
@@ -90,109 +88,72 @@ namespace HellPoker.Core.Tests
             public void PressNewGame() => NewGamePressed?.Invoke();
             public void PressContinue() => ContinuePressed?.Invoke();
             public void PressQuit() => QuitPressed?.Invoke();
-            public void PressChangeTable() => ChangeTablePressed?.Invoke();
         }
 
-        internal sealed class FakeDealerSelectView : IDealerSelectView
+        internal sealed class FakeSinnerSelect : ISinnerSelectView
         {
-            public bool IsVisible { get; private set; }
-            public IReadOnlyList<DealerChoice> Shown { get; private set; }
-            public string Warning { get; private set; }
-
-            public event Action<int> DealerChosen;
+            public event Action<int> SinnerChosen;
             public event Action BackPressed;
-            public event Action SeatConfirmed;
-            public event Action SeatCancelled;
+            public event Action<int> DifficultyStepped;
+            public DifficultyChoice Difficulty { get; private set; }
+            public bool IsVisible { get; private set; }
+            public string DealerId { get; private set; }
+            public IReadOnlyList<SinnerCard> Cards { get; private set; }
+            public string Note { get; private set; }
 
-            public void Show(IReadOnlyList<DealerChoice> dealers)
+            public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null, DifficultyChoice difficulty = null)
             {
+                Difficulty = difficulty;
                 IsVisible = true;
-                Shown = dealers;
-                Warning = null;
+                DealerId = dealerId;
+                Cards = sinners;
+                Note = note;
             }
 
-            public void AskToConfirm(string warning) => Warning = warning;
-            public bool IsConfirming => Warning != null;
-            public void CloseConfirm() => Warning = null;
-
-            public string LockedLine { get; private set; }
-            public void ShowLockedLine(int index, string line) => LockedLine = line;
+            public void Step(int delta) => DifficultyStepped?.Invoke(delta);
 
             public void Hide() => IsVisible = false;
-
-            public void Choose(int index) => DealerChosen?.Invoke(index);
-            public void PressBack() => BackPressed?.Invoke();
-            public void Confirm()
-            {
-                Warning = null;
-                SeatConfirmed?.Invoke();
-            }
-
-            public void Cancel()
-            {
-                Warning = null;
-                SeatCancelled?.Invoke();
-            }
+            public void Choose(int index) => SinnerChosen?.Invoke(index);
+            public void Back() => BackPressed?.Invoke();
         }
 
-        internal sealed class FakeSession : IRunSession
+        internal sealed class FakeChapters : IChapterSession
         {
-            public bool CanContinue { get; set; }
-            public int NewRuns { get; private set; }
-            public int Switches { get; private set; }
-            public Dealer Dealer { get; private set; }
-            public string CurrentDealerId => Dealer?.Id;
-
-            /// <summary>The sentence the fake player carries; compared with each dealer's soul line.</summary>
-            public int Years { get; set; } = 1000;
-
-            /// <summary>When true, the dealer refuses to let the player leave (soul bound).</summary>
-            public bool SoulBound { get; set; }
-
-            public event Action LeaveRequested;
-            public event Action<RunSummary> RunEnded;
-
-            public HellPoker.Core.Game.RecordBook Records { get; } = new HellPoker.Core.Game.RecordBook();
-
-            /// <summary>What walking away would cost while a run is on.</summary>
-            public AbandonRisk Risk { get; set; } = AbandonRisk.Run;
-            public AbandonRisk AbandonRisk => CanContinue ? Risk : AbandonRisk.None;
+            public bool HasRun { get; set; }
+            public bool CanContinue => HasRun;
+            public ContinueCard ContinueCard => HasRun ? new ContinueCard(Peasant.ClassId, 1, 2, 90, 6500, Core.Chapters.Difficulty.Easy) : null;
+            public bool IronmanUnsaved { get; set; }
+            public Core.Chapters.ChapterRecords Records { get; } = new Core.Chapters.ChapterRecords();
+            public bool IsVisible { get; private set; }
+            public string MusicId => "mammon";
+            public FeedbackContext Feedback => null;
+            public SinnerClass Started { get; private set; }
+            public Core.Chapters.Difficulty StartedDifficulty { get; private set; }
             public int Abandoned { get; private set; }
+            public event Action MenuRequested;
+            public event Action NewRunRequested;
 
-            public void AbandonRun()
+            public void Start(SinnerClass sinnerClass) => Start(sinnerClass, Core.Chapters.Difficulty.Easy);
+
+            public void Start(SinnerClass sinnerClass, Core.Chapters.Difficulty difficulty)
+            {
+                Started = sinnerClass;
+                StartedDifficulty = difficulty;
+                HasRun = true;
+            }
+
+            public void Continue() => IsVisible = true;
+
+            public void Abandon()
             {
                 Abandoned++;
-                CanContinue = false;
+                HasRun = false;
             }
 
-            public void EndRun(RunSummary summary)
-            {
-                CanContinue = false;
-                RunEnded?.Invoke(summary);
-            }
-
-            public HellPoker.Core.Sinners.SinnerClass Class { get; private set; }
-
-            public void StartNewRun(Dealer dealer, HellPoker.Core.Sinners.SinnerClass sinner = null)
-            {
-                Class = sinner;
-                NewRuns++;
-                Dealer = dealer;
-                CanContinue = true;
-            }
-
-            public void RequestLeave()
-            {
-                if (!SoulBound) LeaveRequested?.Invoke();
-            }
-
-            public bool WouldStakeSoul(Dealer dealer) => dealer.TakesSoulAt(Years);
-
-            public void SwitchTable(Dealer dealer)
-            {
-                Switches++;
-                Dealer = dealer;
-            }
+            public void Show() => IsVisible = true;
+            public void Hide() => IsVisible = false;
+            public void AskForMenu() => MenuRequested?.Invoke();
+            public void AskForNewRun() => NewRunRequested?.Invoke();
         }
 
         internal sealed class FakeQuitter : IApplicationQuitter
@@ -258,46 +219,18 @@ namespace HellPoker.Core.Tests
             public void PressBack() => BackPressed?.Invoke();
         }
 
-        internal sealed class FakeEndScreen : IEndScreenView
-        {
-            public bool IsVisible { get; private set; }
-            public RunSummary Summary { get; private set; }
-            public event Action NewGamePressed;
-            public event Action MenuPressed;
-
-            public void Show(RunSummary summary)
-            {
-                IsVisible = true;
-                Summary = summary;
-            }
-
-            public void Hide() => IsVisible = false;
-            public void PressNewGame() => NewGamePressed?.Invoke();
-            public void PressMenu() => MenuPressed?.Invoke();
-        }
-
         internal sealed class FakeRecords : IRecordsView
         {
             public bool IsVisible { get; private set; }
-            public int DealersShown { get; private set; }
             public event Action BackPressed;
 
-            public string Phase2 { get; private set; }
-
-            /// <summary>The game's records, as last shown (null: the simulator's were).</summary>
+            /// <summary>The game's records, as last shown.</summary>
             public IReadOnlyList<string> Lines { get; private set; }
 
             public void ShowLines(IReadOnlyList<string> lines)
             {
                 IsVisible = true;
                 Lines = lines;
-            }
-
-            public void Show(HellPoker.Core.Game.RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null)
-            {
-                IsVisible = true;
-                DealersShown = dealers.Count;
-                Phase2 = phase2;
             }
 
             public void Hide() => IsVisible = false;
@@ -312,13 +245,11 @@ namespace HellPoker.Core.Tests
         }
 
         private FakeMenuView _menu;
-        private FakeDealerSelectView _dealerSelect;
         private FakeSettingsView _settings;
         private FakeTransition _transition;
-        private FakeEndScreen _end;
         private FakeRecords _records;
-        private FakeTableView _table;
-        private FakeSession _session;
+        private FakeSinnerSelect _sinners;
+        private FakeChapters _chapters;
         private FakeQuitter _quitter;
         private MainMenuPresenter _presenter;
 
@@ -326,76 +257,24 @@ namespace HellPoker.Core.Tests
         public void SetUp()
         {
             _menu = new FakeMenuView();
-            _dealerSelect = new FakeDealerSelectView();
-            _table = new FakeTableView();
-            _session = new FakeSession();
             _quitter = new FakeQuitter();
             _settings = new FakeSettingsView();
             _transition = new FakeTransition();
-            _end = new FakeEndScreen();
             _records = new FakeRecords();
-            _presenter = new MainMenuPresenter(_menu, _dealerSelect, _settings, _end, _records, _table, _session, _quitter, _transition,
-                DealerRoster.All);
+            _sinners = new FakeSinnerSelect();
+            _chapters = new FakeChapters();
+            _presenter = new MainMenuPresenter(_menu, _settings, _records, _quitter, _transition, _sinners, _chapters);
         }
 
         [TearDown]
         public void TearDown() => _presenter.Dispose();
 
-        private void StartRunWith(int dealerIndex = 0)
+        /// <summary>A run started from the menu (a Peasant), then the menu again (the chapter's MENU).</summary>
+        private void RunThenMenu()
         {
             _menu.PressNewGame();
-            _dealerSelect.Choose(dealerIndex);
-        }
-
-        /// <summary>The same menu with Lucifer waiting below.</summary>
-        private void WithLucifer()
-        {
-            _presenter.Dispose();
-            _presenter = new MainMenuPresenter(_menu, _dealerSelect, _settings, _end, _records, _table, _session, _quitter, _transition,
-                DealerRoster.All, DealerRoster.Lucifer);
-        }
-
-        [Test]
-        public void Lucifer_IsTheFourthCard_Locked()
-        {
-            WithLucifer();
-
-            _menu.PressNewGame();
-
-            Assert.AreEqual(4, _dealerSelect.Shown.Count);
-            DealerChoice lucifer = _dealerSelect.Shown[3];
-            Assert.AreEqual("lucifer", lucifer.Card.Id);
-            Assert.IsTrue(lucifer.IsLocked);
-            Assert.AreEqual("THE MORNING STAR", lucifer.Card.Name);
-            Assert.AreEqual("Waits below 250 years", lucifer.Card.Title);
-            Assert.IsFalse(_dealerSelect.Shown[0].IsLocked);
-        }
-
-        [Test]
-        public void ChoosingLucifer_SeatsNobody_HeAnswersFromTheDark()
-        {
-            WithLucifer();
-            _menu.PressNewGame();
-
-            _dealerSelect.Choose(3);
-
-            Assert.AreEqual(0, _session.NewRuns);
-            Assert.IsTrue(_dealerSelect.IsVisible, "Still choosing.");
-            Assert.AreEqual("Not yet. Come down to me.", _dealerSelect.LockedLine);
-        }
-
-        [Test]
-        public void ChangingTables_StillShowsHimLocked()
-        {
-            WithLucifer();
-            StartRunWith(0);
-
-            _session.RequestLeave();
-
-            Assert.AreEqual(4, _dealerSelect.Shown.Count);
-            Assert.IsTrue(_dealerSelect.Shown[3].IsLocked);
-            _dealerSelect.Choose(3);
-            Assert.AreEqual(0, _session.Switches);
+            _sinners.Choose(0);
+            _chapters.AskForMenu();
         }
 
         [Test]
@@ -403,91 +282,29 @@ namespace HellPoker.Core.Tests
         {
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsFalse(_menu.ContinueShown);
-            Assert.IsFalse(_dealerSelect.IsVisible);
-            Assert.IsFalse(_table.Visible);
+            Assert.IsFalse(_sinners.IsVisible);
+            Assert.IsFalse(_chapters.IsVisible);
         }
 
         [Test]
-        public void NewGame_OpensDealerChoice_WithEveryDealer()
+        public void TheMenuNeedsTheGamesScreens()
         {
-            _menu.PressNewGame();
-
-            Assert.IsTrue(_dealerSelect.IsVisible);
-            Assert.IsFalse(_menu.IsVisible);
-            Assert.IsFalse(_table.Visible);
-            Assert.AreEqual(0, _session.NewRuns, "Nothing starts until a dealer is chosen.");
-            CollectionAssert.AreEqual(new[] { "MAMMON", "BELIAL", "LILITH" }, new[] { _dealerSelect.Shown[0].Card.Name, _dealerSelect.Shown[1].Card.Name, _dealerSelect.Shown[2].Card.Name });
+            Assert.Throws<ArgumentNullException>(() => new MainMenuPresenter(_menu, _settings, _records, _quitter, _transition, _sinners, null));
+            Assert.Throws<ArgumentNullException>(() => new MainMenuPresenter(_menu, _settings, _records, _quitter, _transition, null, _chapters));
         }
 
         [Test]
-        public void ChoosingADealer_StartsRunAtTheirTable()
+        public void Escape_TogglesBetweenTheRunAndTheMenu()
         {
-            StartRunWith(2);
-
-            Assert.AreEqual(1, _session.NewRuns);
-            Assert.AreEqual(DealerRoster.LilithId, _session.Dealer.Id);
-            Assert.IsFalse(_dealerSelect.IsVisible);
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void DealerChoice_Back_ReturnsToMenu()
-        {
-            _menu.PressNewGame();
-
-            _dealerSelect.PressBack();
-
-            Assert.IsTrue(_menu.IsVisible);
-            Assert.IsFalse(_dealerSelect.IsVisible);
-            Assert.AreEqual(0, _session.NewRuns);
-        }
-
-        [Test]
-        public void Escape_OnDealerChoice_ReturnsToMenu()
-        {
-            _menu.PressNewGame();
-            Assert.IsTrue(_presenter.IsMenuOpen, "The table does not take input while choosing a dealer.");
-
-            _presenter.GoBack();
-
-            Assert.IsTrue(_menu.IsVisible);
-            Assert.IsFalse(_dealerSelect.IsVisible);
-        }
-
-        [Test]
-        public void MenuButton_OpensMenu_WithContinue_DuringARun()
-        {
-            StartRunWith();
-
-            _table.PressMenu();
-
-            Assert.IsTrue(_menu.IsVisible);
-            Assert.IsTrue(_menu.ContinueShown);
-            Assert.IsFalse(_table.Visible);
-        }
-
-        [Test]
-        public void Continue_ReturnsToTable_WithoutRestarting()
-        {
-            StartRunWith();
-            _table.PressMenu();
-
-            _menu.PressContinue();
-
-            Assert.AreEqual(1, _session.NewRuns);
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void Escape_TogglesBetweenTableAndMenu()
-        {
-            StartRunWith();
-
-            _presenter.GoBack();
-            Assert.IsTrue(_presenter.IsMenuOpen);
+            RunThenMenu();
 
             _presenter.GoBack();
             Assert.IsFalse(_presenter.IsMenuOpen);
+            Assert.IsTrue(_chapters.IsVisible);
+
+            _presenter.GoBack();
+            Assert.IsTrue(_presenter.IsMenuOpen);
+            Assert.IsFalse(_chapters.IsVisible);
         }
 
         [Test]
@@ -496,131 +313,20 @@ namespace HellPoker.Core.Tests
             _presenter.GoBack();
 
             Assert.IsTrue(_presenter.IsMenuOpen);
-            Assert.IsFalse(_table.Visible);
+            Assert.IsFalse(_chapters.IsVisible);
         }
 
-        // ------------------------------------------------------------------ changing tables
-
         [Test]
-        public void NewRunChoice_FlagsNothing()
+        public void Escape_OnTheClassChoice_ReturnsToMenu()
         {
             _menu.PressNewGame();
+            Assert.IsTrue(_presenter.IsMenuOpen, "The class choice is a menu screen.");
 
-            foreach (DealerChoice choice in _dealerSelect.Shown)
-                Assert.IsFalse(choice.IsCurrent || choice.SoulAtStake);
-        }
+            _presenter.GoBack();
 
-        [Test]
-        public void LeaveRequest_OpensTheChoice_WithTheCurrentDealerAndSoulFlags()
-        {
-            StartRunWith(0);
-            _session.Years = 1600;
-
-            _session.RequestLeave();
-
-            Assert.IsTrue(_dealerSelect.IsVisible);
-            Assert.IsFalse(_table.Visible);
-            Assert.IsTrue(_dealerSelect.Shown[0].IsCurrent);
-            Assert.IsFalse(_dealerSelect.Shown[0].SoulAtStake, "Mammon takes the soul at 2000.");
-            Assert.IsFalse(_dealerSelect.Shown[1].SoulAtStake, "Belial at 1750.");
-            Assert.IsTrue(_dealerSelect.Shown[2].SoulAtStake, "Lilith at 1500.");
-        }
-
-        [Test]
-        public void ChangingToASafeTable_SwitchesAndKeepsTheRun()
-        {
-            StartRunWith(0);
-            _session.RequestLeave();
-
-            _dealerSelect.Choose(1);
-
-            Assert.AreEqual(1, _session.NewRuns, "No new run: the sentence goes along.");
-            Assert.AreEqual(1, _session.Switches);
-            Assert.AreEqual(DealerRoster.BelialId, _session.CurrentDealerId);
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void ChoosingTheCurrentDealer_ReturnsWithoutSwitching()
-        {
-            StartRunWith(0);
-            _session.RequestLeave();
-
-            _dealerSelect.Choose(0);
-
-            Assert.AreEqual(0, _session.Switches);
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void SittingPastASoulLine_NeedsConfirmation()
-        {
-            StartRunWith(0);
-            _session.Years = 1600;
-            _session.RequestLeave();
-
-            _dealerSelect.Choose(2);
-
-            Assert.AreEqual(0, _session.Switches, "Not before the warning is accepted.");
-            Assert.IsNotEmpty(_dealerSelect.Warning);
-            Assert.IsTrue(_dealerSelect.IsVisible);
-
-            _dealerSelect.Confirm();
-
-            Assert.AreEqual(1, _session.Switches);
-            Assert.AreEqual(DealerRoster.LilithId, _session.CurrentDealerId);
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void CancellingTheWarning_StaysOnTheChoice()
-        {
-            StartRunWith(0);
-            _session.Years = 1600;
-            _session.RequestLeave();
-            _dealerSelect.Choose(2);
-
-            _dealerSelect.Cancel();
-            _dealerSelect.Confirm();
-
-            Assert.AreEqual(0, _session.Switches, "A confirm after cancelling does nothing.");
-            Assert.IsTrue(_dealerSelect.IsVisible);
-        }
-
-        [Test]
-        public void BackWhileChangingTables_ReturnsToTheTable()
-        {
-            StartRunWith(0);
-            _session.RequestLeave();
-
-            _dealerSelect.PressBack();
-
-            Assert.IsTrue(_table.Visible);
-            Assert.IsFalse(_menu.IsVisible);
-        }
-
-        [Test]
-        public void MenuChangeTable_OpensTheChoice()
-        {
-            StartRunWith(0);
-            _table.PressMenu();
-
-            _menu.PressChangeTable();
-
-            Assert.IsTrue(_dealerSelect.IsVisible);
-        }
-
-        [Test]
-        public void MenuChangeTable_WhenSoulBound_StaysAtTheTable()
-        {
-            StartRunWith(0);
-            _session.SoulBound = true;
-            _table.PressMenu();
-
-            _menu.PressChangeTable();
-
-            Assert.IsFalse(_dealerSelect.IsVisible);
-            Assert.IsTrue(_table.Visible, "The dealer answers at the table.");
+            Assert.IsTrue(_menu.IsVisible);
+            Assert.IsFalse(_sinners.IsVisible);
+            Assert.IsNull(_chapters.Started);
         }
 
         // ------------------------------------------------------------------ Esc and sub-screens
@@ -671,43 +377,15 @@ namespace HellPoker.Core.Tests
         [Test]
         public void Escape_OnTheRules_ClosesThemFirst()
         {
-            StartRunWith();
-            _table.PressMenu();
+            RunThenMenu();
             _menu.RulesOpen = true;
 
             _presenter.GoBack();
             Assert.IsFalse(_menu.RulesOpen);
-            Assert.IsTrue(_menu.IsVisible, "Still on the menu, not back at the table yet.");
+            Assert.IsTrue(_menu.IsVisible, "Still on the menu, not back in the run yet.");
 
             _presenter.GoBack();
-            Assert.IsTrue(_table.Visible);
-        }
-
-        [Test]
-        public void Escape_OnTheWarning_ClosesItAndStaysOnTheChoice()
-        {
-            StartRunWith(0);
-            _session.Years = 1600;
-            _session.RequestLeave();
-            _dealerSelect.Choose(2);
-
-            _presenter.GoBack();
-
-            Assert.IsFalse(_dealerSelect.IsConfirming);
-            Assert.IsTrue(_dealerSelect.IsVisible);
-            _dealerSelect.Confirm();
-            Assert.AreEqual(0, _session.Switches, "The warning was dismissed: no late seat.");
-        }
-
-        [Test]
-        public void Escape_WhileChangingTables_ReturnsToTheTable()
-        {
-            StartRunWith(0);
-            _session.RequestLeave();
-
-            _presenter.GoBack();
-
-            Assert.IsTrue(_table.Visible);
+            Assert.IsTrue(_chapters.IsVisible);
         }
 
         [Test]
@@ -715,219 +393,117 @@ namespace HellPoker.Core.Tests
         {
             int before = _transition.Played;
             _menu.PressNewGame();
-            _dealerSelect.Choose(0);
-            _table.PressMenu();
+            _sinners.Choose(0);
+            _chapters.AskForMenu();
             _menu.PressSettings();
 
             Assert.AreEqual(before + 4, _transition.Played);
         }
 
-        // ------------------------------------------------------------------ end of a run, records
-
-        private static RunSummary Summary(bool absolved) =>
-            new RunSummary(absolved, 12, 0, 1400, HellPoker.Core.Evaluation.HandCategory.Flush, new[] { "MAMMON" }, false);
-
         [Test]
-        public void EndOfARun_ShowsTheEndScreen()
-        {
-            StartRunWith();
-
-            _session.EndRun(Summary(true));
-
-            Assert.IsTrue(_end.IsVisible);
-            Assert.IsTrue(_end.Summary.Absolved);
-            Assert.IsFalse(_table.Visible);
-            Assert.IsTrue(_presenter.IsMenuOpen);
-        }
-
-        [Test]
-        public void EndScreen_NewGame_OpensTheDealerChoice()
-        {
-            StartRunWith();
-            _session.EndRun(Summary(false));
-
-            _end.PressNewGame();
-
-            Assert.IsFalse(_end.IsVisible);
-            Assert.IsTrue(_dealerSelect.IsVisible);
-        }
-
-        [Test]
-        public void EndScreen_Menu_AndEsc_GoToTheMenu_WithoutContinue()
-        {
-            StartRunWith();
-            _session.EndRun(Summary(false));
-
-            _presenter.GoBack();
-
-            Assert.IsTrue(_menu.IsVisible);
-            Assert.IsFalse(_menu.ContinueShown, "A finished run cannot be continued.");
-            Assert.IsFalse(_end.IsVisible);
-        }
-
-        [Test]
-        public void Records_OpenFromTheMenu_ForEveryDealer_AndGoBack()
+        public void Records_OpenFromTheMenu_TheGamesBook_AndGoBack()
         {
             _menu.PressRecords();
             Assert.IsTrue(_records.IsVisible);
-            Assert.AreEqual(3, _records.DealersShown);
+            Assert.IsNotNull(_records.Lines, "the game's records, line by line");
+            CollectionAssert.Contains(_records.Lines, RecordsLayout.ColumnBreak, "two columns");
 
             _records.PressBack();
             Assert.IsTrue(_menu.IsVisible);
             Assert.IsFalse(_records.IsVisible);
         }
 
-        // ------------------------------------------------------------------ New Game over a run in progress
-
         [Test]
-        public void NewGame_DuringARun_AsksFirst_WithTheDemonsScorn()
+        public void TheMenuRoot_IsTheTitleMenuOnly()
         {
-            StartRunWith(0);
-            _table.PressMenu();
+            Assert.IsTrue(_presenter.IsAtMenuRoot, "The title menu.");
 
             _menu.PressNewGame();
+            Assert.IsFalse(_presenter.IsAtMenuRoot, "The class choice.");
+            _sinners.Choose(0);
+            Assert.IsFalse(_presenter.IsAtMenuRoot, "The run.");
 
+            _chapters.AskForMenu();
+            Assert.IsTrue(_presenter.IsAtMenuRoot);
+            _menu.RulesOpen = true;
+            Assert.IsFalse(_presenter.IsAtMenuRoot, "Not under the rules.");
+            _menu.RulesOpen = false;
+            _menu.PressNewGame();
             Assert.IsTrue(_menu.IsConfirming);
-            Assert.IsTrue(_menu.IsVisible);
-            Assert.IsFalse(_dealerSelect.IsVisible, "Nothing happens before the player answers.");
-            Assert.AreEqual(0, _session.Abandoned);
-            CollectionAssert.Contains(new[]
-            {
-                "Leaving with your account open? Afraid of the interest?",
-                "Run along. But this is Hell, debtor. Where would you go?",
-                "Scared of a few numbers? Close the book, then. I keep a copy."
-            }, _menu.Taunt);
-            Assert.AreEqual("Abandon this run? Your sentence will be forgotten.", _menu.Warning);
+            Assert.IsFalse(_presenter.IsAtMenuRoot, "Not under a warning.");
         }
 
-        [Test]
-        public void ConfirmingNewGame_AbandonsTheRun_AndOpensTheChoice()
-        {
-            StartRunWith(1);
-            _table.PressMenu();
-            _menu.PressNewGame();
-
-            _menu.Confirm();
-
-            Assert.AreEqual(1, _session.Abandoned);
-            Assert.IsTrue(_dealerSelect.IsVisible);
-            _dealerSelect.PressBack();
-            Assert.IsFalse(_menu.ContinueShown, "The abandoned run cannot be continued.");
-        }
+        // ------------------------------------------------------------------ New Game over a run, Quit
 
         [Test]
         public void Escape_OnTheNewGameWarning_ClosesIt_AndKeepsTheRun()
         {
-            StartRunWith(0);
-            _table.PressMenu();
+            RunThenMenu();
             _menu.PressNewGame();
+            Assert.AreEqual(Presentation.Ui.UiText.AbandonButton, _menu.ConfirmLabel);
 
             _presenter.GoBack();
 
             Assert.IsFalse(_menu.IsConfirming);
             Assert.IsTrue(_menu.IsVisible, "Still on the menu.");
-            Assert.AreEqual(0, _session.Abandoned);
+            Assert.AreEqual(0, _chapters.Abandoned);
             _presenter.GoBack();
-            Assert.IsTrue(_table.Visible, "The run goes on.");
-        }
-
-        [TestCase(AbandonRisk.Hand, "Abandon this run? The hand on the table counts as folded.")]
-        [TestCase(AbandonRisk.Soul, "Your soul is on the table. Walking away counts as damnation.")]
-        public void TheWarning_SaysWhatWalkingAwayCosts(AbandonRisk risk, string warning)
-        {
-            StartRunWith(2);
-            _session.Risk = risk;
-            _table.PressMenu();
-
-            _menu.PressNewGame();
-
-            Assert.AreEqual(warning, _menu.Warning);
+            Assert.IsTrue(_chapters.IsVisible, "The run goes on.");
         }
 
         [Test]
-        public void NewGame_WithNoRun_GoesStraightToTheChoice()
+        public void NewGame_WithNoRun_GoesStraightToTheClassChoice()
         {
             _menu.PressNewGame();
 
             Assert.IsFalse(_menu.IsConfirming);
-            Assert.IsTrue(_dealerSelect.IsVisible);
-        }
-
-        // ------------------------------------------------------------------ Quit over a hand in progress
-
-        [TestCase(AbandonRisk.Hand)]
-        [TestCase(AbandonRisk.Soul)]
-        public void QuitMidHand_AsksFirst_InTheDemonsVoice(AbandonRisk risk)
-        {
-            StartRunWith(0);
-            _session.Risk = risk;
-            _table.PressMenu();
-
-            _menu.PressQuit();
-
-            Assert.IsFalse(_quitter.QuitRequested, "Not before the player answers.");
-            Assert.IsTrue(_menu.IsConfirming);
-            Assert.AreEqual("Leave now and the hand is lost.", _menu.Warning);
-            Assert.AreEqual("QUIT", _menu.ConfirmLabel);
-            CollectionAssert.Contains(new[]
-            {
-                "You walked out mid-hand? The ledger noticed. Debited, with interest.",
-                "Skipping out on an open account? I charged it as forfeit."
-            }, _menu.Taunt);
-
-            _menu.Confirm();
-
-            Assert.IsTrue(_quitter.QuitRequested);
-            Assert.AreEqual(0, _session.Abandoned, "Quitting is not a new game: the hand is forfeited on the next launch.");
-        }
-
-        [Test]
-        public void QuitMidHand_Escape_KeepsPlaying()
-        {
-            StartRunWith(0);
-            _session.Risk = AbandonRisk.Hand;
-            _table.PressMenu();
-            _menu.PressQuit();
-
-            _presenter.GoBack();
-
-            Assert.IsFalse(_menu.IsConfirming);
-            Assert.IsFalse(_quitter.QuitRequested);
-        }
-
-        [Test]
-        public void QuitBetweenHands_GoesAtOnce()
-        {
-            StartRunWith(0);
-            _session.Risk = AbandonRisk.Run;
-            _table.PressMenu();
-
-            _menu.PressQuit();
-
-            Assert.IsTrue(_quitter.QuitRequested);
-            Assert.IsFalse(_menu.IsConfirming);
+            Assert.IsTrue(_sinners.IsVisible);
         }
 
         [Test]
         public void NewGameWarning_StillAbandons_NotQuits()
         {
-            StartRunWith(0);
-            _table.PressMenu();
+            RunThenMenu();
             _menu.PressNewGame();
-            Assert.AreEqual("ABANDON", _menu.ConfirmLabel);
 
             _menu.Confirm();
 
-            Assert.AreEqual(1, _session.Abandoned);
+            Assert.AreEqual(1, _chapters.Abandoned);
             Assert.IsFalse(_quitter.QuitRequested);
         }
 
         [Test]
-        public void Quit_AsksTheApplicationToQuit()
+        public void Quit_AsksTheApplicationToQuit_TheRunIsSaved()
         {
+            RunThenMenu();
+
             _menu.PressQuit();
 
+            Assert.IsTrue(_quitter.QuitRequested, "the run is saved at every step: nothing to ask");
+            Assert.IsFalse(_menu.IsConfirming);
+        }
+
+        [Test]
+        public void Quit_WithIronmanProgressSinceTheCamp_AsksFirst_AndEscKeepsPlaying()
+        {
+            RunThenMenu();
+            _chapters.IronmanUnsaved = true;
+
+            _menu.PressQuit();
+
+            Assert.IsFalse(_quitter.QuitRequested);
+            Assert.IsTrue(_menu.IsConfirming);
+            Assert.AreEqual(Presentation.Ui.UiText.IronmanQuitWarning, _menu.Warning);
+            Assert.AreEqual(Presentation.Ui.UiText.Yes, _menu.ConfirmLabel);
+            Assert.AreEqual(Presentation.Ui.UiText.No, _menu.CancelLabel);
+            _presenter.GoBack();
+            Assert.IsFalse(_menu.IsConfirming);
+            Assert.IsFalse(_quitter.QuitRequested);
+
+            _menu.PressQuit();
+            _menu.Confirm();
             Assert.IsTrue(_quitter.QuitRequested);
+            Assert.AreEqual(0, _chapters.Abandoned, "quitting is not a new game");
         }
     }
 }

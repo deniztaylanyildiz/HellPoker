@@ -12,19 +12,12 @@ namespace HellPoker.Presentation.Ui
 
         public static string ChaptersAbandonWarning => L("Your run will be lost — and counted as damned.", "Süren koşun kaybedilir — ve lanet sayılır.");
 
-        // ------------------------------------------------------------------ the title menu (the game; the Boss Simulator apart)
+        // ------------------------------------------------------------------ the title menu
 
         public static string GameTagline => L("Your sentence is split among the demons of Hell.\nBeat them at poker, one by one, down to Lucifer.",
             "Cezan cehennemin şeytanları arasında paylaştırıldı.\nOnları teker teker pokerde yen, Lucifer'e kadar.");
         public static string GameSubtagline => L("Five Card Draw  ·  coins on the floors  ·  every demon has a bar",
             "Beş Kart Poker  ·  katlarda coin  ·  her şeytanın bir barı var");
-
-        /// <summary>Under the title while the menu leads to the old demo (a developer's mode).</summary>
-        public static string SimulatorLabel => L("BOSS SIMULATOR (F9)", "BOSS SİMÜLATÖRÜ (F9)");
-
-        public static string GameRulesButton => L("THE GAME", "OYUN");
-
-        public static string GameRulesPage() => GameRulesBody();
 
         private static string GameRulesBody() => L(
             "HELL POKER: Five Card Draw against the House, all the way down to Lucifer. Choose who you were (a class), then go down " +
@@ -115,7 +108,6 @@ namespace HellPoker.Presentation.Ui
         /// <summary>{0} the years left of the sentence as the run walks free (its score).</summary>
         public static string FreedSentenceFormat => L("You walked free. Sentence: {0} years.", "Kurtuldun. Ceza: {0} yıl.");
         public static string FreedClean => L("You walked free. Sentence: none — SPOTLESS.", "Kurtuldun. Ceza: hiç — TERTEMİZ.");
-
 
         /// <summary>The floors' offers left something owing: it goes on the demon's bar at the gate.</summary>
         public static string MapOwed => L("Owed: on your sentence now, on the bar at the gate", "Borç: cezana şimdi, bara kapıda yazılır");

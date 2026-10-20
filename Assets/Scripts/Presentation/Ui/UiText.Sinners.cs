@@ -90,7 +90,7 @@ namespace HellPoker.Presentation.Ui
 
         public static string WardFlash => L("WARD", "KORUMA");
 
-        /// <summary>Masa birliği: the Boss Simulator's power on the player's panel (its row names it; the charge pips stand over it); null
+        /// <summary>Masa birliği: a demo table's power on the player's panel (its row names it; the charge pips stand over it); null
         /// for a class with no power there.</summary>
         public static string DemoPowerName(string id)
         {
@@ -136,11 +136,6 @@ namespace HellPoker.Presentation.Ui
                 default: return PowerNoHand;
             }
         }
-
-        /// <summary>One line for every class: {0} = "PEASANT 2 · ORACLE 0 · KING 1".</summary>
-        public static string RecordsClassesFormat => L("Freed as: {0}", "Sınıfa göre aklanma: {0}");
-
-        public static string SinnersButton => L("SINNERS", "GÜNAHKÂRLAR");
 
         // ------------------------------------------------------------------ the Jester and his jokers
 
@@ -225,26 +220,5 @@ namespace HellPoker.Presentation.Ui
 
         public static string JokerDuelPush => L("As many jokers each: a push, no years change.", "Eşit joker: el berabere, yıl değişmez.");
 
-        /// <summary>How to Play: the Sinners page.</summary>
-        public static string SinnersPage()
-        {
-            string Block(SinnerClass c) =>
-                $"{SinnerName(c.Id)} — {SinnerTitle(c.Id)}  ({string.Format(SinnerStartFormat, c.StartingYears)})\n" +
-                $"   {SinnerAbility(c.Id)}\n   {SinnerDetail(c.Id)}\n";
-            ChargeRules charge = ChargeRules.Default;
-            string page = string.Format(L("Before the first hand you choose who you were. The class stays for the whole run, at every table.\n" +
-                            "Every class has a power and a gauge of {0} pips under the portrait: a won hand +{1}, a lost one +{2}, a fold +{3}. " +
-                            "The gauge belongs to the run (new tables and Lucifer keep it). Full, K or the badge switches the power on; it " +
-                            "stays on until it is used (the gauge empties) or switched off with K again. The Jester has no gauge: his jokers are his power " +
-                            "(a single joker at the showdown becomes any card you name; two or more lose the hand).\n\n",
-                "İlk elden önce kim olduğunu seçersin. Sınıf bütün koşu boyunca, her masada seninledir.\n" +
-                "Her sınıfın bir gücü ve portrenin altında {0} pipli bir göstergesi var: kazanılan el +{1}, kaybedilen +{2}, çekilme +{3}. " +
-                "Gösterge koşuya aittir (yeni masa ve Lucifer onu korur). Dolunca K ya da rozet gücü açar; güç kullanılana " +
-                "(gösterge boşalır) ya da yine K ile kapatılana kadar açık kalır. Soytarı'nın göstergesi yok: gücü jokerleri " +
-                "(showdown'da tek joker seçtiğin karta dönüşür; iki ya da fazlası eli kaybettirir).\n\n"), charge.Full, charge.PerWin, charge.PerLoss, charge.PerFold);
-            foreach (SinnerClass c in SinnerRoster.All)
-                page += Block(c) + "\n";
-            return page.TrimEnd();
-        }
     }
 }

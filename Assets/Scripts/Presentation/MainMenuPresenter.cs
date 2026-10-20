@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using HellPoker.Core.Chapters;
 using HellPoker.Core.Dealers;
 using HellPoker.Core.Sinners;
 using HellPoker.Presentation.Abstractions;
@@ -9,119 +9,55 @@ using HellPoker.Presentation.Ui;
 namespace HellPoker.Presentation
 {
     /// <summary>
-    /// Moves the player between the screens: the title menu, its sub-screens (settings), the dealer choice and the table.
-    /// Menu → New Game → choose a demon → table. During a run the same choice screen changes tables: the sentence goes
-    /// along, and sitting with a demon whose soul line is already passed needs the player to confirm a warning.
-    /// Esc always goes one screen up (<see cref="GoBack"/>), and every screen change plays the transition curtain.
-    /// Knows nothing about poker rules; the run itself is reached through <see cref="IRunSession"/>.
+    /// Moves the player between the screens: the title menu, its sub-screens (settings, records), the class choice and the chapters.
+    /// Menu → NEW GAME → the class (and the difficulty under it) → the chapter's map. Esc always goes one screen up (<see cref="GoBack"/>),
+    /// and every screen change plays the transition curtain. Knows nothing about poker rules; the run itself is reached through
+    /// <see cref="IChapterSession"/>. Demo 3.4.1: the Boss Simulator (the old demo's menu, its demon choice and end screen) is gone.
     /// </summary>
     public sealed class MainMenuPresenter : IMenuCommands, IDisposable
     {
         private readonly IMainMenuView _menu;
-        private readonly IDealerSelectView _dealerSelect;
         private readonly ISettingsView _settings;
-        private readonly IEndScreenView _endScreen;
         private readonly IRecordsView _records;
-        private readonly ITableView _table;
-        private readonly IRunSession _session;
         private readonly IApplicationQuitter _quitter;
         private readonly IScreenTransition _transition;
-        private readonly Dealer[] _dealers;
-        private readonly Dealer _finalDealer;
-
-        /// <summary>The demons in words (names, titles, house rules): built again when the language changes.</summary>
-        private DealerCard[] _dealerCards;
-
-        /// <summary>Lucifer's card: last on the choice screen, locked; null when there is no Lucifer.</summary>
-        private DealerCard _finalCard;
-
-        /// <summary>The choice screen as last shown (new run or changing tables), to show again in another language.</summary>
-        private bool _choiceForTables;
-        private RunSummary _lastSummary;
-
-        private bool _changingTables;
-
-        /// <summary>The class choice of a new run (after the demon); null: every new run is a Peasant's.</summary>
         private readonly ISinnerSelectView _sinnerSelect;
-
-        /// <summary>The music of the screens (the menu's theme, the demon's at the table) and the curtain's whoosh.</summary>
-        private readonly IAudio _audio;
-        private readonly SinnerClass[] _classes;
-
-        /// <summary>The demon chosen for the new run, while the class is being chosen.</summary>
-        private Dealer _pendingDealer;
-        private int _pendingSeat = -1;
-
-        /// <summary>Phase 2's chapters (a test build's), apart from the demo's run; null: none.</summary>
         private readonly IChapterSession _chapters;
 
-        /// <summary>The class choice open now is for a chapter run (not the demo's).</summary>
-        private bool _chapterChoice;
+        /// <summary>The music of the screens (the menu's theme, the chapter's own) and the curtain's whoosh.</summary>
+        private readonly IAudio _audio;
 
-        /// <param name="dealers">The demons the player may choose.</param>
-        /// <param name="finalDealer">Lucifer, shown locked after them; he is never chosen, only met below the gate.</param>
-        public MainMenuPresenter(IMainMenuView menu, IDealerSelectView dealerSelect, ISettingsView settings, IEndScreenView endScreen,
-            IRecordsView records, ITableView table, IRunSession session, IApplicationQuitter quitter, IScreenTransition transition,
-            IReadOnlyList<Dealer> dealers, Dealer finalDealer = null, ISinnerSelectView sinnerSelect = null,
-            IReadOnlyList<SinnerClass> classes = null, IAudio audio = null, IChapterSession chapters = null, bool simulator = false,
-            bool simulatorAllowed = true)
+        public MainMenuPresenter(IMainMenuView menu, ISettingsView settings, IRecordsView records, IApplicationQuitter quitter,
+            IScreenTransition transition, ISinnerSelectView sinnerSelect, IChapterSession chapters, IAudio audio = null)
         {
-            _chapters = chapters;
-            _simulatorAllowed = simulatorAllowed;
-            _simulator = simulator && simulatorAllowed;
-            _audio = audio ?? NullAudio.Instance;
-            _sinnerSelect = sinnerSelect;
-            _classes = (classes ?? SinnerRoster.All).ToArray();
-            _finalDealer = finalDealer;
-            _finalCard = finalDealer == null ? null : DealerCards.Describe(finalDealer);
             _menu = menu ?? throw new ArgumentNullException(nameof(menu));
-            _dealerSelect = dealerSelect ?? throw new ArgumentNullException(nameof(dealerSelect));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _endScreen = endScreen ?? throw new ArgumentNullException(nameof(endScreen));
             _records = records ?? throw new ArgumentNullException(nameof(records));
-            _table = table ?? throw new ArgumentNullException(nameof(table));
-            _session = session ?? throw new ArgumentNullException(nameof(session));
             _quitter = quitter ?? throw new ArgumentNullException(nameof(quitter));
             _transition = transition ?? throw new ArgumentNullException(nameof(transition));
-            if (dealers == null || dealers.Count == 0) throw new ArgumentException("At least one dealer is needed.", nameof(dealers));
-            _dealers = dealers.ToArray();
-            _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
+            _sinnerSelect = sinnerSelect ?? throw new ArgumentNullException(nameof(sinnerSelect));
+            _chapters = chapters ?? throw new ArgumentNullException(nameof(chapters));
+            _audio = audio ?? NullAudio.Instance;
 
-            _menu.NewGamePressed += NewGame;
+            _menu.NewGamePressed += OpenChaptersOrChoose;
             _menu.Confirmed += GoAhead;
-            _menu.ContinuePressed += Continue;
-            _menu.ChangeTablePressed += AskToChangeTables;
+            _menu.ContinuePressed += ContinueChapters;
             _menu.SettingsPressed += OpenSettings;
             _menu.RecordsPressed += OpenRecords;
             _menu.QuitPressed += AskToQuit;
-            _dealerSelect.DealerChosen += Choose;
-            _dealerSelect.BackPressed += Back;
-            _dealerSelect.SeatConfirmed += ConfirmSeat;
-            _dealerSelect.SeatCancelled += CancelSeat;
             _settings.BackPressed += OpenMenu;
             _records.BackPressed += OpenMenu;
-            _endScreen.NewGamePressed += OpenNewRunChoice;
-            _endScreen.MenuPressed += OpenMenu;
-            _table.MenuPressed += OpenMenu;
-            _session.LeaveRequested += OpenTableChoice;
-            _session.RunEnded += ShowEnd;
+            _sinnerSelect.SinnerChosen += ChooseSinner;
+            _sinnerSelect.BackPressed += OpenMenu;
+            _sinnerSelect.DifficultyStepped += StepDifficulty;
+            _chapters.MenuRequested += OpenMenu;
+            _chapters.NewRunRequested += OpenSinnerChoice;
             Lang.Changed += OnLanguageChanged;
-            if (_sinnerSelect != null)
-            {
-                _sinnerSelect.SinnerChosen += ChooseSinner;
-                _sinnerSelect.BackPressed += BackFromSinners;
-                _sinnerSelect.DifficultyStepped += StepDifficulty;
-            }
-            if (_chapters != null)
-            {
-                _chapters.MenuRequested += OpenMenu;
-                _chapters.NewRunRequested += OpenChapterSinnerChoice;
-            }
 
             OpenMenu();
         }
 
-        public bool IsMenuOpen => _menu.IsVisible || _dealerSelect.IsVisible || (_sinnerSelect?.IsVisible ?? false) || _settings.IsVisible || _endScreen.IsVisible || _records.IsVisible;
+        public bool IsMenuOpen => _menu.IsVisible || _sinnerSelect.IsVisible || _settings.IsVisible || _records.IsVisible;
 
         public bool IsTransitioning => _transition.IsPlaying;
 
@@ -133,30 +69,14 @@ namespace HellPoker.Presentation
 
         public void GoBack()
         {
-            if (_sinnerSelect != null && _sinnerSelect.IsVisible)
-            {
-                BackFromSinners();
-            }
-            else if (_dealerSelect.IsVisible)
-            {
-                if (_dealerSelect.IsConfirming)
-                {
-                    _dealerSelect.CloseConfirm();
-                    CancelSeat();
-                }
-                else
-                {
-                    Back();
-                }
-            }
-            else if (_settings.IsVisible || _records.IsVisible || _endScreen.IsVisible)
+            if (_sinnerSelect.IsVisible || _settings.IsVisible || _records.IsVisible)
             {
                 OpenMenu();
             }
             else if (_menu.IsVisible)
             {
-                if (!_menu.CloseOverlay() && CanContinue)
-                    Continue();
+                if (!_menu.CloseOverlay() && _chapters.CanContinue)
+                    ContinueChapters();
             }
             else
             {
@@ -166,71 +86,45 @@ namespace HellPoker.Presentation
 
         public void Dispose()
         {
-            _menu.NewGamePressed -= NewGame;
+            _menu.NewGamePressed -= OpenChaptersOrChoose;
             _menu.Confirmed -= GoAhead;
-            _menu.ContinuePressed -= Continue;
-            _menu.ChangeTablePressed -= AskToChangeTables;
+            _menu.ContinuePressed -= ContinueChapters;
             _menu.SettingsPressed -= OpenSettings;
             _menu.RecordsPressed -= OpenRecords;
             _menu.QuitPressed -= AskToQuit;
-            _dealerSelect.DealerChosen -= Choose;
-            _dealerSelect.BackPressed -= Back;
-            _dealerSelect.SeatConfirmed -= ConfirmSeat;
-            _dealerSelect.SeatCancelled -= CancelSeat;
             _settings.BackPressed -= OpenMenu;
             _records.BackPressed -= OpenMenu;
-            _endScreen.NewGamePressed -= OpenNewRunChoice;
-            _endScreen.MenuPressed -= OpenMenu;
-            _table.MenuPressed -= OpenMenu;
-            _session.LeaveRequested -= OpenTableChoice;
-            _session.RunEnded -= ShowEnd;
+            _sinnerSelect.SinnerChosen -= ChooseSinner;
+            _sinnerSelect.BackPressed -= OpenMenu;
+            _sinnerSelect.DifficultyStepped -= StepDifficulty;
+            _chapters.MenuRequested -= OpenMenu;
+            _chapters.NewRunRequested -= OpenSinnerChoice;
             Lang.Changed -= OnLanguageChanged;
-            if (_sinnerSelect != null)
-            {
-                _sinnerSelect.SinnerChosen -= ChooseSinner;
-                _sinnerSelect.BackPressed -= BackFromSinners;
-                _sinnerSelect.DifficultyStepped -= StepDifficulty;
-            }
-            if (_chapters != null)
-            {
-                _chapters.MenuRequested -= OpenMenu;
-                _chapters.NewRunRequested -= OpenChapterSinnerChoice;
-            }
         }
 
-        // ------------------------------------------------------------------ Phase 2's chapters
+        // ------------------------------------------------------------------ the run
 
-        /// <summary>The Phase 2 button: a new run (its class first) — over a run that waits only once the player agrees to lose it.</summary>
+        /// <summary>NEW GAME: a new run (its class first) — over a run that waits only once the player agrees to lose it.</summary>
         private void OpenChaptersOrChoose()
         {
-            if (_chapters == null) return;
             if (!_chapters.CanContinue)
             {
-                OpenChapterSinnerChoice();
+                OpenSinnerChoice();
                 return;
             }
             DealerText mammon = UiText.Dealer(DealerRoster.MammonId);
             string taunt = mammon?.Scorn == null ? null : UiText.Pick(mammon.Scorn, Environment.TickCount & int.MaxValue);
-            _asking = Asking.NewChapterRun;
+            _asking = Asking.NewRun;
             _menu.AskToConfirm(taunt, UiText.ChaptersAbandonWarning, UiText.AbandonButton);
         }
 
-        /// <summary>Phase 2's CONTINUE: the run that waits (the saved one is loaded).</summary>
+        /// <summary>CONTINUE: the run that waits (the saved one is loaded).</summary>
         private void ContinueChapters()
         {
-            if (_chapters == null || !_chapters.CanContinue) return;
+            if (!_chapters.CanContinue) return;
             HideAll();
             _chapters.Continue();
             Curtain();
-        }
-
-        /// <summary>The class choice for a chapter run, over the first chapter's demon's hall.</summary>
-        private void OpenChapterSinnerChoice()
-        {
-            if (_chapters == null || _sinnerSelect == null) return;
-            _chapterChoice = true;
-            _pendingDealer = _dealers.FirstOrDefault(d => d.Id == DealerRoster.MammonId) ?? _dealers[0];
-            OpenSinnerChoice(curtain: true);
         }
 
         private void OpenChapters()
@@ -240,80 +134,8 @@ namespace HellPoker.Presentation
             Curtain();
         }
 
-        /// <summary>BACK on the class choice: the demon choice for a demo run, the menu for a chapter run.</summary>
-        private void BackFromSinners()
-        {
-            if (_chapterChoice)
-            {
-                _chapterChoice = false;
-                _pendingDealer = null;
-                OpenMenu();
-                return;
-            }
-            OpenNewRunChoice();
-        }
-
-        /// <summary>
-        /// The language changed: the demons are described again, and the screen that is open says the same in the new words
-        /// (without a curtain). Fixed labels follow by themselves (<see cref="LocalizedText"/>).
-        /// </summary>
-        private void OnLanguageChanged()
-        {
-            _dealerCards = _dealers.Select(DealerCards.Describe).ToArray();
-            _finalCard = _finalDealer == null ? null : DealerCards.Describe(_finalDealer);
-
-            if (_sinnerSelect != null && _sinnerSelect.IsVisible)
-            {
-                OpenSinnerChoice(curtain: false);
-            }
-            else if (_dealerSelect.IsVisible)
-            {
-                if (_choiceForTables)
-                    OpenTableChoice(curtain: false);
-                else
-                    OpenNewRunChoice(curtain: false);
-            }
-            else if (_records.IsVisible)
-            {
-                ShowRecords();
-            }
-            else if (_endScreen.IsVisible && _lastSummary != null)
-            {
-                _endScreen.Show(_lastSummary);
-            }
-            else if (_menu.IsVisible && _menu.IsConfirming)
-            {
-                if (_asking == Asking.Quit) AskToQuit();
-                else if (_asking == Asking.NewChapterRun) OpenChaptersOrChoose();
-                else AskForNewGame();
-            }
-        }
-
-        /// <summary>
-        /// New Game from the menu. With a run in progress the player is never held — but asked first, told what walking
-        /// away costs, and mocked for it in the demon's own voice.
-        /// </summary>
-        private void AskForNewGame()
-        {
-            AbandonRisk risk = _session.AbandonRisk;
-            if (risk == AbandonRisk.None)
-            {
-                OpenNewRunChoice();
-                return;
-            }
-
-            string id = _session.CurrentDealerId;
-            DealerText dealer = id == null ? null : UiText.Dealer(id);
-            string taunt = dealer?.Scorn == null ? null : UiText.Pick(dealer.Scorn, Environment.TickCount & int.MaxValue);
-            string warning = risk == AbandonRisk.Soul ? UiText.AbandonSoulWarning
-                : risk == AbandonRisk.Hand ? UiText.AbandonHandWarning
-                : UiText.AbandonRunWarning;
-            _asking = Asking.NewGame;
-            _menu.AskToConfirm(taunt, warning, UiText.AbandonButton);
-        }
-
         /// <summary>What the open warning is about.</summary>
-        private enum Asking { Nothing, NewGame, Quit, NewChapterRun }
+        private enum Asking { Nothing, Quit, NewRun }
 
         private Asking _asking;
 
@@ -322,119 +144,144 @@ namespace HellPoker.Presentation
             Asking asking = _asking;
             _asking = Asking.Nothing;
             if (asking == Asking.Quit)
-                _quitter.Quit();
-            else if (asking == Asking.NewGame)
-                AbandonAndChoose();
-            else if (asking == Asking.NewChapterRun)
             {
-                _chapters?.Abandon();
-                OpenChapterSinnerChoice();
+                _quitter.Quit();
+            }
+            else if (asking == Asking.NewRun)
+            {
+                _chapters.Abandon();
+                OpenSinnerChoice();
             }
         }
 
         /// <summary>
-        /// Quit. Between hands it just goes (the run is saved); mid-hand — or with the soul on the table — the player is told
-        /// first that the hand left behind is lost (it is forfeited on the next launch), in the demon's own voice.
+        /// Quit. The run is saved at every step (a hand left in the middle is lost on the next launch, as its rules say), so the game just
+        /// goes — but an Ironman run is saved only at the camps (Demo 3.4): leaving now loses what was done since the last one, so it asks.
         /// </summary>
         private void AskToQuit()
         {
-            // The game's run is saved at every step (a hand left in the middle is lost on the next launch, as its rules say).
-            AbandonRisk risk = InSimulator ? _session.AbandonRisk : AbandonRisk.None;
-            // Demo 3.4: an Ironman run is saved only at the camps — leaving now loses what was done since the last one.
-            if (!InSimulator && _chapters != null && _chapters.IronmanUnsaved)
+            if (_chapters.IronmanUnsaved)
             {
                 _asking = Asking.Quit;
                 _menu.AskToConfirm(null, UiText.IronmanQuitWarning, UiText.Yes, UiText.No);
                 return;
             }
-            if (risk != AbandonRisk.Hand && risk != AbandonRisk.Soul)
-            {
-                _quitter.Quit();
-                return;
-            }
-
-            string id = _session.CurrentDealerId;
-            DealerText dealer = id == null ? null : UiText.Dealer(id);
-            string taunt = dealer?.Fled == null ? null : UiText.Pick(dealer.Fled, Environment.TickCount & int.MaxValue);
-            _asking = Asking.Quit;
-            _menu.AskToConfirm(taunt, UiText.QuitHandWarning, UiText.Quit);
+            _quitter.Quit();
         }
 
-        private void AbandonAndChoose()
+        // ------------------------------------------------------------------ the class choice and the difficulty
+
+        /// <summary>Demo 3.4: the difficulty chosen under the class cards (Medium at first).</summary>
+        private Difficulty _difficulty = DifficultyRules.Default;
+        private string _difficultyNote;
+
+        private bool DifficultyOpen(Difficulty d) => _chapters.Records?.IsDifficultyOpen(d) ?? d <= Difficulty.Medium;
+
+        /// <summary>The difficulty row: its name, open or locked, its words (what it adds, or what opens it).</summary>
+        private DifficultyChoice DifficultyRow()
         {
-            _session.AbandonRun();
-            OpenNewRunChoice();
+            Difficulty d = _difficulty;
+            bool open = DifficultyOpen(d);
+            return new DifficultyChoice((int)d, UiText.DifficultyName(d), open, open ? UiText.DifficultyHover(d) : UiText.DifficultyLockedHover(d),
+                d > Difficulty.Easy, d < DifficultyRules.Hardest);
         }
 
-        private void OpenNewRunChoice() => OpenNewRunChoice(curtain: true);
+        /// <summary>The chosen difficulty (tests).</summary>
+        public Difficulty ChosenDifficulty => _difficulty;
 
-        private void OpenNewRunChoice(bool curtain)
+        private static SinnerClass[] Classes => SinnerRoster.PhaseTwo.ToArray();
+
+        /// <summary>A class card's hover box (Demo 2.3.1): the whole text the short card leaves out, and its price.</summary>
+        private static string ClassCardHover(SinnerClass c)
         {
-            _chapterChoice = false;
-            _changingTables = false;
-            _choiceForTables = false;
-            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), soulAtStake: false, isCurrent: false)), curtain);
+            string text = UiText.ChapterSinnerFull(c.Id);
+            if (c.StartingJokers > 0 && c.JokerJackpot > 0)
+                text += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, c.JokerJackpot, Jester.PhaseTwoJackpotFallsTo);
+            return text + "\n" + UiText.ChapterSinnerDetailFull(c.Id);
         }
 
-        /// <summary>From the menu: go back to the table and ask there, so a soul-bound table answers in the dealer's voice.</summary>
-        private void AskToChangeTables()
+        private void OpenSinnerChoice() => OpenSinnerChoice(curtain: true);
+
+        /// <summary>Who was the player, up there? The class cards with their Phase 2 powers and locks, over the first chapter's demon's hall;
+        /// the difficulty under them.</summary>
+        private void OpenSinnerChoice(bool curtain)
         {
-            OpenTable();
-            _session.RequestLeave();
-        }
-
-        private void OpenTableChoice() => OpenTableChoice(curtain: true);
-
-        private void OpenTableChoice(bool curtain)
-        {
-            _changingTables = true;
-            _choiceForTables = true;
-            ShowChoice(_dealers.Select(d => new DealerChoice(Card(d), _session.WouldStakeSoul(d), d.Id == _session.CurrentDealerId)), curtain);
-        }
-
-        private DealerCard Card(Dealer dealer) => _dealerCards[Array.IndexOf(_dealers, dealer)];
-
-        private void ShowChoice(IEnumerable<DealerChoice> choices, bool curtain = true)
-        {
-            _pendingSeat = -1;
             HideAll();
-            if (_finalCard != null)
-                choices = choices.Concat(new[] { new DealerChoice(_finalCard, soulAtStake: false, isCurrent: false, isLocked: true) });
-            _dealerSelect.Show(choices.ToArray());
+            ChapterRecords records = _chapters.Records;
+            _sinnerSelect.Show(Classes.Select(c => new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id),
+                    UiText.ChapterSinnerAbility(c.Id), UiText.ChapterSinnerDetail(c.Id),
+                    string.Format(UiText.ChapterSinnerStartFormat, BossShares.Total(c.Id), ChapterRules.StartingCoinsFor(c.Id)),
+                    !ChapterUnlocks.IsClassOpen(c.Id, records), UiText.MilestoneText(ChapterUnlocks.SummonerMilestone), ClassCardHover(c))).ToArray(),
+                DealerRoster.MammonId, _difficultyNote, DifficultyRow());
             if (curtain) Curtain();
         }
 
-        /// <summary>The curtain over a screen change, with its whoosh; the music follows the screen: the demon's at the table,
-        /// the menu's theme everywhere else.</summary>
+        /// <summary>The difficulty row's arrows: the level steps (a locked one shows what opens it); its rules show under the title.</summary>
+        private void StepDifficulty(int delta)
+        {
+            if (!_sinnerSelect.IsVisible || delta == 0) return;
+            _difficulty = DifficultyRules.Clamp((int)_difficulty + Math.Sign(delta));
+            _difficultyNote = DifficultyOpen(_difficulty) ? UiText.DifficultyHover(_difficulty) : UiText.DifficultyLockedHover(_difficulty);
+            OpenSinnerChoice(curtain: false);
+        }
+
+        private void ChooseSinner(int index)
+        {
+            SinnerClass[] classes = Classes;
+            if (index < 0 || index >= classes.Length) return;
+            if (!ChapterUnlocks.IsClassOpen(classes[index].Id, _chapters.Records)) return;   // locked: the card says why
+            if (!DifficultyOpen(_difficulty))
+            {
+                // A locked level: the line under the title says what opens it.
+                _difficultyNote = UiText.DifficultyLockedHover(_difficulty);
+                OpenSinnerChoice(curtain: false);
+                return;
+            }
+            _difficultyNote = null;
+            _chapters.Start(classes[index], _difficulty);
+            OpenChapters();
+        }
+
+        // ------------------------------------------------------------------ the menu and its screens
+
+        /// <summary>
+        /// The language changed: the screen that is open says the same in the new words (without a curtain). Fixed labels follow by
+        /// themselves (<see cref="LocalizedText"/>).
+        /// </summary>
+        private void OnLanguageChanged()
+        {
+            if (_sinnerSelect.IsVisible)
+            {
+                OpenSinnerChoice(curtain: false);
+            }
+            else if (_records.IsVisible)
+            {
+                ShowRecords();
+            }
+            else if (_menu.IsVisible && _menu.IsConfirming)
+            {
+                if (_asking == Asking.Quit) AskToQuit();
+                else if (_asking == Asking.NewRun) OpenChaptersOrChoose();
+            }
+        }
+
+        /// <summary>The curtain over a screen change, with its whoosh; the music follows the screen: the chapter's, else the menu's theme.</summary>
         private void Curtain()
         {
             _transition.Play();
             _audio.PlaySfx(SfxIds.Transition);
-            bool chapters = _chapters != null && _chapters.IsVisible;
-            bool atTable = !IsMenuOpen && !chapters;
-            _audio.PlayMusic(chapters ? _chapters.MusicId : atTable ? _session.CurrentDealerId : SfxIds.MenuMusic);
-            _audio.SetSoulLayer(atTable && _session.AbandonRisk == AbandonRisk.Soul);
+            _audio.PlayMusic(_chapters.IsVisible ? _chapters.MusicId : SfxIds.MenuMusic);
+            _audio.SetSoulLayer(false);
         }
 
         /// <summary>Every screen goes away; the caller shows the one wanted.</summary>
         private void HideAll()
         {
             _menu.Hide();
-            _dealerSelect.Hide();
-            _sinnerSelect?.Hide();
+            _sinnerSelect.Hide();
             _settings.Hide();
-            _endScreen.Hide();
             _records.Hide();
-            _table.SetVisible(false);
-            _chapters?.Hide();
-        }
-
-        private void ShowEnd(RunSummary summary)
-        {
-            _lastSummary = summary;
-            HideAll();
-            _endScreen.Show(summary);
-            Curtain();
+            _chapters.Hide();
         }
 
         private void OpenRecords()
@@ -444,173 +291,18 @@ namespace HellPoker.Presentation
             Curtain();
         }
 
-        /// <summary>The game's records (the chapters' book) — or, in the Boss Simulator, the old demo's.</summary>
-        private void ShowRecords()
-        {
-            if (InSimulator) _records.Show(_session.Records, _dealerCards);
-            else _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records).Concat(new[] { RecordsLayout.ColumnBreak })
+        /// <summary>The game's records (the chapters' book): the runs left, the progress and the locks right.</summary>
+        private void ShowRecords() =>
+            _records.ShowLines(UiText.ChapterRecordLines(_chapters.Records).Concat(new[] { RecordsLayout.ColumnBreak })
                 .Concat(UiText.ProgressRecordLines(_chapters.Records)).ToList());
-        }
-
-        private void Choose(int index)
-        {
-            if (_finalCard != null && index == _dealers.Length)
-            {
-                // Nobody sits with him by choice: he answers from the dark.
-                _dealerSelect.ShowLockedLine(index, UiText.Dealer(_finalCard.Id).NotYet);
-                return;
-            }
-
-            if (index < 0 || index >= _dealers.Length) return;
-            Dealer dealer = _dealers[index];
-
-            if (!_changingTables)
-            {
-                if (_sinnerSelect == null)
-                {
-                    _session.StartNewRun(dealer);
-                    OpenTable();
-                    return;
-                }
-                _pendingDealer = dealer;
-                OpenSinnerChoice(curtain: true);
-                return;
-            }
-
-            if (dealer.Id == _session.CurrentDealerId)
-            {
-                OpenTable();
-                return;
-            }
-
-            if (_session.WouldStakeSoul(dealer))
-            {
-                // A trap, left in on purpose: the player may still sit down, but only after a warning.
-                _pendingSeat = index;
-                _dealerSelect.AskToConfirm(UiText.Dealer(dealer.Id).SoulWarning);
-                return;
-            }
-
-            _session.SwitchTable(dealer);
-            OpenTable();
-        }
-
-        /// <summary>Who was the player, up there? The class cards, over the chosen demon's hall.</summary>
-        /// <summary>The classes on the choice screen: the demo's, or Phase 2's (the Summoner too, locked until the first freedom).</summary>
-        private SinnerClass[] ChoiceClasses => _chapterChoice ? SinnerRoster.PhaseTwo.ToArray() : _classes;
-
-        /// <summary>Demo 3.4: the difficulty chosen under the class cards (Phase 2; Medium at first).</summary>
-        private Core.Chapters.Difficulty _difficulty = Core.Chapters.DifficultyRules.Default;
-        private string _difficultyNote;
-
-        private bool DifficultyOpen(Core.Chapters.Difficulty d) =>
-            _chapters?.Records?.IsDifficultyOpen(d) ?? d <= Core.Chapters.Difficulty.Medium;
-
-        /// <summary>The difficulty row: its name, open or locked, its words (what it adds, or what opens it).</summary>
-        private DifficultyChoice DifficultyRow()
-        {
-            Core.Chapters.Difficulty d = _difficulty;
-            bool open = DifficultyOpen(d);
-            return new DifficultyChoice((int)d, UiText.DifficultyName(d), open, open ? UiText.DifficultyHover(d) : UiText.DifficultyLockedHover(d),
-                d > Core.Chapters.Difficulty.Easy, d < Core.Chapters.DifficultyRules.Hardest);
-        }
-
-        /// <summary>The chosen difficulty (tests).</summary>
-        public Core.Chapters.Difficulty ChosenDifficulty => _difficulty;
-
-        /// <summary>A Phase 2 class card's hover box (Demo 2.3.1): the whole text the short card leaves out, and its price.</summary>
-        private static string ClassCardHover(SinnerClass c)
-        {
-            string text = UiText.ChapterSinnerFull(c.Id);
-            if (c.StartingJokers > 0 && c.JokerJackpot > 0)
-                text += "\n" + string.Format(UiText.JokerJackpotPhaseTwoFormat, c.JokerJackpot, Jester.PhaseTwoJackpotFallsTo);
-            return text + "\n" + UiText.ChapterSinnerDetailFull(c.Id);
-        }
-
-        private void OpenSinnerChoice(bool curtain)
-        {
-            HideAll();
-            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury, the imps): their own words and
-            // their locks; the difficulty under the cards.
-            Core.Chapters.ChapterRecords records = _chapters?.Records;
-            _sinnerSelect.Show(ChoiceClasses.Select(c => _chapterChoice
-                    ? new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.ChapterSinnerAbility(c.Id),
-                        UiText.ChapterSinnerDetail(c.Id),
-                        string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id)),
-                        !Core.Chapters.ChapterUnlocks.IsClassOpen(c.Id, records), UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone),
-                        ClassCardHover(c))
-                    : new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id),
-                        string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
-                _pendingDealer?.Id, _chapterChoice ? _difficultyNote : null, _chapterChoice ? DifficultyRow() : null);
-            if (curtain) Curtain();
-        }
-
-        /// <summary>The difficulty row's arrows: the level steps (a locked one shows what opens it); its rules show under the title.</summary>
-        private void StepDifficulty(int delta)
-        {
-            if (!_chapterChoice || delta == 0) return;
-            _difficulty = Core.Chapters.DifficultyRules.Clamp((int)_difficulty + Math.Sign(delta));
-            _difficultyNote = DifficultyOpen(_difficulty) ? UiText.DifficultyHover(_difficulty) : UiText.DifficultyLockedHover(_difficulty);
-            OpenSinnerChoice(curtain: false);
-        }
-
-        private void ChooseSinner(int index)
-        {
-            SinnerClass[] classes = ChoiceClasses;
-            if (_pendingDealer == null || index < 0 || index >= classes.Length) return;
-            if (_chapterChoice && !Core.Chapters.ChapterUnlocks.IsClassOpen(classes[index].Id, _chapters?.Records)) return;   // locked: the card says why
-            if (_chapterChoice && !DifficultyOpen(_difficulty))
-            {
-                // A locked level: the line under the title says what opens it.
-                _difficultyNote = UiText.DifficultyLockedHover(_difficulty);
-                OpenSinnerChoice(curtain: false);
-                return;
-            }
-            Dealer dealer = _pendingDealer;
-            _pendingDealer = null;
-            if (_chapterChoice)
-            {
-                _chapterChoice = false;
-                _difficultyNote = null;
-                _chapters.Start(classes[index], _difficulty);
-                OpenChapters();
-                return;
-            }
-            _session.StartNewRun(dealer, _classes[index]);
-            OpenTable();
-        }
-
-        private void ConfirmSeat()
-        {
-            if (_pendingSeat < 0) return;
-
-            Dealer dealer = _dealers[_pendingSeat];
-            _pendingSeat = -1;
-            _session.SwitchTable(dealer);
-            OpenTable();
-        }
-
-        private void CancelSeat()
-        {
-            _pendingSeat = -1;
-        }
-
-        private void Back()
-        {
-            if (_changingTables)
-                OpenTable();
-            else
-                OpenMenu();
-        }
 
         private void OpenMenu()
         {
             HideAll();
-            _chapterChoice = false;
-            _menu.SetSimulator(InSimulator);
-            _menu.Show(CanContinue);
-            // Demo 3.3: the game's run that waits, on a card beside CONTINUE (the Boss Simulator's has none).
-            _menu.SetContinueCard(CanContinue && !InSimulator ? _chapters?.ContinueCard : null);
+            bool canContinue = _chapters.CanContinue;
+            _menu.Show(canContinue);
+            // Demo 3.3: the run that waits, on a card beside CONTINUE.
+            _menu.SetContinueCard(canContinue ? _chapters.ContinueCard : null);
             Curtain();
         }
 
@@ -624,51 +316,10 @@ namespace HellPoker.Presentation
             if (IsAtMenuRoot) _menu.PressSelection();
         }
 
-        // ------------------------------------------------------------------ the game, or the Boss Simulator
-
-        /// <summary>The menu leads to the Boss Simulator (the old demo) instead of the game: F9 / HELLPOKER_DEV — and always without chapters.</summary>
-        private bool _simulator;
-
-        public bool InSimulator => _simulator || _chapters == null;
-
-        /// <summary>CONTINUE: the game's run that waits — or the simulator's.</summary>
-        private bool CanContinue => InSimulator ? _session.CanContinue : _chapters.CanContinue;
-
-        /// <summary>Masa birliği: the Boss Simulator is a developer's tool — F9 works only in the editor, a development build, with
-        /// HELLPOKER_DEV=1, in batch runs (the tests) and on the FPS tour; a player's build has no trace of it.</summary>
-        private readonly bool _simulatorAllowed;
-
-        public void ToggleSimulator()
-        {
-            if (_chapters == null || !_simulatorAllowed || !IsAtMenuRoot) return;
-            _simulator = !_simulator;
-            OpenMenu();
-        }
-
-        /// <summary>NEW GAME: a chapter run (the class first) — or, in the simulator, a demon's table.</summary>
-        private void NewGame()
-        {
-            if (InSimulator) AskForNewGame();
-            else OpenChaptersOrChoose();
-        }
-
-        private void Continue()
-        {
-            if (InSimulator) OpenTable();
-            else ContinueChapters();
-        }
-
         private void OpenSettings()
         {
             HideAll();
             _settings.Show();
-            Curtain();
-        }
-
-        private void OpenTable()
-        {
-            HideAll();
-            _table.SetVisible(true);
             Curtain();
         }
     }

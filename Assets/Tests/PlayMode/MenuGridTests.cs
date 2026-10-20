@@ -17,14 +17,16 @@ namespace HellPoker.PlayMode.Tests
 {
     /// <summary>
     /// Phase 3: the title menu sits on the 8 px grid — every menu button the same size, on the grid and in two aligned columns, the logo at a
-    /// whole-number scale, the corner buttons on the grid — and no words run into each other, in both languages, in the game and the simulator.
+    /// whole-number scale, the corner buttons on the grid — and no words run into each other, in both languages, with and without a run waiting.
     /// </summary>
     public class MenuGridTests
     {
         [TearDown]
-        public void BackToTheUsualMenu()
+        public void BackToTheUsualMenu() => ForgetTheKeyboard();
+
+        /// <summary>The test keyboard goes, the input settings come back (every test that tapped a key).</summary>
+        internal static void ForgetTheKeyboard()
         {
-            HellPokerBootstrap.ForceSimulator = null;
             if (_keyboard != null)
             {
                 InputSystem.RemoveDevice(_keyboard);
@@ -38,20 +40,22 @@ namespace HellPoker.PlayMode.Tests
         }
 
         private static readonly string[] MenuButtons =
-            { "ContinueButton", "ChangeTableButton", "NewGameButton", "SettingsButton", "HowToPlayButton", "RecordsButton", "QuitButton" };
+            { "ContinueButton", "NewGameButton", "SettingsButton", "HowToPlayButton", "RecordsButton", "QuitButton" };
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator TheMenu_IsOnTheGrid_InBothLanguages_InTheGameAndTheSimulator()
+        public IEnumerator TheMenu_IsOnTheGrid_InBothLanguages_WithAndWithoutARun()
         {
-            foreach (bool simulator in new[] { false, true })
+            foreach (bool saved in new[] { false, true })
             foreach (bool turkish in new[] { false, true })
             {
                 HellPokerBootstrap.BatchStore.Clear();
                 HellPokerBootstrap.BatchStore.SetString("settings.language", turkish ? "Turkish" : "English");
-                HellPokerBootstrap.ForceSimulator = simulator;
+                if (saved)
+                    new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore)
+                        .SaveRun(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 2, ""));
                 yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
                 yield return new WaitForSeconds(0.5f);
-                string what = (simulator ? "simulator" : "game") + (turkish ? " (tr)" : " (en)");
+                string what = (saved ? "a run waits" : "no run") + (turkish ? " (tr)" : " (en)");
                 var menu = Object.FindFirstObjectByType<MainMenuView>();
                 Canvas.ForceUpdateCanvases();
 
@@ -110,7 +114,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             if (turkish) HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             if (save != null) new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             Canvas.ForceUpdateCanvases();
@@ -123,7 +126,7 @@ namespace HellPoker.PlayMode.Tests
 #endif
 
         /// <summary>A key pressed and let go on a test keyboard (the game's own KeyboardInput reads it).</summary>
-        private static IEnumerator Tap(Key key)
+        internal static IEnumerator Tap(Key key)
         {
             if (_keyboard == null)
             {

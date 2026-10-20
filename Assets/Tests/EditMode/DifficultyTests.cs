@@ -48,6 +48,57 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(Difficulty.Easy, DifficultyRules.Parse(null), "no difficulty: Easy");
         }
 
+        /// <summary>Demo 3.4.1: every number the user approved on 2026-10-20, pinned (a change here is a design decision, not a tweak).</summary>
+        [Test]
+        public void TheApprovedNumbers_EveryOne()
+        {
+            int[] Mammon_Belial_Lilith(System.Func<Difficulty, int, int> rule, Difficulty d) => new[] { rule(d, 1), rule(d, 2), rule(d, 3) };
+            int[] FourDemons(System.Func<Difficulty, int, int> rule, Difficulty d) => new[] { rule(d, 0), rule(d, 1), rule(d, 2), rule(d, 3) };
+
+            // 1. The floors' ante: every 3 / 2 / 1 hands (Easy: the chapter's own).
+            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, DifficultyRules.AnteStepHands);
+            Assert.IsNull(DifficultyRules.AnteStepHandsFor(Difficulty.Easy, 1));
+            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, Mammon_Belial_Lilith((d, c) => DifficultyRules.AnteStepHandsFor(d, c).Value, Difficulty.Medium));
+            // 2. The tribute: at least 40 / 50 / 60 % of the purse brought to the gate.
+            CollectionAssert.AreEqual(new[] { 0, 0, 0 }, Mammon_Belial_Lilith(DifficultyRules.TributePurseFor, Difficulty.Easy));
+            CollectionAssert.AreEqual(new[] { 40, 50, 60 }, Mammon_Belial_Lilith(DifficultyRules.TributePurseFor, Difficulty.Medium));
+            // 3. The rage: under 50 % of the bar, the stakes ×1.5, the rule ×1.5 (intervals halved) — Lucifer too (his mirror's interval halved).
+            Assert.AreEqual(50, DifficultyRules.RageBarPercent);
+            Assert.AreEqual(150, DifficultyRules.RageStakePercent);
+            Assert.AreEqual(150, DifficultyRules.RageRulePercent);
+            // 4. The map: middle camps at most 2 / 1 / 1, the market ×1.2 / ×1.4 over the chapter's own price, a warden in "?" 5 / 10 / 15 %,
+            //    Lilith's every path meets a warden.
+            CollectionAssert.AreEqual(new[] { 2, 1, 1 }, Mammon_Belial_Lilith(DifficultyRules.MiddleCampsFor, Difficulty.Medium));
+            Assert.AreEqual(int.MaxValue, DifficultyRules.MiddleCampsFor(Difficulty.Easy, 1));
+            CollectionAssert.AreEqual(new[] { 100, 120, 140 }, Mammon_Belial_Lilith(DifficultyRules.MarketFor, Difficulty.Medium));
+            CollectionAssert.AreEqual(new[] { 100, 100, 100 }, Mammon_Belial_Lilith(DifficultyRules.MarketFor, Difficulty.Easy));
+            CollectionAssert.AreEqual(new[] { 5, 10, 15 }, Mammon_Belial_Lilith(DifficultyRules.UnknownWardenFor, Difficulty.Medium));
+            CollectionAssert.AreEqual(new[] { 5, 5, 5 }, Mammon_Belial_Lilith(DifficultyRules.UnknownWardenFor, Difficulty.Easy));
+            Assert.IsTrue(DifficultyRules.WardenOnEveryPath(Difficulty.Medium, 3));
+            Assert.IsFalse(DifficultyRules.WardenOnEveryPath(Difficulty.Medium, 2));
+            Assert.IsFalse(DifficultyRules.WardenOnEveryPath(Difficulty.Easy, 3));
+            // 5. The purse topped up between chapters: Hard 100 / 75 / 50 %, Ironman 100 / 50 / 25 %.
+            CollectionAssert.AreEqual(new[] { 100, 100, 100 }, Mammon_Belial_Lilith(DifficultyRules.PurseTopUpFor, Difficulty.Medium));
+            CollectionAssert.AreEqual(new[] { 100, 75, 50 }, Mammon_Belial_Lilith(DifficultyRules.PurseTopUpFor, Difficulty.Hard));
+            CollectionAssert.AreEqual(new[] { 100, 50, 25 }, Mammon_Belial_Lilith(DifficultyRules.PurseTopUpFor, Difficulty.Ironman));
+            // 6. A loss at a demon's table (Mammon, Belial, Lilith, Lucifer): Hard ×1 / 1.25 / 1.5 / 1.5, Ironman ×1.25 / 1.5 / 1.75 / 1.75.
+            CollectionAssert.AreEqual(new[] { 100, 100, 100, 100 }, FourDemons(DifficultyRules.BossLossFor, Difficulty.Medium));
+            CollectionAssert.AreEqual(new[] { 100, 125, 150, 150 }, FourDemons(DifficultyRules.BossLossFor, Difficulty.Hard));
+            CollectionAssert.AreEqual(new[] { 125, 150, 175, 175 }, FourDemons(DifficultyRules.BossLossFor, Difficulty.Ironman));
+            // 7. Ironman's malice gauge fills in 3 / 2 / 2 / 1 hands (the gauges are 4 / 2 / 4 / 1: Mammon and Lilith shorter by 1 and 2).
+            CollectionAssert.AreEqual(new[] { 3, 2, 2, 1 }, DifficultyRules.MaliceHands);
+            CollectionAssert.AreEqual(new[] { 1, 0, 2, 0 }, new[]
+            {
+                DifficultyRules.MaliceShortFor(Difficulty.Ironman, 0, 4), DifficultyRules.MaliceShortFor(Difficulty.Ironman, 1, 2),
+                DifficultyRules.MaliceShortFor(Difficulty.Ironman, 2, 4), DifficultyRules.MaliceShortFor(Difficulty.Ironman, 3, 1)
+            });
+            Assert.AreEqual(0, DifficultyRules.MaliceShortFor(Difficulty.Hard, 0, 4));
+            // 8. The carried rule at half strength.
+            Assert.AreEqual(50, DifficultyRules.StackedRulePercent);
+            // 9. Ironman saves only at the camps.
+            Assert.IsTrue(DifficultyRules.SavesOnlyAtCamps(Difficulty.Ironman));
+        }
+
         [Test]
         public void Easy_ChangesNoNumber_AndDrawsTheSameMaps()
         {

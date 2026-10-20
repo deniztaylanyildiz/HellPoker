@@ -104,12 +104,6 @@ namespace HellPoker.Presentation.Ui
 
     internal static partial class UiText
     {
-        public static string ChooseDealerTitle => L("CHOOSE YOUR DEALER", "KURPİYERİNİ SEÇ");
-        public static string SoulLineCardFormat => L("SOUL AT {0}", "RUH {0} YILDA");
-        public static string ChooseDealerSubtitle => L("Three demons keep a table in Hell. Each plays by their own rules.",
-            "Cehennemde üç şeytan masa kurar. Her biri kendi kuralıyla oynar.");
-        public static string Challenge => L("SIT DOWN", "OTUR");
-
         public static string TraitDrawFormat => L("Exchange up to {0} cards", "En fazla {0} kart değişir");
         public static string TraitRevealFormat => L("Shows {0} House cards before your last bet", "Son bahisten önce kasa {0} kart açar");
         public static string TraitRevealOne => L("Shows only 1 House card before your last bet", "Son bahisten önce kasa yalnızca 1 kart açar");
@@ -123,20 +117,6 @@ namespace HellPoker.Presentation.Ui
         public static string TraitFoldSameFormat => L("Fold: always {0} of the stake", "Çekil: her zaman {0}");
         /// <summary>{0} weakest strong hand, {1} re-raise percent with it, {2} bluff percent.</summary>
         public static string TraitTemperFormat => L("Re-raises with {0}+ {1}% · bluffs {2}%", "{0}+ ile %{1} artırır · %{2} blöf");
-
-        /// <summary>How a share of the stake reads in rule texts: "half the stake", "the stake", "1.5 × the stake"...</summary>
-        public static string StakeShare(int percent)
-        {
-            switch (percent)
-            {
-                case 0: return L("nothing", "hiçbir şey");
-                case 25: return L("a quarter of the stake", "bahsin çeyreği");
-                case 50: return L("half the stake", "bahsin yarısı");
-                case 100: return L("the stake", "bahsin tamamı");
-                case 200: return L("twice the stake", "bahsin iki katı");
-                default: return (percent / 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + L(" × the stake", " × bahis");
-            }
-        }
 
         /// <summary>What a demon is called and says, in the current language.</summary>
         public static DealerText Dealer(string id)

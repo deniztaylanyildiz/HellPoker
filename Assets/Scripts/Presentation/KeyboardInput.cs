@@ -14,21 +14,18 @@ namespace HellPoker.Presentation
     /// </summary>
     public sealed class KeyboardInput : MonoBehaviour
     {
-        private ITableCommands _table;
         private IMenuCommands _menu;
         private ISettingsCommands _settings;
 
-        /// <summary>Phase 2: the chapter's map and panels, and the chapter's own table (null: none).</summary>
+        /// <summary>The chapter's map and panels, and its table (every table of the game is a chapter's).</summary>
         private IChapterCommands _chapters;
 
         /// <summary>The bug report box: while it is open the keys are its text's (Esc closes it).</summary>
         private IFeedbackCommands _feedback;
 
-        public void Bind(ITableCommands table, IMenuCommands menu, ISettingsCommands settings, IChapterCommands chapters = null,
-            IFeedbackCommands feedback = null)
+        public void Bind(IMenuCommands menu, ISettingsCommands settings, IChapterCommands chapters, IFeedbackCommands feedback = null)
         {
             _feedback = feedback;
-            _table = table;
             _menu = menu;
             _settings = settings;
             _chapters = chapters;
@@ -37,7 +34,7 @@ namespace HellPoker.Presentation
         private void Update()
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard == null || _table == null || _menu == null) return;
+            if (keyboard == null || _menu == null || _chapters == null) return;
 
             bool enter = keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame;
             bool alt = keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed;
@@ -56,7 +53,7 @@ namespace HellPoker.Presentation
             if (_menu.IsTransitioning) return;
 
             // The chapter's map and its panels: the arrows pick, Enter / Space go, Esc closes what it can (else the menu).
-            if (_chapters != null && _chapters.IsMapOpen && !_menu.IsMenuOpen)
+            if (_chapters.IsMapOpen && !_menu.IsMenuOpen)
             {
                 if (keyboard.escapeKey.wasPressedThisFrame)
                 {
@@ -69,13 +66,13 @@ namespace HellPoker.Presentation
                 else if (keyboard.downArrowKey.wasPressedThisFrame) _chapters.Step(0, 1);
                 return;
             }
-            // At one of the chapter's tables every table key goes to that table.
-            ITableCommands table = _chapters != null && _chapters.IsAtTable && _chapters.Table != null ? _chapters.Table : _table;
+            // At the chapter's table every table key goes to it (none off the table).
+            ITableCommands table = _chapters.IsAtTable ? _chapters.Table : null;
 
             if (keyboard.escapeKey.wasPressedThisFrame)
             {
                 // A panel over the table closes first; only then does Esc leave the table.
-                if (_menu.IsMenuOpen || !table.CloseOverlay())
+                if (_menu.IsMenuOpen || table == null || !table.CloseOverlay())
                     _menu.GoBack();
                 return;
             }
@@ -99,13 +96,6 @@ namespace HellPoker.Presentation
                 return;
             }
 
-            // F9 on the title menu: the Boss Simulator (the old demo, a developer's mode) — or back to the game.
-            if (keyboard.f9Key.wasPressedThisFrame && _menu.IsAtMenuRoot)
-            {
-                _menu.ToggleSimulator();
-                return;
-            }
-
             // Demo 3.3: the title menu's cursor — the arrows move it, Enter / Space press the button under it.
             if (_menu.IsAtMenuRoot)
             {
@@ -117,7 +107,7 @@ namespace HellPoker.Presentation
                 return;
             }
 
-            if (_menu.IsMenuOpen) return;
+            if (_menu.IsMenuOpen || table == null) return;
 
             if (keyboard.hKey.wasPressedThisFrame)
             {

@@ -16,8 +16,6 @@ namespace HellPoker.PlayMode.Tests
     [Explicit]
     public class Demo32Shots
     {
-        [TearDown]
-        public void Restore() => HellPokerBootstrap.ForceSimulator = null;
 
         private static string Size => System.Environment.GetEnvironmentVariable("HELLPOKER_SHOT_SIZE") ?? "1920x1080";
 

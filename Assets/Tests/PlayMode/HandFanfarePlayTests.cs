@@ -29,7 +29,6 @@ namespace HellPoker.PlayMode.Tests
         public void Restore()
         {
             ScreenShake.Set(true);
-            HellPokerBootstrap.ForceSimulator = null;
         }
 
         private static IEnumerator AtMammons()

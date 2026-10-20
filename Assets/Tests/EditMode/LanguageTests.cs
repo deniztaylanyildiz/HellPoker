@@ -193,13 +193,11 @@ namespace HellPoker.Core.Tests
                 calls.Add(("SpeedName." + speed, () => UiText.SpeedName(speed)));
             foreach (int share in new[] { 0, 25, 50, 100, 150, 200 })
             {
-                calls.Add(("StakeShare." + share, () => UiText.StakeShare(share)));
                 calls.Add(("ShareShort." + share, () => UiText.ShareShort(share)));
             }
             foreach (string tip in new[] { UiText.TipFirstDecision, UiText.TipFirstDraw, UiText.TipFirstReRaise, UiText.TipFinalStretch,
                          UiText.TipSoul, UiText.TipLucifer }.Concat(DealerRoster.All.Select(d => UiText.TipCheatFor(d.Id))))
                 calls.Add(("TipText." + tip, () => UiText.TipText(tip, 250)));
-            calls.Add(("CheatsPage", UiText.CheatsPage));
 
             foreach (var (name, words) in calls)
             {
@@ -293,8 +291,7 @@ namespace HellPoker.Core.Tests
             foreach (string id in EveryDemonId())
                 Assert.IsNull(UiText.Dealer(id).Genitive, id);
 
-            Assert.AreEqual("Freed at BELIAL's table: 2",
-                string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)), 2));
+            Assert.AreEqual("BELIAL's", UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)));
             StringAssert.Contains("Lilith's thorn cost you 100 years.", Log(DealerRoster.LilithId, CheatIds.Thorn, thornYears: 100));
             StringAssert.Contains("The Morning Star's cheat backfired!", Log(DealerRoster.LuciferId, CheatIds.Gaze, backfired: true));
         }
@@ -304,8 +301,7 @@ namespace HellPoker.Core.Tests
         {
             Lang.Set(Language.Turkish);
 
-            Assert.AreEqual("BELIAL'IN masasında aklanma: 2",
-                string.Format(UiText.RecordsDealerFormat, UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)), 2));
+            Assert.AreEqual("BELIAL'IN", UiText.GenitiveOf(UiText.Dealer(DealerRoster.BelialId)));
             Assert.AreEqual("Lilith'in dikeni sana 100 yıla mal oldu.", Log(DealerRoster.LilithId, CheatIds.Thorn, thornYears: 100));
             Assert.AreEqual("Belial'in yılanı K♠ kartını çaldı.", Log(DealerRoster.BelialId, CheatIds.SerpentSwap));
             Assert.AreEqual("Sabah Yıldızı'nın hilesi geri tepti!", Log(DealerRoster.LuciferId, CheatIds.Gaze, backfired: true));
@@ -326,10 +322,7 @@ namespace HellPoker.Core.Tests
         private FakeTableView _view;
         private HellPokerGame _game;
         private MemoryStore _store;
-        private MainMenuPresenterTests.FakeMenuView _menu;
-        private MainMenuPresenterTests.FakeDealerSelectView _choice;
         private TablePresenter _table;
-        private MainMenuPresenter _menus;
         private SettingsPresenter _settings;
         private MainMenuPresenterTests.FakeSettingsView _settingsView;
 
@@ -341,29 +334,23 @@ namespace HellPoker.Core.Tests
                 new CardExchanger(new MaxDiscardPolicy()), new HouseDrawStrategy(), d.Payouts), _view, null, archive, finalDealer);
         }
 
-        /// <summary>The whole game as the player meets it: the title menu, the table, the settings (language buttons on the menu).</summary>
+        /// <summary>A table with a run on it (Mammon's), and the settings that change the language (Settings ▸ LANGUAGE).</summary>
         private void Game()
         {
             _store = new MemoryStore();
             _table = Table(new RunArchive(_store));
-            _menu = new MainMenuPresenterTests.FakeMenuView();
-            _choice = new MainMenuPresenterTests.FakeDealerSelectView();
             var settingsView = new MainMenuPresenterTests.FakeSettingsView();
-            _menus = new MainMenuPresenter(_menu, _choice, settingsView, new MainMenuPresenterTests.FakeEndScreen(),
-                new MainMenuPresenterTests.FakeRecords(), _view, _table, new MainMenuPresenterTests.FakeQuitter(),
-                new MainMenuPresenterTests.FakeTransition(), DealerRoster.All);
             _settingsView = settingsView;
             _settings = new SettingsPresenter(new GameSettings(_store), settingsView, new NoDisplay());
+            _table.StartNewRun(DealerRoster.Mammon);
         }
 
         [TearDown]
         public void DisposeGame()
         {
             _settings?.Dispose();
-            _menus?.Dispose();
             _table?.Dispose();
             _settings = null;
-            _menus = null;
             _table = null;
         }
 
@@ -374,34 +361,9 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheMenuRoot_IsTheTitleMenuOnly()
-        {
-            Game();
-            Assert.IsTrue(_menus.IsAtMenuRoot, "The title menu.");
-
-            _menu.PressNewGame();
-            Assert.IsFalse(_menus.IsAtMenuRoot, "The dealer choice.");
-            _choice.Choose(0);
-            Assert.IsFalse(_menus.IsAtMenuRoot, "The table.");
-            _view.PressAction();
-            Assert.IsFalse(_menus.IsAtMenuRoot, "Mid-hand.");
-
-            _view.PressMenu();
-            Assert.IsTrue(_menus.IsAtMenuRoot);
-            _menu.RulesOpen = true;
-            Assert.IsFalse(_menus.IsAtMenuRoot, "Not under the rules.");
-            _menu.RulesOpen = false;
-            _menu.PressNewGame();
-            Assert.IsTrue(_menu.IsConfirming);
-            Assert.IsFalse(_menus.IsAtMenuRoot, "Not under a warning.");
-        }
-
-        [Test]
         public void OnTheMenu_MidDraw_TheLanguageChanges_AndTheTableComesBackInIt_Untouched()
         {
             Game();
-            _menu.PressNewGame();
-            _choice.Choose(0);
             _view.PressAction();
             _table.CheckToDraw();
             _table.ToggleDiscard(1);
@@ -412,10 +374,8 @@ namespace HellPoker.Core.Tests
             _view.PressMenu();
 
             _settingsView.ChooseLanguage(1);   // Settings ▸ LANGUAGE ▸ Türkçe
-            _menu.PressContinue();
 
             Assert.AreEqual(Language.Turkish, Lang.Current);
-            Assert.IsTrue(_view.Visible);
             Assert.AreEqual(GamePhase.Drawing, _game.Phase);
             Assert.AreEqual(years, _game.Years);
             Assert.AreEqual(stake, _game.CurrentStake);
@@ -438,8 +398,6 @@ namespace HellPoker.Core.Tests
         public void OnTheMenu_AfterAResult_NothingReplays()
         {
             Game();
-            _menu.PressNewGame();
-            _choice.Choose(0);
             _view.PressAction();
             _view.PressBet(BetAction.Fold);
             Assert.AreEqual(GamePhase.RoundOver, _game.Phase);
@@ -447,7 +405,6 @@ namespace HellPoker.Core.Tests
             _view.PressMenu();
 
             _settingsView.ChooseLanguage(1);
-            _menu.PressContinue();
 
             Assert.AreEqual(moments, _view.Moments.Count, "No moment plays again.");
             Assert.AreEqual(hands, _table.Stats.HandsPlayed, "The hand is not counted twice.");

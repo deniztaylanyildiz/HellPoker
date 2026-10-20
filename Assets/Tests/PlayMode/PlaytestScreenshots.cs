@@ -27,7 +27,6 @@ namespace HellPoker.PlayMode.Tests
         [TearDown]
         public void BackToTheUsualMenu()
         {
-            HellPokerBootstrap.ForceSimulator = null;
             SuitColors.Set(false);   // Demo 2.3: the two colours are the default
         }
 
@@ -67,7 +66,6 @@ namespace HellPoker.PlayMode.Tests
         [UnityTest, Timeout(900000)]
         public IEnumerator CapturePlaytestFixes()
         {
-            HellPokerBootstrap.ForceSimulator = false;
 
             // 140-141: a floor's table — the House's caption and the deck counter apart; a three-line result under the band.
             yield return ChapterJourneyTests.OpenChapters();

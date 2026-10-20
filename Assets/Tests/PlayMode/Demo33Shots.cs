@@ -18,9 +18,6 @@ namespace HellPoker.PlayMode.Tests
     [Explicit]
     public class Demo33Shots
     {
-        [TearDown]
-        public void Restore() => HellPokerBootstrap.ForceSimulator = null;
-
         private static string Tag => (System.Environment.GetEnvironmentVariable("HELLPOKER_SHOT_SIZE") ?? "1920x1080") + "_" +
                                      (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr" ? "tr" : "en");
 
@@ -30,7 +27,6 @@ namespace HellPoker.PlayMode.Tests
             if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             if (save != null) new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(2.5f);   // the logo's entrance plays out
         }
@@ -70,14 +66,6 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(0.4f);
             yield return HellPokerScreenshots.Shot($"355_howto_{Tag}");
 
-            // The Boss Simulator's menu (F9): the same layout under its own label.
-            HellPokerBootstrap.BatchStore.Clear();
-            if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
-                HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
-            HellPokerBootstrap.ForceSimulator = true;
-            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
-            yield return new WaitForSeconds(1f);
-            yield return HellPokerScreenshots.Shot($"356_menu_simulator_{Tag}");
         }
     }
 }

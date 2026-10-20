@@ -12,7 +12,7 @@ namespace HellPoker.Presentation
     /// <summary>
     /// A chapter's table says how a hand ended plainly (2.1.1): the result band across the middle (YOU WIN / YOU LOSE / PUSH / FOLDED and
     /// the amount), a blink of the screen's edge, the amount floating up from the purse (or the demon's bar), and the last five hands as pips
-    /// beside the counter. The old result line stays in the message for the details. Nothing of it at a demo table (the Boss Simulator).
+    /// beside the counter. The old result line stays in the message for the details. Nothing of it at a demo table.
     /// </summary>
     public sealed partial class TablePresenter
     {

@@ -219,26 +219,6 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        public static string ChapterRulesButton => L("POWERS", "GÜÇLER");
-
-        /// <summary>How to Play's POWERS page (the simulator keeps its own pages): every class's main power and passive, the growth, the
-        /// demons' rules. Every number from the code.</summary>
-        public static string ChapterRulesPage()
-        {
-            string Class(string id) => SinnerName(id) + ": " + ChapterMainPower(id) + (ChapterPassiveLine(id) == null ? "" : " " + ChapterPassiveLine(id));
-            string classes = string.Join("\n", SinnerRoster.PhaseTwo.Select(c => Class(c.Id)));
-            string rules = string.Format(L(
-                "THE DEMONS' RULES (their own tables): MAMMON, INTEREST: every hand you do not win, the bar grows {0}%. BELIAL, ROLE SWAP: " +
-                "every 4th hand one of his face-down cards trades places with one of yours. LILITH, TEMPTATION: a card you throw that betters " +
-                "her hand, she may keep ({1}%). LUCIFER, MIRROR: he copies your class. Under {2}% of the bar a demon cheats faster.",
-                "ŞEYTANLARIN KURALLARI (kendi masalarında): MAMMON, FAİZ: kazanamadığın her elde bar %{0} uzar. BELIAL, ROL TAKASI: her " +
-                "4. elde kapalı kartlarından biri seninkiyle yer değiştirir. LILITH, BAŞTAN ÇIKARMA: attığın kart elini iyileştiriyorsa " +
-                "alabilir (%{1}). LUCIFER, AYNA: sınıfını kopyalar. Bar %{2} altına inince şeytan daha hızlı hile yapar."),
-                MammonInterest.InterestPercent, LilithTemptation.TakePercent, DemonRule.CorneredPercent);
-            return L("POWERS AND RULES. Every power works on its own (K: the Thief's STEAL).",
-                       "GÜÇLER VE KURALLAR. Her güç kendiliğinden çalışır (K: Hırsız'ın ÇAL'ı).") + "\n" + classes + "\n" + ClassGrowthLine + "\n\n" + rules;
-        }
-
         // ------------------------------------------------------------------ the panel under the dialog box
 
         /// <summary>{0} cards in the satchel, {1} its size.</summary>

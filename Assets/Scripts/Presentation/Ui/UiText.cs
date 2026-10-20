@@ -82,10 +82,6 @@ namespace HellPoker.Presentation.Ui
         public static string AttemptLabelFormat => L("LUCIFER: ATTEMPT {0}", "LUCIFER: {0}. DENEME");
 
         public static string Menu => L("MENU", "MENÜ");
-        public static string MenuTaglineFormat => L("You have been sentenced to {0} years in Hell.\nThe House offers you a game.",
-            "Cehennemde {0} yıla mahkûm edildin.\nKasa sana bir oyun teklif ediyor.");
-        public static string MenuSubtagline => L("Five Card Draw  ·  Wild Bill's Dead Man's Hand sets you free",
-            "Beş kartlı poker  ·  Wild Bill'in Ölü Adamın Eli seni özgür bırakır");
         public static string NewGame => L("NEW GAME", "YENİ OYUN");
         public static string Continue => L("CONTINUE", "DEVAM ET");
         public static string HowToPlay => L("HOW TO PLAY", "NASIL OYNANIR");
@@ -123,38 +119,6 @@ namespace HellPoker.Presentation.Ui
         /// <summary>The development FPS readout (F3): average and slowest frame. Developer text: never translated.</summary>
         public const string FpsFormat = "FPS {0}  min {1}";
         public static string RulesTitle => L("THE RULES OF THE HOUSE", "KASANIN KURALLARI");
-
-        /// <summary>{0} starting years, {1} (unused), {2} forced-raise threshold, {3} table cap percent, {4} Lucifer's gate,
-        /// {5} where a fall from his table lands, {6} his ante, {7} his table cap.</summary>
-        public static string RulesFormat => L(
-            "You start with {0} years. Bring them down to 0 and you walk free — but only at the last table.\n" +
-            "Every demon has a soul line. Reach it and your soul goes on the table — lose it all and you are damned for eternity.\n" +
-            "You may change tables between hands — never while your soul is on one.\n\n" +
-            "1.  The ante is a tenth of your sentence (1000 years: 100, 500: 50, 250: 25). Deal.\n" +
-            "2.  Two cards turn, then one by one: RAISE, PASS or FOLD on cards 3, 4 and 5.\n" +
-            "3.  Throw back cards and draw (the dealer says how many) — then one more decision. Raises now count double.\n" +
-            "4.  The House shows some of its cards — a last decision — then the showdown.\n" +
-            "    Raise after the draw and the House may raise back: CALL or FOLD.\n\n" +
-            "Win: forgiven = the table + the ante × (your multiplier − 1).   Lose: the same on the House's hand.\n" +
-            "At most {3}% of your sentence may be on the table. Fill it and the pact is sealed: no folding, the cards play out.\n" +
-            "A♠ A♣ 8♠ 8♣ — the Dead Man's Hand — sets you free at once, wherever you sit.\n\n" +
-            "THE MORNING STAR.  At {4} years or less, Lucifer summons you to his table, wherever you sit. Only there can a sentence end.\n" +
-            "His stakes are his own: ante {6}, at most {7} on the table. He shows no cards. You cannot leave.\n" +
-            "Climb back above {4} at his table and he casts you down: to the demon you came from, with at least {5} years.",
-            "{0} yılla başlarsın. 0'a indir, özgür kal — ama ancak son masada.\n" +
-            "Her şeytanın bir ruh çizgisi var. Oraya varınca ruhun masaya konur — hepsini kaybedersen sonsuza dek lanetlenirsin.\n" +
-            "Eller arasında masa değiştirebilirsin — ruhun bir masadayken asla.\n\n" +
-            "1.  Ante cezanın onda biri (1000 yıl: 100, 500: 50, 250: 25). Dağıt.\n" +
-            "2.  İki kart açılır, sonra teker teker: 3., 4. ve 5. kartta ARTIR, PAS ya da ÇEKİL.\n" +
-            "3.  Kart at ve yenisini çek (kaç tane, şeytan söyler) — sonra bir karar daha. Artırmalar artık çift sayılır.\n" +
-            "4.  Kasa kartlarının bir kısmını açar — son karar — sonra eller açılır.\n" +
-            "    Değişten sonra artırırsan kasa da artırabilir: GÖR ya da ÇEKİL.\n\n" +
-            "Kazanç: silinen = masa + ante × (çarpanın − 1).   Kayıp: aynısı, kasanın eliyle.\n" +
-            "Masaya en fazla cezanın %{3} kadarı konabilir. Dolunca anlaşma mühürlenir: çekilmek yok, kartlar kendi açılır.\n" +
-            "A♠ A♣ 8♠ 8♣ — Ölü Adamın Eli — nerede oturursan otur seni anında özgür bırakır.\n\n" +
-            "SABAH YILDIZI.  {4} yıl ya da altında Lucifer seni nerede olursan ol masasına çağırır. Ceza ancak orada biter.\n" +
-            "Bahsi kendine özgü: ante {6}, masada en fazla {7}. Kart göstermez. Kalkamazsın.\n" +
-            "Masasında {4} üstüne çıkarsan seni düşürür: geldiğin şeytana, en az {5} yılla.");
 
         public static string Deal => L("DEAL", "DAĞIT");
         public static string Stand => L("STAND PAT", "ELİ TUT");
@@ -216,15 +180,7 @@ namespace HellPoker.Presentation.Ui
 
         // ------------------------------------------------------------------ walking away (New Game over a run)
 
-        public static string AbandonRunWarning => L("Abandon this run? Your sentence will be forgotten.", "Bu koşuyu bırakıyor musun? Cezan unutulacak.");
-        public static string AbandonHandWarning => L("Abandon this run? The hand on the table counts as folded.",
-            "Bu koşuyu bırakıyor musun? Masadaki el çekilmiş sayılır.");
-        public static string AbandonSoulWarning => L("Your soul is on the table. Walking away counts as damnation.",
-            "Ruhun masada. Kalkıp gitmek lanet sayılır.");
         public static string AbandonButton => L("ABANDON", "BIRAK");
-
-        /// <summary>Quit mid-hand (or with the soul on the table): the hand left behind is forfeited on the next launch.</summary>
-        public static string QuitHandWarning => L("Leave now and the hand is lost.", "Şimdi gidersen el kaybedilir.");
 
         // ------------------------------------------------------------------ guidance for new players
 
@@ -235,7 +191,6 @@ namespace HellPoker.Presentation.Ui
         public static string HandRanksSubtitle => L("Strongest first. A higher hand beats a lower one.", "En güçlüsü başta. Üstteki el alttakini yener.");
         public static string HandRanksTableFooter => L("H or Esc closes", "H ya da Esc kapatır");
         public static string HandsButton => L("HANDS", "ELLER");
-        public static string RulesButton => L("RULES", "KURALLAR");
 
         /// <summary>An example of each hand, for the hand ranking panel.</summary>
         public static string HandExample(HandCategory category)
@@ -292,44 +247,8 @@ namespace HellPoker.Presentation.Ui
 
         // ------------------------------------------------------------------ the end of a run, and records
 
-        public static string AbsolvedTitle => L("ABSOLVED", "AKLANDIN");
-        public static string DamnedTitle => L("DAMNED", "LANETLENDİN");
-        public static string AbsolvedSubtitle => L("The gates of Hell open. You walk free.", "Cehennemin kapıları açılıyor. Özgürsün.");
-        public static string DamnedSubtitle => L("Your soul is ash. The House keeps you for eternity.", "Ruhun kül oldu. Kasa seni sonsuza dek tutacak.");
-        public static string EndHandsFormat => L("Hands played: {0}", "Oynanan el: {0}");
-        public static string EndLowestFormat => L("Lowest sentence: {0} years", "En düşük ceza: {0} yıl");
-        public static string EndHighestFormat => L("Highest sentence: {0} years", "En yüksek ceza: {0} yıl");
-        public static string EndHighestSoul => L("Highest sentence: past the soul line", "En yüksek ceza: ruh çizgisinin ötesi");
-        public static string EndBestFormat => L("Best hand: {0}", "En iyi el: {0}");
-        public static string EndBestNone => L("Best hand: none shown", "En iyi el: hiç açılmadı");
-        public static string EndDealersFormat => L("Tables: {0}", "Masalar: {0}");
-        public static string EndSoulStaked => L("Your soul went on the table.", "Ruhun masaya kondu.");
-        public static string EndSoulKept => L("Your soul never left you.", "Ruhun seni hiç bırakmadı.");
-        public static string MorningStarFallsTitle => L("THE MORNING STAR FALLS", "SABAH YILDIZI DÜŞTÜ");
-        public static string MorningStarFallsSubtitle => L("His eyes go dark. Nothing stands between you and the morning.",
-            "Gözleri sönüyor. Seninle sabah arasında artık hiçbir şey yok.");
-        public static string WildBillTitle => L("WILD BILL'S ESCAPE", "WILD BILL'İN KAÇIŞI");
-        public static string WildBillSubtitle => L("Aces and eights. You walked out before he ever looked up.",
-            "Aslar ve sekizler. O daha başını kaldırmadan çıkıp gittin.");
-        public static string EndBeatLuciferFormat => L("The Morning Star fell on attempt {0}", "Sabah Yıldızı {0}. denemede düştü");
-        public static string EndLuciferTriedFormat => L("You faced the Morning Star {0} time(s)", "Sabah Yıldızı'nın karşısına {0} kez oturdun");
-        public static string EndNeverMetLucifer => L("You never met the Morning Star", "Sabah Yıldızı'yla hiç karşılaşmadın");
-        public static string EndMorningStarRemembers => L("The Morning Star will remember this.", "Sabah Yıldızı bunu unutmayacak.");
-        public static string RecordsLuciferReachedFormat => L("Faced the Morning Star: {0}", "Sabah Yıldızı'na ulaşma: {0}");
-        public static string RecordsLuciferDefeatedFormat => L("Morning Star fallen: {0}", "Sabah Yıldızı düşürüldü: {0}");
-        public static string RecordsFewestAttemptsFormat => L("Fewest attempts: {0}", "En az deneme: {0}");
-        public static string RecordsFewestAttemptsNone => L("Fewest attempts: not yet", "En az deneme: henüz yok");
-        public static string RecordsWildBillFormat => L("Wild Bill's escapes: {0}", "Wild Bill kaçışları: {0}");
-        public static string RecordsBackfiresFormat => L("Backfires seen: {0}", "Geri tepen hileler: {0}");
-        public static string ToMenu => L("MENU", "MENÜ");
         public static string Records => L("RECORDS", "REKORLAR");
         public static string RecordsTitle => L("RECORDS", "REKORLAR");
-        public static string RecordsRunsFormat => L("Runs started: {0}", "Başlanan koşu: {0}");
-        public static string RecordsAbsolvedFormat => L("Walked free: {0}", "Özgür kalan: {0}");
-        public static string RecordsDamnedFormat => L("Damned: {0}", "Lanetlenen: {0}");
-        public static string RecordsFastestFormat => L("Fastest freedom: {0} hands", "En hızlı özgürlük: {0} el");
-        public static string RecordsFastestNone => L("Fastest freedom: not yet", "En hızlı özgürlük: henüz yok");
-        public static string RecordsDealerFormat => L("Freed at {0} table: {1}", "{0} masasında aklanma: {1}");   // {0}: GenitiveOf
 
         // ------------------------------------------------------------------ settings
 
@@ -434,14 +353,7 @@ namespace HellPoker.Presentation.Ui
         public static string LeaveTable => L("LEAVE TABLE", "MASADAN KALK");
         public static string SoulBound => L("SOUL BOUND", "RUH BAĞLI");
         public static string NoEscape => L("NO ESCAPE", "KAÇIŞ YOK");
-        public static string ChangeTable => L("CHANGE TABLE", "MASA DEĞİŞTİR");
-        public static string SitAnyway => L("SIT ANYWAY", "YİNE DE OTUR");
         public static string Locked => L("LOCKED", "KİLİTLİ");
-        public static string ReturnToTable => L("RETURN", "DÖN");
-        public static string Safe => L("SAFE", "GÜVENLİ");
-        public static string SoulAtStake => L("SOUL AT STAKE", "RUH MASADA");
-        public static string ChooseTableSubtitle => L("Your sentence goes with you. Mind each demon's soul line.",
-            "Cezan seninle gelir. Her şeytanın ruh çizgisine dikkat et.");
 
         public static string CategoryName(HandCategory category)
         {

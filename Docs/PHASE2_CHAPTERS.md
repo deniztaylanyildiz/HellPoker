@@ -856,3 +856,15 @@ denemede %10.7 (hedef %3-8): 7 (gösterge) yalnız Lilith'i değiştiriyordu (Ma
 etkili (tam güç bile %10.0). Ayar (sıra: 5-8'in sayıları): gösterge 3 / 2 / 2 / 1, Ironman'ın kendi 5'i (%50 / %25) ve 6'sı (×1.25 / 1.5 /
 1.75 / 1.75) → %4.8. Sınıf güçlerine, emanetlere ve şeytan AI'ına dokunulmadı.
 
+### Onaylandı (2026-10-20, Demo 3.4.1)
+
+Kullanıcı aşağıdakileri onayladı; kodda olduğu gibi kalır (`DifficultyTests.TheApprovedNumbers_EveryOne` her sayıyı sabitler):
+
+- Ironman'ın kendi sayıları: kese tamamlama Belial %50 / Lilith %25; kayıp çarpanı ×1.25 / ×1.5 / ×1.75 / ×1.75 (Mammon / Belial / Lilith / Lucifer).
+- Ironman hile göstergesi: 3 / 2 / 2 / 1 el (Mammon / Belial / Lilith / Lucifer).
+- Orta'da Mammon ölümü (~%23) şimdilik böyle; Kolay'a dokunulmaz, oyun testinde bakılacak.
+- Ironman çıkış uyarısı yalnız ÇIK'ta; MENÜ ▸ ana menü koşuyu bellekte tutar.
+- Lucifer'de ante hızı yok (katı yok); öfke Lucifer'de de var (Ayna aralığı yarıya).
+- Zorluk satırı kartların altında tek satır; kamp sınırı ortadaki kamplar için; pazar ×1.2 / ×1.4 bölümün kendi fiyat artışının üstüne
+  biner; Ironman kaydı oyun kapanırken yazılmaz.
+

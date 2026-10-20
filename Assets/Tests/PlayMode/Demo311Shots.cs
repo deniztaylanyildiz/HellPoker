@@ -23,8 +23,6 @@ namespace HellPoker.PlayMode.Tests
         private const string HouseNothing = "2D 4H 6S 8C 10D";
         private const string Draws = " 3S 5H 7D 8H JD";
 
-        [TearDown]
-        public void Restore() => HellPokerBootstrap.ForceSimulator = null;
 
         private static ChapterSave Boss() => new ChapterSave
         {

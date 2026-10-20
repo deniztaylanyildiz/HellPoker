@@ -5,7 +5,7 @@ using HellPoker.Core.Game;
 
 namespace HellPoker.Presentation.Abstractions
 {
-    /// <summary>How a run ended, for the end screen.</summary>
+    /// <summary>How a demo run ended (the table's engine still reports it; Demo 3.4.1: no screen shows it any more).</summary>
     public sealed class RunSummary
     {
         public bool Absolved { get; }
@@ -41,19 +41,6 @@ namespace HellPoker.Presentation.Abstractions
         }
     }
 
-    /// <summary>The screen after a run: walked free or damned, with the run's story.</summary>
-    public interface IEndScreenView
-    {
-        event Action NewGamePressed;
-        event Action MenuPressed;
-
-        bool IsVisible { get; }
-
-        void Show(RunSummary summary);
-        void Hide();
-    }
-
-    /// <summary>Records across all runs.</summary>
     /// <summary>The records' lines: this one alone splits them into two columns (the game's: the runs left, the circles and locks right).</summary>
     public static class RecordsLayout
     {
@@ -65,10 +52,6 @@ namespace HellPoker.Presentation.Abstractions
         event Action BackPressed;
 
         bool IsVisible { get; }
-
-        /// <param name="dealers">Every demon, for the absolutions per table.</param>
-        /// <param name="phase2">Phase 2's records in a line (its own book); null: none.</param>
-        void Show(RecordBook records, IReadOnlyList<DealerCard> dealers, string phase2 = null);
 
         /// <summary>The game's records, line by line (the chapters' book).</summary>
         void ShowLines(IReadOnlyList<string> lines);

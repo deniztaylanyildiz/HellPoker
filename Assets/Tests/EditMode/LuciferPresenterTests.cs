@@ -295,28 +295,6 @@ namespace HellPoker.Core.Tests
             Assert.AreEqual(0, records.LuciferDefeated);
             Assert.AreEqual(1, records.LuciferReached);
             Assert.AreEqual(1, records.Absolutions);
-
-            Assert.AreEqual("ABSOLVED", HellPoker.Presentation.Views.EndScreenView.TitleOf(summary));
-            CollectionAssert.Contains(HellPoker.Presentation.Views.EndScreenView.StoryOf(summary).ToList(), "The Morning Star will remember this.");
-        }
-
-        [Test]
-        public void TheEndings_HaveTheirNames()
-        {
-            RunSummary Ending(bool absolved, bool beat, bool wildBill, int attempts) =>
-                new RunSummary(absolved, 10, 0, 1000, null, new[] { "MAMMON" }, false, beat, wildBill, attempts);
-
-            Assert.AreEqual("THE MORNING STAR FALLS", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, true, false, 2)));
-            Assert.AreEqual("WILD BILL'S ESCAPE", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, false, true, 0)));
-            Assert.AreEqual("ABSOLVED", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(true, false, false, 1)));
-            Assert.AreEqual("DAMNED", HellPoker.Presentation.Views.EndScreenView.TitleOf(Ending(false, false, false, 3)));
-
-            CollectionAssert.DoesNotContain(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(true, false, true, 0)).ToList(),
-                "The Morning Star will remember this.");
-            CollectionAssert.DoesNotContain(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(true, true, false, 2)).ToList(),
-                "The Morning Star will remember this.");
-            CollectionAssert.Contains(HellPoker.Presentation.Views.EndScreenView.StoryOf(Ending(false, false, false, 3)).ToList(),
-                "You faced the Morning Star 3 time(s)");
         }
 
         [Test]

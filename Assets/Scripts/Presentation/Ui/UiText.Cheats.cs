@@ -9,8 +9,6 @@ namespace HellPoker.Presentation.Ui
         public static string MaliceLabel => L("MALICE", "KÖTÜLÜK");
         public static string LiarFlash => L("LIAR", "YALANCI");
         public static string FallAwaits => L("THE FALL AWAITS", "DÜŞÜŞ BEKLİYOR");
-        public static string CheatsButton => L("CHEATS", "HİLELER");
-        public static string CheatsTitle => L("THE DEMONS' CHEATS", "ŞEYTANLARIN HİLELERİ");
 
         public static string CheatName(string id)
         {
@@ -192,22 +190,5 @@ namespace HellPoker.Presentation.Ui
 
         // ------------------------------------------------------------------ How to Play: the Cheats page
 
-        public static string CheatsPage()
-        {
-            string Line(string id) => $"   {CheatName(id)} — {CheatDescription(id)}";
-            return
-                L("Every demon has a MALICE gauge under the portrait. It fills every hand (faster when you win, and under 500 years).\n" +
-                  "Full, the demon announces a cheat above the portrait, then plays it on the cards. Under 400 the big ones come out.\n" +
-                  "A♠ A♣ 8♠ 8♣ are beyond any cheat. A cheat left to chance may BACKFIRE and help you (tongue, fire, The Fall).\n\n",
-                  "Her şeytanın portresinin altında bir KÖTÜLÜK göstergesi var. Her el dolar (kazanınca ve 500 yılın altında daha hızlı).\n" +
-                  "Dolunca şeytan portrenin üstünde bir hile duyurur, sonra kartlarda oynar. 400'ün altında büyükleri gelir.\n" +
-                  "A♠ A♣ 8♠ 8♣ hiçbir hileden etkilenmez. Şansa kalan bir hile GERİ TEPEBİLİR ve sana yarar (dil, ateş, Düşüş).\n\n") +
-                L("MAMMON (always honest)\n", "MAMMON (hep dürüst)\n") + Line(CheatIds.Collateral) + "\n" + Line(CheatIds.Tithe) + "\n" + Line(CheatIds.Buyout) + "\n" +
-                L("BELIAL (a quarter of his intents are lies)\n", "BELIAL (niyetlerinin dörtte biri yalan)\n") + Line(CheatIds.FalseFace) + "\n" +
-                Line(CheatIds.ForkedTongue) + "\n" + Line(CheatIds.SerpentSwap) + "\n" +
-                "LILITH\n" + Line(CheatIds.NightVeil) + "\n" + Line(CheatIds.Thorn) + "\n" + Line(CheatIds.Moonless) + "\n" +
-                L("THE MORNING STAR (every hand)\n", "SABAH YILDIZI (her el)\n") + Line(CheatIds.Gaze) + "\n" + Line(CheatIds.Rewrite) + "\n" +
-                Line(CheatIds.BurningCard) + "\n" + Line(CheatIds.TheFall);
-        }
     }
 }

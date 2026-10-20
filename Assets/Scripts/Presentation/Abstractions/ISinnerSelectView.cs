@@ -73,7 +73,7 @@ namespace HellPoker.Presentation.Abstractions
 
         /// <param name="dealerId">The demon the run will be played against (their hall shows behind).</param>
         /// <param name="note">The line under the title (the level's rules in Phase 2); null: the usual question.</param>
-        /// <param name="difficulty">Phase 2's difficulty row under the cards; null: none (the Boss Simulator).</param>
+        /// <param name="difficulty">Phase 2's difficulty row under the cards; null: none.</param>
         void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null, DifficultyChoice difficulty = null);
 
         void Hide();

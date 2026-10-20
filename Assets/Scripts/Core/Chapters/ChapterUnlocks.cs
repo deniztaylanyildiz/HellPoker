@@ -35,7 +35,7 @@ namespace HellPoker.Core.Chapters
     /// <summary>
     /// Phase 2's locks: a run starts with the four classes and fourteen relics; the Summoner opens with the first freedom, the other ten
     /// relics with milestones written on their cards (the records keep the counts). Demo 3.4: the difficulty levels open
-    /// by freedoms (<see cref="ChapterRecords.IsDifficultyOpen"/>). Nothing here touches the Boss Simulator.
+    /// by freedoms (<see cref="ChapterRecords.IsDifficultyOpen"/>).
     /// </summary>
     public static class ChapterUnlocks
     {

@@ -15,6 +15,37 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Demo 3.4.1** (etiket `v3.4.1-demo`, bundleVersion **3.4.1-demo**; DEVLOG 2026-10-20): **Boss Simülatörü oyundan tamamen kalktı.** Menü
+yalnız oyunu açar (`MainMenuPresenter(menu, settings, records, quitter, transition, sinnerSelect, chapters, audio)`; `IChapterSession` şart),
+şeytan seçim ekranı (`DealerSelectView`, `IDealerSelectView`, `DealerChoice`), demonun son ekranı (`EndScreenView`, `IEndScreenView`),
+demo rekorları ekranı (`IRecordsView.Show(RecordBook...)`), MASA DEĞİŞTİR, simülatör etiketi, How to Play'in eski uzun sayfaları
+(KURALLAR / ELLER / HİLELER / GÜNAHKÂRLAR / GÜÇLER ve sayfa düğmesi) ve bunların metinleri yok; `HellPokerBootstrap`'ta demo masası
+(`_tablePresenter`, "TableCanvas"), `ForceSimulator`, `StartsInSimulator`, `SimulatorAllowed` yok; tuşlar (`KeyboardInput.Bind(menu, settings,
+chapters, feedback)`) yalnız bölüm masasına gider. **Eski kayıtlar:** açılışta `SimulatorLeftovers.Forget` simülatörün `run.save` ve
+`run.records` anahtarlarını okumadan siler (bozuk olsa da çökmez); oyunun `phase2.save` / `phase2.records`'ı ve ayarlar kalır. **Kalan:** demo
+motoru (Core `HellPokerGame` ve `TablePresenter`'ın demo yolu: `IRunSession`, `RunArchive`, Lucifer kapısı, olaylar) — bölüm masaları aynı
+masa motorunu kullanıyor, EditMode testleri (TablePresenterTests, CheatPresenterTests, PactPresenterTests, LuciferPresenterTests...) masanın
+ortak davranışını onunla sınıyor; oyunda ona giden yol yok. `-fpstour` artık şeytanların salonlarını bölüm masalarında ölçer (`FpsTour.HallLeg`;
+`Run(chapters)`). Silinen testler: PlayMode `SalonRegressionTests`, `RunJourneyTests`, `LuciferJourneyTests`, `CheatJourneyTests` + `CheatRig`,
+`JesterJourneyTests`, `CheatScreenshots`, `JesterScreenshots`, `HellPokerScreenshots`'ın simülatör turu (sınıf artık yalnız yardımcılar);
+taşınan: `HellPokerSceneTests` (ilk iblis masasında), `BackdropMotionPlayTests` (boss masaları + Lucifer), menü testleri (`MainMenuPresenterTests`
+oyunun menüsüyle, ortak sahte nesneler orada). Yeni: `SimulatorLeftoversTests`, `ChapterJourneyTests.TheSimulatorsOldSaveAndRecords_...`,
+`HowToPlayTests.TheSimulatorsOldPages_AreGone`, `TableLayoutTests.TheGameHasOneTable_...`, `DifficultyTests.TheApprovedNumbers_EveryOne`.
+
+**Geçici: F9** (GEÇİCİ TEST KISAYOLU, testler bitince silinecek). `Assets/Scripts/Presentation/DevJumpShortcut.cs` tek dosya:
+`DevJumpShortcut` (MonoBehaviour) + `ChapterPresenter`'ın partial parçası. Yalnız editörde, development build'de ya da `HELLPOKER_DEV=1`
+ile (`DevJumpShortcut.Allowed`); oyuncu build'inde F9 hiçbir şey yapmaz. Ana menünün kökünde F9 → liste (MAMMON / BELIAL / LILITH / LUCIFER;
+tık ya da 1-4, Esc kapatır; liste açıkken `KeyboardInput` bekler) → bölüm akışıyla o şeytanın masası: Köylü, Orta, bölümün kapısına
+konmuş koşu, haraç kapının yoluyla ödenir (Lucifer: çağrısı cevaplanır); masa oyunun masası. Koşu **iz bırakmaz**: `ChapterPresenter`'ın
+partial metotları `Traceless` / `TracelessEnds` (ana dosyada `IsTraceless`, `TracelessOver`, `KeepRecords`) — kayıt yazılmaz, rekorlar bir
+kopyada oynar (kilitler değişmez), koşu günlüğü yazılmaz; masa bitince (kazanç / kayıp; `ResolveBoss` / `ResolveLucifer` / `FinishRun`'ın
+başında) koşu bırakılır, ana menü gelir, DEVAM ET oyuncunun kendi kaydıdır (Ironman'ın kamptan sonraki kaydedilmemiş ilerlemesi F9'la gider).
+Development build `-devjumpshots`: liste ve Belial masası ekran görüntüsü (`persistentDataPath/tour/devjump_*.png`), log "Hell Poker dev jump ...".
+**Silmek için:** `DevJumpShortcut.cs` (+ `.meta`) sil ve `HellPokerBootstrap.Awake`'teki `DevJumpShortcut.Install(...)` satırını kaldır — başka bir
+şey gerekmez (partial metotlar derleyiciyle düşer). Testleri (`Tests/EditMode/DevJumpShortcutTests.cs`, `Tests/PlayMode/DevJumpShortcutPlayTests.cs`)
+kısayolu yansımayla bulur: dosya gidince derleme bozulmaz, kendiliğinden atlanırlar (istersen onları da sil). 2026-10-20'de denendi: dosya +
+satır kaldırıldı, derlendi, EditMode 1160 geçti (2 atlandı), PlayMode 12 geçti (2 atlandı), geri kondu.
+
 **Demo 3.4** (etiket `v3.4-demo`, bundleVersion **3.4.0-demo**; DEVLOG 2026-10-20, PHASE2_CHAPTERS "Zorluk"): **zorluk seviyeleri** (Cehennem
 Daireleri'nin yerine; `Core/Chapters/Difficulty.cs`: `Difficulty` Easy / Medium (varsayılan) / Hard / Ironman, bütün sayılar `DifficultyRules`'ta,
 simülasyon `ChapterSimulation.Difficulties`, düğme `HELLPOKER_DIFF`). Her seviye öncekini taşır: 1 kat antesi her 3 / 2 / 1 elde
@@ -24,8 +55,11 @@ simülasyon `ChapterSimulation.Difficulties`, düğme `HELLPOKER_DIFF`). Her sev
 pazar ×1 / 1.2 / 1.4, "?" bekçi %5 / 10 / 15, Lilith'te her yolda bekçi `WardenOnEveryPath`; Kolay haritası birebir aynı), 5 kese tamamlama
 %75 / %50 (`ChapterJourney.NextChapter`), 6 boss kaybı ×1 / 1.25 / 1.5 / 1.5 (`BossTable.Create` lossPercent), 7 Ironman gösterge en çok 3 / 2 / 2 / 1
 (`MaliceShortFor`), 8 taşınan kural yarım güç (`DemonRule.CarriedFor`, `ChapterHooks.Carried`: Belial + Faiz, Lilith + Rol Takası), Ironman'ın
-kendi 5 / 6'sı (%50 / %25, ×1.25 / 1.5 / 1.75 / 1.75: 7-8 tek başına az etkiliydi), 9 Ironman kaydı. Simülasyon (500 / sınıf): Kolay %33.0 (önceyle
-aynı), Orta %27.8, Zor %11.4, Ironman %4.8. **Kilitler** `ChapterRecords.IsDifficultyOpen` (Zor: herhangi bir sınıfla Orta'da kurtuluş, Ironman:
+kendi 5 / 6'sı (%50 / %25, ×1.25 / 1.5 / 1.75 / 1.75: 7-8 tek başına az etkiliydi), 9 Ironman kaydı. Simülasyon (500 / sınıf): Kolay %33.0 (önceyle aynı), Orta %27.8, Zor %11.4, Ironman %4.8. **Onaylandı (2026-10-20), kodda olduğu gibi:**
+Ironman'ın kese tamamlaması Belial %50 / Lilith %25 ve kayıp ×1.25 / 1.5 / 1.75 / 1.75, Ironman göstergesi 3 / 2 / 2 / 1 el, Orta'da Mammon
+ölümü (~%23) şimdilik böyle (Kolay'a dokunulmaz, oyun testinde bakılacak), Ironman çıkış uyarısı yalnız ÇIK'ta (MENÜ koşuyu bellekte tutar),
+Lucifer'de ante hızı yok / öfke var (Ayna aralığı yarıya), zorluk satırı kartların altında tek satır, kamp sınırı ortadaki kamplar için, pazar
+×1.2 / ×1.4 bölümün kendi fiyat artışının üstüne, Ironman kaydı oyun kapanırken yazılmaz; `DifficultyTests.TheApprovedNumbers_EveryOne` her sayıyı sabitler. **Kilitler** `ChapterRecords.IsDifficultyOpen` (Zor: herhangi bir sınıfla Orta'da kurtuluş, Ironman:
 Zor'da; `AllClassesOpen` hepsini açar), rekorlar `free.<sınıf>.<zorluk>`, `sentence.<sınıf>.<zorluk>`, `hardest`; eski `sentence.<sınıf>.<daire>`
 kayıtları Kolay'a (en iyisi). **Kayıt** `ChapterSave.Version` 2 (`difficulty`, `run.id`, `saves`; p2=1 okunur, Kolay). **Ironman** `ChapterPresenter.SaveNow`:
 yalnız kampta (`AtCamp`) ya da zorla (koşu başı, kampta KAYDET); her kayıt `ChapterRecords.RunSaved`, ölüm `RunDied`; `SavedRun()` ölü ya da
@@ -39,15 +73,11 @@ solunda), haritada "Zorluk: ORTA", devam kartı, günlük ve HATA / ÖNERİ'de `
 `FullRunTests` 6 sınıf × 4 seviye (Ironman kamp panelinde yeniden yükler).
 
 **Masa birliği** (Demo 3.4'ün ilk aşaması, DEVLOG 2026-10-20): **oyundaki her poker masası aynı görünür** (kullanıcının kuralı) — kat, bekçi,
-boss, Lucifer ve Boss Simülatörü'nün masaları: sol altta oyuncu paneli, sağ üstte şeytan, sayaç sol üstte, ödeme çarpanları masada değil
-H panelinde. `TableLayout` tek düzen (`TableLayout.Table`; `TableLayoutKind`, `ITableView.SetLayout` / `SetPayoutTableShown` silindi),
-simülatörün LEAVE TABLE / SOUL BOUND / NO ESCAPE düğmesi panelin üstünde (`TableLayout.Leave`, kit'in yeri). Simülatörde panelin satırı demo
-gücünün adı (`UiText.DemoPowerName`; şarj pipleri adın üstünde), portre tık = K; H panelinde şeytanın kendi tablosu ve notlar
-(`TablePresenter.PayoutNotes` artık her masada). **Simülatör geliştirici aracı:** F9 ve menüdeki izi yalnız editörde, development build'de,
-`HELLPOKER_DEV=1`'de, batchmode'da ve `-fpstour`'da (`HellPokerBootstrap.SimulatorAllowed` → `MainMenuPresenter(simulatorAllowed)`);
-oyuncu build'inde `run.save` DEVAM ET'i etkilemez. `-fpstour -tableshots`: bekçi, üç boss, Lucifer ve simülatör salonlarının görüntüleri
-(`persistentDataPath/tour/table_*.png`, `sim_*.png`; `ChapterPresenter.ForgetForTour`). Testler: `TableLayoutTests.TheSimulatorsTables_LookLike...`,
-`EveryChapterTable_...`, `ChapterMenuTests.APlayersBuild_HasNoSimulator...`, `PhaseThreeTableTests.TheSimulatorsHandsPanel...`.
+boss ve Lucifer masaları: sol altta oyuncu paneli, sağ üstte şeytan, sayaç sol üstte, ödeme çarpanları masada değil H panelinde.
+`TableLayout` tek düzen (`TableLayout.Table`; `TableLayoutKind`, `ITableView.SetLayout` / `SetPayoutTableShown` silindi). H panelinde
+şeytanın kendi tablosu ve notlar (`TablePresenter.PayoutNotes` her masada). `-fpstour -tableshots`: bekçi, üç boss ve Lucifer masalarının
+görüntüleri (`persistentDataPath/tour/table_*.png`; `ChapterPresenter.ForgetForTour`). Testler: `EveryChapterTable_...`,
+`PhaseThreeTableTests`.
 
 **Demo 3.3** (etiket `v3.3-demo`, bundleVersion **3.3.0-demo**): **dil Ayarlar'da** — `SettingsTab.Language` dördüncü sekme (liste
 `Lang.All`, her dil kendi adıyla `Lang.NativeName`; satırlar `SettingsLanguage<i>`, seçili olanda piksel ok + altın çerçeve; tık
@@ -57,19 +87,18 @@ logo `Ui/menu_logo` (yoksa `Ui/title`; oturumda bir kez yukarıdan düşer — b
 harf üstlerinde), düğmeler `Ui/menu_box` (9-slice, Tiled) içinde iki sütun (tek sütun 7 × 32 px logonun altına sığmıyor), alev imleci
 `Ui/menu_cursor` (düğmenin 12 px solu; `IMenuCommands.MoveMenuSelection / PressMenuSelection` → `IMainMenuView.MoveSelection /
 PressSelection`; fare `ButtonFeel.Entered` ile imleci taşır; `ButtonFeel.Selected / LightUp`: yanınca kor derisi + yazı 1 px yukarı),
-devam kartı (`ContinueCard`, `IChapterSession.ContinueCard`, `IMainMenuView.SetContinueCard`, `UiText.ContinueCardLines`; simülatörde yok),
-HATA / ÖNERİ sol altta, simülatörün yazısı DEMO'nun yerinde. Zemin `pixel_menu.py` yeniden çizildi (aşağıdaki **Ana menü zemini**).
+devam kartı (`ContinueCard`, `IChapterSession.ContinueCard`, `IMainMenuView.SetContinueCard`, `UiText.ContinueCardLines`), HATA / ÖNERİ sol altta. Zemin `pixel_menu.py` yeniden çizildi (aşağıdaki **Ana menü zemini**).
 PlayMode testleri test klavyesi ekler (`MenuGridTests.Tap`: `InputSystem.AddDevice<Keyboard>`, odak yokken `IgnoreFocus`).
 
-**Demo 3.2** (etiket `v3.2-demo`): **masa düzeni** `Views/TableLayout` (tek yer; `TableLayoutKind` Simulator / Chapter, ekran boyundan ve
+**Demo 3.2** (etiket `v3.2-demo`): **masa düzeni** `Views/TableLayout` (tek yer — masa birliğinden beri tek düzen —, ekran boyundan ve
 blok boylarından hesaplanır; `ITableView.SetLayout`, presenter masaya otururken çağırır). Bölüm masası: şeytan sütunu sağ üstte
 (`TableLayout.RightX` = W − 4 − 104: `DealerView`, `MaliceView` — niyet hover'ı sola —, `BossBarWidget` adın altında, bardan yükselen yüzde
 orta sütunla şeytan sütunu arasındaki boşlukta), sayaç / ruh lambası sol üstte (4, 4), oyuncu paneli sol altta (alt satırın 4 px üstünde;
 hover'ları sağa: `PlayerPanelView.SetTipsRight`, `RelicBarView.TipsRight`), kit panelin hemen üstünde ve yukarı büyür (`KitView.MoveTo(...,
 fromBottom)`); coin uçuşu sayaca, bar vuruşu şeytanın barına (`HandFanfareView.SetTargets`), haraç sikkeleri şeytana (`CheatEffects.DealerPoint`).
-Simülatör: masa birliğinden beri aynı düzen (aşağıdaki **Masa birliği**). Zeminlerin yazı bölgeleri (`TABLE_TEXT`) iki
+ Zeminlerin yazı bölgeleri (`TABLE_TEXT`) iki
 düzenin birleşimi (sağdaki ad satırı, iki yandaki yüzde), sağdaki parçacık alanı adın üstü / altı (`RIGHT_HIGH/LOW`). Şeytanın adı sığmazsa
-metin fontuna geçer (`DealerView.FitName`). Testler: `TableLayoutTests.TheChapterTables_PutTheDemonTopRight...`, `TheSimulatorsTable_KeepsItsOldLayout`.
+metin fontuna geçer (`DealerView.FitName`). Testler: `TableLayoutTests.EveryChapterTable_PutsTheDemonTopRight...`.
 
 **Demo 3.1** (etiket `v3.1-demo`): oyuncu paneli, animasyonlu sınıf portresi, el gücüne göre kademeli el animasyonları, EKRAN SARSINTISI
 ayarı (aşağıdaki **Demo 3.1** paragrafı). Demo 3.0.1 / 3.0.2: How to Play resimleri 256×144, siyah hover kutusu düzeltmesi.
@@ -78,13 +107,9 @@ ayarı (aşağıdaki **Demo 3.1** paragrafı). Demo 3.0.1 / 3.0.2: How to Play r
 masalarında her el taze deste, uzun kat / harita müzikleri, hover kutuları en üstte (aşağıdaki **Phase 3 (1)** paragrafı ve görsel kurallar).
 
 **Tek oyun (1.4.0):** ana menünün YENİ OYUN / DEVAM ET düğmeleri Phase 2 koşusunu açar (sınıf → harita); "PHASE 2" düğmeleri yok.
-Eski demo silinmedi: **Boss Simülatörü** (geliştirici aracı; `MainMenuPresenter.InSimulator`): ana menüde **F9** (`IMenuCommands.ToggleSimulator`,
-sadece menü kökünde; masa birliğinden beri yalnız editör / development build / `HELLPOKER_DEV=1` / batchmode / `-fpstour`) ya da `HELLPOKER_DEV=1`; batchmode'da (testler) varsayılan simülatör, oyunun testleri `HellPokerBootstrap.ForceSimulator =
-false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MASA DEĞİŞTİR / YENİ OYUN → şeytan, demo kuralları, demo rekorları,
-başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
-`ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
-(`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.4-win64.zip` (bundleVersion **3.4.0-demo**: menüde "Demo 3.4" + DEMO
+Demo 3.4.1'den beri **Boss Simülatörü yok** (yukarıdaki **Demo 3.4.1**; geçici geliştirici kısayolu: **Geçici: F9**). Rekorlar ekranı
+`ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play `HowToPlayView`'in resimli sayfaları. Bölüm masasında son 250 / son anlar
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.4.1-win64.zip` (bundleVersion **3.4.1-demo**: menüde "Demo 3.4.1" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol altında (Demo 3.3) HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -168,8 +193,7 @@ solunda `DeckX/DeckY`; başlık sığmazsa dar yazıya geçer; PlayMode `TableLa
 40. Günah Takası'nda teklif çıkmazsa emanet gitmez; emanet bırakma / satma / takası mesaj + günlük satırı.
 
 **Demo 2.2** (etiket `v2.2-demo`; DEVLOG 2026-10-16, PHASE2_CHAPTERS on beşinci tur): **Büyücü → KÂHİN / ORACLE** — C# sınıfı `Warlock`,
-id `"warlock"` ve yükseltme id'leri aynı (kayıtlar, rekorlar); ekranda her yerde ORACLE / KÂHİN (simülatörde de; simülatördeki
-Warlock'un koruma gücü ve metni aynı). Phase 2: ÖNSEZİ `ClassKit.ForesightCards` = 2 (Üçüncü Göz `deep_prophecy` +1, Kâhinin Gözlüğü +1),
+id `"warlock"` ve yükseltme id'leri aynı (kayıtlar, rekorlar); ekranda her yerde ORACLE / KÂHİN (demo motorundaki Warlock'un koruma gücü ve metni aynı). Phase 2: ÖNSEZİ `ClassKit.ForesightCards` = 2 (Üçüncü Göz `deep_prophecy` +1, Kâhinin Gözlüğü +1),
 KADERİ BÜK (Demo 2.3'te kalktı) `ProphecyPowers.Bend / PullToTop / SendToBottom` (elde bir kez, bedelsiz: `RearrangeBarPercent / RearrangeCoins` 0; Kader
 Dokumacısı `thrice` iki kart; Gözlük yalnız ▼'yi kapatır), panelde kartın sağında piksel ▲ / ▼ (`KitCard.Arrows / CanTop / CanBottom`,
 `ITableView.KitArrowPressed`), Ayna Laneti (şeytan bir kartı bilir; Kör Ayna %50), Kehanet Mührü `eye_of_truth` (dolandırıcıyı GEÇ → +10
@@ -178,7 +202,7 @@ coin, `ClassKit.SealCoins`, sonuç "sealed"). Kör Kâhin olayı Türkçede KÖR
 ya da iki kamp arasında en az 2 kat, yolda en çok 2 pazar (`MapMaker.FloorsBetween / MostMarketsOnAPath / SpaceTheMarkets / NearA`).
 **How to Play** (oyun): 10 resimli sayfa (`HowToPlayView`, `UiText.HowTo.cs`; resimler `Resources/Art/HowTo/<nn_ad>_<en|tr>.png`,
 [Explicit] `HowToShots` üretir: 2560×1440 → 640×360 doğal piksel → 256×144 kırpma, ekranda 1:1 — büyütülmez, tek piksel boyu; PlayMode `HowToPlayTests` ölçer; oklar / Q-E `IMenuCommands.TurnRulesPage`);
-simülatörün sayfaları aynı. **Günlük:** bölüm masaları elleri, hileleri, güçleri ve reddedilen K'yi bölümün `RunLog`'una yazar
+ **Günlük:** bölüm masaları elleri, hileleri, güçleri ve reddedilen K'yi bölümün `RunLog`'una yazar
 (`TablePresenter.ChapterLog`). Tek kopya (`forceSingleInstance`). Hata avı düzeltmeleri: Çağırıcı LEJYON sonrası ücret, müsadere seçimi
 draw ile kapanır, Ayna metinleri (`LuciferMirror.DrewTop / UsedBag`), ipuçları yükseltmelerle. Testler: `OracleTests`, `PowerHuntTests`,
 `MapSpacingTests` (180.000 harita, ~2 dk), PlayMode `HowToPlayTests`, [Explicit] `FullRunTests` (her sınıf tam koşu + 5. daire + kaos;
@@ -190,7 +214,7 @@ Lucifer her 3 elde bir çalar `LuciferMirror.StealEveryHands`; 140 coin, 6500 y�
 = true; false eski kural: Çağırıcı ilk kurtuluşla). Sınıf kartı düzeni başlık yüksekliğine göre akar. (Demo 2.2.1'in heybe 2 / HASAT sınırı Demo 2.3'te kalktı.)
 
 **Demo 2.3** (etiket `v2.3-demo`, bundleVersion **2.3.0-demo**, zip `HellPoker-Demo-2.3-win64.zip`; DEVLOG 2026-10-17, PHASE2_CHAPTERS on altıncı tur):
-**Phase 2'de K güçleri yok, pasifler var** (demo / simülatör aynen): `ClassPowers` ana güç + kendiliğinden çalışan pasif (`PassiveThisHand`,
+**Phase 2'de K güçleri yok, pasifler var** (demo motoru aynen): `ClassPowers` ana güç + kendiliğinden çalışan pasif (`PassiveThisHand`,
 `ClassKit.Passives`): Köylü SESSİZ TARLA (elin ilk heybe kartı görünmez, ikincisi `SatchelRisk`), Kâhin GERÇEĞİ GÖRÜR (yalan + tuzak; KADERİ BÜK
 ve oklar kalktı), Kral KRALİYET İNDİRİMİ (müsadere yarı, `ClassKit.RoyalDiscountPercent`; Ucuz Müsadere dörtte bir), Çağırıcı SADIK İBLİS
 (`FreeImpsPerHand`), Hırsız GÖZ UCU + **ÇAL draw'dan sonra da** (`TheftPowers.InTheHand`; mühürlü elde draw'dan sonra kapalı). K: Hırsız'da ÇAL,
@@ -230,7 +254,7 @@ kalıyordu). `HoverTip` her karede ekranına bakar (`ScreenShown`: üstündeki h
 paneli, pazar, kamp, olay, ganimet, kat / boss / Lucifer masası açıkken hiçbir şeyin üstüne gelinmemişken görünür kutu yok (`HoverTip.Visible`). **Ödemeler H panelinde:**
 bölüm masalarında `ITableView.SetPayoutTableShown(false)` (PAYOUTS gizli, düğme ELLER / ÖDEMELER, bahis satırı sağ sütuna uzar), notlar
 `HandRanksPanel.Show(payouts, footnote, notes)` ← `TablePresenter.PayoutNotes` (oyunun kendi tablosu `HellPokerGame.Payouts`: şeytanın ölçeği,
-katın kazancı, Mammon'un faizi); simülatör aynen. **Her el taze deste:** `ChapterTuning.FreshDeckEveryHand` (bölüm masalarında
+katın kazancı, Mammon'un faizi). **Her el taze deste:** `ChapterTuning.FreshDeckEveryHand` (bölüm masalarında
 `continuousDeck` false: sayaç / KARIŞTIR / S / "deste bitti" yok; `ChapterSave` `deck` yazmaz, okumaz; testlerin yığılmış destesi
 `HellPokerGame.StackTheDeal`, `RestoreDeck` demo için aynen; simülasyon `HELLPOKER_CHAPTER_DECK=0` eski). Denge (500, aynı tohum): Köylü −9.2,
 Kral +4.8, diğerleri ±3 içinde (karar bekliyor). **Müzik:** kat ve harita döngüleri 32+ ölçü (~2 dk), A / B / nefes, üçgen bas, pes ve seyrek
@@ -238,12 +262,12 @@ Kral +4.8, diğerleri ±3 içinde (karar bekliyor). **Müzik:** kat ve harita d�
 satır 32; PlayMode `MenuGridTests`); `pixel_menu.py` sadeleşti, `MENU_TEXT` = `BackdropMotionTests.MenuText`. [Explicit] `PhaseThreeShots`
 (menü, harita, kat, şeytan, How to Play; `HELLPOKER_SHOT_SIZE`, `HELLPOKER_SHOTS`).
 
-**Demo 3.1** (DEVLOG 2026-10-19 A–C; Boss Simülatörü, demo masası, kurallar ve denge aynen): **Oyuncu paneli** `PlayerPanelView` (bölüm
+**Demo 3.1** (DEVLOG 2026-10-19 A–C; kurallar ve denge aynen): **Oyuncu paneli** `PlayerPanelView` (bölüm
 masasında — Demo 3.2'den beri sol altta, `TableLayout` —, 104×174; görünürlüğü `SetPayoutTableShown(false)`'a bağlı — presenter değişmedi):
 72'lik kutuda 64×64 `SinnerView`, sınıf adı + seviye pipleri, yükseltmeler kutunun köşesinde, pasif satırı (`UiArt.PassiveIcon` 12×12 +
 `UiText.ChapterPassiveName`; Soytarı'da JOKER ×N; pasif çalışınca parlar), emanetler aynı `RelicBarView` ile ızgarada (`grid: true`, 3 + 3,
 hover karonun solunda; Kemik Zar tıkı, nadirlik çerçevesi, yeni parlaması aynı). Portre ve pasif satırı tık = K (`SinnerPressed`), hover =
-sınıfın tam metni. Bölüm masasında şeytan portresinin üstündeki `SinnerBadgeView` ve `RelicBarView` gizli (simülatörde yerinde). Bahis
+sınıfın tam metni. Şeytan portresinin üstündeki `SinnerBadgeView` ve `RelicBarView` gizli. Bahis
 satırı geniş kaldı (x 504'te biter, panel 532'de başlar). **Sınıf portresi** `SinnerAnimationLibrary` (`Sinners/<id>/<durum>.png`, 64×64:
 idle 8 kare 5 FPS döngü, happy 6, joy 8, hurt 6 bir kez 8 FPS, tense 8 / 6 FPS döngü; yedek: idle → 48'lik `Sinners/<id>.png` ortalı, büyütülmez
 → düz renk), `SinnerView` (`SinnerMood` Calm / Pleased / Elated / Hurt / Tense → animasyon; `ITableView.SetSinnerMood`), presenter
@@ -265,6 +289,10 @@ PlayMode `HandFanfarePlayTests`, `TableLayoutTests.ThePlayersPanel_...`; [Explic
 ## Oyun
 
 Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasaya (House)** karşı oynar.
+
+> **Demo 3.4.1 notu:** bu bölüm demo motorunun (Core `HellPokerGame` + `TablePresenter`'ın demo yolu) kurallarını anlatır; oyunun bölüm
+> masaları bu motoru kancalarla kullanır (yukarıdaki Phase 2 paragrafları). Buradaki eski ekran anlatımları (şeytan seçimi, MASA DEĞİŞTİR /
+> LEAVE TABLE seçimi, son ekranları, demo rekorları ve `run.save`) Boss Simülatörü'yle kalktı; motor ve EditMode testleri duruyor.
 
 - Oyuncu **1000 yıl** cehennem cezasıyla başlar; amaç cezayı **0**'a indirmek (Absolved) — ama bu sadece **Lucifer'in masasında** olur.
 - **Lucifer (final, `DealerRoster.Lucifer`, id `lucifer`):**
@@ -341,8 +369,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Son 250 yıl** (ceza ≤ 250): artırma mümkün olduğu sürece Pas yasak; tavana ya da all-in'e ulaşınca el mühürlenir (Pas'a gerek kalmaz).
   Ekran "cehennem ateşi" moduna geçer. Lucifer varken sıradan masada bu noktaya gelinmez (250'de çağrılır); sadece Lucifer'siz oyunda geçerli.
 - Masada "Win: at least −X · Lose: at least +Y" satırı (en zayıf ele göre, `LeastYearsForgiven/Added`).
-- Oyun **ana menüde** açılır: Continue / Change Table (koşu sürerken), New Game, Settings, How to Play (RULES / HANDS sayfaları),
-  Records, Quit. Masada MENU butonu ya da Esc menüye döner.
+- Oyun **ana menüde** açılır: DEVAM ET (koşu bekliyorsa), YENİ OYUN, AYARLAR, NASIL OYNANIR, REKORLAR, ÇIK. Masada MENÜ butonu ya da Esc menüye döner.
 - **Esc** her ekranda bir üst ekrana gider (`IMenuCommands.GoBack`): uyarı kapanır; masadaki el tablosu kapanır;
   kurallar / ayarlar / rekorlar / oyun sonu → menü; seçim → geldiği yer; masa → menü; menü → koşu. Her alt ekranda BACK butonu var.
   Ekran geçişlerinde 8 px'lik perde kalkar (`ScreenTransitionView`); perde hareket ederken girdi beklenir.
@@ -403,7 +430,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
 - **Oyun sonu:** masada "THE END" → son ekranı. NEW GAME / MENU.
   - Ekranlar: "THE MORNING STAR FALLS" (Lucifer'i yenince; gözleri parlayıp 1.6 sn sonra söner, "fell on attempt N"),
     "WILD BILL'S ESCAPE" (hiç çağrılmadan Dead Man's Hand), ABSOLVED (Lucifer'siz oyun ya da düşmüş oyuncunun Dead Man's Hand'i,
-    "The Morning Star will remember this." satırıyla), DAMNED. Seçim: `EndScreenView.TitleOf / StoryOf`.
+    "The Morning Star will remember this." satırıyla), DAMNED. (Demo 3.4.1: bu ekranlar kalktı.)
   - Hikâye satırları: el sayısı, en düşük / en yüksek ceza, en iyi el, masalar, ruh, Lucifer'le karşılaşma sayısı.
 - **Rekorlar** (`RecordBook`, `run.records`):
   - koşu, aklanma, lanet, şeytan başına aklanma (Lucifer'de biten koşu gelinen şeytana yazılır), en hızlı aklanma;
@@ -451,7 +478,7 @@ Unity 6 (6000.0.25f1), 2D URP. Tek oyunculu **5 Card Draw** poker, oyuncu **kasa
     cümle içinde `Called` "Lilith" / `CalledGenitive` "Lilith'in", "Sabah Yıldızı'nın"). Okuma: `UiText.GenitiveOf`, `NameInSentence`,
     `GenitiveInSentence`; İngilizcede alanlar boş, ad + "'s". Özne olarak geçen ad ek almaz ("Mammon haraç aldı").
     Değişebilen sayıya ek bağlanmaz ("%{3}'u" değil, "%{3} kadarı").
-- **New Game → kurpiyer şeytan seçimi** (Mammon / Belial / Lilith). Her şeytanın kendi ev kuralları var (`DealerRoster`):
+- **Şeytanların ev kuralları** (`DealerRoster`; eski demoda New Game → şeytan seçimi):
   | Şeytan | Kart değiştir | Kasa gösterir | Ödeme | Çekilme (önce/sonra) | Re-raise (Two Pair+ / blöf) | Hileler (gösterge) |
   |---|---|---|---|---|---|---|
   | **Mammon** (Tefeci, dürüst) | 3 | 2 | standart | %50 / %100 | %70 / %5 | Rehin, Haraç / **Satın Al** (4) |
@@ -726,18 +753,18 @@ Assets/Scripts/
                    ICheatPolicy / DemonCheatPolicy (küçük / büyük / yalan), ICheatGuard (engelleme kancası), CheatSession (gösterge,
                    seçim, vuruş, işaretler; HellPokerGame beş anda Strike çağırır), Mammon/Belial/Lilith/LuciferCheats (hile başına bir sınıf)
   Presentation/  HellPoker.Presentation.asmdef — Unity katmanı (MVP)
-    Abstractions/  ITableView (+ TableMoment), IHandView, IDealerView (+ DealerMood), IDealerSelectView (+ DealerChoice), IRunSession,
-                   IMainMenuView, ISettingsView (+ IDisplayMode, IScreenTransition), IEndScreenView / IRecordsView (+ RunSummary),
+    Abstractions/  ITableView (+ TableMoment), IHandView, IDealerView (+ DealerMood), IRunSession (demo motoru),
+                   IMainMenuView, ISettingsView (+ IDisplayMode, IScreenTransition), IRecordsView (+ RunSummary),
                    IGuideSettings, DealerCard, SoulGauge (+ LeaveState), ITableCommands, IMenuCommands, Tone,
                    CheatDisplay (MaliceGauge, CheatCard, CheatImpact, CardMark; CardSlot.Mark)
     Animation/     SpriteClip + SpriteSheet (yatay şeridi kare karelere böler), DealerAnimationLibrary, SalonLibrary ve MenuBackdropLibrary
                    (yedek zincirleri; sabit resim + `Motion`, salonlar açılışta `Preload`), BackdropMotion (motion.txt: BackdropLayer,
                    BackdropParticles), SpriteFrameAnimator (Image üzerinde kare oynatır; döngü / tek sefer), AnimationClock (hız + atlama)
-    Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, DealerSelectView, SalonView,
+    Views/         uGUI view'ları (UI tamamen koddan kurulur, prefab yok): TableView, DealerView, SalonView,
                    SoulView, SentenceView, CardView, HandRanksPanel, TableMoments, TableScenes (çağrılma kararması / düşüş /
                    Lucifer titremesi), MaliceView (gösterge + niyet şeridi + yalanın kırılması), CheatEffects (hile vuruşu, BACKFIRE),
                    MenuBackdrop, BackdropMotionView (katmanlar + piksel parçacıkları, kendi Canvas'ı), FpsCounter (F3, dev build),
-                   SettingsView, EndScreenView, RecordsView, SinnerBadgeView / SinnerSelectView, EventPanelView, RelicBarView,
+                   SettingsView, RecordsView, SinnerBadgeView / SinnerSelectView, EventPanelView, RelicBarView,
                    PlayerPanelView + SinnerView + HandFanfareView (Demo 3.1: oyuncu paneli, sınıf portresi, el animasyonları),
                    ScreenTransitionView, AnimationSequencer (Complete = atla; hata veren adım kuyruğu kilitlemez)
     Settings/      GameSettings (+ IGuideSettings, WindowMode), WindowScales (pencere katları, saf aritmetik), ISettingsStore
@@ -752,7 +779,7 @@ Assets/Scripts/
     4'ten fazlaysa iki sütun; işaret edilenin açıklaması üstünde), Abstractions/IChapterViews (ChapterMapState, PanelCard, PanelOption),
     Currency (ITableView.SetCurrency: yıl / coin; ante metni). TablePresenter'da bölüm modu: SitAtFloor /
     SitAtBoss, ChapterTableFinished, CoinMode (sayaç = kese, metinler coin, KARIŞTIR / LEAVE yok, kayıt / rekor / Lucifer kapısı yok,
-    isim altında iblisin kesesi ve ante). Menü: YENİ OYUN / DEVAM ET (IMainMenuView.SetSimulator). Metinler: UiText.Chapters.cs
+    isim altında iblisin kesesi ve ante). Menü: YENİ OYUN / DEVAM ET. Metinler: UiText.Chapters.cs
     (+ DealerText imp / collector). Çizim: Tools/ArtGen/pixel_floors.py (generate_art.py floors): iki portre (7 durum), iki salon,
     Ui/chapter_map, Ui/map_nodes (NodeKind sırası + kapı), Events/ altında 5 yabancı. Testler: ChapterPresenterTests, ChapterMenuTests,
     PlayMode ChapterJourneyTests (+ [Explicit] ChapterScreenshots, 70–83).
@@ -766,13 +793,11 @@ Assets/Scripts/
                  HellPokerEditorStartup (editör boş sahneyle açılırsa HellPoker sahnesini açar — batchmode son açık sahneyi sıfırlıyor).
                  UYARI: `EditorSceneManager.playModeStartScene` KULLANMA — Test Runner'ın PlayMode sahnesini de yönlendirip testleri kilitliyor.
 Assets/Tests/EditMode/  NUnit testleri (Core + Presenter, fake view'larla)
-Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla oynayan testler: HellPokerSceneTests, SalonRegressionTests,
-                        RunJourneyTests (yeni oyun → eller → masa değiştir → menü → devam → sahneyi yeniden yükle → devam),
-                        LuciferJourneyTests (yığılmış destelerle çağrılma → düşüş → yeniden çağrılma → zafer),
-                        JesterJourneyTests (Soytarı seçilir, jokerli el, seçici, adlandırılan kart), JesterScreenshots ([Explicit], 60–66),
-                        CheatJourneyTests (her şeytan bir hile; CheatRig hileyi yansımayla masaya zorlar; DarkWatch her karede gizli kartı
-                        izler), BackdropMotionPlayTests (menü ve salonlar hareket eder, tam piksel)
-                        + HellPokerScreenshots / CheatScreenshots ([Explicit]: 1920×1080 ekran görüntüleri; hileler 40–57)
+Assets/Tests/PlayMode/  Sahneyi yükleyip gerçek butonlarla oynayan testler: HellPokerSceneTests (ilk iblis masasında bir el), ChapterJourneyTests,
+                        MenuGridTests, HowToPlayTests, HoverTipTests, TableLayoutTests, HandFanfarePlayTests, BackdropMotionPlayTests
+                        (menü ve şeytanların salonları hareket eder, tam piksel), DevJumpShortcutPlayTests (geçici F9), [Explicit] FullRunTests,
+                        Demo*Shots / PhaseThreeShots / HowToShots / PlaytestScreenshots / ChapterScreenshots (ekran görüntüleri);
+                        HellPokerScreenshots: yardımcılar (Shot, Press, Find...)
 Assets/Scenes/HellPoker.unity  — ana sahne (kamera + HellPokerBootstrap)
 Assets/Resources/Art/   Üretilmiş piksel görseller:
                           Demons/<dealerId>/<durum>.png  (idle, talk, gloat, angry, reraise, final, soul — yatay şerit, kareler 96×96)
@@ -801,7 +826,7 @@ Tools/ArtGen/           pixel.py (palet + çizim), pixel_layers.py (katmanlı ze
   bunu tam sayı katıyla ölçekler: 1366×768 ×2 (+kenar), 1920×1080 ×3, 2560×1440 ×4, 3840×2160 ×6 — yaygın çözünürlüklerde kenar yok,
   EKRANI DOLDUR'a gerek kalmaz. Pencere katları (`WindowScales`) 640×360'ın katları (1080p'de pencere ×2). Yerleşim ekran boyundan
   hesaplanır (`PixelScreen.Width/Height`): masa (`TableView` + `TableLayout`: orta sütun 320 px ortalı, yan sütunlar 104 px kenardan 4 px —
-  bölüm masasında şeytan sağda, sayaç ve oyuncu paneli solda; simülatörde tersi —, alt satır H−22, diyalog 96 px),
+  şeytan sağda, sayaç ve oyuncu paneli solda —, alt satır H−22, diyalog 96 px),
   menü (`MainMenuView` 8 px ızgara), harita (şerit 80, kat en çok 36), ortalı paneller. Fazla alan ölçeğe değil nefese gider: kart
   32×48, portre 96×96, ikon ve font boyları aynı. PlayMode `TableLayoutTests.TheTable_IsLaidOutOnThe640By360Grid`.
 
@@ -916,9 +941,9 @@ Unity editörü **kapalıyken** (proje açıksa batchmode kilitlenir):
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults results.xml -logFile unity.log
 & "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testResults play.xml -logFile play.log
 
-# Ekran görüntüleri (Screenshots/ klasörüne ya da $env:HELLPOKER_SHOTS'a)
-& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testFilter HellPoker.PlayMode.Tests.HellPokerScreenshots -testResults shots.xml -logFile shots.log
-# Hilelerin ekran görüntüleri: aynı komut, -testFilter HellPoker.PlayMode.Tests.CheatScreenshots
+# Ekran görüntüleri (Screenshots/ klasörüne ya da $env:HELLPOKER_SHOTS'a; boyut $env:HELLPOKER_SHOT_SIZE, dil $env:HELLPOKER_LANG=tr)
+& "C:\Program Files\Unity\Hub\Editor\6000.0.25f1\Editor\Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testFilter HellPoker.PlayMode.Tests.Demo34Shots -testResults shots.xml -logFile shots.log
+# Diğerleri: aynı komut, -testFilter HellPoker.PlayMode.Tests.PhaseThreeShots (ya da Demo33Shots, HowToShots...)
 
 # Denge simülasyonu (her şeytana 2000 koşu; rapor sim.xml'deki test çıktısında).
 # Başka ruh sayılarını kodu değiştirmeden denemek için önce: $env:HELLPOKER_SOUL_WORTH = "800"; $env:HELLPOKER_SOUL_LOSS = "150"

@@ -5,7 +5,7 @@ namespace HellPoker.Presentation.Ui
 {
     /// <summary>
     /// Demo 2.2's How to Play: ten short pages (Demo 3.4: eleven, the difficulty's before the hands), each a picture from the game (Art/HowTo/&lt;page&gt;_&lt;lang&gt;.png, made by the PlayMode
-    /// HowToShots) beside at most five short lines; the tenth is the hands table. The Boss Simulator keeps its own long pages.
+    /// HowToShots) beside at most five short lines; the tenth is the hands table.
     /// </summary>
     internal static partial class UiText
     {

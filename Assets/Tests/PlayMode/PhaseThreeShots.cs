@@ -19,8 +19,6 @@ namespace HellPoker.PlayMode.Tests
     [Explicit, Category("Screenshots")]
     public class PhaseThreeShots
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
         private static string Tag => System.Environment.GetEnvironmentVariable("HELLPOKER_SHOT_SIZE") ?? "1920x1080";
 
@@ -28,7 +26,6 @@ namespace HellPoker.PlayMode.Tests
         public IEnumerator CaptureTheFiveScreens()
         {
             HellPokerBootstrap.BatchStore.Clear();
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.6f);
             yield return HellPokerScreenshots.Shot($"p3_menu_{Tag}");

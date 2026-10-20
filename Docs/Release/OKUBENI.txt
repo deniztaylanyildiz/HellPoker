@@ -14,6 +14,8 @@ Bilinen sınırlamalar:
     ilk tahmin.
   - Hata / öneri butonu e-posta uygulamanı açar; açılmazsa rapor panoya kopyalanır, bir e-postaya yapıştırman yeter.
   - Şeytanın kuralı masa açılırken söylenir; ilk oynayışta ilk ipucu bu repliğin üstüne yazılabilir (kurallar How to Play'de de var).
+  - Eski demonun Boss Simülatörü bu sürümde yok. Daha önce oynadıysan onun kaydı ve rekorları ilk açılışta sessizce silinir;
+    oyunun kendi kaydın ve rekorların olduğu gibi kalır.
 
 
 NASIL AÇILIR

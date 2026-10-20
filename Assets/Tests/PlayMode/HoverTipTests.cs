@@ -18,8 +18,6 @@ namespace HellPoker.PlayMode.Tests
     /// </summary>
     public class HoverTipTests
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
         [UnityTest, Timeout(600000)]
         public IEnumerator NothingPointedAt_NoHoverBoxShows_OnAnyChapterScreen()

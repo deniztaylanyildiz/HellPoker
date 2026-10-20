@@ -39,7 +39,6 @@ namespace HellPoker.PlayMode.Tests
         [TearDown]
         public void BackToTheUsualMenu()
         {
-            HellPokerBootstrap.ForceSimulator = null;
             Time.timeScale = 1f;
         }
 
@@ -92,7 +91,6 @@ namespace HellPoker.PlayMode.Tests
 
         private static IEnumerator LoadScene()
         {
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
         }

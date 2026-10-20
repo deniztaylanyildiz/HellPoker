@@ -196,14 +196,14 @@ namespace HellPoker.Presentation.Views
         /// <summary>The player's panel (for tests and screenshots): shown at a chapter's table, in place of the payouts.</summary>
         public PlayerPanelView PlayerPanel => _panel;
 
-        /// <summary>The class badge and the relics on the demon's portrait (the Boss Simulator's table; hidden at a chapter's).</summary>
+        /// <summary>The class badge and the relics on the demon's portrait (hidden: the player's panel holds them).</summary>
         public SinnerBadgeView PortraitBadge => _sinner;
 
         public RelicBarView PortraitRelics => _relics;
 
         public void SetSinnerMood(SinnerMood mood) => _panel.SetMood(mood);
 
-        /// <summary>Where the table's blocks stand (masa birliği: one layout for every table, the Boss Simulator's too).</summary>
+        /// <summary>Where the table's blocks stand (masa birliği: one layout for every table).</summary>
         public TableLayout Layout { get; } = TableLayout.Table;
 
         /// <summary>

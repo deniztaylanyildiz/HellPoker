@@ -25,8 +25,6 @@ namespace HellPoker.PlayMode.Tests
     /// </summary>
     public class TableLayoutTests
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
         [UnityTest, Timeout(240000)]
         public IEnumerator NothingOverlaps_AtTheTables_InEnglish() => Walk(false);
@@ -39,7 +37,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             HellPokerBootstrap.BatchStore.SetString("settings.language", turkish ? "Turkish" : "English");
             if (save != null) new ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             if (save != null)
@@ -575,73 +572,27 @@ namespace HellPoker.PlayMode.Tests
             }
         }
 
-        /// <summary>The Boss Simulator's table (TableCanvas) and its presenter.</summary>
-        private static TableView SimulatorTableView =>
-            UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsSortMode.None).First(t => t.name == "TableCanvas");
-
-        private static TablePresenter SimulatorTable =>
-            (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
-
-        [UnityTest, Timeout(600000)]
-        public IEnumerator TheSimulatorsTables_LookLikeEveryOtherTable_InBothLanguages()
+        /// <summary>Demo 3.4.1: the game has one table — the chapters' (ChapterTableCanvas); the Boss Simulator's (TableCanvas) is gone, from the
+        /// scene and from the menu.</summary>
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheGameHasOneTable_TheChapters_NoSimulatorTable()
         {
-            // Masa birliği: the Boss Simulator's tables are laid out as the game's — the demon top right, the counter top left, the player's
-            // panel bottom left (the class's portrait, its power's pips), no payouts panel; the demon's own table in the hands' panel.
-            foreach (bool turkish in new[] { false, true })
+            yield return Load(false, null);
+            Assert.IsFalse(UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsInactive.Include, FindObjectsSortMode.None).Any(v => v.name == "TableCanvas"),
+                "no Boss Simulator's table");
+            Assert.IsNull(typeof(HellPokerBootstrap).GetField("_tablePresenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance),
+                "no demo table in the composition root");
+
+            ChapterSave boss = new ChapterSave
             {
-                string lang = turkish ? " (tr)" : " (en)";
-                for (int dealer = 0; dealer < Core.Dealers.DealerRoster.All.Count; dealer++)
-                {
-                    HellPokerBootstrap.BatchStore.Clear();
-                    HellPokerBootstrap.BatchStore.SetString("settings.language", turkish ? "Turkish" : "English");
-                    HellPokerBootstrap.ForceSimulator = true;
-                    yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
-                    yield return new WaitForSeconds(0.5f);
-                    HellPokerScreenshots.Press("NewGameButton");
-                    yield return new WaitForSeconds(0.6f);
-                    HellPokerScreenshots.Press("ChooseDealer" + dealer);
-                    yield return new WaitForSeconds(0.6f);
-                    yield return Settle();
-                    TableView view = SimulatorTableView;
-                    Core.Dealers.Dealer demon = Core.Dealers.DealerRoster.All[dealer];
-                    string where = "simulator " + demon.Id + lang;
-                    AssertTheTablesLayout(view, where + ", before the deal");
-                    Assert.IsNotNull(view.PlayerPanel.Badge.ClassId, where + ": the class on the panel");
-                    Assert.AreEqual(8, view.PlayerPanel.Sinner.Portrait.Clip?.Frames.Length, where + ": the class's idle loop");
-                    SimulatorTable.PerformAction();   // the deal
-                    yield return Settle();
-                    AssertTheTablesLayout(view, where + ", in a hand");
-
-                    // The demon's own payouts in the hands' panel (Belial pays more; Lilith's loss is heavier).
-                    SimulatorTable.ToggleHandRanks();
-                    yield return null;
-                    HandRanksPanel ranks = view.HandRanks;
-                    var categories = Enum.GetValues(typeof(HandCategory)).Cast<HandCategory>().Reverse().ToArray();
-                    for (int i = 0; i < categories.Length; i++)
-                        Assert.AreEqual(demon.Payouts.IsAbsolution(categories[i]) ? UiText.Absolution : "×" + demon.Payouts.GetMultiplier(categories[i]),
-                            ranks.Values[i], where + ": " + categories[i] + " as the demon pays it");
-                    StringAssert.Contains(UiText.LossSurcharge(demon.Payouts.LossPercent), ranks.NotesShown, where + ": his loss in the notes");
-                    SimulatorTable.ToggleHandRanks();
-                    yield return null;
-
-                    // The portrait's click is K, as the badge's was.
-                    int before = SimulatorTable.Game.RoundNumber;
-                    view.PlayerPanel.PressPortrait();
-                    yield return Settle();
-                    Assert.AreEqual(before, SimulatorTable.Game.RoundNumber, where + ": K changes no hand");
-                }
-
-                // Lucifer's hall: a fresh table (between hands), brought down to his gate.
-                SimulatorTable.StartNewRun(Core.Dealers.DealerRoster.Lilith, Core.Sinners.SinnerRoster.Peasant);
-                yield return Settle();
-                SimulatorTable.Game.TakeOver(150, SimulatorTable.Game.RoundNumber);
-                SimulatorTable.SwitchTable(Core.Dealers.DealerRoster.Lilith);
-                yield return new WaitForSeconds(3f);
-                yield return Settle();
-                Assert.IsTrue(SimulatorTable.IsAtFinalTable, "Lucifer's table" + lang);
-                AssertTheTablesLayout(SimulatorTableView, "simulator Lucifer" + lang);
-            }
+                ClassId = Core.Sinners.King.ClassId, Seed = 7, Chapter = 2, Coins = 40, Years = 1600, Match = "boss", BossBarStart = 1600, BossBar = 1600,
+                NodeDone = false
+            };
+            yield return Load(false, boss);
+            yield return Settle();
+            var tables = UnityEngine.Object.FindObjectsByType<TableView>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Assert.AreEqual(1, tables.Length, "one table");
+            Assert.AreEqual("ChapterTableCanvas", tables[0].name);
         }
 
         // ------------------------------------------------------------------ Demo 3.1: the player's panel

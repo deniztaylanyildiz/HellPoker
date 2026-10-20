@@ -16,58 +16,52 @@ using UnityEngine.UI;
 namespace HellPoker.PlayMode.Tests
 {
     /// <summary>
-    /// Phase 2 in the real scene: the menu's PHASE 2 TEST button, the class, the chapter's map and its first imp's table — and the
-    /// demo's own table is never the one played. <see cref="ChapterScreenshots"/> walks the whole chapter for pictures.
+    /// The game in the real scene: NEW GAME, the class, the chapter's map and its first imp's table; an old player's simulator leftovers. <see cref="ChapterScreenshots"/> walks the whole chapter for pictures.
     /// </summary>
     public class ChapterJourneyTests
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
-
         internal static MainMenuPresenter Menu =>
             (MainMenuPresenter)typeof(HellPokerBootstrap).GetField("_menuPresenter", BindingFlags.NonPublic | BindingFlags.Instance)
                 .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
 
-        [UnityTest, Timeout(120000)]
-        public IEnumerator F9_OpensTheBossSimulator_AndItsSaveOutlivesANewGame()
+        /// <summary>The player's own run (a King in Belial's chapter, Hard) and records (a Medium freedom) in the store, before the scene loads.</summary>
+        internal static void PlayersOwnRunAndRecords(out string save, out string book)
         {
-            yield return OpenChapters();
-            Assert.IsTrue(Chapters.Journey != null, "NEW GAME: a chapter run (class, then the map)");
-            Assert.IsTrue(UnityEngine.Object.FindFirstObjectByType<ChapterMapView>().IsVisible);
-
-            // F9 on the title menu: the Boss Simulator, the old demo.
-            HellPokerScreenshots.Find<Button>("MapMenuButton").onClick.Invoke();
-            yield return new WaitForSeconds(0.6f);
-            Menu.ToggleSimulator();
-            yield return new WaitForSeconds(0.6f);
-            Assert.IsTrue(Menu.InSimulator);
-            HellPokerScreenshots.Press("NewGameButton");   // a demon, then a class
-            yield return new WaitForSeconds(0.6f);
-            HellPokerScreenshots.Press("ChooseDealer0");
-            yield return new WaitForSeconds(0.6f);
-            var demo = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", BindingFlags.NonPublic | BindingFlags.Instance)
-                .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
-            Assert.IsNotNull(demo.Game, "the simulator's table");
-            demo.PerformAction();   // a hand: the simulator's run is saved
-            yield return new WaitForSeconds(0.3f);
-            Assert.IsNotNull(new Presentation.Settings.RunArchive(HellPokerBootstrap.BatchStore).LoadRun(), "the simulator's own save");
-
-            // Back to the game: a new run over the waiting one, confirmed — the simulator's save stays.
-            // The simulator's own MENU (the chapter's table has a button of the same name).
-            UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
-                .First(b => b.name == "MenuButton" && b.GetComponentInParent<TableView>()?.name != "ChapterTableCanvas").onClick.Invoke();
-            yield return new WaitForSeconds(0.6f);
-            Assert.IsTrue(Menu.IsAtMenuRoot, "back on the title menu");
-            Menu.ToggleSimulator();
-            yield return new WaitForSeconds(0.6f);
-            Assert.IsFalse(Menu.InSimulator);
-            HellPokerScreenshots.Press("NewGameButton");
-            yield return new WaitForSeconds(0.6f);
-            HellPokerScreenshots.ChooseSinner(1);
-            yield return new WaitForSeconds(0.6f);
-            Assert.AreEqual("warlock", Chapters.Journey.Sinner.Id, "the new chapter run");
-            Assert.IsNotNull(new Presentation.Settings.RunArchive(HellPokerBootstrap.BatchStore).LoadRun(), "the simulator's save outlives it");
+            HellPokerBootstrap.BatchStore.Clear();
+            var archive = new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore);
+            ChapterSave mine = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 2, "");
+            mine.NodeDone = true;
+            mine.Difficulty = Difficulty.Hard;
+            archive.SaveRun(mine);
+            var records = new ChapterRecords();
+            records.RunEnded(JourneyEnd.Freed, 4, Core.Sinners.King.ClassId, 100, Difficulty.Medium, 200);
+            archive.SaveRecords(records);
+            save = HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RunKey, null);
+            book = HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null);
         }
+
+        /// <summary>Demo 3.4.1: a player who played the Boss Simulator launches the game — its run and records (garbled or not) go without a
+        /// word, the game's own save and records stay and CONTINUE leads to the run.</summary>
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TheSimulatorsOldSaveAndRecords_AreDropped_TheGamesOwnStay()
+        {
+            PlayersOwnRunAndRecords(out string save, out string book);
+            HellPokerBootstrap.BatchStore.SetString(Presentation.Settings.RunArchive.RunKey, "v=4\ndealer=belial\nyears=???");
+            HellPokerBootstrap.BatchStore.SetString(Presentation.Settings.RunArchive.RecordsKey, "runs=12\nabsolved=3");
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+
+            Assert.IsNull(HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.RunArchive.RunKey, null), "the simulator's run is gone");
+            Assert.IsNull(HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.RunArchive.RecordsKey, null), "and its records");
+            Assert.AreEqual(save, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RunKey, null));
+            Assert.AreEqual(book, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null));
+            Assert.AreEqual(1, Chapters.Records.FreedAt(Core.Sinners.King.ClassId, Difficulty.Medium), "the game's records read");
+            Assert.IsTrue(Menu.IsAtMenuRoot);
+            HellPokerScreenshots.Press("ContinueButton");
+            yield return new WaitForSeconds(0.6f);
+            Assert.AreEqual(Core.Sinners.King.ClassId, Chapters.Journey.Sinner.Id, "CONTINUE: the game's run");
+        }
+
         internal static ChapterPresenter Chapters =>
             (ChapterPresenter)typeof(HellPokerBootstrap).GetField("_chapterPresenter", BindingFlags.NonPublic | BindingFlags.Instance)
                 .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
@@ -89,7 +83,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
-            HellPokerBootstrap.ForceSimulator = false;   // the game, not the Boss Simulator
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             HellPokerScreenshots.Press("NewGameButton");
@@ -124,9 +117,6 @@ namespace HellPoker.PlayMode.Tests
             // A hand at the imp's table, for coins.
             Chapters.Table.PerformAction();
             yield return WaitForChapterTable();
-            var demo = (TablePresenter)typeof(HellPokerBootstrap).GetField("_tablePresenter", BindingFlags.NonPublic | BindingFlags.Instance)
-                .GetValue(UnityEngine.Object.FindFirstObjectByType<HellPokerBootstrap>());
-            Assert.IsNull(demo.Game, "the demo's run is untouched");
             Assert.AreEqual(1, ((TablePresenter)Chapters.Table).Floor.HandsPlayed);
         }
 
@@ -164,7 +154,6 @@ namespace HellPoker.PlayMode.Tests
             if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             new Presentation.Settings.ChapterArchive(HellPokerBootstrap.BatchStore).SaveRun(save);
-            HellPokerBootstrap.ForceSimulator = false;   // the game, not the Boss Simulator
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             HellPokerScreenshots.Press("ContinueButton");
@@ -228,8 +217,6 @@ namespace HellPoker.PlayMode.Tests
     [Explicit, Category("Screenshots")]
     public class ChapterScreenshots
     {
-        [TearDown]
-        public void BackToTheUsualMenu() => HellPokerBootstrap.ForceSimulator = null;
 
         [UnityTest, Timeout(600000)]
         public IEnumerator CaptureTheChapter()
@@ -305,7 +292,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
-            HellPokerBootstrap.ForceSimulator = false;   // the game, not the Boss Simulator
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             // How to Play: the game's page first, then the powers and the demons' rules.
@@ -386,7 +372,6 @@ namespace HellPoker.PlayMode.Tests
             if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
             HellPokerBootstrap.BatchStore.SetString(Presentation.Settings.ChapterArchive.RecordsKey, book.Encode());
-            HellPokerBootstrap.ForceSimulator = false;
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             yield return HellPokerScreenshots.Shot("110_menu");
@@ -475,7 +460,6 @@ namespace HellPoker.PlayMode.Tests
             HellPokerBootstrap.BatchStore.Clear();
             if (Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
                 HellPokerBootstrap.BatchStore.SetString("settings.language", "Turkish");
-            HellPokerBootstrap.ForceSimulator = false;
             string[] five = { Core.Relics.RelicIds.FerrymansCoin, Core.Relics.ChapterRelicIds.IronVow, Core.Relics.ChapterRelicIds.BlackBook,
                 Core.Relics.ChapterRelicIds.LeadSeal, Core.Relics.ChapterRelicIds.AshPurse };
 
