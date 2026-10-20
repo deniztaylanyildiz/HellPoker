@@ -170,8 +170,12 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The option that leaves (drawn plainer).</summary>
         public bool IsLeave { get; }
 
-        public PanelOption(string label, string detail = null, bool enabled = true, bool isLeave = false)
+        /// <summary>Demo 3.5: the option drawn as a relic card (a big one in a row, or a small one); null: a button.</summary>
+        public RelicCardData Card { get; }
+
+        public PanelOption(string label, string detail = null, bool enabled = true, bool isLeave = false, RelicCardData card = null)
         {
+            Card = card;
             Label = label ?? "";
             Detail = detail ?? "";
             Enabled = enabled;
@@ -197,9 +201,13 @@ namespace HellPoker.Presentation.Abstractions
         public BossBarDisplay Bar { get; }
         public string BarLabel { get; }
 
+        /// <summary>Demo 3.5: cards only to look at (a treasure's coins, a relic won, the warden's relic waiting), in a row over the answers.</summary>
+        public IReadOnlyList<RelicCardData> Showcase { get; }
+
         public PanelCard(string portraitId, string owner, string title, string text, IReadOnlyList<PanelOption> options, int selected = 0,
-            BossBarDisplay bar = null, string barLabel = null)
+            BossBarDisplay bar = null, string barLabel = null, IReadOnlyList<RelicCardData> showcase = null)
         {
+            Showcase = showcase ?? Array.Empty<RelicCardData>();
             Bar = bar ?? BossBarDisplay.Hidden;
             BarLabel = barLabel ?? "";
             PortraitId = portraitId;

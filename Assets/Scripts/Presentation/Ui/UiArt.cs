@@ -89,6 +89,10 @@ namespace HellPoker.Presentation.Ui
         public const string RelicArtStrip = "Ui/relic_art";
         public const int RelicArtSize = 32;
 
+        /// <summary>The coins card's picture (a pile of coins, 32×32) and the upgrade card's sign (16×16).</summary>
+        public const string CardCoins = "Ui/card_coins";
+        public const string CardUpgrade = "Ui/card_upgrade";
+
         /// <summary>A legendary relic's sparkle: Ui/RelicGlint/&lt;id&gt; (a one-shot burst, frame 0 the picture at rest).</summary>
         public const string RelicGlintFolder = "Ui/RelicGlint/";
 

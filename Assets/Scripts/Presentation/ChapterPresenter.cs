@@ -645,8 +645,9 @@ namespace HellPoker.Presentation
 
         private void ShowTreasure()
         {
+            // Demo 3.5: the coins on a card.
             ShowPanel(new PanelCard("Events/treasure", null, UiText.TreasureTitle, string.Format(UiText.TreasureTextFormat, _run.TreasureCoins),
-                new[] { new PanelOption(UiText.TreasureTake) }), new Action[] { Onward }, "treasure");
+                new[] { new PanelOption(UiText.TreasureTake) }, showcase: new[] { RelicCards.Coins(_run.TreasureCoins) }), new Action[] { Onward }, "treasure");
         }
 
         // ------------------------------------------------------------------ the black market
@@ -1431,38 +1432,61 @@ namespace HellPoker.Presentation
                 lines.Add(UiText.RarityName(ChapterRelics.RarityOf(relicGiven)) + " · " +
                     string.Format(UiText.MatchRelicFormat, UiText.RelicName(relicGiven), UiText.RelicGift(relicGiven), UiText.RelicCurse(relicGiven)));
             lines.Add(string.Format(UiText.MatchPurseFormat, _run.Purse.Coins));
-            ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, title, string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) }),
+            // Demo 3.5: the relic won stands on its card (it is already worn or in the bag).
+            RelicCardData[] won = relicGiven != null ? new[] { RelicCards.Relic(relicGiven, UiText.CardYours) } : null;
+            ShowPanel(new PanelCard(house, UiText.Dealer(house).Name, title, string.Join("\n", lines), new[] { new PanelOption(UiText.PanelOn) },
+                    showcase: won),
                 new Action[] { () => { if (_run.WardenRelicWaiting != null) ShowWardenRelic(); else Onward(); } }, "matchend");
         }
 
         private static string Signed(int coins) => coins > 0 ? "+" + coins : coins < 0 ? "−" + (-coins) : "0";
 
+        /// <summary>
+        /// Every slot worn and the bag full: the warden's relic waits on its card (Demo 3.5). TAKE IT asks what it replaces (the carried
+        /// relics as small cards, BACK to the card); the other answer takes the warden's coins (an offer's relic: leaves it).
+        /// </summary>
         private void ShowWardenRelic()
         {
             string id = _run.WardenRelicWaiting;
             string warden = ChapterCast.WardenOf(_run.Rules);
-            // Every slot worn and the bag full: one held relic is left behind for it — or the warden's coins (an offer's: it is left).
             bool fromWarden = _run.CurrentKind == NodeKind.Warden;
             var options = new List<PanelOption>
             {
                 fromWarden ? new PanelOption(string.Format(UiText.WardenCoinsFormat, _run.Rules.WardenRelicCoins))
-                    : new PanelOption(UiText.LeaveNewRelic, null, isLeave: true)
+                    : new PanelOption(UiText.LeaveNewRelic, null, isLeave: true),
+                new PanelOption(UiText.WardenTake, UiText.WardenTakeDetail)
             };
-            var answers = new List<Action> { () => { if (fromWarden) _run.TakeWardenCoins(); else _run.LeaveWaitingRelic(); Onward(); } };
+            var answers = new List<Action>
+            {
+                () => { if (fromWarden) _run.TakeWardenCoins(); else _run.LeaveWaitingRelic(); Onward(); },
+                ShowWardenSwap
+            };
+            ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.WardenRelicTitle,
+                string.Format(UiText.WardenFullFormat, _run.Rules.WardenRelicCoins),
+                options, selected: 1, showcase: new[] { RelicCards.Relic(id, UiText.CardBagFull) }), answers, "warden");
+        }
+
+        /// <summary>The warden's relic replaces one held: which (small cards), or BACK to its card.</summary>
+        private void ShowWardenSwap()
+        {
+            string id = _run.WardenRelicWaiting;
+            string warden = ChapterCast.WardenOf(_run.Rules);
+            var options = new List<PanelOption>();
+            var answers = new List<Action>();
             foreach (string carried in _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray())
             {
                 string swap = carried;
                 options.Add(new PanelOption(string.Format(UiText.WardenSwapFormat, UiText.RelicName(swap)),
-                    string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(swap))));
+                    string.Format(UiText.WardenSwapDetailFormat, UiText.RelicName(swap)), card: RelicCards.Small(swap)));
                 answers.Add(() =>
                 {
                     if (_run.SwapForWardenRelic(swap)) RelicLeft(swap, "for " + id);
                     Onward();
                 });
             }
-            ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.WardenRelicTitle,
-                UiText.RarityName(ChapterRelics.RarityOf(id)) + " · " +
-                string.Format(UiText.WardenRelicTextFormat, UiText.RelicName(id), UiText.RelicGift(id), UiText.RelicCurse(id), _run.Rules.WardenRelicCoins),
+            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
+            answers.Add(ShowWardenRelic);
+            ShowPanel(new PanelCard(warden, UiText.Dealer(warden).Name, UiText.SwapTitle, string.Format(UiText.SwapTextFormat, UiText.RelicName(id)),
                 options), answers, "warden");
         }
 

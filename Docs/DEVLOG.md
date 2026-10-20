@@ -4284,3 +4284,33 @@ eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yed
 - Boss nadirliğinin (şeytanın ganimeti) hâlesi şeytanın rengi; Şeytanın Pusulası Lucifer'in işaretini taşır.
 - Lilith'in ganimeti yok (oyun öyle): "önce" / "sonra" görüntülerinde onun yerine Lucifer'in çağrısı.
 
+## 2026-10-20 — Demo 3.5 (B): ortak emanet kartı
+
+### Yapılanlar
+- `Views/RelicCardView` (tek kart bileşeni): 128×200 (8 px ızgara; 112×160'a en uzun Hediye / Lanet metinleri sığmıyordu), siyah çizgi +
+  nadirlik renginde 2 px çerçeve (sıradan kemik, nadir kan kırmızısı, efsanevi altın + köşe parçaları, şeytanın ganimeti kor, kazanılmış
+  kehribar; yükseltme leylak, coin altın), üstte 64×64 resim (emanetin büyük resmi 2×; yükseltmede sınıfın 48'lik portresi + yükseltme
+  işareti; coin'de sikke yığını), ad (2 satıra kadar), nadirlik, "+ Hediye", "− Lanet", en altta fiyat / durum. Hâller: üstüne gelince
+  2 px kalkar + çerçeve kor, klavyeyle seçili çerçeve kor, alınamaz (resim karartılır — alfa yok, renk çarpımı —, yazı soluk, neden
+  altta kızıl), alındı ("SATILDI" damgası). Efsanevilerde parıltı 2.5-5 sn'de bir (8 FPS). Küçük kart 136×24: ikon + ad, hover kutusunda
+  nadirlik + hediye + lanet (`HoverTip`).
+- Veri: `Abstractions/RelicCard.cs` (`RelicCardData`, `RelicCardKind`, `RelicCardState`), `RelicCards` (UiText'ten kurar: Relic / Small /
+  Upgrade / Coins), `UiText.Cards.cs` (iki dil). Görseller: `Ui/card_coins.png` (32×32 sikke yığını), `Ui/card_upgrade.png` (16×16),
+  `pixel_relic_art.py`.
+- Panel: `PanelOption.Card` (kart olan cevap), `PanelCard.Showcase` (yalnız bakılan kartlar). `ChapterPanelView` kartları yazının altına
+  bir sıra hâlinde dizer (panel gerekirse genişler, ekrana ortalanır), küçük kartları onların altına ızgara, diğer cevapları en alta düğme;
+  kartın düğmesi de "PanelOption{i}" adını taşır (testler ve tur aynı yoldan basar). Klavye seçimi kartta da (`SetSelected`).
+- Sunucu: hazine coin kartını gösterir; maç sonunda kazanılan emanet kartında ("SENİN"); bekçi emaneti (her yer doluyken, bugünkü gibi)
+  kartıyla ortada ("Çanta dolu") + coin (ya da bırak) + AL → "YERİNE NE BIRAKILSIN?" (taşınan emanetler küçük kart, GERİ karta döner).
+  Sonuçlar bugünkü `TakeWardenCoins / LeaveWaitingRelic / SwapForWardenRelic`.
+- Testler: EditMode `RelicCardFlowTests` (hazinenin coin kartı; bekçi: kart, AL, on küçük kart + GERİ, takas; coin yolu aynı), PlayMode
+  `RelicCardTests` (54 emanet + bütün yükseltmeler + coin, iki dilde: ad / nadirlik / hediye / lanet / alt satır sığar, birbirine girmez;
+  büyük resim 64×64; küçük kartların adı taşmaz; hâller; bekçi paneli ve takas ekranı iki dilde kutunun içinde, çakışmasız, 8 px ızgarada).
+  EditMode 1169 geçti.
+
+### Kararlar (varsayılanla)
+- Kart 128×200 (istenen ~112×160; en uzun metinler sığsın diye, 8 px ızgarada).
+- Bekçi emaneti yer varken bugünkü gibi kendiliğinden verilir (ekonomi aynı); kart maç sonu panelinde görünür. "Al / coin al" seçimi yalnız
+  her yer doluyken (bugünkü kural).
+- Pazar paneli 4. adıma kadar bugünkü düğmelerle kalır (dükkân sahnesi onu baştan yapacak).
+

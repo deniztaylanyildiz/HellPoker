@@ -277,9 +277,42 @@ def write_sheet(path, pictures, names, font_path):
     out.save(path)
 
 
+def coin_pile():
+    """The coins card's picture (32x32): a little pile of old gold coins, lit from the top left, outlined, with a gold halo."""
+    img = Img(ART, ART)
+    # back to front: the top coin first, the two at the bottom over it
+    for cx, cy, rx in ((16, 10, 6), (15.5, 16.5, 6.5), (9.5, 22.5, 6.5), (21.5, 22.5, 6.5)):
+        face = img.m_ellipse(cx, cy, rx, rx * 0.5)
+        edge = img.m_ellipse(cx, cy + 2, rx, rx * 0.5) | img.m_rect(cx - rx + 0.5, cy, cx + rx - 0.5, cy + 2)
+        coin = face | edge
+        img.paint(coin, C.GOLD_DARK)
+        img.paint(face, C.GOLD)
+        img.inner_outline(face, C.GOLD_MID)
+        img.paint(img.m_ellipse(cx - 1.5, cy - 0.5, rx * 0.45, rx * 0.2), C.GOLD_LIGHT)
+        img.outline(C.BLACK, mask=coin)   # each coin apart from the one behind it
+    lit(img)
+    img.outline(C.BLACK)
+    halo(img, "legendary")
+    return img
+
+
+def upgrade_icon():
+    """The upgrade card's small sign (16x16): a gold arrow up out of an ember spark."""
+    img = Img(16, 16)
+    img.paint(img.m_poly([(8, 1), (14, 8), (10.5, 8), (10.5, 14), (5.5, 14), (5.5, 8), (2, 8)]), C.GOLD)
+    img.paint(img.m_poly([(8, 1), (14, 8), (10.5, 8), (10.5, 14), (8, 14)]), C.GOLD_MID)
+    img.paint(img.m_rect(7, 10, 8, 12), C.EMBER)
+    img.outline(C.BLACK)
+    return img
+
+
 def write_all(art_dir, project_root=None, sheet_path=None):
     pictures = [(r, art(r)) for r in pixel_relics.ORDER]
     paths = []
+    for name, img in (("card_coins", coin_pile()), ("card_upgrade", upgrade_icon())):
+        path = os.path.join(art_dir, "Ui", name + ".png")
+        img.save(path)
+        paths.append(path)
     strip = os.path.join(art_dir, "Ui", "relic_art.png")
     sheet([img for _, img in pictures]).save(strip)
     paths.append(strip)
