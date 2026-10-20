@@ -1964,7 +1964,25 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>The smoke tour's starting point (<see cref="FpsTour"/>): a run saved at Mammon's spoils, ready to be continued.</summary>
-        internal void PrepareTour(SinnerClass sinnerClass) => PrepareSave(sinnerClass, 1, "loot");
+        internal void PrepareTour(SinnerClass sinnerClass, Difficulty difficulty = Difficulty.Easy)
+        {
+            ChapterSave save = PlacedSave(sinnerClass, _newSeed(), 1, "loot");
+            save.Difficulty = difficulty;
+            ForgetForTour(save);
+        }
+
+        /// <summary>The FPS tour: the run in memory let go without a save (as a closed game would): the menu's CONTINUE reads the save.</summary>
+        internal void DropForTour()
+        {
+            _journey = null;
+            _ended = false;
+        }
+
+        /// <summary>The FPS tour: the run ends here, damned (Ironman: its save goes, its id is dead).</summary>
+        internal void DieForTour()
+        {
+            if (_journey != null && !_ended) FinishRun(JourneyEnd.Damned);
+        }
 
         /// <summary>A save placed for the tour and the scene tests: Mammon's spoils ("loot"), a chapter's opening words ("chapter",
         /// with <paramref name="chapter"/>) or Lucifer's call after Lilith ("lucifer").</summary>

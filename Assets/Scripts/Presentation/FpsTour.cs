@@ -35,6 +35,12 @@ namespace HellPoker.Presentation
         public const string TableShotsArgument = "-tableshots";
         private static bool TableShots => System.Environment.GetCommandLineArgs().Contains(TableShotsArgument);
 
+        /// <summary>Demo 3.4: "-difficulty=medium" (easy, hard, ironman): the chapter leg is played at that level; Ironman also saves at a
+        /// camp, leaves, comes back, then dies (its save gone). "-difficultyshots": the difficulty row, SAVE on the map and at a table.</summary>
+        private static Difficulty TourDifficulty =>
+            DifficultyRules.Parse(System.Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("-difficulty="))?.Substring("-difficulty=".Length));
+        private static bool DifficultyShots => System.Environment.GetCommandLineArgs().Contains("-difficultyshots");
+
         /// <param name="chapters">Phase 2's chapters: the tour also crosses from the first chapter into the second (a run saved at
         /// Mammon's spoils, continued from the menu). Null: the demo alone.</param>
         /// <param name="menu">The title menu: the tour switches it to the Boss Simulator (F9's way) for the demons' halls.</param>
@@ -49,7 +55,7 @@ namespace HellPoker.Presentation
         /// <summary>Phase 2: Mammon's spoils → the second chapter's opening → Belial's map → the first imp's table.</summary>
         private IEnumerator ChapterLeg()
         {
-            _chapters.PrepareTour(Core.Sinners.SinnerRoster.Peasant);
+            _chapters.PrepareTour(Core.Sinners.SinnerRoster.Peasant, TourDifficulty);
             Press("ContinueButton");
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 spoils");
@@ -57,7 +63,8 @@ namespace HellPoker.Presentation
             Press("PanelOption" + (coins - 1));   // the coins
             yield return new WaitForSecondsRealtime(Settle);
             Debug.Log($"Hell Poker Phase 2 tour: chapter {_chapters.Journey?.Chapter}, demon {_chapters.Run?.Rules.BossId}, " +
-                      $"floors {_chapters.Run?.Map.FloorCount}, purse {_chapters.Run?.Purse.Coins}");
+                      $"floors {_chapters.Run?.Map.FloorCount}, purse {_chapters.Run?.Purse.Coins}, difficulty {_chapters.Journey?.Difficulty}, " +
+                      $"ante every {_chapters.Run?.Rules.AnteStepHands} hands, tribute {_chapters.Run?.Tribute}");
             Press("PanelOption0");   // DESCEND
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 belial map");
@@ -68,7 +75,95 @@ namespace HellPoker.Presentation
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("p2 belial imp");
             yield return CheckThePlayersPanel("p2_belial_imp");
+            var save = FindFirstObjectByType<SaveButtonView>();
+            Debug.Log($"Hell Poker save button at the table: {save?.Place}, enabled {save?.Enabled}");
             if (TableShots) yield return TableLeg();
+            if (TourDifficulty == Difficulty.Ironman) yield return IronmanLeg();
+        }
+
+        /// <summary>Demo 3.4: an Ironman run at a camp — SAVE there, left (as if the game closed), CONTINUE back at the camp; then it dies
+        /// and its save is gone for good.</summary>
+        private IEnumerator IronmanLeg()
+        {
+            Press("MenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+            _chapters.ForgetForTour(CampSave(Core.Sinners.SinnerRoster.Peasant, Difficulty.Ironman));
+            Press("ContinueButton");
+            yield return new WaitForSecondsRealtime(Settle);
+            bool atCamp = _chapters.Run?.CurrentKind == NodeKind.PurgatoryFire;
+            var save = FindFirstObjectByType<SaveButtonView>();
+            string place = save?.Place.ToString();
+            int before = _chapters.Journey?.SaveCount ?? -1;
+            Press("SaveButton");
+            yield return new WaitForSecondsRealtime(0.5f);
+            int after = _chapters.Journey?.SaveCount ?? -1;
+            yield return Shot("ironman_camp");
+            string id = _chapters.Journey?.RunId;
+            Press("MapMenuButton");   // the map's MENU (its click goes through over the camp's panel)
+            yield return new WaitForSecondsRealtime(0.8f);
+            _chapters.DropForTour();
+            Press("ContinueButton");
+            yield return new WaitForSecondsRealtime(Settle);
+            bool back = _chapters.Journey?.RunId == id && _chapters.Run?.CurrentKind == NodeKind.PurgatoryFire;
+            _chapters.DieForTour();
+            yield return new WaitForSecondsRealtime(0.8f);
+            Debug.Log($"Hell Poker ironman: at the camp {atCamp}, save button {place}, saved {before}->{after}, continued at the camp {back}, " +
+                      $"after death continue {_chapters.CanContinue}, dead {_chapters.Records.IsDead(id)}");
+            Press("PanelOption1");   // the end's MENU
+            yield return new WaitForSecondsRealtime(0.8f);
+        }
+
+        /// <summary>A save standing at the first chapter's nearest camp, its panel waiting.</summary>
+        private static ChapterSave CampSave(Core.Sinners.SinnerClass cls, Difficulty difficulty)
+        {
+            ChapterJourney journey = ChapterJourney.Begin(cls, 11, difficulty);
+            ChapterMap map = journey.Run.Map;
+            var paths = map.Floors[0].Select(n => new System.Collections.Generic.List<MapNode> { n }).ToList();
+            System.Collections.Generic.List<MapNode> found = null;
+            while (paths.Count > 0 && found == null)
+            {
+                found = paths.FirstOrDefault(p => p.Last().Kind == NodeKind.PurgatoryFire);
+                if (found != null) break;
+                paths = paths.SelectMany(p => map.NextFrom(p.Last()).Select(n => new System.Collections.Generic.List<MapNode>(p) { n })).ToList();
+            }
+            ChapterSave save = journey.Capture();
+            save.Trail = found?.Select(n => n.Lane).ToList() ?? new System.Collections.Generic.List<int>();
+            save.NodeDone = false;
+            save.Pending = "fire";
+            save.Coins = 300;
+            return save;
+        }
+
+        /// <summary>Demo 3.4: the difficulty row (its words open), then a Medium run's SAVE on the map and dim at a table.</summary>
+        private IEnumerator DifficultyLeg()
+        {
+            Press("NewGameButton");
+            yield return new WaitForSecondsRealtime(1f);
+            var select = FindFirstObjectByType<SinnerSelectView>();
+            select?.PointAtDifficulty();
+            yield return null;
+            yield return Shot("difficulty_row");
+            Debug.Log($"Hell Poker difficulty row: '{select?.DifficultyLabel}' shown {select?.DifficultyShown}");
+            Press("ChooseSinner0");
+            yield return new WaitForSecondsRealtime(1f);
+            Press("PanelOption0");   // DESCEND
+            yield return new WaitForSecondsRealtime(0.6f);
+            Press("SaveButton");
+            yield return null;
+            yield return Shot("map_save");
+            MapNode table = _chapters.Run?.Choices.FirstOrDefault(n => n.Kind == NodeKind.Table);
+            if (table != null) Press($"Node{table.Floor}_{table.Lane}");
+            yield return new WaitForSecondsRealtime(Settle);
+            _chapters.Table?.PerformAction();
+            yield return new WaitForSecondsRealtime(Settle);
+            var save = FindFirstObjectByType<SaveButtonView>();
+            save?.PointAt();
+            yield return null;
+            Debug.Log($"Hell Poker save button: map then table {save?.Place}, enabled {save?.Enabled}, run {_chapters.Journey?.Difficulty}");
+            yield return Shot("table_save_dim");
+            Press("MenuButton");
+            yield return new WaitForSecondsRealtime(0.8f);
+            _chapters.DropForTour();
         }
 
         /// <summary>A save placed at a table, picked up from the menu's CONTINUE; one hand dealt; a screenshot.</summary>
@@ -194,6 +289,7 @@ namespace HellPoker.Presentation
             yield return new WaitForSecondsRealtime(Settle);
             yield return Measure("menu");
             yield return CheckTheMenu();
+            if (DifficultyShots && _chapters != null) yield return DifficultyLeg();
 
             // The game first: a saved run at Mammon's spoils goes on into Belial's chapter (the menu's CONTINUE).
             if (_chapters != null)

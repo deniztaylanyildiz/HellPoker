@@ -100,6 +100,11 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(0.6f);
             ChapterJourneyTests.Menu.GoBack();
             yield return new WaitForSeconds(0.6f);
+            // QUIT without unsaved progress would really quit (and hang the batch run): make sure the warning is what it opens.
+            if (!ChapterJourneyTests.Chapters.IronmanUnsaved)
+                typeof(ChapterPresenter).GetField("_ironmanBehind", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .SetValue(ChapterJourneyTests.Chapters, true);
+            Assert.IsTrue(ChapterJourneyTests.Chapters.IronmanUnsaved, "Ironman's quit warning needs unsaved progress");
             HellPokerScreenshots.Press("QuitButton");
             yield return null;
             yield return HellPokerScreenshots.Shot($"365_ironman_quit_{Tag}");
