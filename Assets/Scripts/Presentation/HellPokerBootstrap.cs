@@ -97,6 +97,8 @@ namespace HellPoker.Presentation
             RelicBagView relicBag = RelicBagView.Create(transform);
             BossLootView loot = BossLootView.Create(transform);
             loot.Audio = audio;
+            MarketView market = MarketView.Create(transform);
+            market.Audio = audio;
             _chapterPresenter = new ChapterPresenter(chapterMap, chapterPanel, () =>
                 {
                     UiArt.Salons.Preload(Core.Chapters.ChapterCast.All);
@@ -107,7 +109,7 @@ namespace HellPoker.Presentation
                     var presenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), chapterTableView,
                         settings, audio: audio);
                     return (presenter, chapterTableView);
-                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs, relicBag, SaveButtonView.Create(transform), loot);
+                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs, relicBag, SaveButtonView.Create(transform), loot, market);
 
             _menuPresenter = new MainMenuPresenter(menu, settingsView, records, new UnityApplicationQuitter(), transition, sinnerSelect, _chapterPresenter,
                 audio);

@@ -4363,3 +4363,38 @@ eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yed
 - "Büyüyüp ortaya gelir": kart büyütülmez (tam piksel kuralı), ortaya kayar ve çerçevesi kor yanar.
 - Lilith'in ganimeti yok (oyun öyle): sahne Mammon ve Belial'de.
 
+## 2026-10-20 — Demo 3.5 (D): Kara Pazar, dükkân sahnesi
+
+### Yapılanlar
+- **Sahne** (`Views/MarketView`, `Abstractions/IMarketView`: `MarketScene`, `MarketSlot` — Stall / Pick / Service / Leave —, `MarketService`,
+  `MarketFeel` / `MarketMoment`): tam ekran 640×360, Canvas 47. Satıcının kendi tezgâhı (`Backgrounds/market_<satıcı>`: `SalonView` ile,
+  iki fener + yerde bir eşya 8 kare, toz / kor parçacıkları), solda büyük portre (`Market/<satıcı>.png` 96×96 — yoksa 48'lik olay portresi,
+  büyütülmeden), adı, sözleri bir balonda (balon yazı kadar uzar). Üstte kese (coin ikonu + sayı), başlık, "EMANETLER 8/10". Sağda tezgâh
+  kartları (`RelicCardView`, fiyat ayakta; Kemik Tüccarı'nda kartın altında "+40 yıl"; kumarbazın kutusu ters kart, fiyatı altında; terzinin
+  yükseltmeleri kart), altında hizmet karoları (128×24: ikon `Ui/market_services.png`, ad, fiyat; hover'da açıklama), en altta AYRIL.
+  Satılan kart yerinde "SATILDI" kalır (`_marketSold`; ziyarete özgü, kayda girmez), kutudan çıkan emanet "SENİN". Kaçakçının "at" ve
+  rehincinin "sat" seçenekleri tek karonun arkasında: basınca taşınan emanetler küçük kart + fiyat olarak gelir (GERİ). Simyacının potası ve
+  lanet silme de aynı seçim görünümü.
+- **His:** alınca coinler keseden karta uçar, kart sallanır, emanet / yükseltme ikonu "EMANETLER"e uçar, satıcı teşekkür eder
+  (`UiText.VendorThanks`); satış / rehin: coinler satıcıdan keseye; alınamayan yere basınca: sallanır, kese kırmızı yanıp söner, balonda
+  nedeni ("Coin yetmiyor..."); vitrin yenilenince kartlar döner. Bir tuş / tık anı sona atlatır.
+- **Kurallar aynı:** fiyatlar, teklifler, hizmetler, sıra `BlackMarket`'ten; sunucu (`ChapterPresenter.ShowMarket`) tek bir giriş listesi
+  kurar (`MarketEntry`: panel cevabı + sahnedeki yeri); sahne yoksa eski panel birebir aynı (EditMode fake'leri, simülasyon). Sahnede
+  `Panel` aynı cevapları `MarketSlot.AsOption` ile verir, düğmeler `PanelOption{i}` (FullRunTests değişmedi). Klavye ızgarada
+  (`MarketScene.Grid / Move`: kartlar bir satır, karolar üçer, seçim kartları ikişer, AYRIL ayrı), başlangıç AYRIL; Esc seçimde GERİ,
+  tezgâhta AYRIL. KAYDET düğmesi pazarda gizli.
+- Çizim `Tools/ArtGen/pixel_market.py` (`generate_art.py market`): tezgâhlar (duvar, satıcının renklerinde tente, mallarının rafları, tezgâh,
+  zemin; `MARKET_TEXT` yazı bölgeleri), portreler (`pixel_strangers` 48'lik tasarımı `Twice` tuvalinde 96'da yeniden doldurulur), 12 ikon.
+- Testler: EditMode `MarketSceneTests` (15: sahne = cevaplar, SATILDI + an, red + neden, kemik yılları, rehinci seçimi, Esc / GERİ, simyacı,
+  kutu, terzi, klavye, her yer klavyeyle ulaşılır, vitrin, menü / devam, ızgara, sahnesiz panel), `BackdropMotionTests` pazar tezgâhlarını
+  da denetler; PlayMode `MarketScenePlayTests` (altı satıcı × iki dil: yazılar sığar, hiçbir şey üst üste değil, ekranda ve 8 px ızgarada,
+  klavye her yere ulaşır, hover kutusu yok; alışveriş anı biter, SATILDI; seçim ve GERİ). EditMode 1195 geçti; PlayMode HoverTip, Market,
+  BossLoot, ChapterJourney, `FullRunTests.Jester_Medium_Turkish` geçti.
+
+### Kararlar (varsayılanla)
+- Tezgâh kartları da ganimetteki gibi 128×200; üç kart sağ alana (400 px) tam sığıyor.
+- Taşınan emanetler (at / sat) tek karonun arkasında: on emanet tezgâhla birlikte sığmıyordu.
+- Simyacının "dönüştür" karosu "2 YAYGIN = 1 NADİR" (fontta ok yok).
+- Uçuş hedefleri sahnenin kendi kesesi ve "EMANETLER" yazısı (sahne haritanın üstünü kapatıyor).
+- Satıcı portresi 48'lik tasarımın 96'da yeniden çizimi (yeni tasarım değil).
+

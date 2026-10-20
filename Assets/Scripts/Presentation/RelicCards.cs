@@ -31,6 +31,10 @@ namespace HellPoker.Presentation
             new RelicCardData(RelicCardKind.Upgrade, null, upgradeId, classId, RelicRarity.Rare, UiText.UpgradeName(upgradeId), UiText.UpgradeCardLabel,
                 UiText.UpgradeText(upgradeId), "", footer, state);
 
+        /// <summary>The gambler's closed box: a card lying face down (its back is all that shows).</summary>
+        public static RelicCardData Box(string name) =>
+            new RelicCardData(RelicCardKind.Coins, null, null, null, RelicRarity.Common, name, "", "", "", "");
+
         /// <summary>The coins' card: a pile of coins, "+30 COINS".</summary>
         public static RelicCardData Coins(int coins, string footer = null, RelicCardState state = RelicCardState.Normal) =>
             new RelicCardData(RelicCardKind.Coins, null, null, null, RelicRarity.Common, string.Format(UiText.CoinsCardFormat, coins), "",

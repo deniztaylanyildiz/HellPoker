@@ -1,6 +1,6 @@
 """Generates Hell Poker's 16-bit pixel art into Assets/Resources/Art.
 
-Usage (from the project root):  py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu] [sinners] [events] [relics] [floors] [splash]
+Usage (from the project root):  py Tools/ArtGen/generate_art.py [demons] [salons] [ui] [menu] [sinners] [events] [relics] [floors] [market] [splash]
 Without arguments everything is rebuilt. Then  py Tools/ArtGen/preview.py  for a preview page (local only).
 Needs Pillow and numpy:  py -m pip install --user pillow numpy
 Every image is drawn with the one palette in pixel.py — no anti-aliasing, no colours outside it.
@@ -17,6 +17,7 @@ import pixel_floors  # noqa: E402
 import pixel_floors2  # noqa: E402
 import pixel_menu  # noqa: E402
 import pixel_loot  # noqa: E402
+import pixel_market  # noqa: E402
 import pixel_relic_art  # noqa: E402
 import pixel_relics  # noqa: E402
 import pixel_salons  # noqa: E402
@@ -56,6 +57,10 @@ def main(selected):
     if not selected or "floors" in selected:
         # Phase 2: the faces, halls, maps and strangers of Mammon's floors, then Belial's and Lilith's.
         for path in pixel_floors.write_all(ART) + pixel_floors2.write_all(ART) + pixel_strangers.write_all(ART):
+            print("wrote", os.path.relpath(path, ROOT))
+    if not selected or "market" in selected:
+        # Demo 3.5: the black market's scene (each vendor's stall, his portrait large, the services' icons).
+        for path in pixel_market.write_all(ART):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "splash" in selected:
         # The studio logo is not loaded by the game's code: it lives outside Resources, for the splash screen only.

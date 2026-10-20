@@ -113,6 +113,15 @@ namespace HellPoker.Core.Tests
             Box(528, 338, 639, 359), Box(0, 330, 120, 359)
         };
 
+        /// <summary>Demo 3.5: the black market's scene — the top strip, the portrait and the name, the bubble, the stall, the tiles and LEAVE
+        /// (pixel_market.MARKET_TEXT).</summary>
+        private static readonly RectInt[] MarketText =
+        {
+            Box(0, 0, 639, 25), Box(60, 36, 164, 158), Box(16, 152, 207, 336), Box(224, 32, 623, 352)
+        };
+
+        private static readonly string[] Vendors = { "smuggler", "pawnshop", "bonemerchant", "alchemist", "gamblersstall", "tailor" };
+
         private static RectInt Box(int x0, int y0, int x1, int y1) => new RectInt(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 
         private static IEnumerable<(string folder, string manifest, string prefix, RectInt[] text)> Backdrops()
@@ -120,6 +129,8 @@ namespace HellPoker.Core.Tests
             foreach (string hall in new[] { "mammon", "belial", "lilith", "lucifer" })
                 yield return ($"Assets/Resources/Art/Backgrounds/{hall}/", "motion.txt", "", TableText);
             yield return ("Assets/Resources/Art/Ui/", "menu_motion.txt", "", MenuText);
+            foreach (string vendor in Vendors)
+                yield return ($"Assets/Resources/Art/Backgrounds/market_{vendor}/", "motion.txt", "", MarketText);
         }
 
         private static Texture2D Load(string path)
@@ -187,7 +198,7 @@ namespace HellPoker.Core.Tests
         [Test]
         public void EveryHallsBackdrop_IsOneStillFrame()
         {
-            foreach (string hall in new[] { "mammon", "belial", "lilith", "lucifer" })
+            foreach (string hall in new[] { "mammon", "belial", "lilith", "lucifer" }.Concat(Vendors.Select(v => "market_" + v)))
             {
                 Texture2D still = Load($"Assets/Resources/Art/Backgrounds/{hall}/normal.png");
                 Assert.AreEqual(Presentation.Ui.PixelScreen.Width, still.width, hall);

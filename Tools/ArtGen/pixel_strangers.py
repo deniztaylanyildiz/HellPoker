@@ -326,9 +326,9 @@ STRANGERS = {
 
 # ------------------------------------------------------------------ the black market's vendors (Demo 2.1), each on his own colour
 
-def market_smuggler():
+def market_smuggler(img=None):
     """A hooded smuggler with a scarf over his face, crates behind him, a lantern."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.BLOOD_DARK)
     for x, y in ((3, 32), (36, 34)):
         crate = img.m_rect(x, y, x + 9, y + 9)
@@ -340,9 +340,9 @@ def market_smuggler():
     return finish(img)
 
 
-def market_pawnshop():
+def market_pawnshop(img=None):
     """Mammon's pawnbroker: a fat green-coated clerk behind a grille, coins and a pawned crown."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.GREEN_DARK)
     robe(img, RAMP_GREEN[:3], top=24, wide=15)
     face(img, RAMP_BONE, cy=16, eyes=C.GOLD, mouth=C.BLOOD)
@@ -355,9 +355,9 @@ def market_pawnshop():
     return finish(img)
 
 
-def market_bonemerchant():
+def market_bonemerchant(img=None):
     """The bone merchant: a skull-faced trader in a coat of ribs, holding up a femur like a price tag."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.SILVER_DARK)
     robe(img, RAMP_ASH, top=24, wide=13)
     for y in range(28, 46, 4):
@@ -372,9 +372,9 @@ def market_bonemerchant():
     return finish(img)
 
 
-def market_alchemist():
+def market_alchemist(img=None):
     """A wandering alchemist with a pointed hat, a bubbling flask in one hand."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.VIOLET)
     robe(img, RAMP_LILAC[:3], top=24, wide=12)
     face(img, RAMP_BONE, cy=18, eyes=C.BLACK, mouth=C.BONE_SHADE)
@@ -388,9 +388,9 @@ def market_alchemist():
     return finish(img)
 
 
-def market_gamblersstall():
+def market_gamblersstall(img=None):
     """A grinning stallkeeper in a striped vest behind a stack of closed boxes."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.PLUM)
     robe(img, RAMP_RED[:4], top=22, wide=12)
     for x in range(16, 33, 4):
@@ -404,9 +404,9 @@ def market_gamblersstall():
     return finish(img)
 
 
-def market_tailor():
+def market_tailor(img=None):
     """The devil's tailor: horned, a tape round his neck, scissors and a needle of fire."""
-    img = Img(48, 48)
+    img = img if img is not None else Img(48, 48)
     backdrop(img, C.BLOOD)
     robe(img, RAMP_NIGHT, top=24, wide=12)
     face(img, [C.BLOOD_DARK, C.BLOOD, C.CRIMSON], cy=17, eyes=C.AMBER, mouth=C.BLACK)

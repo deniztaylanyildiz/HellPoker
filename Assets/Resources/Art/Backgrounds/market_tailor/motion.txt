@@ -1,0 +1,6 @@
+# Hell Poker backdrop motion (Tools/ArtGen). Generated: do not edit.
+layer lantern_a 20 52 8 8 1 0 0 0
+layer lantern_b 186 52 8 8 1 0 0 0
+layer prop 24 338 8 10 1 0 0 0
+particles embers 16 86 40 60 6
+particles embers 168 86 36 60 6

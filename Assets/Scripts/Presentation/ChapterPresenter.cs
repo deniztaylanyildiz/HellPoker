@@ -71,8 +71,11 @@ namespace HellPoker.Presentation
         /// <param name="logSink">Where the run's diary is written; null: none.</param>
         public ChapterPresenter(IChapterMapView map, IChapterPanelView panel, Func<(TablePresenter presenter, ITableView view)> buildTable,
             IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, ChapterArchive archive = null,
-            IRunLogSink logSink = null, IRelicBagView bag = null, ISaveButtonView saveButton = null, IBossLootView loot = null)
+            IRunLogSink logSink = null, IRelicBagView bag = null, ISaveButtonView saveButton = null, IBossLootView loot = null,
+            IMarketView market = null)
         {
+            _marketView = market;
+            if (_marketView != null) _marketView.SlotPressed += Answer;
             _saveButton = saveButton;
             if (_saveButton != null) _saveButton.Pressed += PressSave;
             _bag = bag;
@@ -125,6 +128,7 @@ namespace HellPoker.Presentation
                 _lootView.RerollPressed -= LootReroll;
                 _lootView.BackPressed -= LootBack;
             }
+            if (_marketView != null) _marketView.SlotPressed -= Answer;
             CloseLog();
             _map.NodePressed -= PressNode;
             _map.MenuPressed -= RequestMenu;
@@ -159,7 +163,19 @@ namespace HellPoker.Presentation
         public ChapterRecords Records => _records;
 
         /// <summary>The panel on show (for tests); null when none.</summary>
-        public PanelCard Panel => _panel.IsOpen ? _card : null;
+        public PanelCard Panel => PanelUp ? _card : null;
+
+        /// <summary>Demo 3.5: the black market's own scene (null: the market is a panel, as before).</summary>
+        private readonly IMarketView _marketView;
+
+        /// <summary>The market's scene as last shown (null while no market is on show).</summary>
+        private MarketScene _marketScene;
+
+        /// <summary>The black market's scene is on show (its answers are the panel's).</summary>
+        public bool IsMarketOpen => _marketScene != null && _marketView != null && _marketView.IsOpen;
+
+        /// <summary>A panel waits for an answer: the panel itself, or the market's scene in its place.</summary>
+        private bool PanelUp => _panel.IsOpen || IsMarketOpen;
 
         private ChapterRun _run => _journey?.Run;
 
@@ -300,7 +316,8 @@ namespace HellPoker.Presentation
             else
             {
                 ShowMap();
-                if (_card != null) _panel.Show(_card);
+                if (_card != null && _marketScene != null && _marketView != null) _marketView.Show(_marketScene, MarketFeel.None);
+                else if (_card != null) _panel.Show(_card);
             }
         }
 
@@ -310,6 +327,7 @@ namespace HellPoker.Presentation
             if (_lootOpen) _lootView?.Hide();   // the spoils wait (CONTINUE shows them again)
             _map.Hide();
             _panel.Hide();
+            _marketView?.Hide();
             SetTableVisible(false);
         }
 
@@ -355,7 +373,7 @@ namespace HellPoker.Presentation
         private void UpdateSaveButton()
         {
             if (_saveButton == null) return;
-            if (!_visible || _journey == null || _ended || _lootOpen) _saveButton.Show(SaveButtonPlace.Hidden, false);
+            if (!_visible || _journey == null || _ended || _lootOpen || _marketScene != null) _saveButton.Show(SaveButtonPlace.Hidden, false);
             else if (Ironman) _saveButton.Show(AtCamp ? SaveButtonPlace.Map : SaveButtonPlace.Hidden, true);
             else if (_atTable) _saveButton.Show(SaveButtonPlace.Table, false);
             else _saveButton.Show(SaveButtonPlace.Map, true);
@@ -414,7 +432,7 @@ namespace HellPoker.Presentation
 
             string title = string.Format(UiText.ChapterTitleFormat, rules.Number, UiText.ChapterName(rules.Number));
             string prompt = _compassPicking ? UiText.CompassPrompt : _mapNotice ?? (_run.Current == null ? UiText.MapPromptStart : UiText.MapPrompt);
-            bool calm = !_atTable && !_panel.IsOpen && _nodeDone;
+            bool calm = !_atTable && !PanelUp && _nodeDone;
             MapNode[] choices = !calm || _compassPicking ? Array.Empty<MapNode>() : _run.Choices.ToArray();
             MapNode[] targets = calm && _compassPicking ? _run.CompassTargets.ToArray() : Array.Empty<MapNode>();
             bool compass = _run.Effects.CombinedRelics.Extra(RelicExtras.CompassSteps) > 0;
@@ -440,7 +458,7 @@ namespace HellPoker.Presentation
                 return;
             }
             // Never over a panel or at a node not done yet (a table, an offer waiting).
-            if (_panel.IsOpen || !_nodeDone) return;
+            if (PanelUp || !_nodeDone) return;
             string why = _run.CompassStepsLeft <= 0 ? UiText.CompassNone : _run.Current == null ? UiText.CompassNotYet
                 : !_run.CompassTargets.Any() ? UiText.CompassNowhere : null;
             if (why != null)
@@ -522,7 +540,7 @@ namespace HellPoker.Presentation
 
         private void PressNode(int floor, int lane)
         {
-            if (!IsMapOpen || _panel.IsOpen || _journey == null || _ended || !_nodeDone) return;
+            if (!IsMapOpen || PanelUp || _journey == null || _ended || !_nodeDone) return;
             if (_compassPicking)
             {
                 MapNode target = _run.CompassTargets.FirstOrDefault(n => n.Floor == floor && n.Lane == lane);
@@ -618,14 +636,18 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ the panels
 
-        private void ShowPanel(PanelCard card, IReadOnlyList<Action> answers, string pending = null)
+        private void ShowPanel(PanelCard card, IReadOnlyList<Action> answers, string pending = null, MarketScene market = null)
         {
             _compassPicking = false;
             _answers.Clear();
             _answers.AddRange(answers);
             _card = card;
             _pending = pending;
-            _panel.Show(card);
+            // Demo 3.5: the market's scene takes the panel's place (the scene shows itself: PresentMarket).
+            if (market == null && _marketScene != null) _marketView?.Hide();
+            _marketScene = market;
+            if (market != null) _panel.Hide();
+            else _panel.Show(card);
             if (pending == "lucifer") _audio.PlayMusic(MusicId);   // the call: the music holds its breath
             if (!_atTable) _map.Show(MapState());   // the choices go dark under a panel
             UpdateSaveButton();
@@ -637,12 +659,25 @@ namespace HellPoker.Presentation
             _pending = null;
             _answers.Clear();
             _panel.Hide();
+            if (_marketScene != null) _marketView?.Hide();
+            _marketScene = null;
             UpdateSaveButton();
         }
 
         private void Answer(int index)
         {
             if (_card == null || index < 0 || index >= _answers.Count) return;
+            // The market's scene: a place not to be had shakes and says why (the panel's locked answers do nothing).
+            if (_marketScene != null && index < _marketScene.Slots.Count && !_marketScene.Slots[index].Enabled)
+            {
+                MarketSlot slot = _marketScene.Slots[index];
+                string why = slot.Refusal.Length > 0 ? slot.Refusal : UiText.MarketSoldOut;
+                _marketScene = _marketScene.WithSelected(index).WithLine(_card.Text + "\n" + why);
+                _card = _card.WithSelected(index);
+                _audio.PlaySfx(SfxIds.Click);
+                _marketView.Show(_marketScene, new MarketFeel(MarketMoment.Refused, index));
+                return;
+            }
             _answers[index]?.Invoke();
             Save();
         }
@@ -672,37 +707,102 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ the black market
 
+        /// <summary>
+        /// One thing the market offers: the panel's answer (the old panel lists them all), and its place in Demo 3.5's scene. A carried relic's
+        /// place (sold, thrown away) gathers behind one tile in the scene (<see cref="Group"/>); a place only the scene shows (a relic sold this
+        /// visit, the gambler's box face down) has no panel answer.
+        /// </summary>
+        private sealed class MarketEntry
+        {
+            public PanelOption Option;
+            public Action Answer;
+            public MarketSlot Slot;
+            public string Group;
+            public bool SceneOnly;
+        }
+
+        /// <summary>The market on show (its stall's order and what was bought from it this visit: the scene's "SOLD" cards).</summary>
+        private BlackMarket _marketOf;
+        private readonly List<string> _marketStall = new List<string>();
+        private readonly HashSet<string> _marketSold = new HashSet<string>();
+        private readonly List<string> _marketWon = new List<string>();
+        private string _boughtUpgrade;
+
+        /// <summary>The scene's carried relics to pick from ("drop", "sell"); null: the stall.</summary>
+        private string _marketPick;
+
+        /// <summary>What the next showing of the scene plays (the key of the place it happened at: a relic's id, "upgrade:id", "tile:Eye").</summary>
+        private MarketMoment _feelMoment;
+        private string _feelAt;
+        private LootFlight _feelFlight;
+
+        private void Feel(MarketMoment moment, string at, LootFlight flight = LootFlight.Relic)
+        {
+            _feelMoment = moment;
+            _feelAt = at;
+            _feelFlight = flight;
+        }
+
         private void ShowMarket(BlackMarket market, string bought)
         {
             if (bought != null) _audio.PlaySfx(SfxIds.MarketBuy);
-            var options = new List<PanelOption>();
-            var answers = new List<Action>();
+            if (market != _marketOf)
+            {
+                _marketOf = market;
+                _marketStall.Clear();
+                _marketStall.AddRange(market.Relics.Select(o => o.RelicId));
+                _marketSold.Clear();
+                _marketWon.Clear();
+                _boughtUpgrade = null;
+                _marketPick = null;
+            }
+            var entries = new List<MarketEntry>();
             MarketVendor vendor = market.Vendor;
             bool full = market.SellsNoMore;
-            void Add(PanelOption option, Action answer)
+            MarketEntry Add(PanelOption option, Action answer, MarketSlot slot, string group = null)
             {
-                options.Add(option);
-                answers.Add(answer);
+                var entry = new MarketEntry { Option = option, Answer = answer, Slot = slot, Group = group };
+                entries.Add(entry);
+                return entry;
             }
+            void SceneOnly(MarketSlot slot, Action answer = null) =>
+                entries.Add(new MarketEntry { Slot = slot, Answer = answer, SceneOnly = true });
 
-            // The relics on the stall (the bone merchant's cost years too).
-            foreach (RelicOffer offer in market.Relics)
+            // The relics on the stall (the bone merchant's cost years too), in the order they were first shown; the ones bought this visit
+            // stay in the scene as "SOLD".
+            string bones = vendor == MarketVendor.BoneMerchant ? string.Format(UiText.CardYearsFormat, _run.Scaled(BlackMarket.BoneYears)) : null;
+            foreach (string stallId in _marketStall.Concat(market.Relics.Select(o => o.RelicId).Where(r => !_marketStall.Contains(r))).ToList())
             {
-                string id = offer.RelicId;
+                string id = stallId;
+                int at = -1;
+                for (int i = 0; i < market.Relics.Count; i++) if (market.Relics[i].RelicId == id) at = i;
+                if (at < 0)
+                {
+                    if (_marketSold.Contains(id))
+                        SceneOnly(MarketSlot.Stall(RelicCards.Relic(id, UiText.CardSoldStamp, RelicCardState.Taken), UiText.RelicName(id), UiText.RelicPanelDetail(id),
+                            false, UiText.MarketSoldOut, bones));
+                    continue;
+                }
+                RelicOffer offer = market.Relics[at];
                 bool can = market.CanBuyRelic(id);
+                string refusal = !full ? UiText.MarketNoCoins : UiText.MarketFull;
                 string detail = UiText.RelicPanelDetail(id) + (vendor == MarketVendor.BoneMerchant
                     ? "\n" + string.Format(UiText.MarketBoneDetailFormat, _run.Scaled(BlackMarket.BoneYears)) : "") +
-                    (can ? "" : "\n" + (!full ? UiText.MarketNoCoins : UiText.MarketFull));
-                Add(new PanelOption(string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price), detail, can), () =>
+                    (can ? "" : "\n" + refusal);
+                string label = string.Format(UiText.MarketRelicFormat, UiText.RelicName(id), offer.Price);
+                RelicCardData card = RelicCards.Relic(id, string.Format(UiText.CardPriceFormat, offer.Price), can ? RelicCardState.Normal : RelicCardState.Unavailable);
+                Add(new PanelOption(label, detail, can), () =>
                 {
                     if (!market.BuyRelic(id)) return;
                     Note($"black market ({vendor}): bought {id} ({ChapterRelics.RarityOf(id)}) for {offer.Price} (purse {_run.Purse.Coins})");
                     _records.RelicBought();
                     KeepRecords();
+                    _marketSold.Add(id);
+                    Feel(MarketMoment.Bought, id);
                     // A class relic worn: what the main power is now ("FORESIGHT now sees 2 cards.").
                     bool step = ChapterRelics.IsClassRelic(id) && _run.Effects.Relics.Contains(id);
                     ShowMarket(market, UiText.RelicName(id) + (step ? "\n" + UiText.ClassPowerNow(_run.Kit) : ""));
-                });
+                }, MarketSlot.Stall(card, label, detail, can, refusal, bones));
             }
             var held = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray();
             switch (vendor)
@@ -712,13 +812,14 @@ namespace HellPoker.Presentation
                     {
                         string relic = id;
                         bool can = market.CanDropRelic(relic);
-                        Add(new PanelOption(string.Format(UiText.MarketDropFormat, UiText.RelicName(relic), market.DropPrice),
-                            UiText.MarketDropDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                        string detail = UiText.MarketDropDetail + (can ? "" : "\n" + UiText.MarketNoCoins);
+                        Add(new PanelOption(string.Format(UiText.MarketDropFormat, UiText.RelicName(relic), market.DropPrice), detail, can), () =>
                         {
                             if (!market.DropRelic(relic)) return;
                             Note($"relics: {relic} left behind (the smuggler's, {market.DropPrice} coins; purse {_run.Purse.Coins})");
+                            Feel(MarketMoment.Bought, null);
                             ShowMarket(market, null, string.Format(UiText.RelicLeftFormat, UiText.RelicName(relic)));
-                        });
+                        }, MarketSlot.Pick(RelicCards.Small(relic), string.Format(UiText.CardPriceFormat, market.DropPrice), detail, can, UiText.MarketNoCoins), "drop");
                     }
                     break;
                 case MarketVendor.Pawnshop:
@@ -730,115 +831,172 @@ namespace HellPoker.Presentation
                             int price = market.SellPrice(relic);
                             if (!market.SellRelic(relic)) return;
                             Note($"pawnshop: sold {relic} for {price} (purse {_run.Purse.Coins})");
+                            Feel(MarketMoment.Paid, null, LootFlight.Coins);
                             ShowMarket(market, null, string.Format(UiText.RelicSoldFormat, UiText.RelicName(relic), price));
-                        });
+                        }, MarketSlot.Pick(RelicCards.Small(relic), "+" + market.SellPrice(relic), UiText.MarketSellDetail), "sell");
                     }
                     if (market.CanPawn)
-                        Add(new PanelOption(string.Format(UiText.MarketPawnFormat, market.PawnCoinsNow), string.Format(UiText.MarketPawnDetailFormat, market.PawnYearsNow)), () =>
+                    {
+                        string detail = string.Format(UiText.MarketPawnDetailFormat, market.PawnYearsNow);
+                        Add(new PanelOption(string.Format(UiText.MarketPawnFormat, market.PawnCoinsNow), detail), () =>
                         {
                             if (!market.Pawn()) return;
                             Note($"pawnshop: the soul pawned, +{market.PawnCoinsNow} coins, +{market.PawnYearsNow} years (sentence {_journey.Sentence.Years})");
+                            Feel(MarketMoment.Paid, "tile:" + MarketService.Pawn, LootFlight.Coins);
                             ShowMarket(market, null);
-                        });
+                        }, MarketSlot.Tile(MarketService.Pawn, UiText.MarketTilePawn, "+" + market.PawnCoinsNow, detail));
+                    }
                     break;
                 case MarketVendor.Alchemist:
                     foreach (RelicRarity rarity in market.Transmutable)
                     {
                         RelicRarity r = rarity;
-                        Add(new PanelOption(string.Format(UiText.MarketTransmuteFormat, UiText.Upper(UiText.RarityName(r)),
-                            UiText.Upper(UiText.RarityName(r == RelicRarity.Common ? RelicRarity.Rare : RelicRarity.Legendary))), UiText.MarketTransmuteDetail),
-                            () => ShowTransmute(market, r, null));
+                        RelicRarity next = r == RelicRarity.Common ? RelicRarity.Rare : RelicRarity.Legendary;
+                        Add(new PanelOption(string.Format(UiText.MarketTransmuteFormat, UiText.Upper(UiText.RarityName(r)), UiText.Upper(UiText.RarityName(next))),
+                            UiText.MarketTransmuteDetail), () => ShowTransmute(market, r, null),
+                            MarketSlot.Tile(MarketService.Transmute, string.Format(UiText.MarketTileTransmuteFormat, UiText.Upper(UiText.RarityName(r)),
+                                UiText.Upper(UiText.RarityName(next))), UiText.MarketTileTransmutePrice, UiText.MarketTransmuteDetail));
                     }
                     bool cleanse = held.Any(market.CanCleanse);
-                    Add(new PanelOption(string.Format(UiText.MarketCleanseFormat, market.CleanseCost), UiText.MarketCleanseDetail +
-                        (cleanse ? "" : "\n" + UiText.MarketNoCoins), cleanse), () =>
+                    string cleanseDetail = UiText.MarketCleanseDetail + (cleanse ? "" : "\n" + UiText.MarketNoCoins);
+                    Add(new PanelOption(string.Format(UiText.MarketCleanseFormat, market.CleanseCost), cleanseDetail, cleanse), () =>
                     {
                         if (cleanse) ShowCleanse(market);
-                    });
+                    }, MarketSlot.Tile(MarketService.Cleanse, UiText.MarketTileCleanse, string.Format(UiText.CardPriceFormat, market.CleanseCost), cleanseDetail,
+                        cleanse, UiText.MarketNoCoins));
                     break;
                 case MarketVendor.GamblersStall:
+                    foreach (string won in _marketWon)
+                        SceneOnly(MarketSlot.Stall(RelicCards.Relic(won, UiText.CardYours), UiText.RelicName(won), UiText.RelicPanelDetail(won), false, UiText.MarketBoxWon));
                     if (market.Box == null)
                     {
                         bool box = market.CanBuyBox;
-                        Add(new PanelOption(string.Format(UiText.MarketBoxFormat, market.BoxCost), UiText.MarketBoxDetail +
-                            (box ? "" : "\n" + (full ? UiText.MarketFull : UiText.MarketNoCoins)), box), () =>
+                        string refusal = full ? UiText.MarketFull : UiText.MarketNoCoins;
+                        string detail = UiText.MarketBoxDetail + (box ? "" : "\n" + refusal);
+                        string label = string.Format(UiText.MarketBoxFormat, market.BoxCost);
+                        Action buy = () =>
                         {
                             if (!market.BuyBox()) return;
                             Note($"gambler's stall: a box ({market.Box})");
+                            Feel(MarketMoment.Bought, "box");
                             ShowMarket(market, null);
-                        });
+                        };
+                        if (_marketWon.Count == 0)
+                            Add(new PanelOption(label, detail, box), buy, MarketSlot.Stall(RelicCards.Box(UiText.MarketBoxName), label, detail, box, refusal,
+                                string.Format(UiText.CardPriceFormat, market.BoxCost), faceDown: true));
+                        else
+                            Add(new PanelOption(label, detail, box), buy, MarketSlot.Tile(MarketService.BoxOpen, UiText.MarketBoxName,
+                                string.Format(UiText.CardPriceFormat, market.BoxCost), detail, box, refusal));
                     }
                     else
                     {
-                        Add(new PanelOption(UiText.MarketBoxOpen, UiText.MarketBoxDetail), () =>
+                        Action open = () =>
                         {
                             string relic = market.OpenBox();
                             Note($"gambler's stall: the box held {relic ?? "nothing"}");
+                            if (relic != null && _run.Effects.Holds(relic)) _marketWon.Add(relic);
                             if (_run.WardenRelicWaiting != null) { ShowWardenRelic(); return; }
+                            Feel(MarketMoment.Bought, relic);
                             ShowMarket(market, relic != null ? UiText.RelicName(relic) : null);
-                        });
+                        };
+                        // The box face down on the stall (pressed: opened), its rarity under it.
+                        SceneOnly(MarketSlot.Stall(RelicCards.Box(UiText.MarketBoxName), UiText.MarketBoxOpen, UiText.MarketBoxDetail, true, null,
+                            string.Format(UiText.MarketBoxRarityFormat, UiText.Upper(UiText.RarityName(market.Box.Value))), faceDown: true), open);
+                        Add(new PanelOption(UiText.MarketBoxOpen, UiText.MarketBoxDetail), open,
+                            MarketSlot.Tile(MarketService.BoxOpen, UiText.MarketBoxOpen, UiText.MarketTileFree, UiText.MarketBoxDetail));
                         Add(new PanelOption(UiText.MarketBoxDouble, UiText.MarketBoxDoubleDetail), () =>
                         {
                             IReadOnlyList<string> won = market.DoubleOrNothing();
                             Note($"gambler's stall: double or nothing -> {(won.Count == 0 ? "lost" : string.Join(", ", won))}");
+                            foreach (string w in won) if (_run.Effects.Holds(w)) _marketWon.Add(w);
                             if (_run.WardenRelicWaiting != null) { ShowWardenRelic(); return; }
+                            Feel(won.Count == 0 ? MarketMoment.Refused : MarketMoment.Bought, won.Count == 0 ? "tile:" + MarketService.BoxDouble : won[0]);
                             ShowMarket(market, won.Count == 0 ? null : string.Join(", ", won.Select(UiText.RelicName)), won.Count == 0 ? UiText.MarketBoxLost : null);
-                        });
+                        }, MarketSlot.Tile(MarketService.BoxDouble, UiText.MarketBoxDouble, UiText.MarketTileDoublePrice, UiText.MarketBoxDoubleDetail));
                     }
                     break;
                 case MarketVendor.Tailor:
+                    if (_boughtUpgrade != null)
+                        SceneOnly(MarketSlot.Stall(RelicCards.Upgrade(_boughtUpgrade, _run.Sinner.Id, UiText.CardSoldStamp, RelicCardState.Taken),
+                            UiText.UpgradeName(_boughtUpgrade), UiText.UpgradeText(_boughtUpgrade), false, UiText.MarketSoldOut));
                     foreach (string upgrade in market.Upgrades)
                     {
                         string u = upgrade;
                         bool can = market.CanBuyUpgrade(u);
-                        Add(new PanelOption(string.Format(UiText.MarketUpgradeFormat, UiText.UpgradeName(u), market.UpgradeCost),
-                            UiText.UpgradeText(u) + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                        string detail = UiText.UpgradeText(u) + (can ? "" : "\n" + UiText.MarketNoCoins);
+                        string label = string.Format(UiText.MarketUpgradeFormat, UiText.UpgradeName(u), market.UpgradeCost);
+                        Add(new PanelOption(label, detail, can), () =>
                         {
                             if (!market.BuyUpgrade(u)) return;
                             Note($"tailor: upgrade {u} (purse {_run.Purse.Coins})");
+                            _boughtUpgrade = u;
+                            Feel(MarketMoment.Bought, "upgrade:" + u, LootFlight.Upgrade);
                             ShowMarket(market, UiText.UpgradeName(u));
-                        });
+                        }, MarketSlot.Stall(RelicCards.Upgrade(u, _run.Sinner.Id, string.Format(UiText.CardPriceFormat, market.UpgradeCost),
+                            can ? RelicCardState.Normal : RelicCardState.Unavailable), label, detail, can, UiText.MarketNoCoins));
                     }
                     break;
             }
             if (market.OffersEye)
             {
                 bool eye = market.CanBuyImpsEye;
-                Add(new PanelOption(string.Format(UiText.MarketEyeFormat, market.EyePrice),
-                    UiText.MarketEyeDetail + (eye ? "" : "\n" + (_run.ImpsEyeNext ? UiText.MarketEyeWaits : UiText.MarketNoCoins)), eye), () =>
+                string refusal = _run.ImpsEyeNext ? UiText.MarketEyeWaits : UiText.MarketNoCoins;
+                string detail = UiText.MarketEyeDetail + (eye ? "" : "\n" + refusal);
+                Add(new PanelOption(string.Format(UiText.MarketEyeFormat, market.EyePrice), detail, eye), () =>
                 {
-                    if (market.BuyImpsEye()) ShowMarket(market, UiText.MarketEyeName);
-                });
+                    if (!market.BuyImpsEye()) return;
+                    Feel(MarketMoment.Bought, "tile:" + MarketService.Eye);
+                    ShowMarket(market, UiText.MarketEyeName);
+                }, MarketSlot.Tile(MarketService.Eye, UiText.MarketTileEye, string.Format(UiText.CardPriceFormat, market.EyePrice), detail, eye, refusal));
             }
             if (market.OffersJokers)
             {
                 string jokers = string.Format(UiText.MarketJokerDetailFormat, _run.Sinner.Jokers);
-                Add(new PanelOption(string.Format(UiText.MarketJokerInFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(1)), () =>
+                string price = string.Format(UiText.CardPriceFormat, market.JokerServicePrice);
+                foreach (int delta in new[] { 1, -1 })
                 {
-                    if (market.ChangeJokers(1)) ShowMarket(market, null);
-                });
-                Add(new PanelOption(string.Format(UiText.MarketJokerOutFormat, market.JokerServicePrice), jokers, market.CanChangeJokers(-1)), () =>
-                {
-                    if (market.ChangeJokers(-1)) ShowMarket(market, null);
-                });
+                    int d = delta;
+                    MarketService service = d > 0 ? MarketService.JokerIn : MarketService.JokerOut;
+                    Add(new PanelOption(string.Format(d > 0 ? UiText.MarketJokerInFormat : UiText.MarketJokerOutFormat, market.JokerServicePrice), jokers,
+                        market.CanChangeJokers(d)), () =>
+                    {
+                        if (!market.ChangeJokers(d)) return;
+                        Feel(MarketMoment.Bought, "tile:" + service);
+                        ShowMarket(market, null);
+                    }, MarketSlot.Tile(service, d > 0 ? UiText.MarketTileJokerIn : UiText.MarketTileJokerOut, price, jokers, market.CanChangeJokers(d),
+                        UiText.MarketJokersRefused));
+                }
             }
+            // The scene: a carried relic's places behind one tile (which one is picked next).
+            if (vendor == MarketVendor.Smuggler && held.Length > 0)
+                SceneOnly(MarketSlot.Tile(MarketService.Drop, UiText.MarketTileDrop, string.Format(UiText.CardPriceFormat, market.DropPrice), UiText.MarketDropDetail,
+                    market.CanPay(market.DropPrice), UiText.MarketNoCoins), () => PickInMarket(market, "drop"));
+            if (vendor == MarketVendor.Pawnshop && held.Length > 0)
+                SceneOnly(MarketSlot.Tile(MarketService.Sell, UiText.MarketTileSell, UiText.MarketTileSellPrice, UiText.MarketSellDetail), () => PickInMarket(market, "sell"));
             // Every market: the haggle, once; the stall turned over, once.
             if (!market.Haggled)
                 Add(new PanelOption(UiText.MarketHaggle, UiText.MarketHaggleDetail), () =>
                 {
                     bool won = market.Haggle();
                     Note($"black market ({vendor}): haggled, prices {market.PricePercent}%");
+                    Feel(won ? MarketMoment.Paid : MarketMoment.Refused, "tile:" + MarketService.Haggle, LootFlight.Coins);
                     ShowMarket(market, null, won ? UiText.VendorHaggleWon(vendor) : UiText.VendorHaggleLost(vendor));
-                });
+                }, MarketSlot.Tile(MarketService.Haggle, UiText.MarketHaggle, UiText.MarketTileHagglePrice, UiText.MarketHaggleDetail));
             if (!market.Rerolled && vendor != MarketVendor.GamblersStall)
             {
                 bool can = market.CanReroll;
-                Add(new PanelOption(string.Format(UiText.MarketRerollFormat, market.RerollCost), UiText.MarketRerollDetail + (can ? "" : "\n" + UiText.MarketNoCoins), can), () =>
+                string detail = UiText.MarketRerollDetail + (can ? "" : "\n" + UiText.MarketNoCoins);
+                Add(new PanelOption(string.Format(UiText.MarketRerollFormat, market.RerollCost), detail, can), () =>
                 {
-                    if (market.Reroll()) ShowMarket(market, null, UiText.MarketRerolled);
-                });
+                    if (!market.Reroll()) return;
+                    _marketStall.Clear();
+                    _marketStall.AddRange(market.Relics.Select(o => o.RelicId));
+                    _marketSold.Clear();
+                    Feel(MarketMoment.Rerolled, null);
+                    ShowMarket(market, null, UiText.MarketRerolled);
+                }, MarketSlot.Tile(MarketService.Reroll, UiText.MarketTileReroll, string.Format(UiText.CardPriceFormat, market.RerollCost), detail, can, UiText.MarketNoCoins));
             }
-            Add(new PanelOption(UiText.PanelLeave, UiText.MarketLeaveDetail, isLeave: true), Onward);
+            Add(new PanelOption(UiText.PanelLeave, UiText.MarketLeaveDetail, isLeave: true), Onward, MarketSlot.Leave(UiText.PanelLeave, UiText.MarketLeaveDetail));
 
             string text = string.Format(UiText.VendorGreetingFormat(vendor), _run.Purse.Coins);
             if (vendor == MarketVendor.Smuggler) text += "\n" + string.Format(UiText.MarketWardenTipFormat, market.NextWardenPurse);
@@ -846,12 +1004,36 @@ namespace HellPoker.Presentation
                 text += "\n" + string.Format(UiText.MarketBoxBoughtFormat, UiText.RarityName(market.Box.Value));
             if (_marketLine != null) text += "\n" + _marketLine;
             if (bought != null) text += "\n" + string.Format(UiText.MarketBoughtFormat, bought);
-            string title = UiText.VendorTitle(vendor);
-            int selected = _card != null && _card.Title == title ? Math.Min(_card.Selected, options.Count - 1) : options.Count - 1;
-            ShowPanel(new PanelCard("Events/market_" + vendor.ToString().ToLowerInvariant(), UiText.VendorOwner(vendor), title, text, options, selected),
-                answers, "market");
             _marketLine = null;
+
+            if (_marketView != null && _marketPick != null)
+            {
+                // The scene's carried relics to pick from (sold, thrown away), and BACK to the stall.
+                string group = _marketPick;
+                var picks = entries.Where(e => e.Group == group).ToList();
+                foreach (MarketEntry pick in picks)
+                {
+                    Action answer = pick.Answer;
+                    pick.Answer = () =>
+                    {
+                        _marketPick = null;
+                        answer();
+                    };
+                }
+                picks.Add(new MarketEntry { Slot = MarketSlot.Leave(UiText.Back, null), Answer = () => { _marketPick = null; ShowMarket(market, null); } });
+                PresentMarket(vendor, group == "drop" ? UiText.MarketPickDrop : UiText.MarketPickSell, picks, picking: true);
+                return;
+            }
+            if (bought != null && _marketView != null) text += "\n" + UiText.VendorThanks(vendor);
+            PresentMarket(vendor, text, entries.Where(e => _marketView != null ? e.Group == null : !e.SceneOnly).ToList(), picking: false);
             if (!_atTable) _map.Show(MapState());   // the purse and the relics on the side change with every purchase
+        }
+
+        /// <summary>The scene: the stall gives way to the carried relics (which one is sold, thrown away).</summary>
+        private void PickInMarket(BlackMarket market, string group)
+        {
+            _marketPick = group;
+            ShowMarket(market, null);
         }
 
         /// <summary>A line the market says once (the haggle's answer, a box lost).</summary>
@@ -863,42 +1045,102 @@ namespace HellPoker.Presentation
             ShowMarket(market, bought);
         }
 
+        /// <summary>The market's answers: the old panel (no scene: the tests' fakes), or Demo 3.5's scene.</summary>
+        private void PresentMarket(MarketVendor vendor, string text, IReadOnlyList<MarketEntry> entries, bool picking)
+        {
+            string title = UiText.VendorTitle(vendor);
+            string portrait = "Events/market_" + VendorKey(vendor);
+            var options = entries.Select(e => _marketView != null ? e.Slot.AsOption() : e.Option).ToList();
+            var answers = entries.Select(e => e.Answer).ToList();
+            // The keys: a pick starts at its first relic; the stall keeps its place between purchases, else starts at the way out.
+            int selected = picking ? 0 : _card != null && _card.Title == title ? Math.Min(_card.Selected, options.Count - 1) : options.Count - 1;
+            var card = new PanelCard(portrait, UiText.VendorOwner(vendor), title, text, options, selected);
+            if (_marketView == null)
+            {
+                ShowPanel(card, answers, "market");
+                return;
+            }
+            var slots = entries.Select(e => e.Slot).ToList();
+            int relics = _run.Effects.CarriedOffered + _run.Effects.Bag.Count;
+            var scene = new MarketScene(VendorKey(vendor), UiText.VendorOwner(vendor), title, text, _run.Purse.Coins,
+                string.Format(UiText.MarketRelicsFormat, relics, _run.Effects.MaxCarried + _run.Effects.MaxBag), slots, selected, picking);
+            MarketFeel feel = FeelIn(slots);
+            ShowPanel(card, answers, "market", scene);
+            _marketView.Show(scene, feel);
+        }
+
+        /// <summary>The place the last moment happened at, in the new scene.</summary>
+        private MarketFeel FeelIn(IReadOnlyList<MarketSlot> slots)
+        {
+            MarketMoment moment = _feelMoment;
+            string at = _feelAt;
+            LootFlight flight = _feelFlight;
+            _feelMoment = MarketMoment.None;
+            _feelAt = null;
+            if (moment == MarketMoment.None) return MarketFeel.None;
+            int index = -1;
+            for (int i = 0; i < slots.Count && at != null; i++)
+            {
+                MarketSlot slot = slots[i];
+                string key = slot.Kind == MarketSlotKind.Service ? "tile:" + slot.Service
+                    : slot.FaceDown ? "box"
+                    : slot.Card?.Kind == RelicCardKind.Upgrade ? "upgrade:" + slot.Card.UpgradeId : slot.Card?.RelicId;
+                if (key == at) index = i;
+            }
+            return new MarketFeel(moment, index, flight);
+        }
+
+        private static string VendorKey(MarketVendor vendor) => vendor.ToString().ToLowerInvariant();
+
         /// <summary>The alchemist's crucible: two relics of <paramref name="rarity"/>, picked one after the other.</summary>
         private void ShowTransmute(BlackMarket market, RelicRarity rarity, string first)
         {
             var candidates = market.HeldOf(rarity).Where(id => id != first).ToArray();
-            var options = candidates.Select(id => new PanelOption(UiText.RelicName(id), UiText.RelicPanelDetail(id))).ToList();
-            var answers = candidates.Select(id => (Action)(() =>
+            var entries = candidates.Select(id => new MarketEntry
             {
-                if (first == null)
+                Option = new PanelOption(UiText.RelicName(id), UiText.RelicPanelDetail(id)),
+                Slot = MarketSlot.Pick(RelicCards.Small(id), "", UiText.RelicPanelDetail(id)),
+                Answer = () =>
                 {
-                    ShowTransmute(market, rarity, id);
-                    return;
+                    if (first == null)
+                    {
+                        ShowTransmute(market, rarity, id);
+                        return;
+                    }
+                    string made = market.Transmute(first, id);
+                    Note($"alchemist: {first} + {id} -> {made}");
+                    Feel(MarketMoment.Bought, null);
+                    ShowMarket(market, null, made != null ? string.Format(UiText.MarketTransmutedFormat, UiText.RelicName(made)) : null);
                 }
-                string made = market.Transmute(first, id);
-                Note($"alchemist: {first} + {id} -> {made}");
-                ShowMarket(market, null, made != null ? string.Format(UiText.MarketTransmutedFormat, UiText.RelicName(made)) : null);
-            })).ToList();
-            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
-            answers.Add(() => ShowMarket(market, null));
-            ShowPanel(new PanelCard("Events/market_alchemist", UiText.VendorOwner(MarketVendor.Alchemist), UiText.VendorTitle(MarketVendor.Alchemist),
-                first == null ? UiText.MarketTransmuteWhich : string.Format(UiText.MarketTransmuteSecondFormat, UiText.RelicName(first)), options), answers, "market");
+            }).ToList();
+            entries.Add(new MarketEntry
+            {
+                Option = new PanelOption(UiText.Back, null, isLeave: true), Slot = MarketSlot.Leave(UiText.Back, null), Answer = () => ShowMarket(market, null)
+            });
+            PresentMarket(MarketVendor.Alchemist, first == null ? UiText.MarketTransmuteWhich : string.Format(UiText.MarketTransmuteSecondFormat, UiText.RelicName(first)),
+                entries, picking: true);
         }
 
         private void ShowCleanse(BlackMarket market)
         {
             var candidates = _run.Effects.AllHeld.Where(market.CanCleanse).ToArray();
-            var options = candidates.Select(id => new PanelOption(UiText.RelicName(id), "− " + UiText.RelicCurse(id))).ToList();
-            var answers = candidates.Select(id => (Action)(() =>
+            var entries = candidates.Select(id => new MarketEntry
             {
-                if (!market.Cleanse(id)) return;
-                Note($"alchemist: {id}'s curse burned away");
-                ShowMarket(market, null, string.Format(UiText.MarketCleansedFormat, UiText.RelicName(id)));
-            })).ToList();
-            options.Add(new PanelOption(UiText.Back, null, isLeave: true));
-            answers.Add(() => ShowMarket(market, null));
-            ShowPanel(new PanelCard("Events/market_alchemist", UiText.VendorOwner(MarketVendor.Alchemist), UiText.VendorTitle(MarketVendor.Alchemist),
-                UiText.MarketCleanseWhich, options), answers, "market");
+                Option = new PanelOption(UiText.RelicName(id), "− " + UiText.RelicCurse(id)),
+                Slot = MarketSlot.Pick(RelicCards.Small(id), string.Format(UiText.CardPriceFormat, market.CleanseCost), "− " + UiText.RelicCurse(id)),
+                Answer = () =>
+                {
+                    if (!market.Cleanse(id)) return;
+                    Note($"alchemist: {id}'s curse burned away");
+                    Feel(MarketMoment.Bought, null);
+                    ShowMarket(market, null, string.Format(UiText.MarketCleansedFormat, UiText.RelicName(id)));
+                }
+            }).ToList();
+            entries.Add(new MarketEntry
+            {
+                Option = new PanelOption(UiText.Back, null, isLeave: true), Slot = MarketSlot.Leave(UiText.Back, null), Answer = () => ShowMarket(market, null)
+            });
+            PresentMarket(MarketVendor.Alchemist, UiText.MarketCleanseWhich, entries, picking: true);
         }
 
         // ------------------------------------------------------------------ an offer
@@ -1351,7 +1593,7 @@ namespace HellPoker.Presentation
         /// <summary>The map's RELICS: a look at what is worn and what is in the bag.</summary>
         private void ShowRelicsFromMap()
         {
-            if (!IsMapOpen || _panel.IsOpen || IsBagOpen || _journey == null || _ended) return;
+            if (!IsMapOpen || PanelUp || IsBagOpen || _journey == null || _ended) return;
             OpenBag(editable: false, null);
         }
 
@@ -2308,6 +2550,14 @@ namespace HellPoker.Presentation
                 ShowBag();
                 return;
             }
+            if (IsMarketOpen && _card != null)
+            {
+                int to = _marketScene.Move(_card.Selected, dx, dy);
+                _card = _card.WithSelected(to);
+                _marketScene = _marketScene.WithSelected(to);
+                _marketView.Select(_marketScene);
+                return;
+            }
             if (_panel.IsOpen && _card != null)
             {
                 int count = _card.Options.Count;
@@ -2348,8 +2598,13 @@ namespace HellPoker.Presentation
                 BagPlacePressed(_bagCursor);
                 return;
             }
-            if (_panel.IsOpen && _card != null)
+            if (PanelUp && _card != null)
             {
+                if (IsMarketOpen && _marketView.IsAnimating)
+                {
+                    _marketView.Skip();
+                    return;
+                }
                 Answer(_card.Selected);
                 return;
             }
@@ -2377,7 +2632,7 @@ namespace HellPoker.Presentation
                 return true;
             }
             // A panel waits for its answer; Esc takes its way out when it has one (the market, an offer: leave / pass).
-            if (_panel.IsOpen && _card != null)
+            if (PanelUp && _card != null)
             {
                 for (int i = _card.Options.Count - 1; i >= 0; i--)
                 {
