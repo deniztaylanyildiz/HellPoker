@@ -27,6 +27,7 @@ namespace HellPoker.Presentation.Views
         private ButtonFeel _feel;
         private GameObject _tip;
         private Text _saved;
+        private Text _label;
         private float _savedLeft;
         private bool _enabled;
 
@@ -52,6 +53,7 @@ namespace HellPoker.Presentation.Views
         {
             _button = UiFactory.CreateButton("SaveButton", screen, "", 8, out Text label, ButtonSkin.Ash);
             label.Localized(() => UiText.SaveButton);
+            _label = label;
             _button.onClick.AddListener(() =>
             {
                 if (_enabled) Pressed?.Invoke();
@@ -76,7 +78,10 @@ namespace HellPoker.Presentation.Views
             _tip = tip.gameObject;
             _tip.SetActive(false);
 
-            _saved = UiFactory.CreateText("SavedFlash", screen, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline().Localized(() => UiText.SavedFlash);
+            // The flash takes the button's own label for a moment (the text font: SAVED fits the button; above it, it ran over the
+            // map's RELICS).
+            _saved = UiFactory.CreateText("SavedFlash", _button.transform, "", 8, Palette.GoldLight, TextAnchor.MiddleCenter).WithOutline()
+                .Localized(() => UiText.SavedFlash);
             _saved.horizontalOverflow = HorizontalWrapMode.Overflow;
             _saved.raycastTarget = false;
             _saved.gameObject.SetActive(false);
@@ -94,6 +99,7 @@ namespace HellPoker.Presentation.Views
             {
                 _tip.SetActive(false);
                 _saved.gameObject.SetActive(false);
+                _label.enabled = true;
                 _savedLeft = 0f;
                 return;
             }
@@ -101,7 +107,7 @@ namespace HellPoker.Presentation.Views
             int x = map ? MapX : TableX, y = map ? MapY : TableY, width = map ? MapWidth : TableWidth;
             ((RectTransform)_button.transform).PlaceTL(x, y, width, Height);
             ((RectTransform)_tip.transform).PlaceTL(x, y - 16, 144, 14);
-            _saved.rectTransform.PlaceTL(x - 20, y - 11, width + 40, 8);
+            _saved.rectTransform.PlaceTL(-8, 4, width + 16, 10);
             if (_feel != null) _feel.Locked = !enabled;
             if (enabled) _tip.SetActive(false);
         }
@@ -121,6 +127,7 @@ namespace HellPoker.Presentation.Views
         public void Saved()
         {
             _saved.gameObject.SetActive(true);
+            _label.enabled = false;
             _savedLeft = SavedSeconds;
         }
 
@@ -128,7 +135,9 @@ namespace HellPoker.Presentation.Views
         {
             if (_savedLeft <= 0f) return;
             _savedLeft -= Time.unscaledDeltaTime;
-            if (_savedLeft <= 0f) _saved.gameObject.SetActive(false);
+            if (_savedLeft > 0f) return;
+            _saved.gameObject.SetActive(false);
+            _label.enabled = true;
         }
     }
 }
