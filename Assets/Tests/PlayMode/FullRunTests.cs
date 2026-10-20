@@ -102,6 +102,9 @@ namespace HellPoker.PlayMode.Tests
             public readonly Dictionary<string, int> PanelPresses = new Dictionary<string, int>();
             public readonly List<string> Notes = new List<string>();
             public int Chapter = 1, Reloads, BossHands, PowerChapters;
+
+            /// <summary>Demo 3.5: REROLL pressed once in the run.</summary>
+            public bool Rerolled;
             public bool ReloadedHere, PowerHere, ReachedLucifer;
             public int KitStatAtChapter;
             public string End;
@@ -167,6 +170,7 @@ namespace HellPoker.PlayMode.Tests
             ChapterPresenter c = Chapters;
             if (c == null) return "no chapters";
             if (c.Panel != null) return "panel " + c.Panel.Title;
+            if (c.IsLootOpen) return "spoils";
             if (c.IsBagOpen) return "bag";
             if (c.IsAtTable) return $"table {Table.Game?.Phase} hand {Table.Game?.RoundNumber} years {Table.Game?.Years}";
             if (c.IsMapOpen) return $"map ch{c.Journey?.Chapter} floor {c.Run?.Current?.Floor}";
@@ -181,6 +185,11 @@ namespace HellPoker.PlayMode.Tests
             if (c.Journey != null && c.Journey.Chapter != story.Chapter && c.Journey.Stage != JourneyStage.Lucifer)
                 NewChapter(classId, story, c.Journey.Chapter);
 
+            if (c.IsLootOpen)
+            {
+                yield return AnswerSpoils(story);
+                yield break;
+            }
             if (c.Panel != null)
             {
                 yield return AnswerPanel(c.Panel, story);
@@ -220,6 +229,40 @@ namespace HellPoker.PlayMode.Tests
             story.ReloadedHere = false;
             story.PowerHere = false;
             story.KitStatAtChapter = KitStat(classId);
+        }
+
+        // ------------------------------------------------------------------ Demo 3.5: the spoils' scene
+
+        /// <summary>The spoils: the deal hurried, REROLL once a run, then the first card (the bag full: the first held relic stays behind).</summary>
+        private static IEnumerator AnswerSpoils(Story story)
+        {
+            var loot = UnityEngine.Object.FindFirstObjectByType<Presentation.Views.BossLootView>();
+            Assert.IsNotNull(loot, "the spoils' scene");
+            if (loot.IsAnimating)
+            {
+                loot.Skip();
+                yield return null;
+                yield break;
+            }
+            Assert.IsFalse(string.IsNullOrWhiteSpace(loot.State.Title), "the spoils' title");
+            Assert.Greater(loot.State.Cards.Count, 1, "cards to choose from");
+            if (loot.State.Swap != null)
+            {
+                story.Notes.Add("spoils: the bag full, the first held relic stays behind");
+                HellPokerScreenshots.Press("LootSwap0");
+            }
+            else if (loot.State.CanReroll && !story.Rerolled)
+            {
+                story.Rerolled = true;
+                story.Notes.Add("spoils: REROLL");
+                HellPokerScreenshots.Press("LootReroll");
+            }
+            else
+            {
+                story.Notes.Add($"spoils: {loot.State.Cards[0].Name}");
+                HellPokerScreenshots.Press("LootCard0");
+            }
+            yield return null;
         }
 
         // ------------------------------------------------------------------ panels

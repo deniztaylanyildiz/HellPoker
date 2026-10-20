@@ -93,6 +93,10 @@ namespace HellPoker.Presentation.Ui
         public const string CardCoins = "Ui/card_coins";
         public const string CardUpgrade = "Ui/card_upgrade";
 
+        /// <summary>Demo 3.5: the spoils' scene — a card's back (the pentacle, 32×32) and what lies where a demon sat (160×64).</summary>
+        public const string LootSigil = "Ui/loot_sigil";
+        public static string LootFallen(string bossId) => "Ui/loot_fallen_" + bossId;
+
         /// <summary>A legendary relic's sparkle: Ui/RelicGlint/&lt;id&gt; (a one-shot burst, frame 0 the picture at rest).</summary>
         public const string RelicGlintFolder = "Ui/RelicGlint/";
 

@@ -53,9 +53,12 @@ namespace HellPoker.Presentation
             _chapters.PrepareTour(Core.Sinners.SinnerRoster.Peasant, TourDifficulty);
             Press("ContinueButton");
             yield return new WaitForSecondsRealtime(Settle);
-            yield return Measure("p2 spoils");
-            int coins = _chapters.Panel?.Options.Count ?? 1;
-            Press("PanelOption" + (coins - 1));   // the coins
+            yield return Measure("p2 spoils");   // Demo 3.5: the spoils' scene (the cards come in, then the choice)
+            var loot = FindFirstObjectByType<BossLootView>();
+            if (loot != null && loot.IsAnimating) loot.Skip();
+            int coins = loot != null && loot.State != null ? loot.State.Cards.Count : 1;
+            Debug.Log($"Hell Poker spoils: scene {loot != null && loot.IsOpen}, cards {coins}, reroll {loot?.State?.CanReroll}");
+            Press("LootCard" + (coins - 1));   // the coins
             yield return new WaitForSecondsRealtime(Settle);
             Debug.Log($"Hell Poker Phase 2 tour: chapter {_chapters.Journey?.Chapter}, demon {_chapters.Run?.Rules.BossId}, " +
                       $"floors {_chapters.Run?.Map.FloorCount}, purse {_chapters.Run?.Purse.Coins}, difficulty {_chapters.Journey?.Difficulty}, " +

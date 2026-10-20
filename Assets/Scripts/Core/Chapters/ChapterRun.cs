@@ -835,6 +835,9 @@ namespace HellPoker.Core.Chapters
         /// <summary>The dice of the demon's table under the chapter's seed.</summary>
         public const int BossStream = 13;
 
+        /// <summary>Demo 3.5: the loot's reroll draws on its own stream (nothing else in the run shifts whether it is used or not).</summary>
+        public const int RerollStream = 14;
+
         /// <summary>The demon's bar as the table began (the soul line is measured from it); 0 before the table.</summary>
         public int BossBarStart { get; private set; }
 
@@ -914,6 +917,54 @@ namespace HellPoker.Core.Chapters
         /// <summary>The loot was taken (a relic or the coins).</summary>
         public bool LootTaken { get; private set; }
 
+        /// <summary>Demo 3.5 (ARAM): the loot's relics were drawn again (once a loot).</summary>
+        public bool LootRerolled { get; private set; }
+
+        /// <summary>The loot's relics may still be drawn again: the demon beaten, nothing taken, not rerolled yet, relics on offer.</summary>
+        public bool CanRerollLoot => BossBeaten && !LootTaken && !LootRerolled && _loot != null && _loot.Count > 0;
+
+        /// <summary>
+        /// Demo 3.5 (the reroll of ARAM): once, the loot's relics drawn again by the same rules — each one by another of its own rarity (a
+        /// demon's own by another demon's own; none left: a rare, as the loot's own fallback), never one held or on offer before, never a
+        /// locked one; a class relic stays. The upgrade and the coins stay as they are. Its own dice (<see cref="RerollStream"/>).
+        /// </summary>
+        public bool RerollLoot()
+        {
+            if (!CanRerollLoot) return false;
+            var random = new SystemRandomSource(RandomSeeds.Derive(_seed, RerollStream));
+            var exclude = Effects.AllHeld.Concat(_loot).ToList();
+            var fresh = new List<string>();
+            foreach (string id in _loot)
+            {
+                string pick = null;
+                RelicRarity rarity = ChapterRelics.RarityOf(id);
+                if (ChapterRelics.IsClassRelic(id))
+                {
+                    fresh.Add(id);
+                    continue;
+                }
+                if (rarity == RelicRarity.Boss)
+                {
+                    var demons = ChapterRelics.All.Where(r => ChapterRelics.RarityOf(r) == RelicRarity.Boss && !exclude.Contains(r)
+                                                              && (RelicAvailable == null || RelicAvailable(r))).ToList();
+                    if (demons.Count > 0) pick = demons[random.Next(demons.Count)];
+                    else rarity = RelicRarity.Rare;
+                }
+                if (pick == null)
+                {
+                    var weights = rarity == RelicRarity.Legendary ? new RelicWeights(0, 0, 1)
+                        : rarity == RelicRarity.Rare ? new RelicWeights(0, 1, 0) : new RelicWeights(1, 0, 0);
+                    pick = ChapterRelics.Draw(random, weights, 1, exclude, RelicAvailable, Sinner.Id).FirstOrDefault();
+                }
+                pick = pick ?? id;   // nothing else of its kind: it stays
+                fresh.Add(pick);
+                exclude.Add(pick);
+            }
+            _loot = fresh;
+            LootRerolled = true;
+            return true;
+        }
+
         /// <summary>A relic of the loot; when the run carries all it may, <paramref name="swapOut"/> goes in its place.</summary>
         public bool TakeLoot(string relicId, string swapOut = null)
         {
@@ -952,7 +1003,8 @@ namespace HellPoker.Core.Chapters
         /// </summary>
         public void Restore(IEnumerable<int> trailLanes, int years, int owed, TableMarks marks, bool breaksFirstCheat, bool rested,
             IEnumerable<string> eventsSeen, IReadOnlyList<Card> deck, int matches, string wardenRelicWaiting, int bossBarStart,
-            bool bossBeaten, IEnumerable<string> loot, bool lootTaken, string lootUpgrade = null, bool whetted = false, IEnumerable<int> compassJumps = null)
+            bool bossBeaten, IEnumerable<string> loot, bool lootTaken, string lootUpgrade = null, bool whetted = false, IEnumerable<int> compassJumps = null,
+            bool lootRerolled = false)
         {
             _trail.Clear();
             _jumps.Clear();
@@ -985,6 +1037,7 @@ namespace HellPoker.Core.Chapters
             _loot = bossBeaten ? offers : null;
             LootUpgrade = bossBeaten && ClassUpgrades.For(Sinner.Id).Contains(lootUpgrade) ? lootUpgrade : null;
             LootTaken = lootTaken;
+            LootRerolled = bossBeaten && lootRerolled;
             WhettedSoul = whetted;
             // A save from before the camps' sum: Demo 2.0's rest took a tenth off, a whetted soul put a tenth on.
             CampBarPercent = (rested ? -10 : 0) + (whetted ? WhetBarPercent : 0);

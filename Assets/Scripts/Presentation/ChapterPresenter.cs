@@ -71,7 +71,7 @@ namespace HellPoker.Presentation
         /// <param name="logSink">Where the run's diary is written; null: none.</param>
         public ChapterPresenter(IChapterMapView map, IChapterPanelView panel, Func<(TablePresenter presenter, ITableView view)> buildTable,
             IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, ChapterArchive archive = null,
-            IRunLogSink logSink = null, IRelicBagView bag = null, ISaveButtonView saveButton = null)
+            IRunLogSink logSink = null, IRelicBagView bag = null, ISaveButtonView saveButton = null, IBossLootView loot = null)
         {
             _saveButton = saveButton;
             if (_saveButton != null) _saveButton.Pressed += PressSave;
@@ -90,6 +90,13 @@ namespace HellPoker.Presentation
             _bossTable = bossTable ?? GameRules.Default;
             _newSeed = newSeed ?? throw new ArgumentNullException(nameof(newSeed));
             _archive = archive;
+            _lootView = loot;
+            if (_lootView != null)
+            {
+                _lootView.CardPressed += LootCardPressed;
+                _lootView.RerollPressed += LootReroll;
+                _lootView.BackPressed += LootBack;
+            }
             _logSink = logSink;
             _records = archive?.LoadRecords() ?? new ChapterRecords();
 
@@ -112,6 +119,12 @@ namespace HellPoker.Presentation
 
         public void Dispose()
         {
+            if (_lootView != null)
+            {
+                _lootView.CardPressed -= LootCardPressed;
+                _lootView.RerollPressed -= LootReroll;
+                _lootView.BackPressed -= LootBack;
+            }
             CloseLog();
             _map.NodePressed -= PressNode;
             _map.MenuPressed -= RequestMenu;
@@ -273,6 +286,12 @@ namespace HellPoker.Presentation
         {
             if (_journey == null) return;
             _visible = true;
+            if (_lootOpen && _lootView != null)
+            {
+                if (_lootSwapRelic != null) ShowLootSwapScene(_lootSwapRelic);
+                else ShowLootScene(deal: false, _lootState?.Selected ?? 0);
+                return;
+            }
             if (_atTable && _tableView != null)
             {
                 SetTableVisible(true);
@@ -288,6 +307,7 @@ namespace HellPoker.Presentation
         public void Hide()
         {
             _visible = false;
+            if (_lootOpen) _lootView?.Hide();   // the spoils wait (CONTINUE shows them again)
             _map.Hide();
             _panel.Hide();
             SetTableVisible(false);
@@ -335,7 +355,7 @@ namespace HellPoker.Presentation
         private void UpdateSaveButton()
         {
             if (_saveButton == null) return;
-            if (!_visible || _journey == null || _ended) _saveButton.Show(SaveButtonPlace.Hidden, false);
+            if (!_visible || _journey == null || _ended || _lootOpen) _saveButton.Show(SaveButtonPlace.Hidden, false);
             else if (Ironman) _saveButton.Show(AtCamp ? SaveButtonPlace.Map : SaveButtonPlace.Hidden, true);
             else if (_atTable) _saveButton.Show(SaveButtonPlace.Table, false);
             else _saveButton.Show(SaveButtonPlace.Map, true);
@@ -1580,6 +1600,181 @@ namespace HellPoker.Presentation
 
         private void ShowLoot()
         {
+            if (_lootView != null)
+            {
+                ShowLootScene(deal: true);
+                return;
+            }
+            ShowLootPanel();
+        }
+
+        // ------------------------------------------------------------------ Demo 3.5: the spoils as a scene (ARAM's choice)
+
+        /// <summary>The spoils' scene (null: the old panel).</summary>
+        private readonly IBossLootView _lootView;
+        private bool _lootOpen;
+        private BossLootState _lootState;
+
+        /// <summary>The relic chosen while every place is full: the swap step asks what it replaces.</summary>
+        private string _lootSwapRelic;
+
+        /// <summary>The spoils' scene is on show (for tests).</summary>
+        public bool IsLootOpen => _lootOpen;
+
+        private BossLootState LootState(int selected)
+        {
+            ChapterRules rules = _run.Rules;
+            bool full = _run.RelicsFull;
+            var cards = new List<RelicCardData>();
+            foreach (string id in _run.LootOffers) cards.Add(RelicCards.Relic(id, full ? UiText.CardBagFull : null));
+            if (_run.LootUpgrade != null) cards.Add(RelicCards.Upgrade(_run.LootUpgrade, _journey.Sinner.Id));
+            cards.Add(RelicCards.Coins(ChapterRun.LootCoins));
+            string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
+            int count = cards.Count + (_run.CanRerollLoot ? 1 : 0);
+            return new BossLootState(rules.BossId, UiText.LootSceneTitle, string.Format(UiText.LootSceneSubtitleFormat, boss), cards,
+                Math.Max(0, Math.Min(count - 1, selected)), _run.CanRerollLoot ? UiText.LootReroll : UiText.LootRerolled, _run.CanRerollLoot);
+        }
+
+        private void ShowLootScene(bool deal, int selected = 0)
+        {
+            if (deal) _audio.PlaySfx(SfxIds.Loot);
+            _compassPicking = false;
+            _card = null;
+            _answers.Clear();
+            _panel.Hide();
+            _map.Hide();
+            _lootOpen = true;
+            _lootSwapRelic = null;
+            _pending = "loot";
+            _lootState = LootState(selected);
+            _lootView.Show(_lootState, deal);
+            UpdateSaveButton();
+        }
+
+        private void LootCardPressed(int index)
+        {
+            if (!_lootOpen || _lootView.IsAnimating) return;
+            if (_lootSwapRelic != null) SwapLoot(index);
+            else TakeLootCard(index);
+        }
+
+        /// <summary>A card chosen: the same as the old panel's answers (TakeLoot / TakeLootUpgrade / TakeLootCoins), then the choice plays out.</summary>
+        private void TakeLootCard(int index)
+        {
+            IReadOnlyList<string> offers = _run.LootOffers;
+            if (index < offers.Count)
+            {
+                string relic = offers[index];
+                if (_run.RelicsFull)
+                {
+                    ShowLootSwapScene(relic);
+                    return;
+                }
+                if (_run.TakeLoot(relic)) PlayLootChosen(index, LootFlight.Relic, () => LootTaken(relic));
+                return;
+            }
+            if (_run.LootUpgrade != null && index == offers.Count)
+            {
+                string upgrade = _run.LootUpgrade;
+                if (_run.TakeLootUpgrade()) PlayLootChosen(index, LootFlight.Upgrade, () => LootTaken(null, upgrade));
+                return;
+            }
+            if (index == _lootState.Cards.Count - 1 && _run.TakeLootCoins()) PlayLootChosen(index, LootFlight.Coins, () => LootTaken(null));
+        }
+
+        private void PlayLootChosen(int index, LootFlight flight, Action then)
+        {
+            _lootView.PlayChosen(index, flight, () =>
+            {
+                CloseLoot();
+                then();
+            });
+        }
+
+        private void CloseLoot()
+        {
+            _lootOpen = false;
+            _lootSwapRelic = null;
+            _lootView.Hide();
+        }
+
+        /// <summary>The bag full: the carried relics as small cards (which one stays behind), BACK to the cards.</summary>
+        private void ShowLootSwapScene(string relic)
+        {
+            _lootSwapRelic = relic;
+            var carried = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).Select(RelicCards.Small).ToList();
+            BossLootState cards = LootState(_lootState.Selected);
+            _lootState = new BossLootState(cards.BossId, cards.Title, string.Format(UiText.SwapTextFormat, UiText.RelicName(relic)), cards.Cards, 0,
+                cards.RerollLabel, cards.CanReroll, carried, UiText.SwapTitle);
+            _lootView.Show(_lootState, deal: false);
+        }
+
+        private void SwapLoot(int index)
+        {
+            var carried = _run.Effects.AllHeld.Where(r => !RelicRoster.IsReward(r)).ToArray();
+            if (index < 0 || index >= carried.Length) return;
+            string relic = _lootSwapRelic, swap = carried[index];
+            if (!_run.TakeLoot(relic, swap)) return;
+            RelicLeft(swap, "for " + relic);
+            int card = _run.LootOffers.ToList().IndexOf(relic);
+            _lootSwapRelic = null;
+            _lootState = LootState(card);
+            _lootView.Show(_lootState, deal: false);
+            PlayLootChosen(card, LootFlight.Relic, () => LootTaken(relic));
+        }
+
+        private void LootBack()
+        {
+            if (!_lootOpen || _lootSwapRelic == null) return;
+            string relic = _lootSwapRelic;
+            ShowLootScene(deal: false, _run.LootOffers.ToList().IndexOf(relic));
+        }
+
+        /// <summary>REROLL (once): the loot's relics drawn again (<see cref="ChapterRun.RerollLoot"/>); their cards turn over.</summary>
+        private void LootReroll()
+        {
+            if (!_lootOpen || _lootSwapRelic != null || _lootView.IsAnimating || !_run.CanRerollLoot) return;
+            var before = _run.LootOffers.ToList();
+            if (!_run.RerollLoot()) return;
+            var after = _run.LootOffers.ToList();
+            Note($"spoils rerolled: {string.Join(", ", before)} -> {string.Join(", ", after)}");
+            var changed = Enumerable.Range(0, after.Count).Where(i => i >= before.Count || before[i] != after[i]).ToList();
+            _lootState = LootState(_lootState.Selected);
+            _lootView.Reroll(_lootState, changed);
+            Save();
+        }
+
+        private void LootStep(int dx, int dy)
+        {
+            if (_lootView.IsAnimating) return;
+            int count = _lootSwapRelic != null ? _lootState.Swap.Count + 1 : _lootState.Cards.Count + (_run.CanRerollLoot ? 1 : 0);
+            if (count == 0) return;
+            int step = dx != 0 ? dx : dy;
+            if (step == 0) return;
+            _lootState = _lootState.WithSelected((_lootState.Selected + Math.Sign(step) + count) % count);
+            _lootView.Select(_lootState);
+        }
+
+        private void LootConfirm()
+        {
+            if (_lootView.IsAnimating)
+            {
+                _lootView.Skip();
+                return;
+            }
+            int selected = _lootState.Selected;
+            if (_lootSwapRelic != null)
+            {
+                if (selected >= _lootState.Swap.Count) LootBack();
+                else SwapLoot(selected);
+                return;
+            }
+            if (selected >= _lootState.Cards.Count) LootReroll();
+            else TakeLootCard(selected);
+        }
+
+        private void ShowLootPanel()
+        {
             _audio.PlaySfx(SfxIds.Loot);
             ChapterRules rules = _run.Rules;
             string boss = UiText.NameInSentence(UiText.Dealer(rules.BossId));
@@ -1633,6 +1828,7 @@ namespace HellPoker.Presentation
 
         private void LootTaken(string relic, string upgrade = null)
         {
+            if (TracelessOver()) return;   // a run that leaves no trace (the developer's F9 to the spoils) ends with its choice
             Note(relic != null ? $"spoils: {relic} ({ChapterRelics.RarityOf(relic)})" : upgrade != null ? $"spoils: upgrade {upgrade}"
                 : $"spoils: +{ChapterRun.LootCoins} coins (purse {_run.Purse.Coins})");
             ClosePanel();
@@ -2097,6 +2293,11 @@ namespace HellPoker.Presentation
         public void Step(int dx, int dy)
         {
             if (!IsMapOpen) return;
+            if (_lootOpen)
+            {
+                LootStep(dx, dy);
+                return;
+            }
             if (IsBagOpen)
             {
                 // The places: five worn over five in the bag; left / right along a row, up / down between the two.
@@ -2113,7 +2314,7 @@ namespace HellPoker.Presentation
                 if (count == 0) return;
                 int step = dy != 0 ? dy : dx;
                 int selected = (_card.Selected + step + count) % count;
-                _card = new PanelCard(_card.PortraitId, _card.Owner, _card.Title, _card.Text, _card.Options, selected);
+                _card = _card.WithSelected(selected);
                 _panel.Show(_card);
                 return;
             }
@@ -2137,6 +2338,11 @@ namespace HellPoker.Presentation
         public void Confirm()
         {
             if (!IsMapOpen) return;
+            if (_lootOpen)
+            {
+                LootConfirm();
+                return;
+            }
             if (IsBagOpen)
             {
                 BagPlacePressed(_bagCursor);
@@ -2158,6 +2364,13 @@ namespace HellPoker.Presentation
         public bool Back()
         {
             if (!IsMapOpen) return false;
+            if (_lootOpen)
+            {
+                if (_lootView.IsAnimating) _lootView.Skip();
+                else if (_lootSwapRelic != null) LootBack();
+                else return false;   // the spoils wait: Esc goes to the menu, the scene comes back with CONTINUE
+                return true;
+            }
             if (IsBagOpen)
             {
                 BagDonePressed();

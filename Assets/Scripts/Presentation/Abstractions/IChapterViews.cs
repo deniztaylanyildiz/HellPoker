@@ -217,6 +217,10 @@ namespace HellPoker.Presentation.Abstractions
             Options = options ?? Array.Empty<PanelOption>();
             Selected = selected;
         }
+
+        /// <summary>The same panel, the keys pointing at another answer (its cards, bar and words kept).</summary>
+        public PanelCard WithSelected(int selected) =>
+            new PanelCard(PortraitId, Owner, Title, Text, Options, selected, Bar, BarLabel, Showcase);
     }
 
     /// <summary>The panel over the chapter's map (the treasure, the market, an offer, the fire, the gate, a match's end...).</summary>

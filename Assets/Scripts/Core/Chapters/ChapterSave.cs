@@ -73,6 +73,9 @@ namespace HellPoker.Core.Chapters
         /// <summary>Optional keys of the class upgrades: the ones the run has, a beaten demon's offered one, a soul whetted by the fire.</summary>
         public List<string> Upgrades = new List<string>();
         public string LootUpgrade;
+
+        /// <summary>Demo 3.5: the loot's relics were drawn again (its reroll is spent); optional ("loot.rerolled").</summary>
+        public bool LootRerolled;
         public bool Whetted;
 
         /// <summary>Optional keys of what Demo 2.1's offers left: cheaper tables, a richer warden, a loan, the insurance, the confession, the
@@ -187,6 +190,7 @@ namespace HellPoker.Core.Chapters
                 "kit.lucifer.taxes=" + LuciferTaxes,
                 "kit.upgrades=" + string.Join(",", Upgrades),
                 "loot.upgrade=" + (LootUpgrade ?? ""),
+                "loot.rerolled=" + (LootRerolled ? 1 : 0),
                 "whet=" + B(Whetted),
                 "ev.antecut=" + AnteCut,
                 "ev.warden=" + WardenPurse,
@@ -300,6 +304,7 @@ namespace HellPoker.Core.Chapters
                     Upgrades = Ids("kit.upgrades").Where(ClassUpgrades.IsKnown).Distinct().ToList(),
                     LootUpgrade = ClassUpgrades.IsKnown(S("loot.upgrade")) ? S("loot.upgrade") : null,
                     Whetted = Bool("whet"),
+                    LootRerolled = Bool("loot.rerolled"),
                     AnteCut = I("ev.antecut"),
                     WardenPurse = I("ev.warden", 100),
                     Loan = I("ev.loan"),

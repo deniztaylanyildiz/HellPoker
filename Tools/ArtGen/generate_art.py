@@ -16,6 +16,7 @@ import pixel_events  # noqa: E402
 import pixel_floors  # noqa: E402
 import pixel_floors2  # noqa: E402
 import pixel_menu  # noqa: E402
+import pixel_loot  # noqa: E402
 import pixel_relic_art  # noqa: E402
 import pixel_relics  # noqa: E402
 import pixel_salons  # noqa: E402
@@ -49,7 +50,8 @@ def main(selected):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "relics" in selected:
         # The 16x16 icons, then Demo 3.5's big pictures (the cards'), each legendary's sparkle and the sheet of all of them.
-        for path in pixel_relics.write_all(ART) + pixel_relic_art.write_all(ART, ROOT, os.path.join(ROOT, "Screenshots", "demo35", "relic_sheet.png")):
+        for path in pixel_relics.write_all(ART) + pixel_relic_art.write_all(ART, ROOT, os.path.join(ROOT, "Screenshots", "demo35", "relic_sheet.png")) \
+                + pixel_loot.write_all(ART):
             print("wrote", os.path.relpath(path, ROOT))
     if not selected or "floors" in selected:
         # Phase 2: the faces, halls, maps and strangers of Mammon's floors, then Belial's and Lilith's.

@@ -270,7 +270,7 @@ namespace HellPoker.Core.Chapters
             };
             journey.Run.Restore(save.Trail, save.Years, save.Owed, TableMarks.Decode(save.Marks), save.Breaker, save.Rested, save.EventsSeen,
                 null, save.Matches, save.WardenRelic, save.BossBarStart, save.BossBeaten, save.Loot, save.LootTaken, save.LootUpgrade, save.Whetted,
-                save.CompassJumps);
+                save.CompassJumps, save.LootRerolled);
             journey.Run.RestoreCompass(save.CompassUsed);
             journey.Run.RestoreWardensBeaten(save.WardensHere);
             journey.Run.Kit.Restore(save.Satchel, save.Taxes, save.LuciferBag, save.LuciferTaxes, save.Upgrades);
@@ -346,6 +346,7 @@ namespace HellPoker.Core.Chapters
                 Loot = run.LootOffers.ToList(),
                 LootTaken = run.LootTaken,
                 LootUpgrade = run.LootUpgrade,
+                LootRerolled = run.LootRerolled,
                 Whetted = run.WhettedSoul,
                 AnteCut = run.AnteCutTables,
                 WardenPurse = run.NextWardenPursePercent,

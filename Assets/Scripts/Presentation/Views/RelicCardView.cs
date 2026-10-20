@@ -38,6 +38,9 @@ namespace HellPoker.Presentation.Views
         private GameObject _stamp;
         private GameObject _tip;
         private Text _tipText;
+        private GameObject _back;
+        private Image _shade;
+        private int _squeeze = Width;
         private Vector2 _home;
         private bool _hovered;
         private bool _selected;
@@ -169,6 +172,48 @@ namespace HellPoker.Presentation.Views
             sold.rectTransform.PlaceTL(0, 7, Width - 24, 9);
             _stamp = stamp.gameObject;
             _stamp.SetActive(false);
+
+            // Demo 3.5: its back (a dark face, a gold ring, the pentacle at 2×) while it turns over, and a dither of darkness (no alpha)
+            // when it is left behind.
+            Image cardBack = Bar(_rect, "CardBack", 3, 3, Width - 6, Height - 6, Palette.Dusk);
+            Bar(cardBack.transform, "BackRing", 4, 4, Width - 14, 2, Palette.Gold);
+            Bar(cardBack.transform, "BackRing2", 4, Height - 12, Width - 14, 2, Palette.Gold);
+            Bar(cardBack.transform, "BackRing3", 4, 4, 2, Height - 14, Palette.Gold);
+            Bar(cardBack.transform, "BackRing4", Width - 12, 4, 2, Height - 14, Palette.Gold);
+            Image sigil = Bar(cardBack.transform, "Sigil", (Width - 6 - 64) / 2, (Height - 6 - 64) / 2, 64, 64, Color.white);
+            sigil.sprite = UiArt.Sprite(UiArt.LootSigil);
+            sigil.color = sigil.sprite != null ? Color.white : Color.clear;
+            _back = cardBack.gameObject;
+            _back.SetActive(false);
+            _shade = Bar(_rect, "Shade", 0, 0, Width, Height, Color.white);
+            _shade.type = Image.Type.Tiled;
+            _shade.pixelsPerUnitMultiplier = 1f;
+            _shade.gameObject.SetActive(false);
+        }
+
+        /// <summary>The card's back shows (it is turning over, or not yet turned).</summary>
+        public bool BackShown => _back != null && _back.activeSelf;
+
+        public void SetBack(bool shown)
+        {
+            if (_back != null) _back.SetActive(shown);
+        }
+
+        /// <summary>A dither of darkness over it: 0 none, 1-4 a quarter ... all dark (Ui/fade's Bayer frames; no alpha).</summary>
+        public void SetShade(int level)
+        {
+            if (_shade == null) return;
+            Sprite[] fade = UiArt.Strip(UiArt.Fade, 16);
+            bool on = level > 0 && fade != null && fade.Length >= level;
+            _shade.gameObject.SetActive(on);
+            if (on) _shade.sprite = fade[level - 1];
+        }
+
+        /// <summary>Turning over: only <paramref name="width"/> whole pixels of it show (an even number), centred where it stands.</summary>
+        public void SetSqueeze(int width)
+        {
+            _squeeze = Mathf.Clamp(width / 2 * 2, 0, Width);
+            ApplyLift();
         }
 
         public void Show(RelicCardData data)
@@ -279,8 +324,19 @@ namespace HellPoker.Presentation.Views
         private void ApplyLift()
         {
             if (_rect == null) return;
-            _rect.anchoredPosition = _home + new Vector2(0, _hovered && !IsSmall ? Lift : 0);
+            _rect.anchoredPosition = _home + new Vector2(IsSmall ? 0 : (Width - _squeeze) / 2, _hovered && !IsSmall ? Lift : 0);
+            _rect.localScale = new Vector3(IsSmall ? 1f : _squeeze / (float)Width, 1f, 1f);
         }
+
+        /// <summary>Moves it (the spoils' scene: coming in, to the middle, falling) — its place on the parent, top left, whole pixels.</summary>
+        public void MoveTo(int x, int y)
+        {
+            _home = new Vector2(x, -y);
+            ApplyLift();
+        }
+
+        /// <summary>Its place now (top left, whole pixels).</summary>
+        public Vector2Int Place => new Vector2Int(Mathf.RoundToInt(_home.x), -Mathf.RoundToInt(_home.y));
 
         private void Update()
         {

@@ -28,7 +28,7 @@ namespace HellPoker.PlayMode.Tests
             { RelicIds.FerrymansCoin, ChapterRelicIds.IronVow, ChapterRelicIds.BlackBook, ChapterRelicIds.LeadSeal, ChapterRelicIds.AshPurse };
         private static readonly string[] InTheBag = { RelicIds.BoneDie, RelicIds.RustyCrown, RelicIds.ThornedRosary };
 
-        private static IEnumerator Load(ChapterSave save)
+        private static IEnumerator Load(ChapterSave save, float settle = 1f)
         {
             HellPokerBootstrap.BatchStore.Clear();
             if (System.Environment.GetEnvironmentVariable("HELLPOKER_LANG") == "tr")
@@ -37,7 +37,7 @@ namespace HellPoker.PlayMode.Tests
             yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.5f);
             HellPokerScreenshots.Press("ContinueButton");
-            yield return new WaitForSeconds(1f);
+            if (settle > 0f) yield return new WaitForSeconds(settle);
         }
 
         /// <summary>A save standing on the first chapter's nearest node of <paramref name="kind"/>, its panel waiting.</summary>
@@ -87,10 +87,14 @@ namespace HellPoker.PlayMode.Tests
             yield return Load(warden);
             yield return HellPokerScreenshots.Shot($"{stage}_warden_relic_{Tag}");
 
-            yield return Load(ChapterPresenter.PlacedSave(SinnerRoster.King, 11, 1, "loot"));
-            yield return HellPokerScreenshots.Shot($"{stage}_loot_mammon_{Tag}");
-            yield return Load(ChapterPresenter.PlacedSave(SinnerRoster.King, 11, 2, "loot"));
-            yield return HellPokerScreenshots.Shot($"{stage}_loot_belial_{Tag}");
+            // The spoils (the scene since Demo 3.5: the deal hurried to its end for the still).
+            for (int chapter = 1; chapter <= 2; chapter++)
+            {
+                yield return Load(BossLootPlayTests.Spoils(chapter));
+                Object.FindFirstObjectByType<Presentation.Views.BossLootView>()?.Skip();
+                yield return null;
+                yield return HellPokerScreenshots.Shot($"{stage}_loot_{(chapter == 1 ? "mammon" : "belial")}_{Tag}");
+            }
             yield return Load(ChapterPresenter.PlacedSave(SinnerRoster.King, 11, 3, "lucifer"));
             yield return HellPokerScreenshots.Shot($"{stage}_lilith_end_lucifer_calls_{Tag}");
 
@@ -100,6 +104,35 @@ namespace HellPoker.PlayMode.Tests
             HellPokerScreenshots.Press("MapRelicsButton");
             yield return new WaitForSeconds(0.4f);
             yield return HellPokerScreenshots.Shot($"{stage}_bag_{Tag}");
+        }
+
+        /// <summary>The spoils' scene frame by frame (after Demo 3.5): the cards coming in and turning over, the choice playing out.</summary>
+        [UnityTest, Timeout(300000)]
+        public IEnumerator CaptureTheSpoilsAnimation()
+        {
+            yield return Load(BossLootPlayTests.Spoils(1, SinnerRoster.Find(Thief.ClassId)), settle: 0f);   // the deal from its first frame
+            var loot = Object.FindFirstObjectByType<Presentation.Views.BossLootView>();
+            loot.ManualClock = true;   // a frame grab takes longer than a frame: the scene's clock is moved by hand
+            float now = 0f;
+            int frame = 0;
+            foreach (float at in new[] { 0.12f, 0.3f, 0.45f, 0.62f, 0.85f, 1.1f, 1.4f, 1.8f })
+            {
+                loot.Advance(at - now);
+                now = at;
+                yield return null;
+                yield return HellPokerScreenshots.Shot($"after_loot_anim_{frame++:00}_deal_{Tag}");
+            }
+            loot.Skip();
+            HellPokerScreenshots.Press("LootCard0");
+            now = 0f;
+            foreach (float at in new[] { 0.12f, 0.3f, 0.5f, 0.7f })
+            {
+                loot.Advance(at - now);
+                now = at;
+                yield return null;
+                yield return HellPokerScreenshots.Shot($"after_loot_anim_{frame++:00}_choice_{Tag}");
+            }
+            loot.ManualClock = false;
         }
     }
 }

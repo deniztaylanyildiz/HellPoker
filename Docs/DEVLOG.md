@@ -4314,3 +4314,52 @@ eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yed
   her yer doluyken (bugünkü kural).
 - Pazar paneli 4. adıma kadar bugünkü düğmelerle kalır (dükkân sahnesi onu baştan yapacak).
 
+## 2026-10-20 — Demo 3.5 (C): boss ganimeti, ARAM gibi kart seçimi
+
+### Yapılanlar
+- **Sahne** (`Views/BossLootView`, `Abstractions/IBossLootView` + `BossLootState`, `LootFlight`): şeytanın salonu (Bayer ¾ ile kararmış,
+  alfa yok), yere düşmüş tahtı (`Tools/ArtGen/pixel_loot.py`: `Ui/loot_fallen_mammon|belial.png` 160×64 → 2×; Lilith'in ganimeti yok),
+  "GANİMET" + "Mammon düştü. Birini seç.", kartlar sırayla aşağıdan kayarak gelir (0.28 sn arayla), arkası (`Ui/loot_sigil.png` pentagram,
+  2×) görünerek döner (2 px adımlarla daralır / genişler), dönünce ses (efsanevide `loot`, diğerlerinde `flip`) ve nadirliğe göre kıvılcım
+  (efsanevi 12, nadir / şeytanın 6, yükseltme 4). Hepsi gelince seçim açılır; bir tuş / tık animasyonu sona atlatır. Seçilen kart ortaya
+  gelir, diğerleri kararıp düşer, ödül (emanet / yükseltme ikonu ya da sikke) haritanın yan paneline uçar (EMANETLER / kese), sonra bölüm
+  geçişi aynen. YENİLE (bir kez) kartların altında; kullanınca soluk "YENİLENDİ", yeni yüzler döner. Çanta doluyken emanet: taşınan
+  emanetlerin küçük kartları + GERİ. Klavye: oklar kartlar ve YENİLE arasında, Enter alır, Esc menüye (sahne DEVAM ET ile geri gelir).
+- **Kurallar aynı:** kartlar bugünkü ganimet (2 emanet + yükseltme + 30 coin); seçimler `TakeLoot / TakeLootUpgrade / TakeLootCoins`.
+  **YENİLE** (`ChapterRun.RerollLoot / CanRerollLoot / LootRerolled`, kendi zar akışı `RerollStream` = 14 — koşunun başka hiçbir çekimi
+  kaymaz): her emanet kartı aynı nadirlikten başka bir emanetle (şeytanın kendi emanetleri → öbür şeytanınkiler; kalmadıysa nadir,
+  ganimetin kendi yedeği gibi), taşınan / önceki teklif / kilitli asla, sınıf emaneti kalır; yükseltme ve coin aynı. Kayıt `loot.rerolled`
+  (ganimetteyken kapanırsa aynı kartlar, YENİLE hakkı da).
+- Sunucu: `ChapterPresenter` (`loot` parametresi; yoksa eski panel — eski testler aynen), `IsLootOpen`, `UpdateSaveButton` sahnede gizler.
+  F9 listesine "GANİMET · MAMMON / BELIAL" (5, 6; gerçek akışla kurulur, iz bırakmaz, seçimden sonra menü; `LootTaken` başında
+  `TracelessOver`). `-fpstour` ganimette sahneyi ölçer ("Hell Poker spoils ..." satırı).
+- **Simülasyon** (sim botu YENİLE'yi bugünkü seçim mantığıyla, sınıf emaneti ya da yükseltme yoksa kullanır; `HELLPOKER_LOOT_REROLL=0`
+  eski): sınıf × zorluk kurtulma, 500 koşu, aynı tohumlar —
+
+  | sınıf | Kolay önce / sonra | Orta | Zor | Ironman |
+  |---|---|---|---|---|
+  | Köylü | 29.8 / 29.8 | 27.8 / 27.8 | 10.8 / 10.8 | 5.2 / 5.2 |
+  | Kâhin | 41.0 / 41.0 | 36.4 / 36.4 | 16.2 / 16.2 | 6.2 / 6.2 |
+  | Kral | 32.2 / 32.2 | 24.0 / 24.0 | 9.6 / 9.6 | 4.4 / 4.4 |
+  | Soytarı | 23.0 / 23.0 | 17.2 / 17.2 | 8.4 / 8.4 | 4.2 / 4.2 |
+  | Çağırıcı | 32.6 / 32.6 | 26.4 / 26.4 | 8.2 / 8.2 | 3.6 / 3.6 |
+  | Hırsız | 39.4 / 39.4 | 34.8 / 34.8 | 15.0 / 15.0 | 5.2 / 5.2 |
+  | hepsi | 33.0 / 33.0 | 27.8 / 27.8 | 11.4 / 11.4 | 4.8 / 4.8 |
+
+  Hiçbir hücre değişmedi → **YENİLE kaldı**. Ama bot onu hiç kullanmadı (rerolls 0): ganimette hep bir yükseltme var ve bot yükseltmeyi
+  emanete yeğler. Ek ölçüm (bot yükseltmeleri yok sayınca, `HELLPOKER_LOOT_UPGRADE=0`, Orta): YENİLE kapalı 24.1 → açık 25.5 (sınıflar
+  +0.2 … +2.2; 3927 kullanım) — gerçek oyuncu emaneti seçerse etkisi bu ölçekte olabilir (kullanıcıya soruldu).
+- Testler: EditMode `LootRerollTests` (bir kez, aynı nadirlik, taşınan / önceki yok, yükseltme kalır, kayıt, kendi zarı), `BossLootTests`
+  (sahne, kart sayısı, seçimler, YENİLE bir kez + kayıt, klavye ve atlama, çanta dolu yolu, Esc), PlayMode `BossLootPlayTests` (dağıtım
+  kendiliğinden biter; basış atlatır; iki dilde başlık / alt başlık / YENİLE sığar, kartlar ızgarada, ekranda, YENİLE'nin üstünde; seçim
+  sonraki bölümü açar; YENİLE yalnız emanet kartlarını çevirir), `DevJumpShortcutPlayTests.F9_GoesToEachDemonsSpoils_...`,
+  `ChapterJourneyTests.MammonsSpoilsLeadIntoBelialsStage` sahneyle, FullRunTests ganimette sahneyi oynar (koşu başına bir YENİLE).
+  `FullRunTests.King_Medium_Turkish` geçti. EditMode 1180 geçti. Animasyon kareleri için sahnenin elle ilerletilen saati
+  (`BossLootView.ManualClock / Advance`: bir ekran görüntüsü bir kareden uzun sürüyor).
+
+### Kararlar (varsayılanla)
+- YENİLE'nin "aynı havuz": şeytanın kendi iki emaneti tek başına bir havuz olsaydı aynı kartlar gelirdi; bu yüzden aynı nadirlikten başka
+  emanet (şeytanın emanetleri için öbür şeytanınkiler).
+- "Büyüyüp ortaya gelir": kart büyütülmez (tam piksel kuralı), ortaya kayar ve çerçevesi kor yanar.
+- Lilith'in ganimeti yok (oyun öyle): sahne Mammon ve Belial'de.
+

@@ -166,11 +166,14 @@ namespace HellPoker.PlayMode.Tests
             yield return LoadWithSave(ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 7, 1, "loot"));
             var panel = UnityEngine.Object.FindFirstObjectByType<ChapterPanelView>();
             var map = UnityEngine.Object.FindFirstObjectByType<ChapterMapView>();
-            Assert.IsTrue(panel.IsOpen);
-            Assert.AreEqual(Presentation.Ui.UiText.LootTitle, panel.Card.Title, "the spoils of Mammon");
+            var loot = UnityEngine.Object.FindFirstObjectByType<BossLootView>();
+            Assert.IsTrue(loot.IsOpen, "Demo 3.5: the spoils of Mammon, a scene of their own");
+            Assert.AreEqual(Core.Dealers.DealerRoster.MammonId, loot.State.BossId);
             int coins = Chapters.Run.Purse.Coins;
-            HellPokerScreenshots.Press("PanelOption" + (panel.Card.Options.Count - 1));   // the coins
-            yield return null;
+            loot.Skip();
+            HellPokerScreenshots.Press("LootCard" + (loot.Cards.Count - 1));   // the coins
+            float started = Time.time;
+            while (Chapters.IsLootOpen && Time.time - started < 5f) yield return null;
             Assert.AreEqual(2, Chapters.Journey.Chapter, "the second chapter");
             Assert.AreEqual(Core.Dealers.DealerRoster.BelialId, Chapters.Run.Rules.BossId);
             Assert.AreEqual(Math.Max(coins + ChapterRun.LootCoins, ChapterRules.StartingCoinsFor(Core.Sinners.Peasant.ClassId)), Chapters.Run.Purse.Coins,

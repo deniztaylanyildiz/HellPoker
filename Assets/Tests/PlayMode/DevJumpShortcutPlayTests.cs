@@ -126,6 +126,38 @@ namespace HellPoker.PlayMode.Tests
             Assert.AreEqual(book, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null));
         }
 
+        /// <summary>Demo 3.5: F9 to Mammon's and Belial's spoils — the scene, his own; the choice made, the menu; no trace.</summary>
+        [UnityTest, Timeout(180000)]
+        public IEnumerator F9_GoesToEachDemonsSpoils_LeavingNoTrace()
+        {
+            ChapterJourneyTests.PlayersOwnRunAndRecords(out string save, out string book);
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            Component shortcut = TheGames;
+            string[] targets = (string[])Shortcut.GetField("LootTargets").GetValue(null);
+            Assert.AreEqual(2, targets.Length, "Mammon and Belial (Lilith's fall leads to Lucifer)");
+            for (int i = 0; i < targets.Length; i++)
+            {
+                Toggle(shortcut);
+                Shortcut.GetMethod("JumpToLoot").Invoke(shortcut, new object[] { i });
+                yield return new WaitForSeconds(0.6f);
+                ChapterPresenter chapters = ChapterJourneyTests.Chapters;
+                var loot = Object.FindFirstObjectByType<BossLootView>();
+                Assert.IsTrue(chapters.IsLootOpen && loot.IsOpen, targets[i] + ": his spoils");
+                Assert.AreEqual(targets[i], loot.State.BossId);
+                Assert.AreEqual(i + 1, chapters.Journey.Chapter);
+                Assert.IsTrue(Traceless);
+                loot.Skip();
+                HellPokerScreenshots.Press("LootCard" + (loot.Cards.Count - 1));
+                float started = Time.time;
+                while (!ChapterJourneyTests.Menu.IsAtMenuRoot && Time.time - started < 5f) yield return null;
+                Assert.IsTrue(ChapterJourneyTests.Menu.IsAtMenuRoot, targets[i] + ": the menu after the choice");
+                Assert.IsFalse(Traceless);
+                Assert.AreEqual(save, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RunKey, null), "the save untouched");
+                Assert.AreEqual(book, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null), "the records untouched");
+            }
+        }
+
         [UnityTest, Timeout(300000)]
         public IEnumerator F9_GoesToEachDemonsTable_TheGamesOwn_LeavingNoTrace()
         {

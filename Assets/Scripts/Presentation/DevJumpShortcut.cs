@@ -39,6 +39,9 @@ namespace HellPoker.Presentation
         /// <summary>The four places F9 goes, in the list's order.</summary>
         public static readonly string[] Targets = { DealerRoster.MammonId, DealerRoster.BelialId, DealerRoster.LilithId, DealerRoster.LuciferId };
 
+        /// <summary>Demo 3.5: the demons whose fall leaves spoils — F9 also goes straight to them (5, 6).</summary>
+        public static readonly string[] LootTargets = { DealerRoster.MammonId, DealerRoster.BelialId };
+
         private const int SortingOrder = 140;   // over the title menu (100) and its sub-screens
         private const int PanelWidth = 208;
         private const int ButtonWidth = 160;
@@ -130,6 +133,16 @@ namespace HellPoker.Presentation
             if (_difficultyLabel != null) _difficultyLabel.text = UiText.DifficultyName(_difficulty);
         }
 
+        /// <summary>Demo 3.5: a demon's spoils (0 Mammon, 1 Belial) — the run beaten to them through the chapters' flow, leaving no trace;
+        /// the choice made, the menu.</summary>
+        public void JumpToLoot(int target)
+        {
+            if (!_allowed || target < 0 || target >= LootTargets.Length) return;
+            Close();
+            _chapters.JumpToSpoilsTraceless(LootTargets[target], ChosenClass, _difficulty);
+            _menu.GoBack();
+        }
+
         private void Open()
         {
             Relabel();
@@ -172,6 +185,8 @@ namespace HellPoker.Presentation
             else if (keyboard.digit2Key.wasPressedThisFrame) Jump(1);
             else if (keyboard.digit3Key.wasPressedThisFrame) Jump(2);
             else if (keyboard.digit4Key.wasPressedThisFrame) Jump(3);
+            else if (keyboard.digit5Key.wasPressedThisFrame) JumpToLoot(0);
+            else if (keyboard.digit6Key.wasPressedThisFrame) JumpToLoot(1);
         }
 
         private void OnDestroy() => SetKeyboard(true);
@@ -181,7 +196,7 @@ namespace HellPoker.Presentation
         private void Build(Transform parent)
         {
             _canvas = UiFactory.CreateScreen("DevJumpCanvas", parent, SortingOrder, out RectTransform screen, letterbox: false);
-            int height = TargetsTop + Targets.Length * RowStep + 8 + RowStep + 8;
+            int height = TargetsTop + (Targets.Length + LootTargets.Length) * RowStep + 8 + RowStep + 8;
             Image panel = UiFactory.CreatePanel("DevJumpPanel", screen, hot: true);
             panel.raycastTarget = true;
             int left = (PixelScreen.Width - PanelWidth) / 2 / 8 * 8, top = (PixelScreen.Height - height) / 2 / 8 * 8;
@@ -205,9 +220,19 @@ namespace HellPoker.Presentation
                 button.onClick.AddListener(() => Jump(target));
             }
 
+            for (int i = 0; i < LootTargets.Length; i++)
+            {
+                int target = i;
+                string id = LootTargets[i];
+                Button button = UiFactory.CreateButton("DevJumpLoot" + i, panel.transform, "", 8, out Text label, ButtonSkin.Ember);
+                label.Localized(() => (Targets.Length + target + 1) + "  " + UiText.LootSceneTitle + " · " + UiText.Dealer(id).Name);
+                ((RectTransform)button.transform).PlaceTL((PanelWidth - ButtonWidth) / 2, TargetsTop + (Targets.Length + i) * RowStep, ButtonWidth, ButtonHeight);
+                button.onClick.AddListener(() => JumpToLoot(target));
+            }
+
             Button close = UiFactory.CreateButton("DevJumpClose", panel.transform, "", 8, out Text closeLabel, ButtonSkin.Ash);
             closeLabel.Localized(() => UiText.Back);
-            ((RectTransform)close.transform).PlaceTL((PanelWidth - 80) / 2, TargetsTop + Targets.Length * RowStep + 8, 80, ButtonHeight);
+            ((RectTransform)close.transform).PlaceTL((PanelWidth - 80) / 2, TargetsTop + (Targets.Length + LootTargets.Length) * RowStep + 8, 80, ButtonHeight);
             close.onClick.AddListener(Close);
 
             Relabel();
@@ -309,6 +334,41 @@ namespace HellPoker.Presentation
             Resume(save);   // the gate's panel (Lucifer's call) — then the game's own step to his table
             if (lucifer) SitWithLucifer();
             else SitWithTheDemon();
+        }
+
+        /// <summary>
+        /// Demo 3.5: straight to <paramref name="bossId"/>'s spoils (Mammon's or Belial's) through the chapters' flow: the gate paid, the
+        /// demon beaten (Belial: Mammon's coins taken, his chapter begun, his gate paid, him beaten) — then the spoils' scene. No trace; the
+        /// choice made, the menu.
+        /// </summary>
+        internal void JumpToSpoilsTraceless(string bossId, SinnerClass sinnerClass, Difficulty difficulty)
+        {
+            int boss = DifficultyRules.BossIndex(bossId);
+            if (boss < 0 || boss > 1) throw new ArgumentException("Only Mammon and Belial leave spoils: " + bossId, nameof(bossId));
+            if (_playersRecords == null) _playersRecords = _records;
+            _records = ChapterRecords.Decode(_playersRecords.Encode());
+            EnsureTable();
+            if (_panel.IsOpen) ClosePanel();
+            _journey = null;
+            _ended = false;
+            _match = null;
+            _bossGame = null;
+            _atTable = false;
+
+            ChapterJourney journey = ChapterJourney.Begin(sinnerClass ?? SinnerRoster.Peasant, _newSeed(), difficulty);
+            journey.Run.PayTribute();
+            journey.Run.LeaveBossTable(0);
+            if (boss == 1)
+            {
+                journey.Run.TakeLootCoins();
+                journey.NextChapter();
+                journey.Run.PayTribute();
+                journey.Run.LeaveBossTable(0);
+            }
+            ChapterSave save = journey.Capture();
+            save.NodeDone = true;
+            save.Pending = "loot";
+            Resume(save);
         }
 
         /// <summary>The traceless run is over: its copy of the records goes, the player's come back, the menu shows.</summary>

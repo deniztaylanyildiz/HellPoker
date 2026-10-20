@@ -523,6 +523,9 @@ namespace HellPoker.Core.Tests
             /// <summary>Demo 3.4: the tables at which the demon was enraged (Mammon ... Lucifer).</summary>
             public readonly int[] Enraged = new int[4];
 
+            /// <summary>Demo 3.5: the loots rerolled.</summary>
+            public int Rerolls;
+
             /// <summary>Boss hands lost to the player's two jokers, won by the demon's, and all boss hands (Mammon ... Lucifer).</summary>
             public readonly int[] BossPlayerBusts = new int[4], BossHouseBusts = new int[4];
 
@@ -958,7 +961,7 @@ namespace HellPoker.Core.Tests
             string Paid(int ch) => Pct(t.Chapters[ch].PaidFull, t.Chapters[ch].Reached);
             string Rage(int b) => Pct(t.Enraged[b], t.BossSat[b]);
             return $"{name,-10} {Pct(t.Freed, t.Runs),6}   {Death(0)} / {Death(1)} / {Death(2)} / {lucifer}   {Paid(0)} / {Paid(1)} / {Paid(2)}   " +
-                   $"{Rage(0)} / {Rage(1)} / {Rage(2)} / {Rage(3)}";
+                   $"{Rage(0)} / {Rage(1)} / {Rage(2)} / {Rage(3)}   rerolls {t.Rerolls}";
         }
 
         /// <summary>"tribute=40.50.60,ante=3.2.1,rage=50,ragestake=150,camps=2.1.1,market=100.120.140,unknown=5.10.15,topup=100.75.50,
@@ -1070,6 +1073,14 @@ namespace HellPoker.Core.Tests
                 // gift, no curse); else a relic while a slot is free; else the coins.
                 string relic = journey.Run.LootOffers.OrderByDescending(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).FirstOrDefault();
                 string upgrade = journey.Run.LootUpgrade;
+                // Demo 3.5: the reroll (HELLPOKER_LOOT_REROLL=0: none, the old loot) when no card is one it would rather have — no class
+                // relic, no upgrade —, then the same choice.
+                if (EnvInt("HELLPOKER_LOOT_REROLL", 1) != 0 && (upgrade == null || EnvInt("HELLPOKER_LOOT_UPGRADE", 1) == 0)
+                    && (relic == null || !ChapterRelics.IsClassRelic(relic)) && journey.Run.RerollLoot())
+                {
+                    relic = journey.Run.LootOffers.OrderByDescending(r => RelicRoster.Find(r)?.ExpectedYears ?? 0).FirstOrDefault();
+                    foreach (RunTally t in new[] { tally, all }) t.Rerolls++;
+                }
                 if (relic != null && ChapterRelics.IsClassRelic(relic) && !journey.Run.RelicsFull && journey.Run.TakeLoot(relic))
                     foreach (RunTally t in new[] { tally, all }) Bump(t.Chapters[ch - 1].RelicPicks, relic);
                 else if (upgrade != null && EnvInt("HELLPOKER_LOOT_UPGRADE", 1) != 0 && journey.Run.TakeLootUpgrade())
