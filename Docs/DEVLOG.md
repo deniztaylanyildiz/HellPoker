@@ -4250,3 +4250,37 @@ sabitlesin, sayı değişmesin). Testler, ekran görüntüleri (demo341), build 
 
 ### Sıradaki
 - Demo 3.5 (emanet görselleri, ortak emanet kartı, ganimet seçimi, Kara Pazar): istek parçalı geldi; eksik kısımlar kullanıcıya soruldu.
+
+## 2026-10-20 — Demo 3.5 (A): F9'a sınıf ve zorluk, "önce" görüntüleri, emanet görselleri
+
+### İstek (kullanıcı)
+`hellpoker-emanet-gorselleri-pazar-ve-ganimet-promptu-2026-10-19.md` (masaüstünde): Demo 3.5 — emanet görselleri, ortak emanet kartı,
+ARAM gibi boss ganimeti seçimi, Kara Pazar'ın dükkân sahnesi. Ekonomi / denge değişmez; tek yeni şey ganimetteki bir kez YENİLE. Önce
+etiketler GitHub'a, F9'a sınıf ve zorluk seçimi, "önce" ekran görüntüleri. Kullanıcı 3.4.1'in kararlarını onayladı (demo motoru kalır,
+eski simülatör kaydı açılışta silinir, F9 metinleri dosyada, -fpstour yedekle).
+
+### Yapılanlar
+- **Etiketler:** push burada yapılamadı (GCM'de GitHub girişi yok; giriş penceresi açıldı ama kapandı: "User cancelled dialog"). GitHub'da
+  main 3.4.1'de (kullanıcı Desktop'tan göndermiş), etiket yok → kullanıcıya `git push --tags` için komut verildi.
+- **F9 sınıf ve zorluk** (`DevJumpShortcut.cs` içinde): listede ‹ SINIF › (altı sınıf, varsayılan Köylü; sol / sağ ok) ve ‹ ZORLUK ›
+  (Kolay … Ironman, varsayılan Orta, kilit yok; yukarı / aşağı) satırları; `JumpTraceless(boss, class, difficulty)`. Test:
+  `DevJumpShortcutTests.EveryClass_AtEveryDifficulty_...` (6 × 4 atlama, kayıt / rekor değişmez, masa bitince koşu yok),
+  `DevJumpShortcutPlayTests.F9_TheClassAndTheDifficulty_AreTheJumps`. Silme denemesi yeniden geçti. Commit "F9: sınıf ve zorluk seçimi".
+- **"Önce" görüntüleri** (`Demo35Shots`, [Explicit]; `HELLPOKER_STAGE=before|after`): altı satıcı, hazine, bekçi emaneti, Mammon ve Belial
+  ganimeti, Lilith'in sonu (ganimeti yok: Lucifer'in çağrısı), çanta → `Screenshots/demo35/before/` (1920×1080, en / tr).
+- **Emanet görselleri** (`Tools/ArtGen/pixel_relic_art.py`, `generate_art.py relics`): `pixel_relics.icon()` artık bir tuvale çizebiliyor;
+  aynı nesne 32×32'lik tuvalde (16'lık koordinatlar ×26/16 + 3) yeniden çizilir, sonra sol üstten ışık (aydınlık kenar bir adım açık, öbür
+  yan iki piksel koyu, dither), 1 px koyu dış çizgi, nadirliğin hâlesi (sıradan kemik, nadir kan / bakır, efsanevi altın, şeytanın ganimeti
+  şeytanın rengi), şeytan emanetlerine sağ altta şeytanın işareti (Mammon sikke, Belial çatal, Lilith hilal, Lucifer alev), sınıf
+  emanetlerine sol altta sınıfın renginde kalkan. `Ui/relic_art.png` (54 × 32, IconOrder), `Ui/RelicGlint/<id>.png` (12 efsanevi,
+  6 karelik parıltı: kare 0 duruş, son kare tek piksel), `Screenshots/demo35/relic_sheet.png` (54 resim, adları UiText.Relics.cs'ten).
+  `UiArt.RelicArt / RelicGlint`. `preview.py` parıltıları kartın hızında (8 FPS, sonra bekleme) oynatır. Test `RelicArtTests` (54 resim,
+  32×32, sıra = Python'un ORDER'ı = IconOrder, kısmi saydam piksel yok, dış çizgi var; parıltı tam efsanevilerde, kare 0 = duruş, döngü
+  kuralı; sınıf rozetleri tam sınıf emanetlerinde, sınıfın kendi renginde; boss ganimetlerinde şeytan işareti).
+- EditMode 1166 geçti.
+
+### Kararlar (varsayılanla)
+- Resimler elle sıfırdan değil, ikonun çizim koduyla büyük tuvalde + ayrıntı katmanlarıyla (aynı nesne, aynı renkler, kural gereği).
+- Boss nadirliğinin (şeytanın ganimeti) hâlesi şeytanın rengi; Şeytanın Pusulası Lucifer'in işaretini taşır.
+- Lilith'in ganimeti yok (oyun öyle): "önce" / "sonra" görüntülerinde onun yerine Lucifer'in çağrısı.
+

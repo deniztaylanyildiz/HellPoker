@@ -85,6 +85,28 @@ namespace HellPoker.Presentation.Ui
             return index >= 0 && icons != null && index < icons.Length ? icons[index] : null;
         }
 
+        /// <summary>Demo 3.5: every relic's big picture (32×32, shown at 2× on the relic cards), a strip in <see cref="HellPoker.Core.Relics.RelicRoster.IconOrder"/>.</summary>
+        public const string RelicArtStrip = "Ui/relic_art";
+        public const int RelicArtSize = 32;
+
+        /// <summary>A legendary relic's sparkle: Ui/RelicGlint/&lt;id&gt; (a one-shot burst, frame 0 the picture at rest).</summary>
+        public const string RelicGlintFolder = "Ui/RelicGlint/";
+
+        /// <summary>A relic's big picture; null if missing (the card falls back to the icon).</summary>
+        public static Sprite RelicArt(string relicId)
+        {
+            int index = -1;
+            var order = HellPoker.Core.Relics.RelicRoster.IconOrder;
+            for (int i = 0; i < order.Count; i++)
+                if (order[i] == relicId) index = i;
+            Sprite[] pictures = Strip(RelicArtStrip, RelicArtSize);
+            return index >= 0 && pictures != null && index < pictures.Length ? pictures[index] : null;
+        }
+
+        /// <summary>A legendary relic's sparkle frames; null for any other (or if missing).</summary>
+        public static Sprite[] RelicGlint(string relicId) =>
+            relicId == null ? null : Strip(RelicGlintFolder + relicId, RelicArtSize);
+
         public const string SinnerIcons = "Ui/sinner_icons";
         public const int SinnerIconSize = 16;
         public const int SinnerPortraitSize = 48;

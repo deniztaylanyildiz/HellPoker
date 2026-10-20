@@ -23,8 +23,10 @@ ORDER = ["bone_die", "rusty_crown", "ferrymans_coin", "thorned_rosary", "jesters
          "worn_gloves", "lockpick", "shadow_cloak", "bell_collar", "mocking_mask"]
 
 
-def icon(relic_id):
-    img = Img(ICON, ICON)
+def icon(relic_id, img=None, outline=True):
+    """The relic drawn in the icon's 16x16 coordinates — on a 16x16 image, or on any canvas that maps them (pixel_relic_art's 32x32);
+    the outline last unless the caller draws its own."""
+    img = img if img is not None else Img(ICON, ICON)
     if relic_id == "bone_die":
         # A yellowed bone cube, seen from a corner: a light top, a darker side, black pips.
         top = img.m_poly([(2, 5), (8, 2), (14, 5), (8, 8)])
@@ -452,8 +454,11 @@ def icon(relic_id):
         img.paint(img.m_rect(4, 6, 6, 7), C.BLACK)
         img.paint(img.m_rect(10, 6, 12, 7), C.BLACK)
         img.paint(img.m_line([(4, 10), (8, 12), (12, 9)], 1), C.CRIMSON)
-    img.outline(C.BLACK)
+    if outline:
+        img.outline(C.BLACK)
     return img
+
+
 def write_all(art_dir):
     path = os.path.join(art_dir, "Ui", "relic_icons.png")
     sheet([icon(r) for r in ORDER]).save(path)

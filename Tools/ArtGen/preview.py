@@ -193,6 +193,29 @@ def main():
                    "overflow:hidden}.backdrop>div{position:absolute;background-repeat:no-repeat;image-rendering:pixelated}"
                    ".backdrop>.zone{outline:1px dashed #ffd860}.backdrop>canvas{position:absolute;left:0;top:0;image-rendering:pixelated}")
         html.append("<script>const BACKDROPS=" + json.dumps(backdrops) + ";\n" + PLAYER_JS + "</script>")
+    # Demo 3.5: the legendary relics' sparkle at the card's speed (8 FPS), a burst then a long rest, as the card plays it.
+    glints = os.path.join(ART, "Ui", "RelicGlint")
+    if os.path.isdir(glints):
+        html.append("<h2>legendary relics (the card's sparkle: a burst, then a rest)</h2><div>")
+        for file in sorted(os.listdir(glints)):
+            if not file.endswith(".png"):
+                continue
+            strip = Image.open(os.path.join(glints, file))
+            frames = strip.width // strip.height
+            big = scaled(strip, 4)
+            out = "glint_" + file
+            big.save(os.path.join(OUT, out))
+            cls = "glint-" + file[:-4]
+            burst = frames / 8.0
+            period = burst + 2.5
+            # the burst takes its share of the period; the rest of it holds frame 0
+            share = 100.0 * burst / period
+            steps = "".join(f"{share * k / frames:.2f}%{{background-position:-{big.height * k}px 0}}" for k in range(frames))
+            css.append(f".{cls}{{width:{big.height}px;height:{big.height}px;display:inline-block;background-image:url({out});"
+                       f"image-rendering:pixelated;animation:{cls} {period:.2f}s step-end infinite}}"
+                       f"@keyframes {cls}{{{steps}{share:.2f}%{{background-position:0 0}}}}")
+            html.append(f"<figure style=display:inline-block><div class={cls}></div><figcaption>{file[:-4]}</figcaption></figure>")
+        html.append("</div>")
     if os.path.isdir(os.path.join(ART, "Ui")):
         scaled(ui_sheet(), 2).save(os.path.join(OUT, "ui_sheet.png"))
         html.append("<h2>ui</h2><img src=ui_sheet.png>")
