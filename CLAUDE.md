@@ -34,17 +34,14 @@ oyunun menüsüyle, ortak sahte nesneler orada). Yeni: `SimulatorLeftoversTests`
 
 **Geçici: F9** (GEÇİCİ TEST KISAYOLU, testler bitince silinecek). `Assets/Scripts/Presentation/DevJumpShortcut.cs` tek dosya:
 `DevJumpShortcut` (MonoBehaviour) + `ChapterPresenter`'ın partial parçası. Yalnız editörde, development build'de ya da `HELLPOKER_DEV=1`
-ile (`DevJumpShortcut.Allowed`); oyuncu build'inde F9 hiçbir şey yapmaz. Ana menünün kökünde F9 → liste (MAMMON / BELIAL / LILITH / LUCIFER;
-tık ya da 1-4, Esc kapatır; liste açıkken `KeyboardInput` bekler) → bölüm akışıyla o şeytanın masası: Köylü, Orta, bölümün kapısına
-konmuş koşu, haraç kapının yoluyla ödenir (Lucifer: çağrısı cevaplanır); masa oyunun masası. Koşu **iz bırakmaz**: `ChapterPresenter`'ın
+ile (`DevJumpShortcut.Allowed`); oyuncu build'inde F9 hiçbir şey yapmaz. Ana menünün kökünde F9 → liste: sınıf satırı (‹ › ya da sol / sağ ok; altı sınıf, varsayılan Köylü), zorluk satırı (‹ › ya da yukarı / aşağı; Kolay … Ironman, varsayılan Orta, kilit yok), dört hedef (MAMMON / BELIAL / LILITH / LUCIFER; tık ya da 1-4), Esc kapatır; liste açıkken `KeyboardInput` bekler → bölüm akışıyla o şeytanın masası: seçilen sınıf ve zorlukta, bölümün kapısına konmuş koşu (`JumpTraceless(boss, class, difficulty)`), haraç kapının yoluyla ödenir (Lucifer: çağrısı cevaplanır); masa oyunun masası. Koşu **iz bırakmaz**: `ChapterPresenter`'ın
 partial metotları `Traceless` / `TracelessEnds` (ana dosyada `IsTraceless`, `TracelessOver`, `KeepRecords`) — kayıt yazılmaz, rekorlar bir
 kopyada oynar (kilitler değişmez), koşu günlüğü yazılmaz; masa bitince (kazanç / kayıp; `ResolveBoss` / `ResolveLucifer` / `FinishRun`'ın
 başında) koşu bırakılır, ana menü gelir, DEVAM ET oyuncunun kendi kaydıdır (Ironman'ın kamptan sonraki kaydedilmemiş ilerlemesi F9'la gider).
 Development build `-devjumpshots`: liste ve Belial masası ekran görüntüsü (`persistentDataPath/tour/devjump_*.png`), log "Hell Poker dev jump ...".
 **Silmek için:** `DevJumpShortcut.cs` (+ `.meta`) sil ve `HellPokerBootstrap.Awake`'teki `DevJumpShortcut.Install(...)` satırını kaldır — başka bir
 şey gerekmez (partial metotlar derleyiciyle düşer). Testleri (`Tests/EditMode/DevJumpShortcutTests.cs`, `Tests/PlayMode/DevJumpShortcutPlayTests.cs`)
-kısayolu yansımayla bulur: dosya gidince derleme bozulmaz, kendiliğinden atlanırlar (istersen onları da sil). 2026-10-20'de denendi: dosya +
-satır kaldırıldı, derlendi, EditMode 1160 geçti (2 atlandı), PlayMode 12 geçti (2 atlandı), geri kondu.
+kısayolu yansımayla bulur: dosya gidince derleme bozulmaz, kendiliğinden atlanırlar (istersen onları da sil). 2026-10-20'de denendi (iki kez; sınıf / zorluk satırlarıyla da): dosya + satır kaldırıldı, derlendi, testler geçti, F9'unkiler atlandı, geri kondu. `DevJumpShortcutTests.EveryClass_AtEveryDifficulty_...`: 6 sınıf × 4 zorluk, her biri bir hedefe atlar, kayıt / rekor değişmez.
 
 **Demo 3.4** (etiket `v3.4-demo`, bundleVersion **3.4.0-demo**; DEVLOG 2026-10-20, PHASE2_CHAPTERS "Zorluk"): **zorluk seviyeleri** (Cehennem
 Daireleri'nin yerine; `Core/Chapters/Difficulty.cs`: `Difficulty` Easy / Medium (varsayılan) / Hard / Ironman, bütün sayılar `DifficultyRules`'ta,

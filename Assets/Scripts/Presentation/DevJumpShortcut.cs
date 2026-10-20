@@ -21,8 +21,9 @@ namespace HellPoker.Presentation
 {
     /// <summary>
     /// TEMPORARY (Demo 3.4.1, a tester's shortcut — the Boss Simulator is gone): F9 on the title menu — only in the editor, a development
-    /// build or with HELLPOKER_DEV=1 — opens a list of the four demons (Mammon, Belial, Lilith, Lucifer). A choice (a click, or 1-4) takes a
-    /// run straight to that demon's table through the chapters' own flow: a Peasant at Medium, placed at the chapter's gate, the tribute
+    /// build or with HELLPOKER_DEV=1 — opens a list: the class (‹ › or the left / right arrows; the Peasant at first), the difficulty (‹ › or
+    /// up / down; Medium at first) and the four demons (Mammon, Belial, Lilith, Lucifer). A demon (a click, or 1-4) takes a run of that class
+    /// at that difficulty straight to his table through the chapters' own flow: placed at the chapter's gate, the tribute
     /// paid the game's way (Lucifer: his call answered). The table is the game's own. The run leaves no trace — no save written over the
     /// player's, nothing in the records, no unlock, no run log — and when its table ends (won or lost) the menu comes back. A player's
     /// build has none of it: F9 does nothing.
@@ -43,6 +44,20 @@ namespace HellPoker.Presentation
         private const int ButtonWidth = 160;
         private const int ButtonHeight = 18;
         private const int RowStep = 24;
+        private const int StepWidth = 18;
+        private const int TargetsTop = 84;
+
+        /// <summary>The class and the difficulty the next jump plays (the Peasant, Medium at first; the list keeps them while the game runs).</summary>
+        private int _class;
+        private Difficulty _difficulty = DifficultyRules.Default;
+        private Text _classLabel;
+        private Text _difficultyLabel;
+
+        /// <summary>The class the next jump plays (for tests).</summary>
+        public SinnerClass ChosenClass => SinnerRoster.PhaseTwo[_class];
+
+        /// <summary>The difficulty the next jump plays (for tests).</summary>
+        public Difficulty ChosenDifficulty => _difficulty;
 
         private ChapterPresenter _chapters;
         private IMenuCommands _menu;
@@ -88,12 +103,36 @@ namespace HellPoker.Presentation
         {
             if (!_allowed || target < 0 || target >= Targets.Length) return;
             Close();
-            _chapters.JumpTraceless(Targets[target]);
+            _chapters.JumpTraceless(Targets[target], ChosenClass, _difficulty);
             _menu.GoBack();   // the menu's Esc: back into the run that now waits — the menu goes, the chapter's table comes, with the curtain
+        }
+
+        /// <summary>The class row's arrows: the next class (round the six).</summary>
+        public void StepClass(int step)
+        {
+            if (!_allowed || step == 0) return;
+            int count = SinnerRoster.PhaseTwo.Count;
+            _class = ((_class + Math.Sign(step)) % count + count) % count;
+            Relabel();
+        }
+
+        /// <summary>The difficulty row's arrows: Easy ... Ironman (no lock here: a tester's shortcut).</summary>
+        public void StepDifficulty(int step)
+        {
+            if (!_allowed || step == 0) return;
+            _difficulty = DifficultyRules.Clamp((int)_difficulty + Math.Sign(step));
+            Relabel();
+        }
+
+        private void Relabel()
+        {
+            if (_classLabel != null) _classLabel.text = UiText.SinnerName(ChosenClass.Id);
+            if (_difficultyLabel != null) _difficultyLabel.text = UiText.DifficultyName(_difficulty);
         }
 
         private void Open()
         {
+            Relabel();
             _canvas.enabled = true;
             _canvas.GetComponent<GraphicRaycaster>().enabled = true;
             SetKeyboard(false);   // the game's keys wait while the list is open (Esc closes it, 1-4 choose)
@@ -125,6 +164,10 @@ namespace HellPoker.Presentation
             }
             if (!IsOpen) return;
             if (keyboard.escapeKey.wasPressedThisFrame) Close();
+            else if (keyboard.leftArrowKey.wasPressedThisFrame) StepClass(-1);
+            else if (keyboard.rightArrowKey.wasPressedThisFrame) StepClass(1);
+            else if (keyboard.upArrowKey.wasPressedThisFrame) StepDifficulty(1);
+            else if (keyboard.downArrowKey.wasPressedThisFrame) StepDifficulty(-1);
             else if (keyboard.digit1Key.wasPressedThisFrame) Jump(0);
             else if (keyboard.digit2Key.wasPressedThisFrame) Jump(1);
             else if (keyboard.digit3Key.wasPressedThisFrame) Jump(2);
@@ -138,7 +181,7 @@ namespace HellPoker.Presentation
         private void Build(Transform parent)
         {
             _canvas = UiFactory.CreateScreen("DevJumpCanvas", parent, SortingOrder, out RectTransform screen, letterbox: false);
-            int height = 40 + Targets.Length * RowStep + 8 + RowStep + 8;
+            int height = TargetsTop + Targets.Length * RowStep + 8 + RowStep + 8;
             Image panel = UiFactory.CreatePanel("DevJumpPanel", screen, hot: true);
             panel.raycastTarget = true;
             int left = (PixelScreen.Width - PanelWidth) / 2 / 8 * 8, top = (PixelScreen.Height - height) / 2 / 8 * 8;
@@ -149,22 +192,41 @@ namespace HellPoker.Presentation
             UiFactory.CreateText("DevJumpNote", panel.transform, "", 8, Palette.BoneMid).WithOutline()
                 .Localized(() => Lang.Pick("Not saved · no records", "Kaydedilmez · rekora girmez")).rectTransform.PlaceTL(0, 22, PanelWidth, 9);
 
+            _classLabel = StepRow(panel.transform, "DevJumpClass", 40, StepClass);
+            _difficultyLabel = StepRow(panel.transform, "DevJumpDifficulty", 62, StepDifficulty);
+
             for (int i = 0; i < Targets.Length; i++)
             {
                 int target = i;
                 string id = Targets[i];
                 Button button = UiFactory.CreateButton("DevJump" + i, panel.transform, "", 8, out Text label, i == 3 ? ButtonSkin.Blood : ButtonSkin.Ash);
                 label.Localized(() => (target + 1) + "  " + UiText.Dealer(id).Name);
-                ((RectTransform)button.transform).PlaceTL((PanelWidth - ButtonWidth) / 2, 40 + i * RowStep, ButtonWidth, ButtonHeight);
+                ((RectTransform)button.transform).PlaceTL((PanelWidth - ButtonWidth) / 2, TargetsTop + i * RowStep, ButtonWidth, ButtonHeight);
                 button.onClick.AddListener(() => Jump(target));
             }
 
             Button close = UiFactory.CreateButton("DevJumpClose", panel.transform, "", 8, out Text closeLabel, ButtonSkin.Ash);
             closeLabel.Localized(() => UiText.Back);
-            ((RectTransform)close.transform).PlaceTL((PanelWidth - 80) / 2, 40 + Targets.Length * RowStep + 8, 80, ButtonHeight);
+            ((RectTransform)close.transform).PlaceTL((PanelWidth - 80) / 2, TargetsTop + Targets.Length * RowStep + 8, 80, ButtonHeight);
             close.onClick.AddListener(Close);
 
+            Relabel();
             Close();
+        }
+
+        /// <summary>A row ‹ NAME ›: its two arrows step the choice, its label says it.</summary>
+        private static Text StepRow(Transform panel, string name, int y, Action<int> step)
+        {
+            int x = (PanelWidth - ButtonWidth) / 2;
+            Button down = UiFactory.CreateButton(name + "Down", panel, "<", 8, out _, ButtonSkin.Ash);
+            ((RectTransform)down.transform).PlaceTL(x, y, StepWidth, ButtonHeight);
+            down.onClick.AddListener(() => step(-1));
+            Button up = UiFactory.CreateButton(name + "Up", panel, ">", 8, out _, ButtonSkin.Ash);
+            ((RectTransform)up.transform).PlaceTL(x + ButtonWidth - StepWidth, y, StepWidth, ButtonHeight);
+            up.onClick.AddListener(() => step(1));
+            Text label = UiFactory.CreateText(name + "Label", panel, "", 8, Palette.GoldLight, style: FontStyle.Bold).WithOutline();
+            label.rectTransform.PlaceTL(x + StepWidth, y + 5, ButtonWidth - 2 * StepWidth, 9);
+            return label;
         }
 
         // ------------------------------------------------------------------ the tester's screenshots
@@ -222,11 +284,11 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>
-        /// A run straight to <paramref name="bossId"/>'s table through the chapters' own flow: a Peasant at Medium placed at the gate of
-        /// that demon's chapter, the tribute paid as the gate pays it (Lucifer: after Lilith, his call answered). Whatever it does stays on
+        /// A run straight to <paramref name="bossId"/>'s table through the chapters' own flow: <paramref name="sinnerClass"/> at
+        /// <paramref name="difficulty"/> placed at the gate of that demon's chapter, the tribute paid as the gate pays it (Lucifer: after Lilith, his call answered). Whatever it does stays on
         /// a copy of the records; the run in memory is let go (the player's save waits in the archive, untouched).
         /// </summary>
-        internal void JumpTraceless(string bossId)
+        internal void JumpTraceless(string bossId, SinnerClass sinnerClass, Difficulty difficulty)
         {
             int boss = DifficultyRules.BossIndex(bossId);
             if (boss < 0) throw new ArgumentException("Not a demon of the chapters: " + bossId, nameof(bossId));
@@ -241,8 +303,9 @@ namespace HellPoker.Presentation
             _atTable = false;
 
             bool lucifer = boss == 3;
-            ChapterSave save = PlacedSave(SinnerRoster.Peasant, _newSeed(), lucifer ? ChapterRules.Chapters : boss + 1, lucifer ? "lucifer" : "gate");
-            save.Difficulty = DifficultyRules.Default;
+            ChapterSave save = PlacedSave(sinnerClass ?? SinnerRoster.Peasant, _newSeed(), lucifer ? ChapterRules.Chapters : boss + 1,
+                lucifer ? "lucifer" : "gate");
+            save.Difficulty = difficulty;
             Resume(save);   // the gate's panel (Lucifer's call) — then the game's own step to his table
             if (lucifer) SitWithLucifer();
             else SitWithTheDemon();

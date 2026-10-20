@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using HellPoker.Core.Chapters;
 using HellPoker.Presentation;
@@ -75,6 +76,54 @@ namespace HellPoker.PlayMode.Tests
             yield return MenuGridTests.Tap(Key.Escape);
             Assert.IsFalse(IsOpen(shortcut), "Esc closes it");
             Assert.IsTrue(ChapterJourneyTests.Menu.IsAtMenuRoot, "the menu as it was (Esc did not go into a run)");
+        }
+
+        /// <summary>The list's class (the Peasant first, round the six) and difficulty (Medium first) are the jump's; still no trace.</summary>
+        [UnityTest, Timeout(120000)]
+        public IEnumerator F9_TheClassAndTheDifficulty_AreTheJumps()
+        {
+            ChapterJourneyTests.PlayersOwnRunAndRecords(out string save, out string book);
+            yield return SceneManager.LoadSceneAsync("HellPoker", LoadSceneMode.Single);
+            yield return new WaitForSeconds(0.5f);
+            Component shortcut = TheGames;
+            Core.Sinners.SinnerClass Chosen() => (Core.Sinners.SinnerClass)Shortcut.GetProperty("ChosenClass").GetValue(shortcut);
+            Difficulty Level() => (Difficulty)Shortcut.GetProperty("ChosenDifficulty").GetValue(shortcut);
+            void Step(string method, int step) => Shortcut.GetMethod(method).Invoke(shortcut, new object[] { step });
+
+            Toggle(shortcut);
+            Assert.AreEqual(Core.Sinners.Peasant.ClassId, Chosen().Id, "the Peasant at first");
+            Assert.AreEqual(Difficulty.Medium, Level(), "Medium at first");
+            Assert.IsTrue(HellPokerScreenshots.IsActive("DevJumpClassUp") && HellPokerScreenshots.IsActive("DevJumpDifficultyDown"), "the rows' arrows");
+            Step("StepClass", -1);
+            Assert.AreEqual(Core.Sinners.SinnerRoster.PhaseTwo.Last().Id, Chosen().Id, "round the six");
+            Step("StepClass", 1);
+            Step("StepClass", 1);
+            Step("StepClass", 1);
+            Assert.AreEqual(Core.Sinners.SinnerRoster.PhaseTwo[2].Id, Chosen().Id);
+            Step("StepDifficulty", 1);
+            Step("StepDifficulty", 1);
+            Step("StepDifficulty", 1);
+            Assert.AreEqual(Difficulty.Ironman, Level(), "never past Ironman");
+            Step("StepDifficulty", -1);
+            Assert.AreEqual(Difficulty.Hard, Level());
+            HellPokerScreenshots.Press("DevJumpClassDown");
+            HellPokerScreenshots.Press("DevJumpClassUp");   // the buttons step as the keys do
+            Assert.AreEqual(Core.Sinners.SinnerRoster.PhaseTwo[2].Id, Chosen().Id);
+
+            Jump(shortcut, 1);   // Belial
+            yield return new WaitForSeconds(0.8f);
+            yield return ChapterJourneyTests.WaitForChapterTable();
+            ChapterPresenter chapters = ChapterJourneyTests.Chapters;
+            Assert.AreEqual(Core.Sinners.SinnerRoster.PhaseTwo[2].Id, chapters.Journey.Sinner.Id, "the chosen class at his table");
+            Assert.AreEqual(Difficulty.Hard, chapters.Journey.Difficulty, "at the chosen difficulty");
+            Assert.AreEqual(Core.Dealers.DealerRoster.BelialId, chapters.Run.Rules.BossId);
+            Assert.IsTrue(Traceless);
+            Assert.AreEqual(save, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RunKey, null), "the player's save untouched");
+            Assert.AreEqual(book, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null), "the records untouched");
+            typeof(ChapterPresenter).GetMethod("ResolveBoss", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(chapters, null);
+            yield return new WaitForSeconds(0.6f);
+            Assert.IsTrue(ChapterJourneyTests.Menu.IsAtMenuRoot);
+            Assert.AreEqual(book, HellPokerBootstrap.BatchStore.GetString(Presentation.Settings.ChapterArchive.RecordsKey, null));
         }
 
         [UnityTest, Timeout(300000)]
