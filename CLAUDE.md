@@ -30,7 +30,7 @@ Zor'da; `AllClassesOpen` hepsini açar), rekorlar `free.<sınıf>.<zorluk>`, `se
 kayıtları Kolay'a (en iyisi). **Kayıt** `ChapterSave.Version` 2 (`difficulty`, `run.id`, `saves`; p2=1 okunur, Kolay). **Ironman** `ChapterPresenter.SaveNow`:
 yalnız kampta (`AtCamp`) ya da zorla (koşu başı, kampta KAYDET); her kayıt `ChapterRecords.RunSaved`, ölüm `RunDied`; `SavedRun()` ölü ya da
 eski kopya kaydı atar; `IronmanUnsaved` → ÇIKIŞ'ta EVET / HAYIR (`IMainMenuView.AskToConfirm(..., cancelLabel)`). **KAYDET** `SaveButtonView`
-(`ISaveButtonView`, kendi Canvas'ı 46: haritada MENÜ'nün yanında 68,330 — harita MENÜ'sü 52 px —, masada ELLER'in yanında 144,338 soluk + hover;
+(`ISaveButtonView`, kendi Canvas'ı 46: haritada MENÜ'nün yanında 68,330 — harita MENÜ'sü 52 px —, masada ELLER'in yanında 144,338 soluk + hover; KAYDEDİLDİ bir an düğmenin etiketinin yerinde;
 `ChapterPresenter.UpdateSaveButton`, `SetTableVisible`; ses `saved`). **Sunum:** zorluk satırı `SinnerSelectView` kartların altında (`DifficultyChoice`,
 `ISinnerSelectView.DifficultyStepped`, `DifficultyDown / Up`, hover), öfke `TableMoment.Rage` + `rage` sesi + `ITableView.SetEnraged` (DealerView'in
 "final" bakışı) + bar işareti (`BossBarDisplay.WithRage`, `RageTick / RageFlag`), taşınan kural ikonu `ITableView.SetCarriedRule` (portrenin

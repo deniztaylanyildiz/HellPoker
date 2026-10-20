@@ -4177,3 +4177,18 @@ eski kayıtlar Kolay; KAYDET düğmesi (masada kapalı), Ironman'da yalnız kamp
 - Orta'da Mammon'daki ölüm %23 (hedef ~%10): Kolay'ın kendisi %20.6; Kolay'a dokunmadan inilemez.
 - Ironman'ın kendi 5 / 6 sayıları (spec'te yalnız Zor için vardı) kullanıcı onayı bekliyor.
 
+### Bitiş (build, ekran görüntüleri, turlar)
+- Demo34Shots ilk koşuda takıldı: Ironman'ın çıkış uyarısı için bastığı ÇIKIŞ, kaydedilmemiş ilerleme yokken oyunu gerçekten kapatıyordu
+  (batch'te Unity bekledi). Test artık ilerlemeyi garanti edip öyle basıyor. Görüntüler `Screenshots/demo34/` (360-366, 1920×1080 ve
+  2560×1440, en / tr) ve build'den `Screenshots/demo34/build/` (menü "Demo 3.4", zorluk satırı, haritada KAYDET, masada soluk KAYDET; iki
+  boy, iki dil).
+- Düzeltme: haritada "KAYDEDİLDİ" yazısı düğmenin üstünde EMANETLER'e biniyordu → yazı bir anlığına düğmenin kendi etiketinin yerine
+  geçiyor (metin fontu).
+- Build `Builds/HellPoker-Demo-3.4-win64.zip` (3.4.0-demo). Kayıtlar yedeklendi; `-fpstour -difficulty=` easy / medium / hard / ironman
+  (log'da zorluk, ante hızı, kese 120 / 120 / 90 / 60; 19 FPS satırı, hata yok); Ironman: kampta kaydetti (0 → 1), menüye çıkıp devam
+  etti, öldü → DEVAM ET yok, koşu ölü. Kayıtlar geri yüklendi. Kullanıcının eski kaydı (Köylü, daire 0) menüde KOLAY olarak açıldı.
+- EditMode 1190 geçti, PlayMode TableLayout 11 geçti. Commit "Demo 3.4: zorluk seviyeleri ve KAYDET", etiket `v3.4-demo` (push yok).
+
+### Sıradaki
+- Kullanıcı kararları: Ironman'ın kendi 5 / 6 sayıları, gösterge 3 / 2 / 2 / 1, Orta'da Mammon ölümü, Ironman'da KAYDET yalnız kampta görünür.
+- Push (etiketlerle) kullanıcı isteyince.
