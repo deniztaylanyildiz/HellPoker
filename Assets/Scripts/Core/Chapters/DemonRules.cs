@@ -47,25 +47,94 @@ namespace HellPoker.Core.Chapters
 
         public override int ExtraMalicePerHand(HellPokerGame game)
         {
-            if (!IsCornered(game)) return 0;
+            if (Carried || !IsCornered(game)) return 0;   // a carried rule never corners its demon a second time
             CorneredHands++;
             return 1;
         }
 
-        public override void HandDealt(HellPokerGame game) => StruckThisHand = false;
-
-        /// <summary>The rule for a demon's table (Lucifer's mirrors the class); null for a demon without one.</summary>
-        /// <param name="mirrorsTwo">Lucifer copies a second mechanic too (the fifth circle).</param>
-        public static DemonRule For(string bossId, int barStart, ClassKit kit, IRandomSource random, bool mirrorsTwo = false)
+        public override void HandDealt(HellPokerGame game)
         {
+            StruckThisHand = false;
+            EnragedThisHand = false;
+        }
+
+        // ------------------------------------------------------------------ Demo 3.4: the rage, and a carried rule
+
+        /// <summary>Medium and up: the demon may be enraged (<see cref="CheckRage"/>).</summary>
+        public bool CanRage { get; set; }
+
+        /// <summary>Under <see cref="DifficultyRules.RageBarPercent"/> of its start the bar enraged the demon — once, for good: the stakes
+        /// ×<see cref="DifficultyRules.RageStakePercent"/>, his rule more often.</summary>
+        public bool Enraged { get; private set; }
+
+        /// <summary>The rage came with the hand just settled (the table says so once).</summary>
+        public bool EnragedThisHand { get; private set; }
+
+        /// <summary>Ironman: this rule is another demon's, carried at <see cref="StrengthPercent"/> (never enraged, never cornering).</summary>
+        public bool Carried { get; private set; }
+
+        /// <summary>The rule's strength in percent (a carried rule's <see cref="DifficultyRules.StackedRulePercent"/>).</summary>
+        public int StrengthPercent { get; private set; } = 100;
+
+        /// <summary>Between hands: a bar under the line enrages the demon (<paramref name="announce"/>: the table is told; false for a saved
+        /// table coming back already under it). Raises the stakes once.</summary>
+        public void CheckRage(HellPokerGame game, bool announce = true)
+        {
+            if (!CanRage || Enraged || game == null || game.Years <= 0) return;
+            if ((long)game.Years * 100 >= (long)BarStart * DifficultyRules.RageBarPercent) return;
+            Enraged = true;
+            EnragedThisHand = announce;
+            if (game.FixedStakeYears.HasValue) game.FixedStakeYears = Math.Max(1, (int)((long)BarStart * DifficultyRules.RageStakePercent / 100));
+        }
+
+        /// <summary>A rule's interval, shortened by the rage (halved) and lengthened by a carried rule's strength.</summary>
+        protected int Interval(int every) =>
+            Math.Max(1, Enraged ? (every + 1) / 2 : every * 100 / Math.Max(1, StrengthPercent));
+
+        /// <summary>A rule's chance or amount, raised by the rage and lowered by a carried rule's strength.</summary>
+        protected int Scaled(int value) =>
+            (int)((long)value * StrengthPercent / 100 * (Enraged ? DifficultyRules.RageRulePercent : 100) / 100);
+
+        public sealed override void HandSettled(HellPokerGame game, RoundResult round)
+        {
+            Settled(game, round);
+            CheckRage(game);
+        }
+
+        /// <summary>The hand is settled (the rage is looked at after it).</summary>
+        protected virtual void Settled(HellPokerGame game, RoundResult round) { }
+
+        /// <summary>The rule for a demon's table (Lucifer's mirrors the class); null for a demon without one. Medium and up it may rage.</summary>
+        public static DemonRule For(string bossId, int barStart, ClassKit kit, IRandomSource random, Difficulty difficulty = Difficulty.Easy)
+        {
+            DemonRule rule;
             switch (bossId)
             {
-                case DealerRoster.MammonId: return new MammonInterest(barStart, random);
-                case DealerRoster.BelialId: return new BelialRoleSwap(barStart, random);
-                case DealerRoster.LilithId: return new LilithTemptation(barStart, random);
-                case DealerRoster.LuciferId: return new LuciferMirror(barStart, random, kit, mirrorsTwo ? LuciferMirror.SecondFor(kit.Kind) : (KitKind?)null);
+                case DealerRoster.MammonId: rule = new MammonInterest(barStart, random); break;
+                case DealerRoster.BelialId: rule = new BelialRoleSwap(barStart, random); break;
+                case DealerRoster.LilithId: rule = new LilithTemptation(barStart, random); break;
+                case DealerRoster.LuciferId: rule = new LuciferMirror(barStart, random, kit); break;
                 default: return null;
             }
+            rule.CanRage = DifficultyRules.Rage(difficulty);
+            return rule;
+        }
+
+        /// <summary>Ironman: the rule a demon carries beside his own, at half strength — Belial Mammon's interest, Lilith Belial's role swap;
+        /// null for none (Mammon, Lucifer, or an easier level).</summary>
+        public static DemonRule CarriedFor(string bossId, int barStart, IRandomSource random, Difficulty difficulty)
+        {
+            if (!DifficultyRules.StackedRules(difficulty)) return null;
+            DemonRule rule;
+            switch (bossId)
+            {
+                case DealerRoster.BelialId: rule = new MammonInterest(barStart, random); break;
+                case DealerRoster.LilithId: rule = new BelialRoleSwap(barStart, random); break;
+                default: return null;
+            }
+            rule.Carried = true;
+            rule.StrengthPercent = DifficultyRules.StackedRulePercent;
+            return rule;
         }
 
         /// <summary>The demon's weakest card for <paramref name="card"/>: the position whose swap makes the House's hand the best; -1 when no
@@ -104,7 +173,8 @@ namespace HellPoker.Core.Chapters
 
         public override string Id => "interest";
 
-        public int Interest => Math.Max(1, (BarStart * InterestPercent + 99) / 100);
+        /// <summary>The interest in years (the rage raises it, a carried interest is half).</summary>
+        public int Interest => Math.Max(1, (Scaled(BarStart * InterestPercent) + 99) / 100);
 
         public override int YearsAfterHand(HellPokerGame game, ShowdownOutcome? outcome, bool folded, bool houseFolded)
         {
@@ -134,11 +204,18 @@ namespace HellPoker.Core.Chapters
         public Card? Given { get; private set; }
         public Card? Taken { get; private set; }
 
-        /// <summary>The swap comes in hand <paramref name="round"/>.</summary>
+        /// <summary>The swap comes in hand <paramref name="round"/> (the designer's interval).</summary>
         public static bool SwapIn(int round) => round > 0 && round % Every == 0;
+
+        /// <summary>This rule's swap comes in hand <paramref name="round"/>: every <see cref="Every"/>th — every second enraged, every eighth
+        /// carried at half strength.</summary>
+        public bool SwapsIn(int round) => round > 0 && round % Interval(Every) == 0;
 
         /// <summary>The coming hand (or, between hands, the next) is a swap's: what the Warlock sees.</summary>
         public static bool ComingIn(HellPokerGame game) => SwapIn(game.RoundNumber + 1);
+
+        /// <summary>This rule's coming swap.</summary>
+        public bool ComesIn(HellPokerGame game) => SwapsIn(game.RoundNumber + 1);
 
         public override void HandDealt(HellPokerGame game)
         {
@@ -148,7 +225,7 @@ namespace HellPoker.Core.Chapters
 
         public override void DrawBegins(HellPokerGame game)
         {
-            if (!SwapIn(game.RoundNumber)) return;
+            if (!SwapsIn(game.RoundNumber)) return;
             int[] mine = Enumerable.Range(0, Hand.Size).Where(i => Movable(game, i)).ToArray();
             int[] his = Enumerable.Range(game.HouseCardsRevealed, Hand.Size - game.HouseCardsRevealed)
                 .Where(i => !CheatRules.IsImmune(game.HouseHand[i]) && !game.IsHouseCardFalse(i)).ToArray();
@@ -202,7 +279,7 @@ namespace HellPoker.Core.Chapters
                 best = thrown;
                 place = at;
             }
-            if (!best.HasValue || Random.Next(100) >= TakePercent) return;
+            if (!best.HasValue || Random.Next(100) >= Math.Min(100, Scaled(TakePercent))) return;
             game.SetHands(null, hand.With(place, best.Value));
             Tempted = best;
             StruckThisHand = true;
@@ -225,24 +302,17 @@ namespace HellPoker.Core.Chapters
         private readonly ClassKit _kit;
         private int _hands;
 
-        public LuciferMirror(int barStart, IRandomSource random, ClassKit kit, KitKind? second = null) : base(barStart, random)
+        public LuciferMirror(int barStart, IRandomSource random, ClassKit kit) : base(barStart, random)
         {
             _kit = kit ?? throw new ArgumentNullException(nameof(kit));
-            Second = second;
         }
 
         public override string Id => "mirror";
 
         public KitKind Mirrors => _kit.Kind;
 
-        /// <summary>The second mechanic he copies (the fifth circle); null for none.</summary>
-        public KitKind? Second { get; }
-
-        /// <summary>The fifth circle's second copy: the satchel — against the Peasant (his own), the prophecy.</summary>
-        public static KitKind SecondFor(KitKind kind) => kind == KitKind.Satchel ? KitKind.Prophecy : KitKind.Satchel;
-
-        /// <summary>He plays this mechanic against the player (his class's, or the second).</summary>
-        public bool Copies(KitKind kind) => _kit.Kind == kind || Second == kind;
+        /// <summary>He plays this mechanic against the player (his class's; Demo 3.4: the fifth circle's second copy went with the circles).</summary>
+        public bool Copies(KitKind kind) => _kit.Kind == kind;
 
         /// <summary>Against the Summoner: the card of the player's his Eye showed him this hand; null when none.</summary>
         public Card? EyeSaw { get; private set; }
@@ -266,7 +336,7 @@ namespace HellPoker.Core.Chapters
             Seized = GivenBack = null;
             DrewTop = UsedBag = false;
             EyeSaw = null;
-            if (Copies(KitKind.Summon) && ++_hands % EyeEveryHands == 0)
+            if (Copies(KitKind.Summon) && ++_hands % Interval(EyeEveryHands) == 0)
             {
                 EyeSaw = game.PlayerHand[Random.Next(Hand.Size)];
                 StruckThisHand = true;
@@ -327,7 +397,7 @@ namespace HellPoker.Core.Chapters
 
         // ---- against the King: taxes, and a seizure
 
-        public override void HandSettled(HellPokerGame game, RoundResult round)
+        protected override void Settled(HellPokerGame game, RoundResult round)
         {
             if (Copies(KitKind.Treasury) && !round.Folded && !round.HouseFolded && round.Showdown?.Outcome == ShowdownOutcome.HouseWins)
                 _kit.LuciferTaxes = Math.Min(ClassKit.LuciferTaxCap, _kit.LuciferTaxes + 1);
@@ -340,7 +410,7 @@ namespace HellPoker.Core.Chapters
 
         public override void DrawBegins(HellPokerGame game)
         {
-            if (Copies(KitKind.Theft) && ++_thiefHands % StealEveryHands == 0)
+            if (Copies(KitKind.Theft) && ++_thiefHands % Interval(StealEveryHands) == 0)
             {
                 Hand his = game.HouseHand;
                 int mine = -1, at = -1;

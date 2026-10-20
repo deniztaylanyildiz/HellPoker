@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace HellPoker.Presentation.Abstractions
 {
-    /// <summary>Where the player is, for a bug report: the run's class, circle, chapter (4: Lucifer's table), floor and its last log lines.</summary>
+    /// <summary>Where the player is, for a bug report: the run's class, difficulty, chapter (4: Lucifer's table), floor and its last log lines.</summary>
     public sealed class FeedbackContext
     {
         public string ClassId { get; }
-        public int Circle { get; }
+
+        /// <summary>Demo 3.4: the difficulty's id ("easy", "medium", "hard", "ironman").</summary>
+        public string Difficulty { get; }
         public int Chapter { get; }
 
         /// <summary>The floor (1-based) the player stands on; 0 at none (the chapter's opening, Lucifer).</summary>
@@ -15,10 +17,10 @@ namespace HellPoker.Presentation.Abstractions
 
         public IReadOnlyList<string> LogLines { get; }
 
-        public FeedbackContext(string classId, int circle, int chapter, int floor, IReadOnlyList<string> logLines)
+        public FeedbackContext(string classId, string difficulty, int chapter, int floor, IReadOnlyList<string> logLines)
         {
             ClassId = classId;
-            Circle = circle;
+            Difficulty = difficulty ?? "";
             Chapter = chapter;
             Floor = floor;
             LogLines = logLines ?? Array.Empty<string>();

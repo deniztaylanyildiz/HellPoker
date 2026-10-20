@@ -15,6 +15,29 @@ konuşma geçmişi ise `Docs/DEVLOG.md` dosyasındadır. **Yeni bir oturuma baş
 
 **Demo 1.0 dondu**: etiket `v1.0-demo` (commit `caf79bd167dd4518f63f90c61298fe61e900bf0d`). Phase 2 bundan sonra.
 
+**Demo 3.4** (etiket `v3.4-demo`, bundleVersion **3.4.0-demo**; DEVLOG 2026-10-20, PHASE2_CHAPTERS "Zorluk"): **zorluk seviyeleri** (Cehennem
+Daireleri'nin yerine; `Core/Chapters/Difficulty.cs`: `Difficulty` Easy / Medium (varsayılan) / Hard / Ironman, bütün sayılar `DifficultyRules`'ta,
+simülasyon `ChapterSimulation.Difficulties`, düğme `HELLPOKER_DIFF`). Her seviye öncekini taşır: 1 kat antesi her 3 / 2 / 1 elde
+(`ChapterRules.WithDifficulty` → `AnteStepHands`), 2 haraç = max(formül, kapı kesesinin %40 / 50 / 60) (`ChapterRun.Tribute`, `GateCoins`),
+3 öfke evresi (`DemonRule.CanRage / CheckRage / Enraged / EnragedThisHand`: bar < %50 bir kez, `FixedStakeYears` ×1.5, kural aralığı yarıya /
+şansı ×1.5 — `Interval`, `Scaled`; yeniden açılan masada sessizce `CheckRage(announce: false)`), 4 harita (`MapMaker`: ortadaki kamp en çok 2 / 1 / 1,
+pazar ×1 / 1.2 / 1.4, "?" bekçi %5 / 10 / 15, Lilith'te her yolda bekçi `WardenOnEveryPath`; Kolay haritası birebir aynı), 5 kese tamamlama
+%75 / %50 (`ChapterJourney.NextChapter`), 6 boss kaybı ×1 / 1.25 / 1.5 / 1.5 (`BossTable.Create` lossPercent), 7 Ironman gösterge en çok 3 / 2 / 2 / 1
+(`MaliceShortFor`), 8 taşınan kural yarım güç (`DemonRule.CarriedFor`, `ChapterHooks.Carried`: Belial + Faiz, Lilith + Rol Takası), Ironman'ın
+kendi 5 / 6'sı (%50 / %25, ×1.25 / 1.5 / 1.75 / 1.75: 7-8 tek başına az etkiliydi), 9 Ironman kaydı. Simülasyon (500 / sınıf): Kolay %33.0 (önceyle
+aynı), Orta %27.8, Zor %11.4, Ironman %4.8. **Kilitler** `ChapterRecords.IsDifficultyOpen` (Zor: herhangi bir sınıfla Orta'da kurtuluş, Ironman:
+Zor'da; `AllClassesOpen` hepsini açar), rekorlar `free.<sınıf>.<zorluk>`, `sentence.<sınıf>.<zorluk>`, `hardest`; eski `sentence.<sınıf>.<daire>`
+kayıtları Kolay'a (en iyisi). **Kayıt** `ChapterSave.Version` 2 (`difficulty`, `run.id`, `saves`; p2=1 okunur, Kolay). **Ironman** `ChapterPresenter.SaveNow`:
+yalnız kampta (`AtCamp`) ya da zorla (koşu başı, kampta KAYDET); her kayıt `ChapterRecords.RunSaved`, ölüm `RunDied`; `SavedRun()` ölü ya da
+eski kopya kaydı atar; `IronmanUnsaved` → ÇIKIŞ'ta EVET / HAYIR (`IMainMenuView.AskToConfirm(..., cancelLabel)`). **KAYDET** `SaveButtonView`
+(`ISaveButtonView`, kendi Canvas'ı 46: haritada MENÜ'nün yanında 68,330 — harita MENÜ'sü 52 px —, masada ELLER'in yanında 144,338 soluk + hover;
+`ChapterPresenter.UpdateSaveButton`, `SetTableVisible`; ses `saved`). **Sunum:** zorluk satırı `SinnerSelectView` kartların altında (`DifficultyChoice`,
+`ISinnerSelectView.DifficultyStepped`, `DifficultyDown / Up`, hover), öfke `TableMoment.Rage` + `rage` sesi + `ITableView.SetEnraged` (DealerView'in
+"final" bakışı) + bar işareti (`BossBarDisplay.WithRage`, `RageTick / RageFlag`), taşınan kural ikonu `ITableView.SetCarriedRule` (portrenin
+solunda), haritada "Zorluk: ORTA", devam kartı, günlük ve HATA / ÖNERİ'de `Difficulty`. How to Play 11 sayfa (10: ZORLUK VE KAYIT). Metinler
+`UiText.Difficulty.cs`. Testler: `DifficultyTests`, `SaveButtonTests`, `ChapterMenuTests.TheDifficultyRow...`, PlayMode `TableLayoutTests.SAVE_...`,
+`FullRunTests` 6 sınıf × 4 seviye (Ironman kamp panelinde yeniden yükler).
+
 **Masa birliği** (Demo 3.4'ün ilk aşaması, DEVLOG 2026-10-20): **oyundaki her poker masası aynı görünür** (kullanıcının kuralı) — kat, bekçi,
 boss, Lucifer ve Boss Simülatörü'nün masaları: sol altta oyuncu paneli, sağ üstte şeytan, sayaç sol üstte, ödeme çarpanları masada değil
 H panelinde. `TableLayout` tek düzen (`TableLayout.Table`; `TableLayoutKind`, `ITableView.SetLayout` / `SetPayoutTableShown` silindi),
@@ -61,7 +84,7 @@ false` der (`StartsInSimulator`). Simülatörde menü eski demo gibi (DEVAM / MA
 başlıkta "BOSS SİMÜLATÖRÜ (F9)"); kaydı (`run.save`) ve rekorları (`run.records`) ayrı, oyun onları silmez. Oyunda: rekorlar ekranı
 `ChapterRecords` satırları (`IRecordsView.ShowLines`, `UiText.ChapterRecordLines`); How to Play OYUN → GÜÇLER → ELLER → HİLELER
 (`UiText.GameRulesPage`, `ChapterRulesPage`), simülatörde KURALLAR → ELLER → HİLELER → GÜNAHKÂRLAR. Bölüm masasında son 250 / son anlar
-yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.2-win64.zip` (bundleVersion **3.2.0-demo**: menüde "Demo 3.2" + DEMO
+yok. Build: `HellPokerBuild.Windows` → `Builds/HellPoker-Demo-3.4-win64.zip` (bundleVersion **3.4.0-demo**: menüde "Demo 3.4" + DEMO
 etiketi; OKUBENI / GERI_BILDIRIM / kökteki CHANGELOG.md zip'e girer). **Hata / öneri:** ana menünün sol altında (Demo 3.3) HATA / ÖNERİ
 (`FeedbackView`, `FeedbackPresenter`, `FeedbackReport`, `UnityLinks`): `mailto:caveengine@gmail.com`, konu "[Hell Poker HATA] ..." /
 "[Hell Poker ÖNERİ] ...", gövdede sürüm, sınıf, daire, bölüm, kat, günlüğün son 12 satırı (`IChapterSession.Feedback`); rapor hep panoya
@@ -106,17 +129,12 @@ etkiler `ClassKit` kapasitelerinde, `ClassPowers`'ta, Soytarı'nınkiler `Upgrad
 30 coin, kampta RUHUNU BİLE (`FireChoice.WhetSoul`: yükseltme, bar %10 uzun; `ChapterRun.CampBarPercent`, `BarAfterGate`). Kayıt:
 `kit.upgrades`, `loot.upgrade`, `whet`. İkonlar `relic_icons.png` (`RelicRoster.IconOrder`), masada nadirlik çerçevesi (3. yuva ikincinin
 solunda), sınıf rozetinin üstünde yükseltme pipleri, metinler `UiText.Upgrades.cs`.
-**Kilitler, Çağırıcı, Daireler (Phase 2):** `ChapterUnlocks` (14 emanet açık, 10'u kilometre taşıyla; ilk kurtuluş Çağırıcı'yı açar;
+**Kilitler, Çağırıcı (Phase 2; Daireler Demo 3.4'te kalktı — aşağıdaki Demo 3.4):** `ChapterUnlocks` (14 emanet açık, 10'u kilometre taşıyla; ilk kurtuluş Çağırıcı'yı açar;
 sayaçlar `ChapterRecords`: `wardens`, `bought`, `tributes`, `beaten.<boss>`), kilitli emanet çekilmez (`ChapterJourney.RelicAvailable`).
 **Çağırıcı** (`Summoner`, sadece `SinnerRoster.PhaseTwo`; kese 200, ceza 5800 — istenen 140 / 6500 simülasyonla ayarlandı): `SummonPowers`
 GÖZ / EL / FISILTI (katta 5 / 15 / 8 coin, boss'ta bar %2 / 5 / 3, el kapanınca), %10 azan iblis kartı bir rütbe düşürür, K: LEJYON (hepsi
-bedava); Lucifer'in Aynası 3 elde bir Göz. **Daireler** (`Circles`, 0-5, birikimli; `ChapterRules.WithCircle`, `ChapterJourney.Circle`, kayıtta
-`circle`): 1 iblis kesesi +%25, 2 haraç +20, 3 kalın bar (+%15, kazanç %15 az), 4 pazar ×1.25 + ateş 2 seçenek (`ChapterRun.FireOffers`),
-5 kötülük göstergesi bir kısa + Lucifer iki mekanik (`LuciferMirror.Second`). Sınıf her kurtuluşta bir sonraki daireyi açar (`CirclesOpen`,
-`circle.<sınıf>`); seçim sınıf kartında ‹ DAİRE n ›. Ayrıca her daire şeytana karşı kazancı %5 kırpar (`Circles.WinStepPercent`,
-`Circles.WinPercentAt`; simülasyon `HELLPOKER_CIRCLE_WIN`): ortalama kurtuluş daire 0-5: 25.4 / 24.4 / 22.5 / 15.8 / 14.2 / 10.0
-(PHASE2_CHAPTERS on ikinci tur). Çağırıcı 200 / 5800, kalın bar ve kısa gösterge yorumları: kullanıcı onayladı (Kara Pazar'ın 2 emanet ve 24
-emanet kararlarını Demo 2.1 değiştirdi).
+bedava); Lucifer'in Aynası 3 elde bir Göz. (Eski **Daireler** — `Circles`, 0-5 — Demo 3.4'te zorluk seviyelerine dönüştü ve silindi.)
+Çağırıcı 200 / 5800: kullanıcı onayladı.
 **Demo 2.1** (tasarım ve tablolar PHASE2_CHAPTERS on üçüncü tur; DEVLOG A–G): **Ceza ve bar** — `RunSentence` (sınıf toplamı × dairenin
 bar yüzdesi; haritada, kapıda, boss masasında sağ üstte "CEZA · YIL", kat masasında haraç satırında; kayıtta `sentence`), şeytan masasında
 kazanç bardan ve cezadan aynı, kayıp cezaya tam / bara `BossTable.BarHealPercent` %50 (`HellPokerGame.BarHealPercent`, `YearsUnhealed`;
@@ -131,7 +149,7 @@ yenileme), emanet fiyatı 55 / 65 / 75; Mammon'un Altın Dişi kapıya getirilen
 `HELLPOKER_BAR_HEAL`, `HELLPOKER_BOSS_LOSS`, `HELLPOKER_MAP`, `HELLPOKER_VENDOR`, `HELLPOKER_REST_AT`.
 **Kullanıcı kararı (Demo 2.1):** sınıflar farklı zorlukta olabilir, güçlü emanet dizilimleri (build) oyunun parçası — sınıfları eşitlemeye
 çalışma (Demo 2.1, 1000 koşu: Köylü %50.1, Kral %38.4, Çağırıcı %32.4, Büyücü %24.6, Soytarı %15.0; hepsi %32.1). Açık:
-dairelerin zorluğu (seçenek HELLPOKER_CIRCLE_WIN). **Demo 2.0** etiketi 2.0-demo.
+dairelerin zorluğu (Demo 3.4'te daireler kalktı). **Demo 2.0** etiketi 2.0-demo.
 **Demo 2.1.1** (oyun testi düzeltmeleri; tablolar PHASE2_CHAPTERS on dördüncü tur; bundleVersion **2.1.1-demo**, zip
 `HellPoker-Demo-2.1.1-win64.zip`): **Kehanet** yalnız dağıtımdan sonra, draw'dan önce açık (`ProphecyPowers.IsOpen`; panelde "Dağıtımdan
 sonra görünür"). **Sınıf güçleri elde bir kez** (Demo 2.3'te K güçleriyle birlikte silindi; Phase 2'de şarj yok; `ClassPowers.IsReady / UsedThisHand / SpendPower`, `KitRefusal.NoBottom`;

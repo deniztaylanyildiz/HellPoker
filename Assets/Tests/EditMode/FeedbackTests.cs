@@ -47,7 +47,7 @@ namespace HellPoker.Core.Tests
         }
 
         private static FeedbackContext Context(int lines = 3) =>
-            new FeedbackContext("king", 2, 2, 5, Enumerable.Range(1, lines).Select(i => "line " + i).ToArray());
+            new FeedbackContext("king", "hard", 2, 5, Enumerable.Range(1, lines).Select(i => "line " + i).ToArray());
 
         [Test]
         public void TheSubject_TagsTheKind_InTheInboxsWords()
@@ -64,13 +64,13 @@ namespace HellPoker.Core.Tests
             StringAssert.StartsWith("It broke.", body);
             StringAssert.Contains("Version: 2.0.0-demo", body);
             StringAssert.Contains("Class: king", body);
-            StringAssert.Contains("Circle: 2", body);
+            StringAssert.Contains("Difficulty: hard", body);
             StringAssert.Contains("Chapter: 2", body);
             StringAssert.Contains("Floor: 5", body);
             StringAssert.Contains("line 20", body);
             StringAssert.DoesNotContain("line 8\n", body.Replace("\r\n", "\n"), "only the last twelve");
             StringAssert.Contains("Run: none", FeedbackReport.Body(false, "x", "v", null));
-            StringAssert.Contains("Chapter: Lucifer", FeedbackReport.Body(false, "x", "v", new FeedbackContext("peasant", 0, 4, 0, null)));
+            StringAssert.Contains("Chapter: Lucifer", FeedbackReport.Body(false, "x", "v", new FeedbackContext("peasant", "easy", 4, 0, null)));
         }
 
         [Test]
@@ -109,7 +109,7 @@ namespace HellPoker.Core.Tests
         {
             var view = new FakeFeedbackView();
             var links = new FakeLinks();
-            var long_ = new FeedbackContext("jester", 0, 3, 7, Enumerable.Range(1, 12).Select(i => new string('x', 200) + i).ToArray());
+            var long_ = new FeedbackContext("jester", "easy", 3, 7, Enumerable.Range(1, 12).Select(i => new string('x', 200) + i).ToArray());
             var presenter = new FeedbackPresenter(view, links, () => long_, "v");
             view.Send(true, "Too long.");
             Assert.LessOrEqual(links.Opened[0].Length, FeedbackPresenter.MaxLink + 400);

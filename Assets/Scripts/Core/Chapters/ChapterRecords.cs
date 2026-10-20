@@ -32,23 +32,64 @@ namespace HellPoker.Core.Chapters
 
         public IReadOnlyDictionary<string, int> FreedByClass => _freedByClass;
 
-        private readonly Dictionary<string, int> _circleByClass = new Dictionary<string, int>();
         private readonly Dictionary<string, int> _beatenByBoss = new Dictionary<string, int>();
 
-        /// <summary>The deepest circle each class walked free in (absent: never free).</summary>
-        public IReadOnlyDictionary<string, int> CircleByClass => _circleByClass;
+        /// <summary>Demo 3.4: how often each class walked free at each difficulty ("&lt;class&gt;.&lt;difficulty&gt;").</summary>
+        private readonly Dictionary<string, int> _freedAt = new Dictionary<string, int>();
+
+        /// <summary>Demo 3.4: the hardest level any class walked free at; null for never (Hard opens with a Medium freedom, Ironman with a
+        /// Hard one: <see cref="IsDifficultyOpen"/>).</summary>
+        public Difficulty? HardestFreed { get; private set; }
 
         /// <summary>How often each demon was beaten (the milestones' count).</summary>
         public IReadOnlyDictionary<string, int> BeatenByBoss => _beatenByBoss;
 
         private readonly Dictionary<string, int> _lowestSentence = new Dictionary<string, int>();
 
-        /// <summary>The fewest years left when a run of <paramref name="classId"/> walked free in <paramref name="circle"/> (its score); null
-        /// for never.</summary>
-        public int? LowestSentence(string classId, int circle) =>
-            classId != null && _lowestSentence.TryGetValue(SentenceKey(classId, circle), out int years) ? years : (int?)null;
+        /// <summary>The fewest years left when a run of <paramref name="classId"/> walked free at <paramref name="difficulty"/> (its score);
+        /// null for never.</summary>
+        public int? LowestSentence(string classId, Difficulty difficulty) =>
+            classId != null && _lowestSentence.TryGetValue(Key(classId, difficulty), out int years) ? years : (int?)null;
 
-        private static string SentenceKey(string classId, int circle) => classId + "." + Circles.Clamp(circle).ToString(CultureInfo.InvariantCulture);
+        /// <summary>How often <paramref name="classId"/> walked free at <paramref name="difficulty"/>.</summary>
+        public int FreedAt(string classId, Difficulty difficulty) => classId != null && _freedAt.TryGetValue(Key(classId, difficulty), out int n) ? n : 0;
+
+        private static string Key(string classId, Difficulty difficulty) => classId + "." + DifficultyRules.IdOf(difficulty);
+
+        /// <summary>A level may be chosen: Easy and Medium always; Hard once any class walked free at Medium (or harder); Ironman once at Hard.
+        /// <see cref="ChapterUnlocks.AllClassesOpen"/> opens them all.</summary>
+        public bool IsDifficultyOpen(Difficulty difficulty) =>
+            ChapterUnlocks.AllClassesOpen || difficulty <= Difficulty.Medium || (HardestFreed.HasValue && HardestFreed.Value >= difficulty - 1);
+
+        // ------------------------------------------------------------------ Ironman: no load cheats
+
+        private readonly List<string> _deadRuns = new List<string>();
+        private readonly Dictionary<string, int> _savesByRun = new Dictionary<string, int>();
+
+        /// <summary>The most dead Ironman runs remembered.</summary>
+        public const int DeadRunsKept = 64;
+
+        /// <summary>An Ironman run died (its save is gone): its id is never loaded again.</summary>
+        public void RunDied(string runId)
+        {
+            if (string.IsNullOrEmpty(runId) || _deadRuns.Contains(runId)) return;
+            _deadRuns.Add(runId);
+            if (_deadRuns.Count > DeadRunsKept) _deadRuns.RemoveAt(0);
+            _savesByRun.Remove(runId);
+        }
+
+        public bool IsDead(string runId) => !string.IsNullOrEmpty(runId) && _deadRuns.Contains(runId);
+
+        /// <summary>An Ironman run was saved for the <paramref name="count"/>th time.</summary>
+        public void RunSaved(string runId, int count)
+        {
+            if (string.IsNullOrEmpty(runId)) return;
+            _savesByRun[runId] = Math.Max(count, _savesByRun.TryGetValue(runId, out int n) ? n : 0);
+        }
+
+        /// <summary>An Ironman save may be loaded: not a dead run's, not older than the last one written for its run (a copy put back).</summary>
+        public bool MayLoad(string runId, int saveCount) =>
+            !IsDead(runId) && !(runId != null && _savesByRun.TryGetValue(runId, out int last) && saveCount < last);
 
         /// <summary>The milestones' counts: wardens beaten, relics bought at the black market, tributes paid in full.</summary>
         public int WardensBeaten { get; private set; }
@@ -75,21 +116,14 @@ namespace HellPoker.Core.Chapters
 
         public int Beaten(string bossId) => bossId != null && _beatenByBoss.TryGetValue(bossId, out int n) ? n : 0;
 
-        /// <summary>The deepest circle the class walked free in; -1 for never.</summary>
-        public int BestCircle(string classId) =>
-            classId == null ? -1 : _circleByClass.TryGetValue(classId, out int c) ? c : _freedByClass.ContainsKey(classId) ? 0 : -1;   // an older book: free in the first
-
-        /// <summary>The deepest circle the class may play: one past the deepest it walked free in (0 until its first freedom).</summary>
-        public int CirclesOpen(string classId) => Math.Min(Circles.Deepest, BestCircle(classId) + 1);
-
         public int Damned => PurseEmptied + SoulsLost + CastDown + Abandoned;
 
         public void RunStarted() => Runs++;
 
         /// <summary>A run ended: how, how far it came (chapter 1-3; 4 for Lucifer's table), its class and its hands.</summary>
-        /// <param name="circle">The circle the run was played in: a freedom there opens the next for its class.</param>
+        /// <param name="difficulty">The level the run was played at: a freedom there may open the next.</param>
         /// <param name="sentence">The years left of the run's sentence (a freedom's score); -1 for unknown.</param>
-        public void RunEnded(JourneyEnd end, int deepest, string classId, int hands, int circle = 0, int sentence = -1)
+        public void RunEnded(JourneyEnd end, int deepest, string classId, int hands, Difficulty difficulty = Difficulty.Easy, int sentence = -1)
         {
             DeepestChapter = Math.Max(DeepestChapter, deepest);
             if (deepest >= 4) LuciferReached++;
@@ -99,11 +133,12 @@ namespace HellPoker.Core.Chapters
                     Freed++;
                     if (!string.IsNullOrEmpty(classId)) _freedByClass[classId] = (_freedByClass.TryGetValue(classId, out int n) ? n : 0) + 1;
                     if (!FastestFreedom.HasValue || hands < FastestFreedom.Value) FastestFreedom = hands;
-                    if (!string.IsNullOrEmpty(classId)) _circleByClass[classId] = Math.Max(BestCircle(classId), Circles.Clamp(circle));
+                    if (!HardestFreed.HasValue || difficulty > HardestFreed.Value) HardestFreed = difficulty;
+                    if (!string.IsNullOrEmpty(classId)) _freedAt[Key(classId, difficulty)] = FreedAt(classId, difficulty) + 1;
                     if (!string.IsNullOrEmpty(classId) && sentence >= 0)
                     {
-                        int? lowest = LowestSentence(classId, circle);
-                        if (!lowest.HasValue || sentence < lowest.Value) _lowestSentence[SentenceKey(classId, circle)] = sentence;
+                        int? lowest = LowestSentence(classId, difficulty);
+                        if (!lowest.HasValue || sentence < lowest.Value) _lowestSentence[Key(classId, difficulty)] = sentence;
                     }
                     break;
                 case JourneyEnd.PurseEmptied: PurseEmptied++; break;
@@ -123,7 +158,10 @@ namespace HellPoker.Core.Chapters
                 "fastest=" + (FastestFreedom.HasValue ? I(FastestFreedom.Value) : "")
             };
             lines.AddRange(_freedByClass.OrderBy(p => p.Key).Select(p => "freed." + p.Key + "=" + I(p.Value)));
-            lines.AddRange(_circleByClass.OrderBy(p => p.Key).Select(p => "circle." + p.Key + "=" + I(p.Value)));
+            lines.AddRange(_freedAt.OrderBy(p => p.Key).Select(p => "free." + p.Key + "=" + I(p.Value)));
+            if (HardestFreed.HasValue) lines.Add("hardest=" + DifficultyRules.IdOf(HardestFreed.Value));
+            lines.Add("ironman.dead=" + string.Join(",", _deadRuns));
+            lines.AddRange(_savesByRun.OrderBy(p => p.Key).Select(p => "ironman.saves." + p.Key + "=" + I(p.Value)));
             lines.AddRange(_beatenByBoss.OrderBy(p => p.Key).Select(p => "beaten." + p.Key + "=" + I(p.Value)));
             lines.AddRange(_lowestSentence.OrderBy(p => p.Key).Select(p => "sentence." + p.Key + "=" + I(p.Value)));
             lines.Add("wardens=" + I(WardensBeaten));
@@ -157,12 +195,34 @@ namespace HellPoker.Core.Chapters
             book.FastestFreedom = values.TryGetValue("fastest", out string f) && f.Length > 0 ? Count("fastest") : (int?)null;
             foreach (var pair in values.Where(p => p.Key.StartsWith("freed.", StringComparison.Ordinal)))
                 book._freedByClass[pair.Key.Substring("freed.".Length)] = Count(pair.Key);
-            foreach (var pair in values.Where(p => p.Key.StartsWith("circle.", StringComparison.Ordinal)))
-                book._circleByClass[pair.Key.Substring("circle.".Length)] = Circles.Clamp(Count(pair.Key));
+            foreach (var pair in values.Where(p => p.Key.StartsWith("free.", StringComparison.Ordinal)))
+                book._freedAt[pair.Key.Substring("free.".Length)] = Count(pair.Key);
+            if (values.TryGetValue("hardest", out string hardest) && hardest.Length > 0) book.HardestFreed = DifficultyRules.Parse(hardest);
+            book._deadRuns.AddRange((values.TryGetValue("ironman.dead", out string dead) ? dead : "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+            foreach (var pair in values.Where(p => p.Key.StartsWith("ironman.saves.", StringComparison.Ordinal)))
+                book._savesByRun[pair.Key.Substring("ironman.saves.".Length)] = Count(pair.Key);
             foreach (var pair in values.Where(p => p.Key.StartsWith("beaten.", StringComparison.Ordinal)))
                 book._beatenByBoss[pair.Key.Substring("beaten.".Length)] = Count(pair.Key);
             foreach (var pair in values.Where(p => p.Key.StartsWith("sentence.", StringComparison.Ordinal)))
-                book._lowestSentence[pair.Key.Substring("sentence.".Length)] = Count(pair.Key);
+            {
+                string key = pair.Key.Substring("sentence.".Length);
+                int dot = key.LastIndexOf('.');
+                if (dot <= 0) continue;
+                string level = key.Substring(dot + 1);
+                if (level.Length > 0 && char.IsDigit(level[0]))
+                {
+                    // Demo 3.4: an old book's circle records (sentence.<class>.<circle>) become the class's Easy record — the best of them.
+                    string easy = Key(key.Substring(0, dot), Difficulty.Easy);
+                    int years = Count(pair.Key);
+                    if (!book._lowestSentence.TryGetValue(easy, out int kept) || years < kept) book._lowestSentence[easy] = years;
+                }
+                else book._lowestSentence[key] = Count(pair.Key);
+            }
+            // An old book's freedoms (before the levels) count as Easy ones.
+            if (book._freedAt.Count == 0)
+                foreach (var pair in book._freedByClass)
+                    if (pair.Value > 0) book._freedAt[Key(pair.Key, Difficulty.Easy)] = pair.Value;
+            if (!book.HardestFreed.HasValue && book._freedAt.Count > 0) book.HardestFreed = Difficulty.Easy;
             book.WardensBeaten = Count("wardens");
             book.MostWardensInAChapter = Count("wardens.chapter");
             book.RelicsBought = Count("bought");

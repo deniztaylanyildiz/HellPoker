@@ -1,5 +1,28 @@
 # Hell Poker — değişiklikler
 
+## Demo 3.4 (3.4.0-demo) — 2026-10-20 — Zorluk seviyeleri ve kayıt
+
+### Yeni
+- **Zorluk seviyeleri** (sınıf kartlarının altındaki satırdan; Cehennem Daireleri'nin yerine): KOLAY (oyunun kendisi), ORTA (varsayılan:
+  katlarda ante daha hızlı artar, haraç kapıdaki kesenin bir payından az olmaz, şeytanlar barlarının yarısında ÖFKELENİR — bahis ×1,5,
+  kuralları daha sık —, harita daha az güvenli), ZOR (Orta + bölüm başında kese daha az dolar, şeytana kayıp daha çok acıtır), IRONMAN
+  (Zor + hile göstergesi daha hızlı dolar, Belial Mammon'un Faiz'ini, Lilith Belial'in Rol Takası'nı yarım güçle taşır; kayıt sadece
+  kampta, ölünce koşu silinir). Zor, herhangi bir sınıfla Orta'da kurtulunca, Ironman Zor'da kurtulunca açılır (bu test sürümünde hepsi
+  açık). Rekorlar sınıf ve zorluk başına; devam kartında, haritada, koşu günlüğünde ve HATA / ÖNERİ e-postasında zorluk yazar.
+- **KAYDET**: haritada (ve pazar, kamp, olay, hazine ekranlarında) MENÜ'nün yanında; o anı kaydeder ("KAYDEDİLDİ"). Masada soluk,
+  üzerine gelince "Masada kayıt yapılamaz". Ironman'da yalnız kampta; kamp dışında ÇIKIŞ uyarır.
+- Öfkelenen şeytan: "ÖFKELENDİ" yazısı, hırıltı, yanan bakış; barın üstünde öfkenin işareti.
+
+### Değişen
+- **Bütün masalar aynı görünür** (Boss Simülatörü dahil): oyuncu paneli sol altta, şeytan sağ üstte, ödemeler ELLER / ÖDEMELER (H)
+  panelinde.
+- Boss Simülatörü (F9) artık yalnız geliştirici sürümünde; oyuncu sürümünde menüde izi yok.
+- Cehennem Daireleri kalktı: eski kayıtlar Kolay olarak devam eder, eski daire rekorları Kolay rekoru olur.
+- How to Play'e ZORLUK VE KAYIT sayfası eklendi.
+
+### Denge
+- Kolay: değişiklik yok. Orta / Zor / Ironman: aşağıdaki tablo (PHASE2_CHAPTERS.md, Zorluk bölümü).
+
 ## Demo 3.3 (3.3.0-demo) — 2026-10-19 — Ana menü ve dil ayarı
 
 ### Değişen

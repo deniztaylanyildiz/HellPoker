@@ -15,13 +15,16 @@ namespace HellPoker.Core.Chapters
     /// </summary>
     public sealed class ChapterSave
     {
-        public const int Version = 1;
+        /// <summary>Demo 3.4: 2 (the difficulty, the run's id and its save count); a version 1 save (the circles') is still read, as Easy.</summary>
+        public const int Version = 2;
 
         public string ClassId;
         public int Seed;
 
-        /// <summary>The circle of Hell (optional key; an older save: 0).</summary>
-        public int Circle;
+        /// <summary>Demo 3.4: the difficulty (an older save, with or without its circle: Easy), the run's id and how many times it was saved.</summary>
+        public Difficulty Difficulty;
+        public string RunId;
+        public int SaveCount;
         public int Chapter = 1;
 
         /// <summary>The chapter map's generator (<see cref="ChapterMap.Version"/>; optional key: 1 for a save from before Demo 2.1).</summary>
@@ -144,7 +147,9 @@ namespace HellPoker.Core.Chapters
                 "p2=" + Version,
                 "class=" + ClassId,
                 "seed=" + Seed.ToString(CultureInfo.InvariantCulture),
-                "circle=" + Circle,
+                "difficulty=" + DifficultyRules.IdOf(Difficulty),
+                "run.id=" + (RunId ?? ""),
+                "saves=" + SaveCount,
                 "chapter=" + Chapter,
                 "map=" + MapVersion,
                 "lucifer=" + B(Lucifer),
@@ -238,7 +243,8 @@ namespace HellPoker.Core.Chapters
                 if (eq <= 0) continue;
                 values[line.Substring(0, eq).Trim()] = line.Substring(eq + 1).Trim();
             }
-            if (!values.TryGetValue("p2", out string version) || version != Version.ToString(CultureInfo.InvariantCulture)) return false;
+            // Demo 3.4: a version 1 save (the circles') is read too — its circle is dropped, it plays on as Easy.
+            if (!values.TryGetValue("p2", out string version) || (version != Version.ToString(CultureInfo.InvariantCulture) && version != "1")) return false;
             try
             {
                 string S(string key) => values.TryGetValue(key, out string v) && v.Length > 0 ? v : null;
@@ -252,7 +258,9 @@ namespace HellPoker.Core.Chapters
                 {
                     ClassId = S("class"),
                     Seed = I("seed"),
-                    Circle = Circles.Clamp(I("circle")),
+                    Difficulty = DifficultyRules.Parse(S("difficulty")),
+                    RunId = S("run.id"),
+                    SaveCount = Math.Max(0, I("saves")),
                     Chapter = I("chapter", 1),
                     MapVersion = Math.Max(1, I("map", 1)),
                     Lucifer = Bool("lucifer"),

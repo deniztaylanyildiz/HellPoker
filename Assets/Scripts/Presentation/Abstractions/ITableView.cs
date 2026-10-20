@@ -146,6 +146,13 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Switches the hellfire look for the end of the sentence on or off.</summary>
         void SetFinalStretch(bool active, string banner);
 
+        /// <summary>Demo 3.4: the demon is enraged (his burning look stays).</summary>
+        void SetEnraged(bool enraged);
+
+        /// <summary>Demo 3.4, Ironman: the other demon's rule this one carries — a small icon beside his portrait (<paramref name="ruleId"/>:
+        /// "interest", "role_swap"; null: none) and its hover.</summary>
+        void SetCarriedRule(string ruleId, string hover);
+
         /// <summary>Plays a moment after everything queued before it.</summary>
         /// <param name="text">For <see cref="TableMoment.GoodHand"/>: the words that flare up.</param>
         /// <param name="playerCards">For <see cref="TableMoment.DeadMansHand"/>: the player's cards that light up, in order.</param>

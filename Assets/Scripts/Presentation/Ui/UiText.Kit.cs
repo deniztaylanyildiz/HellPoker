@@ -384,11 +384,7 @@ namespace HellPoker.Presentation.Ui
                     return string.Format(L("My rule is TEMPTATION: what you throw away, I may keep ({0}%).",
                         "Kuralım BAŞTAN ÇIKARMA: attığın kartı alabilirim (%{0})."), LilithTemptation.TakePercent);
                 case LuciferMirror mirror:
-                {
-                    string line = MirrorLine(mirror.Mirrors);
-                    // The fifth circle: a second mechanic too.
-                    return mirror.Second.HasValue ? line + " " + string.Format(L("And {0}", "Ve {0}"), MirrorSecondLine(mirror.Second.Value)) : line;
-                }
+                    return MirrorLine(mirror.Mirrors);
                 default: return null;
             }
         }
@@ -411,16 +407,6 @@ namespace HellPoker.Presentation.Ui
                     return string.Format(L("My rule is the MIRROR: I have an Eye too; once every {0} hands it shows me one of your cards.",
                         "Kuralım AYNA: benim de bir Gözüm var; her {0}. elde kartlarından birini bana gösterir."), LuciferMirror.EyeEveryHands);
                 default: return L("My rule is the MIRROR: your jokers are mine as well.", "Kuralım AYNA: jokerlerin benim de jokerim.");
-            }
-        }
-
-        /// <summary>The fifth circle's second copy, after "And": the satchel or the prophecy.</summary>
-        private static string MirrorSecondLine(KitKind kind)
-        {
-            switch (kind)
-            {
-                case KitKind.Prophecy: return L("I see the deck's top card.", "destenin üstündeki kartı görürüm.");
-                default: return L("I keep a thrown card in a satchel of my own.", "attığım bir kartı kendi heybemde saklarım.");
             }
         }
 

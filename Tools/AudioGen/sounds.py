@@ -441,7 +441,24 @@ def sfx_win_blaze():
     return normalize(mix(2.2, [(0, roar.astype(np.float32), 0.35), (0, rise, 0.6), (0.6, chord, 0.35), (0.6, gong, 0.5)]), 0.72)
 
 
+def sfx_rage():
+    """Demo 3.4: a demon enraged at half his bar: a low growl swelling under a falling, grinding pulse."""
+    t = np.arange(seconds(0.9), dtype=np.float32) / RATE
+    growl = lowpass(noise(0.9, seed=91), 0.08) * np.sin(np.pi * np.clip(t / 0.9, 0, 1)) * 3
+    grind = env(pulse(note_hz("A3"), 0.8, 0.125, slide_to=note_hz("D3")), 0.02, 0.2, 0.7, 0.3)
+    return normalize(mix(0.9, [(0, growl.astype(np.float32), 0.5), (0.05, grind, 0.5)]), 0.62)
+
+
+def sfx_saved():
+    """Demo 3.4: the run saved: a quill's scratch and a seal pressed (two short notes up)."""
+    scratch = decay_env(noise(0.08, seed=93, rate_hz=6000), 0.03)
+    a = env(triangle(note_hz("G5"), 0.08), 0.005, 0.03, 0.6, 0.03)
+    b = env(triangle(note_hz("C6"), 0.14), 0.005, 0.05, 0.6, 0.06)
+    return normalize(mix(0.32, [(0, scratch, 0.35), (0.08, a, 0.5), (0.16, b, 0.5)]), 0.5)
+
+
 SFX.update({
+    "rage": sfx_rage, "saved": sfx_saved,
     "win_blaze": sfx_win_blaze,
     "coin_win": sfx_coin_win, "coin_win_big": sfx_coin_win_big, "coin_loss": sfx_coin_loss, "coin_loss_big": sfx_coin_loss_big,
     "purse_empty": sfx_purse_empty, "bar_hit": sfx_bar_hit, "bar_grow": sfx_bar_grow, "soul_warning": sfx_soul_warning,

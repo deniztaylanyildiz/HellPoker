@@ -46,7 +46,7 @@ namespace HellPoker.PlayMode.Tests
             ChapterSave save = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 2, "");
             save.NodeDone = true;
             save.Coins = 140;
-            save.Circle = 2;
+            save.Difficulty = Difficulty.Hard;
             yield return Menu(save);
             yield return HellPokerScreenshots.Shot($"351_menu_saved_{Tag}");
 

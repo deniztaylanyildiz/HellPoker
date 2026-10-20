@@ -49,7 +49,7 @@ namespace HellPoker.Presentation.Views
 
         public event Action<int> SinnerChosen;
         public event Action BackPressed;
-        public event Action<int, int> CircleStepped;
+        public event Action<int> DifficultyStepped;
 
         private Text _subtitle;
 
@@ -62,8 +62,20 @@ namespace HellPoker.Presentation.Views
         /// <summary>Where the ability text starts on the cards on show.</summary>
         public int AbilityTopNow => AbilityTop - Shift;
 
-        /// <summary>The top of the circle row (Phase 2): the ability and the price must end above it.</summary>
-        public const int CircleTop = ChooseTop - 13;
+        /// <summary>Demo 3.4: the difficulty row under the cards (Phase 2): ‹ LEVEL › with its hover.</summary>
+        public const int DifficultyY = CardsY + CardHeight + 5;
+        private const int DifficultyWidth = 144, DifficultyHeight = 16, DifficultyArrow = 16;
+        private GameObject _difficultyRow;
+        private Text _difficultyLabel;
+        private GameObject _difficultyDown, _difficultyUp;
+        private DifficultyChoice _difficulty;
+
+        /// <summary>The difficulty row as shown (for tests): the label, whether it is up.</summary>
+        public string DifficultyLabel => _difficultyLabel != null ? _difficultyLabel.text : "";
+        public bool DifficultyShown => _difficultyRow != null && _difficultyRow.activeSelf;
+
+        /// <summary>Points at the difficulty row as the pointer would (tests): its hover box.</summary>
+        public void PointAtDifficulty() => ShowDifficultyTip();
 
         public bool IsVisible => _canvas.enabled;
 
@@ -101,6 +113,61 @@ namespace HellPoker.Presentation.Views
             _tipText.raycastTarget = false;
             _tip = tip.gameObject;
             _tip.SetActive(false);
+            BuildDifficultyRow(screen);
+        }
+
+        private void BuildDifficultyRow(Transform screen)
+        {
+            int x = (PixelScreen.Width - DifficultyWidth) / 2;
+            Image row = UiFactory.CreatePanel("DifficultyRow", screen);
+            row.rectTransform.PlaceTL(x, DifficultyY, DifficultyWidth, DifficultyHeight);
+            row.raycastTarget = true;
+            _difficultyRow = row.gameObject;
+            _difficultyLabel = UiFactory.CreateText("DifficultyLabel", row.transform, "", 8, Palette.Ember, style: FontStyle.Bold).WithOutline();
+            _difficultyLabel.rectTransform.PlaceTL(DifficultyArrow, 0, DifficultyWidth - 2 * DifficultyArrow, DifficultyHeight);
+            _difficultyLabel.raycastTarget = false;
+            Button down = UiFactory.CreateButton("DifficultyDown", row.transform, "<", 8, out _, ButtonSkin.Ash);
+            ((RectTransform)down.transform).PlaceTL(0, 0, DifficultyArrow, DifficultyHeight);
+            down.onClick.AddListener(() => DifficultyStepped?.Invoke(-1));
+            _difficultyDown = down.gameObject;
+            Button up = UiFactory.CreateButton("DifficultyUp", row.transform, ">", 8, out _, ButtonSkin.Ash);
+            ((RectTransform)up.transform).PlaceTL(DifficultyWidth - DifficultyArrow, 0, DifficultyArrow, DifficultyHeight);
+            up.onClick.AddListener(() => DifficultyStepped?.Invoke(1));
+            _difficultyUp = up.gameObject;
+            var hover = row.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => ShowDifficultyTip());
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => HideTip());
+            hover.triggers.Add(enter);
+            hover.triggers.Add(exit);
+            _difficultyRow.SetActive(false);
+        }
+
+        /// <summary>The level's words in the hover box, over the row.</summary>
+        private void ShowDifficultyTip()
+        {
+            if (_difficulty == null || string.IsNullOrEmpty(_difficulty.Hover)) return;
+            const int width = 260;
+            _tipText.text = _difficulty.Hover;
+            _tipText.rectTransform.PlaceTL(4, 3, width - 8, 200);
+            int height = Mathf.CeilToInt(_tipText.preferredHeight) + 6;
+            _tipText.rectTransform.PlaceTL(4, 3, width - 8, height - 6);
+            ((RectTransform)_tip.transform).PlaceTL((PixelScreen.Width - width) / 2, DifficultyY - height - 2, width, height);
+            _tip.transform.SetAsLastSibling();
+            _tip.SetActive(true);
+        }
+
+        private void ApplyDifficulty(DifficultyChoice choice)
+        {
+            _difficulty = choice;
+            _difficultyRow.SetActive(choice != null);
+            if (choice == null) return;
+            _difficultyLabel.text = choice.Open ? choice.Name : choice.Name + " · " + UiText.LockedLabel;
+            _difficultyLabel.color = choice.Open ? Palette.Ember : Palette.BoneDark;
+            _difficultyDown.SetActive(choice.CanStepDown);
+            _difficultyUp.SetActive(choice.CanStepUp);
+            _difficultyRow.transform.SetAsLastSibling();
         }
 
         /// <summary>The hover box beside the card at <paramref name="x"/> (right of it, or left when there is no room), as tall as its words.</summary>
@@ -122,9 +189,10 @@ namespace HellPoker.Presentation.Views
             if (_tip != null) _tip.SetActive(false);
         }
 
-        public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null)
+        public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null, DifficultyChoice difficulty = null)
         {
             HideTip();
+            ApplyDifficulty(difficulty);
             _subtitle.text = note ?? UiText.ChooseSinnerSubtitle;
             _subtitle.color = note == null ? Palette.BoneMid : Palette.Ember;
             foreach (Transform child in _cards)
@@ -196,8 +264,7 @@ namespace HellPoker.Presentation.Views
             start.rectTransform.PlaceTL(2, startTop, CardWidth - 4, 9);
             int startHeight = Math.Max(9, Mathf.CeilToInt(start.preferredHeight));
             start.rectTransform.PlaceTL(2, startTop, CardWidth - 4, startHeight);
-            // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE (and the
-            // circle row). A locked class says what opens it in place of its price. A start line that wraps pushes them down.
+            // The ability, then the price right under its real height (not a fixed one: a long line wraps), both above CHOOSE. A locked class says what opens it in place of its price. A start line that wraps pushes them down.
             int top = Math.Max(AbilityTop - shift, startTop + startHeight + 3);
             Text ability = UiFactory.CreateText("Ability", card, sinner.Ability, 8, sinner.Locked ? Palette.BoneDark : Palette.Bone, TextAnchor.UpperLeft);
             ability.rectTransform.PlaceTL(TextX, top, CardWidth - 2 * TextX, 9);
@@ -208,29 +275,11 @@ namespace HellPoker.Presentation.Views
             detail.rectTransform.PlaceTL(TextX, top + abilityHeight + 2, CardWidth - 2 * TextX, 9);
             detail.rectTransform.PlaceTL(TextX, top + abilityHeight + 2, CardWidth - 2 * TextX, Mathf.CeilToInt(detail.preferredHeight));
 
-            if (sinner.ShowsCircles && !sinner.Locked) BuildCircleRow(card, sinner, index);
-
             Button choose = UiFactory.CreateButton($"ChooseSinner{index}", card, sinner.Locked ? UiText.LockedLabel : UiText.ChooseSinner, 8, out _,
                 sinner.Locked ? ButtonSkin.Ash : ButtonSkin.Ember);
             ((RectTransform)choose.transform).PlaceTL((CardWidth - Math.Min(88, CardWidth - 8)) / 2, ChooseTop, Math.Min(88, CardWidth - 8), 18);
             choose.onClick.AddListener(() => SinnerChosen?.Invoke(index));
         }
 
-        /// <summary>Phase 2's circle row: ‹ CIRCLE n › (the arrows only where there is a circle to go to).</summary>
-        private void BuildCircleRow(Transform card, SinnerCard sinner, int index)
-        {
-            string label = sinner.Circle <= 0 ? UiText.CircleNone : string.Format(UiText.CircleLabelFormat, sinner.Circle);
-            Text text = UiFactory.CreateText("Circle", card, label, 8, sinner.Circle > 0 ? Palette.Ember : Palette.BoneMid, TextAnchor.MiddleCenter);
-            text.rectTransform.PlaceTL(14, CircleTop, CardWidth - 28, 11);
-            if (sinner.Circle > 0) AddArrow(card, $"CircleDown{index}", "<", 3, () => CircleStepped?.Invoke(index, -1));
-            if (sinner.Circle < sinner.CirclesOpen) AddArrow(card, $"CircleUp{index}", ">", CardWidth - 15, () => CircleStepped?.Invoke(index, 1));
-        }
-
-        private static void AddArrow(Transform card, string name, string glyph, int x, Action pressed)
-        {
-            Button arrow = UiFactory.CreateButton(name, card, glyph, 8, out _, ButtonSkin.Ash);
-            ((RectTransform)arrow.transform).PlaceTL(x, CircleTop, 12, 11);
-            arrow.onClick.AddListener(() => pressed());
-        }
     }
 }

@@ -75,6 +75,7 @@ namespace HellPoker.Presentation.Views
                     break;
                 case TableMoment.GoodHand:
                 case TableMoment.PactSealed:
+                case TableMoment.Rage:
                     _sequencer.Do(() => Flare(text));
                     break;
                 case TableMoment.DeadMansHand:

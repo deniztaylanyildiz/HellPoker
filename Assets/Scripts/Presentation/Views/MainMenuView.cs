@@ -345,17 +345,20 @@ namespace HellPoker.Presentation.Views
                 Confirmed?.Invoke();
             });
 
-            Button back = UiFactory.CreateButton("MenuCancelButton", box.transform, "", 8, out Text backLabel, ButtonSkin.Ash);
-            backLabel.Localized(() => UiText.Back);
+            Button back = UiFactory.CreateButton("MenuCancelButton", box.transform, "", 8, out _cancelLabel, ButtonSkin.Ash);
+            _cancelLabel.text = UiText.Back;
             ((RectTransform)back.transform).PlaceTL(ConfirmWidth - 16 - 104, ConfirmHeight - 28, 104, 18);
             back.onClick.AddListener(() => _confirm.SetActive(false));
 
             _confirm.SetActive(false);
         }
 
-        public void AskToConfirm(string taunt, string warning, string confirmLabel)
+        private Text _cancelLabel;
+
+        public void AskToConfirm(string taunt, string warning, string confirmLabel, string cancelLabel = null)
         {
             _confirmLabel.text = confirmLabel ?? "";
+            _cancelLabel.text = cancelLabel ?? UiText.Back;
             _taunt.text = taunt ?? "";
             _warning.text = warning ?? "";
             _confirm.SetActive(true);
@@ -577,7 +580,7 @@ namespace HellPoker.Presentation.Views
             _cardPortrait.sprite = portrait;
             _cardPortrait.color = portrait != null ? Color.white : Color.clear;
             _cardName.text = UiText.SinnerName(card.ClassId);
-            _cardLines.text = UiText.ContinueCardLines(card.Chapter, card.Floor, card.Coins, card.Sentence, card.Circle);
+            _cardLines.text = UiText.ContinueCardLines(card.Chapter, card.Floor, card.Coins, card.Sentence, card.Difficulty);
         }
 
         public bool CloseOverlay()

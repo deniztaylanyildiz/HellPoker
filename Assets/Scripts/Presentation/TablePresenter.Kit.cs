@@ -44,6 +44,8 @@ namespace HellPoker.Presentation
             _bagTakes.Clear();
             _seizing = false;
             _view.SetKit(KitDisplay.Hidden);
+            _view.SetCarriedRule(null, null);
+            _view.SetEnraged(false);
         }
 
         private void SeatKit(IHellPokerGame game)
@@ -54,6 +56,10 @@ namespace HellPoker.Presentation
             _soulWarned = false;
             _drawSoundRound = _resultSoundRound = _barRoundShown = _passiveLoggedRound = -1;
             _taxesLostAtDeal = _kit?.Kit.TaxesLost ?? 0;
+            // Demo 3.4, Ironman: the other demon's rule this one carries, beside his portrait.
+            string carried = _kit?.Carried?.Id;
+            _view.SetCarriedRule(carried, carried == null ? null
+                : string.Format(UiText.CarriedRuleFormat, UiText.CarriedRuleName(carried), UiText.CarriedRuleText(carried)));
         }
 
         private void KitHandDealt()
@@ -433,7 +439,7 @@ namespace HellPoker.Presentation
         {
             if (_kit == null) return null;
             if (_seizing) return _kit.Theft != null ? UiText.StealPrompt : _kit.Summon != null ? UiText.SwapPrompt : UiText.SeizePrompt;
-            if (_kit.Rule is BelialRoleSwap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && BelialRoleSwap.ComingIn(KitGame))
+            if (_kit.Rule is BelialRoleSwap swap && _kit.Prophecy != null && _game.Phase == GamePhase.Betting && swap.ComesIn(KitGame))
                 return UiText.RoleSwapComing;
             return null;
         }
@@ -553,6 +559,8 @@ namespace HellPoker.Presentation
                     if (mirror.DrewTop) lines.Add(UiText.MirrorTopCard);
                     break;
             }
+            // Demo 3.4: the demon enraged at half his bar.
+            if (_kit.Rule?.EnragedThisHand == true) lines.Add(string.Format(UiText.RageLineFormat, UiText.NameInSentence(_dealerText)));
             if (_kit.Treasury != null && _kit.Kit.TaxesLost > _taxesLostAtDeal)
                 lines.Add(_kit.Kit.Has(UpgradeIds.CrownGuard) ? UiText.TaxesQuartered : UiText.TaxesHalved);
             if (_kit.Upgrades?.LaughedThisHand == true) lines.Add(UiText.DoubleLaughLine);
@@ -604,6 +612,13 @@ namespace HellPoker.Presentation
         {
             if (_kit == null || _resultSoundRound == _game.RoundNumber) return;
             _resultSoundRound = _game.RoundNumber;
+            if (_kit.Rule?.EnragedThisHand == true && !_relabelling)
+            {
+                // Demo 3.4: the rage — a growl, the word flaring up; his look burns from now on (SetEnraged in the refresh).
+                _view.PlaySfx(SfxIds.Rage);
+                _view.PlayMoment(TableMoment.Rage, UiText.RageFlash);
+                LogNote($"{_dealer?.Id} enraged at bar {_game.Years} of {_kit.Rule.BarStart}");
+            }
             switch (_kit.Rule)
             {
                 case LilithTemptation t when t.Tempted.HasValue: _view.PlaySfx(SfxIds.RuleTemptation); break;
@@ -666,7 +681,11 @@ namespace HellPoker.Presentation
             string label = UiText.Upper(string.Format(UiText.BarLabelFormat, UiText.GenitiveOf(_dealerText)));
             string hint = string.Format(_game.IsSoulAtStake ? UiText.BossBarSoulHintFormat : UiText.BossBarHintFormat, label, played,
                 fall ? UiText.BarMarkFall : UiText.BarMarkSoul) + "\n" + UiText.BarLeft(value, _seat.BarStart);
-            return new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint, LastBlow);
+            DemonRule rule = _kit?.Rule;
+            if (rule != null && rule.Enraged) hint += "\n" + string.Format(UiText.RageHintFormat, DifficultyRules.RageStakePercent);
+            var bar = new BossBarDisplay(value, _seat.BarStart, _seat.Limit, fall ? BarLine.Fall : BarLine.Soul, hint, LastBlow);
+            // Demo 3.4: the rage's mark on the bar (where it waits, and once it came).
+            return rule != null && rule.CanRage ? bar.WithRage(rule.BarStart * DifficultyRules.RageBarPercent / 100, rule.Enraged) : bar;
         }
 
         /// <summary>Between hands at a demon's table: the next win ends him (the bar is a unit or less: 2.1.1's fixed stakes).</summary>

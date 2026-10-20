@@ -100,10 +100,10 @@ namespace HellPoker.Presentation.Ui
         public static string ContinueCardCoinsFormat => L("{0} COINS", "{0} COIN");
         public static string ContinueCardSentenceFormat => L("{0} YEARS LEFT", "{0} YIL CEZA");
 
-        /// <summary>The card's lines: where the run stands, its purse, its sentence (when kept) and its circle (above 0).</summary>
-        public static string ContinueCardLines(int chapter, int floor, int coins, int sentence, int circle)
+        /// <summary>The card's lines: the difficulty, where the run stands, its purse and its sentence (when kept).</summary>
+        public static string ContinueCardLines(int chapter, int floor, int coins, int sentence, Core.Chapters.Difficulty difficulty)
         {
-            var lines = new System.Collections.Generic.List<string>();
+            var lines = new System.Collections.Generic.List<string> { string.Format(ContinueCardDifficultyFormat, DifficultyName(difficulty)) };
             if (chapter >= 4)
                 lines.Add(ContinueCardLucifer);
             else
@@ -113,7 +113,6 @@ namespace HellPoker.Presentation.Ui
             }
             lines.Add(string.Format(ContinueCardCoinsFormat, coins));
             if (sentence >= 0) lines.Add(string.Format(ContinueCardSentenceFormat, sentence));
-            if (circle > 0) lines.Add(string.Format(CircleLabelFormat, circle));
             return string.Join("\n", lines);
         }
 

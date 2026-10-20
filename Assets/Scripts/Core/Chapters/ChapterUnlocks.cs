@@ -34,8 +34,8 @@ namespace HellPoker.Core.Chapters
 
     /// <summary>
     /// Phase 2's locks: a run starts with the four classes and fourteen relics; the Summoner opens with the first freedom, the other ten
-    /// relics with milestones written on their cards (the records keep the counts). A class's circles open one by one
-    /// (<see cref="ChapterRecords.CirclesOpen"/>). Nothing here touches the Boss Simulator.
+    /// relics with milestones written on their cards (the records keep the counts). Demo 3.4: the difficulty levels open
+    /// by freedoms (<see cref="ChapterRecords.IsDifficultyOpen"/>). Nothing here touches the Boss Simulator.
     /// </summary>
     public static class ChapterUnlocks
     {
@@ -68,8 +68,9 @@ namespace HellPoker.Core.Chapters
 
         public static bool IsRelicOpen(string id, ChapterRecords records) => ForRelic(id)?.IsReached(records) ?? true;
 
-        /// <summary>Every class is open from the start (Demo 2.2, the user's call: the test builds try them all). False brings the old lock
-        /// back: the Summoner opens with the first freedom (<see cref="SummonerMilestone"/>).</summary>
+        /// <summary>Every class is open from the start (Demo 2.2, the user's call: the test builds try them all) — and every difficulty level
+        /// (Demo 3.4). False brings the old locks back: the Summoner opens with the first freedom (<see cref="SummonerMilestone"/>), Hard
+        /// with a Medium freedom, Ironman with a Hard one.</summary>
         public static bool AllClassesOpen = true;
 
         public static bool IsClassOpen(string classId, ChapterRecords records) =>

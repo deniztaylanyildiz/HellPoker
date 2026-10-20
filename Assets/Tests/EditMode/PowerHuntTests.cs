@@ -142,8 +142,6 @@ namespace HellPoker.Core.Tests
             string line = UiText.DemonRuleLine(mirror);
             StringAssert.Contains("Eye", line);
             StringAssert.DoesNotContain("jokers", line);
-            var two = new LuciferMirror(1000, new Always(0), summoner, LuciferMirror.SecondFor(KitKind.Summon));
-            StringAssert.Contains("satchel", UiText.DemonRuleLine(two), "the fifth circle tells its second copy");
             Lang.Set(Language.Turkish);
             StringAssert.Contains("Göz", UiText.DemonRuleLine(mirror));
         }

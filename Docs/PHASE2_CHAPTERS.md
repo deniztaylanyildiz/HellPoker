@@ -808,3 +808,51 @@ sayılan deste `HELLPOKER_CHAPTER_DECK=0`). Aynı tohumlarla 500 koşu, daire 0:
 | Hırsız | %39.0 | %39.4 | +0.4 |
 
 Köylü ve Kral ±3'ün dışında; dokunulmadı (karar bekliyor).
+
+## Zorluk (Demo 3.4, 2026-10-20) — Cehennem Daireleri'nin yerine
+
+Kullanıcının onayladığı kurallar; bütün sayılar `Core/Chapters/Difficulty.cs` (`DifficultyRules`), simülasyon
+`ChapterSimulation.Difficulties` (`HELLPOKER_DIFFICULTY=all|easy,...`, `HELLPOKER_RUNS`, `HELLPOKER_DIFF="tribute=40.50.60,ante=3.2.1,
+rage=50,ragestake=150,ragerule=150,camps=2.1.1,market=100.120.140,unknown=5.10.15,topup=100.75.50,loss=100.125.150.150,
+irontopup=100.50.25,ironloss=125.150.175.175,malice=3.2.2.1,stacked=50,lilithpath=1"`). Her seviye bir öncekinin hepsini taşır.
+
+| # | Kural | Seviye | Sayılar (Mammon / Belial / Lilith / Lucifer) |
+|---|---|---|---|
+| 1 | Katlarda ante artışı | Orta+ | her 3 / 2 / 1 elde +1 (Kolay: 3; Lucifer'in katı yok) |
+| 2 | Haraç = max(formül, kapıdaki kesenin %) | Orta+ | %40 / %50 / %60 |
+| 3 | Öfke evresi: bar başlangıcın %50'sinin altında, bir kez | Orta+ | bahis ×1.5; kural: aralık yarıya (Belial 4→2, Ayna 3→2), şans/miktar ×1.5 (Lilith %50→75, Faiz ×1.5) |
+| 4 | Harita | Orta+ | ortadaki kamp en çok 2 / 1 / 1 (kapı önündeki kamp ayrı), pazar ×1 / ×1.2 / ×1.4, "?" bekçi %5 / %10 / %15 (olaydan düşer), Lilith'te her yolda bekçi |
+| 5 | Bölüm başında kese tamamlama | Zor | Belial %75, Lilith %50 (Ironman: %50 / %25) |
+| 6 | Şeytana kayıp (bar ve ceza) | Zor | ×1 / ×1.25 / ×1.5 / ×1.5 (Ironman: ×1.25 / ×1.5 / ×1.75 / ×1.75) |
+| 7 | Hile göstergesi en çok | Ironman | 3 / 2 / 2 / 1 el (göstergeler 4 / 2 / 4 / 1; daha kısa olan kalır) |
+| 8 | Taşınan kural, yarım güç | Ironman | Belial + Faiz (%1), Lilith + Rol Takası (8 elde bir); Lucifer'in Ayna'sı aynı |
+| 9 | Kayıt | Ironman | sadece kampta (giriş, çıkış, KAYDET) + koşu başında bir kez; ölüm kaydı siler; koşu kimliği + kayıt sayacı |
+
+Daireler kalktı: imp kesesi, haraç +20, kalın bar, ateş 2 seçenek, kısa gösterge, Lucifer'in ikinci aynası ve kazanç kırpması (%5 / daire).
+Eski kayıt (p2=1, daireli ya da dairesiz) Kolay olarak devam eder (kayıt sürümü 2); eski daire rekorları sınıfın Kolay rekoru olur (en iyisi).
+
+### Simülasyon (500 koşu / sınıf / seviye, aynı tohumlar)
+
+Önce (bugünkü oyun, daire 0): Köylü %29.8, Kâhin %41.0, Kral %32.2, Soytarı %23.0, Çağırıcı %32.6, Hırsız %39.4 — hepsi %33.0.
+
+| Sınıf | Kolay | Orta | Zor | Ironman (ilk: 7–8 istenen sayılarla) | Ironman (son) |
+|---|---|---|---|---|---|
+| Köylü | %29.8 | %27.8 | %10.8 | %8.6 | %5.2 |
+| Kâhin | %41.0 | %36.4 | %16.2 | %15.8 | %6.2 |
+| Kral | %32.2 | %24.0 | %9.6 | %8.6 | %4.4 |
+| Soytarı | %23.0 | %17.2 | %8.4 | %8.4 | %4.2 |
+| Çağırıcı | %32.6 | %26.4 | %8.2 | %8.6 | %3.6 |
+| Hırsız | %39.4 | %34.8 | %15.0 | %14.4 | %5.2 |
+| hepsi | **%33.0** | **%27.8** | **%11.4** | %10.7 | **%4.8** |
+
+Bölüm başına ölüm (oraya ulaşanların; kese ya da ruh / Lucifer'de düşüş), hepsi: Kolay %20.6 / %23.3 / %22.6 / %30.0; Orta %23.2 / %26.5 /
+%30.0 / %29.7; Zor %23.2 / %38.1 / %55.8 / %46.0; Ironman (son) %31.0 / %53.6 / %72.8 / %44.8. Tam haraç ödeyen: Kolay %59.7 / %26.5 /
+%46.6, Orta %59.9 / %27.5 / %53.2, Zor %59.9 / %15.0 / %31.5, Ironman %59.9 / %8.1 / %19.6. Öfke evresi (masaların yüzdesi), Orta:
+Mammon %75.8, Belial %67.2, Lilith %74.0, Lucifer %63.2.
+
+Hedeflerle: Kolay değişmedi (birebir aynı). Orta Kolay'dan 5.2 puan düşük (hedef 5-10) — ama Mammon'daki ölüm %23 (hedef ~%10): Kolay'ın
+kendisi %20.6, Kolay'a dokunulmadığı için bu hedefe Orta'nın kurallarıyla inilemez. Zor %11.4 (hedef %10-20, alt uç). Ironman ilk
+denemede %10.7 (hedef %3-8): 7 (gösterge) yalnız Lilith'i değiştiriyordu (Mammon 4, Belial 2, Lucifer 1 zaten istenenden kısa) ve 8 küçük
+etkili (tam güç bile %10.0). Ayar (sıra: 5-8'in sayıları): gösterge 3 / 2 / 2 / 1, Ironman'ın kendi 5'i (%50 / %25) ve 6'sı (×1.25 / 1.5 /
+1.75 / 1.75) → %4.8. Sınıf güçlerine, emanetlere ve şeytan AI'ına dokunulmadı.
+

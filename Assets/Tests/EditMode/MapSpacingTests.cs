@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace HellPoker.Core.Tests
 {
     /// <summary>Demo 2.2's map (version 3): on no path two black markets (an unknown's counted) or two camps with fewer than two floors
-    /// between them, and no path with more than two markets — over ten thousand seeds, every chapter, every circle.</summary>
+    /// between them, and no path with more than two markets — over ten thousand seeds, every chapter, every difficulty (Demo 3.4).</summary>
     public class MapSpacingTests
     {
         private static bool IsMarket(MapNode n) => MapMaker.IsMarket(n.Kind, n.Hidden);
@@ -50,23 +50,26 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TenThousandSeeds_NoPathBreaksTheSpacing_InAnyChapterOrCircle()
+        public void TenThousandSeeds_NoPathBreaksTheSpacing_InAnyChapterOrDifficulty()
         {
             int maps = 0, markets = 0, unknownMarkets = 0, startsWithoutAMiddleCamp = 0, starts = 0;
             for (int chapter = 1; chapter <= 3; chapter++)
-                for (int circle = 0; circle <= Circles.Deepest; circle++)
+                for (int level = 0; level <= (int)DifficultyRules.Hardest; level++)
                 {
-                    ChapterRules rules = ChapterRules.For(chapter).WithCircle(circle);
+                    int circle = level;
+                    ChapterRules rules = ChapterRules.For(chapter).WithDifficulty((Difficulty)level);
                     var (cFrom, cTo) = MapMaker.CampWindow(rules.Floors);
                     for (int seed = 0; seed < 10000; seed++)
                     {
                         ChapterMap map = ChapterMap.Generate(rules, new SystemRandomSource(RandomSeeds.Derive(seed, chapter * 10 + circle)));
                         Assert.AreEqual(3, map.Version);
                         string breach = Breach(map);
-                        Assert.IsNull(breach, $"chapter {chapter} circle {circle} seed {seed}: {breach}");
+                        Assert.IsNull(breach, $"chapter {chapter} difficulty {(Difficulty)level} seed {seed}: {breach}");
                         maps++;
                         markets += map.Floors.Sum(f => f.Count(n => n.Kind == NodeKind.BlackMarket));
                         unknownMarkets += map.Floors.Sum(f => f.Count(n => n.Kind == NodeKind.Unknown && n.Hidden == NodeKind.BlackMarket));
+                        // The middle camp reaching every start is Easy's promise (Medium on: fewer camps, a less safe map).
+                        if (level != (int)Difficulty.Easy) continue;
                         foreach (MapNode start in map.Floors[0])
                         {
                             starts++;

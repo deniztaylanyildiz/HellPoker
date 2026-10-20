@@ -48,7 +48,7 @@ namespace HellPoker.Core.Tests
 
             public string ConfirmLabel { get; private set; }
 
-            public void AskToConfirm(string taunt, string warning, string confirmLabel)
+            public void AskToConfirm(string taunt, string warning, string confirmLabel, string cancelLabel = null)
             {
                 Taunt = taunt;
                 Warning = warning;

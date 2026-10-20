@@ -14,7 +14,6 @@ namespace HellPoker.Presentation.Ui
         /// <summary>{0} the next demon's name.</summary>
         public static string CampTextFormat => L("A fire in the dark, and a moment's peace before {0}. Do one thing here. (Your relics you may arrange as you like.)",
             "Karanlıkta bir ateş, {0} öncesi bir anlık huzur. Burada bir şey yap. (Emanetlerini istediğin gibi düzenleyebilirsin.)");
-        public static string CampTwoNote => L("(The fourth circle: the camp offers only two.)", "(Dördüncü daire: kamp yalnızca ikisini sunar.)");
 
         public static string CampRest => L("REST", "DİNLEN");
 

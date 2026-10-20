@@ -711,13 +711,15 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void ARunsCircle_IsNeverDeeperThanTheClassHasOpen_AndAFreedomTellsWhatOpened()
+        public void ARun_IsPlayedAtItsDifficulty_TheReportAndTheCardSayIt()
         {
-            _chapters.Start(SinnerRoster.Peasant, 3);
-            Assert.AreEqual(0, _chapters.Journey.Circle, "no circle open yet");
+            _chapters.Start(SinnerRoster.Peasant, Difficulty.Hard);
+            Assert.AreEqual(Difficulty.Hard, _chapters.Journey.Difficulty);
+            Assert.AreEqual(Difficulty.Hard, _chapters.Run.Rules.Difficulty, "the chapter's rules");
+            Assert.AreEqual("hard", _chapters.Feedback.Difficulty, "the bug report says it");
+            Assert.AreEqual(Difficulty.Hard, _chapters.ContinueCard.Difficulty, "and the menu's card");
             _chapters.Records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 90);
-            _chapters.Start(SinnerRoster.Peasant, 3);
-            Assert.AreEqual(1, _chapters.Journey.Circle, "one past the deepest freed");
+            _chapters.Start(SinnerRoster.Peasant, Difficulty.Easy);
             Assert.IsTrue(ChapterUnlocks.IsRelicOpen(ChapterRelicIds.AbyssCoin, _chapters.Records));
             Assert.IsNotNull(_chapters.Journey.RelicAvailable, "the run draws only open relics");
         }

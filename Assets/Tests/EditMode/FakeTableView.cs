@@ -155,6 +155,17 @@ namespace HellPoker.Core.Tests
 
 
 
+        public bool Enraged { get; private set; }
+        public void SetEnraged(bool enraged) => Enraged = enraged;
+        public string CarriedRule { get; private set; }
+        public string CarriedRuleHover { get; private set; }
+
+        public void SetCarriedRule(string ruleId, string hover)
+        {
+            CarriedRule = ruleId;
+            CarriedRuleHover = hover;
+        }
+
         public MaliceGauge Malice { get; private set; } = MaliceGauge.Hidden;
         public CheatCard Intent { get; private set; }
         public List<CheatCard> Lies { get; } = new List<CheatCard>();

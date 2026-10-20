@@ -474,7 +474,7 @@ namespace HellPoker.Core.Tests
         /// when a relic is worn, else the first cheat broken), else a rest.</summary>
         private static FireChoice CampChoice(ChapterRun run)
         {
-            int start = RunSentence.StartFor(run.Sinner.Id, run.Rules.Circle);
+            int start = RunSentence.StartFor(run.Sinner.Id);
             int restAt = EnvInt("HELLPOKER_REST_AT", 90);
             if (run.Sentence != null && run.Sentence.Years * 100L >= start * (long)restAt && run.CanTend(FireChoice.RestByTheFire)) return FireChoice.RestByTheFire;
             if (run.CanTend(FireChoice.Forge) && run.Forgeable.Any(r => (RelicRoster.Find(r)?.ExpectedYears ?? 0) > 0)) return FireChoice.Forge;
@@ -519,6 +519,9 @@ namespace HellPoker.Core.Tests
 
             /// <summary>How often each demon's rule struck, and the hands each played cornered (Mammon, Belial, Lilith, Lucifer).</summary>
             public readonly int[] RuleTriggers = new int[4], Cornered = new int[4];
+
+            /// <summary>Demo 3.4: the tables at which the demon was enraged (Mammon ... Lucifer).</summary>
+            public readonly int[] Enraged = new int[4];
 
             /// <summary>Boss hands lost to the player's two jokers, won by the demon's, and all boss hands (Mammon ... Lucifer).</summary>
             public readonly int[] BossPlayerBusts = new int[4], BossHouseBusts = new int[4];
@@ -586,7 +589,6 @@ namespace HellPoker.Core.Tests
                 if (EnvInt("HELLPOKER_SUMMONER_TOTAL", 0) > 0) ChapterTuning.SentenceTotals[Summoner.ClassId] = EnvInt("HELLPOKER_SUMMONER_TOTAL", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE2", 0) > 0) ChapterTuning.TributeOverStart[2] = EnvInt("HELLPOKER_TRIBUTE2", 0);
                 if (EnvInt("HELLPOKER_TRIBUTE3", 0) > 0) ChapterTuning.TributeOverStart[3] = EnvInt("HELLPOKER_TRIBUTE3", 0);
-                ChapterTuning.CircleWinStepPercent = EnvInt("HELLPOKER_CIRCLE_WIN", Circles.WinStepPercent);
                 ChapterTuning.BarHealPercent = EnvInt("HELLPOKER_BAR_HEAL", BossTable.BarHealPercent);
                 ChapterTuning.MapVersion = EnvInt("HELLPOKER_MAP", 0);   // 1: Demo 2.0's map
                 int[] losses = EnvInts("HELLPOKER_BOSS_LOSS");   // "250,220,110,90": Mammon, Belial, Lilith, Lucifer
@@ -730,7 +732,7 @@ namespace HellPoker.Core.Tests
             SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner,thief")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
             var report = new StringBuilder();
-            report.AppendLine($"Phase 2 whole runs: {runs} per class, circle {EnvInt("HELLPOKER_CIRCLE", 0)}. Player: the chapter simulation's on the floors, the balance " +
+            report.AppendLine($"Phase 2 whole runs: {runs} per class, difficulty {DifficultyRules.IdOf(SimDifficulty)}. Player: the chapter simulation's on the floors, the balance " +
                               "simulation's at the tables; a demon's spoils: a relic while a slot is free, else the coins.");
             report.AppendLine("Targets: purse emptied 10-25% a chapter; tribute paid in full 40-60%; Mammon 15-25 hands / 10-20% damned, Belial 15-25 / 15-25%, " +
                               "Lilith 20-30 / 20-30%, Lucifer 15-25 / cast down 30-50%.");
@@ -892,6 +894,105 @@ namespace HellPoker.Core.Tests
 
         private static string Median(List<int> values) => values.Count == 0 ? "-" : values.OrderBy(v => v).ElementAt(values.Count / 2).ToString();
 
+        /// <summary>Demo 3.4: the difficulty the whole runs are played at (HELLPOKER_DIFFICULTY: easy, medium, hard, ironman; Easy by default).</summary>
+        private static Difficulty SimDifficulty = DifficultyRules.Parse(Environment.GetEnvironmentVariable("HELLPOKER_DIFFICULTY"));
+
+        /// <summary>
+        /// Demo 3.4: every class at every difficulty (HELLPOKER_DIFFICULTY: "all" or one id; HELLPOKER_RUNS, 500; the same seeds for every
+        /// class and level): freed, deaths per chapter (of the runs that reached it: an empty purse or a lost soul; Lucifer: cast down or the
+        /// soul), the tributes paid in full, the demons enraged. Knobs: HELLPOKER_DIFF="name=value,..." (see <see cref="ApplyDifficulty"/>).
+        ///   -testPlatform EditMode -testFilter HellPoker.Core.Tests.ChapterSimulation.Difficulties
+        /// </summary>
+        [Test, Timeout(3600000)]
+        public void Difficulties()
+        {
+            int runs = EnvInt("HELLPOKER_RUNS", 500);
+            string which = Environment.GetEnvironmentVariable("HELLPOKER_DIFFICULTY") ?? "all";
+            var levels = which == "all" ? new[] { Difficulty.Easy, Difficulty.Medium, Difficulty.Hard, Difficulty.Ironman }
+                : which.Split(',').Select(id => DifficultyRules.Parse(id.Trim())).ToArray();
+            SinnerClass[] classes = (Environment.GetEnvironmentVariable("HELLPOKER_CLASSES") ?? "peasant,warlock,king,jester,summoner,thief")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(id => SinnerRoster.Find(id.Trim())).Where(c => c != null).ToArray();
+            var report = new StringBuilder($"Difficulties: {runs} whole runs a class and level (same seeds){Environment.NewLine}");
+            Difficulty before = SimDifficulty;
+            ChapterTuning.Reset();
+            ApplyDifficulty(Environment.GetEnvironmentVariable("HELLPOKER_DIFF"));
+            try
+            {
+                var freedTable = new StringBuilder("freed      " + string.Join(" ", levels.Select(l => $"{DifficultyRules.IdOf(l),8}")) + Environment.NewLine);
+                var rows = classes.ToDictionary(c => c.Id, c => new StringBuilder($"{c.Id,-10}"));
+                var allRow = new StringBuilder($"{"all",-10}");
+                foreach (Difficulty level in levels)
+                {
+                    SimDifficulty = level;
+                    var all = new RunTally();
+                    report.AppendLine();
+                    report.AppendLine($"== {DifficultyRules.IdOf(level)}: class  freed  deaths ch1/ch2/ch3/Lucifer (of those who reached)  tribute paid in full ch1/ch2/ch3  enraged M/B/L/Lu");
+                    foreach (SinnerClass cls in classes)
+                    {
+                        var tally = new RunTally();
+                        for (int run = 0; run < runs; run++) PlayWholeRun(cls, run * 7919 + 29, tally, all);
+                        rows[cls.Id].Append($" {Pct(tally.Freed, tally.Runs),8}");
+                        report.AppendLine(DifficultyLine(cls.Id, tally));
+                    }
+                    allRow.Append($" {Pct(all.Freed, all.Runs),8}");
+                    report.AppendLine(DifficultyLine("all", all));
+                }
+                foreach (SinnerClass cls in classes) freedTable.AppendLine(rows[cls.Id].ToString());
+                freedTable.AppendLine(allRow.ToString());
+                report.AppendLine();
+                report.Append(freedTable);
+            }
+            finally
+            {
+                SimDifficulty = before;
+                ChapterTuning.Reset();
+            }
+            TestContext.Out.WriteLine(report.ToString());
+        }
+
+        /// <summary>A class's line at one level: freed, deaths per chapter of those who reached it, the tributes paid in full, the rage.</summary>
+        private static string DifficultyLine(string name, RunTally t)
+        {
+            string Death(int ch) => Pct(t.Chapters[ch].Broke + t.BossDamned[ch], t.Chapters[ch].Runs);
+            string lucifer = Pct(t.CastDown + t.BossDamned[3], t.ReachedLucifer);
+            string Paid(int ch) => Pct(t.Chapters[ch].PaidFull, t.Chapters[ch].Reached);
+            string Rage(int b) => Pct(t.Enraged[b], t.BossSat[b]);
+            return $"{name,-10} {Pct(t.Freed, t.Runs),6}   {Death(0)} / {Death(1)} / {Death(2)} / {lucifer}   {Paid(0)} / {Paid(1)} / {Paid(2)}   " +
+                   $"{Rage(0)} / {Rage(1)} / {Rage(2)} / {Rage(3)}";
+        }
+
+        /// <summary>"tribute=40.50.60,ante=3.2.1,rage=50,ragestake=150,camps=2.1.1,market=100.120.140,unknown=5.10.15,topup=100.75.50,
+        /// loss=100.125.150.150,malice=5.4.3.3,stacked=50,lilithpath=1": the difficulty's numbers tried (a dot between the chapters').</summary>
+        private static void ApplyDifficulty(string setting)
+        {
+            DifficultyRules.Reset();
+            if (string.IsNullOrWhiteSpace(setting)) return;
+            foreach (string part in setting.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] kv = part.Split('=');
+                if (kv.Length != 2) continue;
+                int[] v = kv[1].Split('.').Select(x => int.TryParse(x.Trim(), out int n) ? n : 0).ToArray();
+                switch (kv[0].Trim().ToLowerInvariant())
+                {
+                    case "tribute": DifficultyRules.TributePursePercent = v; break;
+                    case "ante": DifficultyRules.AnteStepHands = v; break;
+                    case "rage": DifficultyRules.RageBarPercent = v[0]; break;
+                    case "ragestake": DifficultyRules.RageStakePercent = v[0]; break;
+                    case "ragerule": DifficultyRules.RageRulePercent = v[0]; break;
+                    case "camps": DifficultyRules.MiddleCampsAtMost = v; break;
+                    case "market": DifficultyRules.MarketPercent = v; break;
+                    case "unknown": DifficultyRules.UnknownWardenPercent = v; break;
+                    case "topup": DifficultyRules.PurseTopUpPercent = v; break;
+                    case "loss": DifficultyRules.BossLossPercent = v; break;
+                    case "ironloss": DifficultyRules.IronmanBossLossPercent = v; break;
+                    case "irontopup": DifficultyRules.IronmanPurseTopUpPercent = v; break;
+                    case "malice": DifficultyRules.MaliceHands = v; break;
+                    case "stacked": DifficultyRules.StackedRulePercent = v[0]; break;
+                    case "lilithpath": DifficultyRules.LilithWardenOnEveryPath = v[0] != 0; break;
+                }
+            }
+        }
+
         private static void PlayWholeRun(SinnerClass cls, int seed, RunTally tally, RunTally all)
         {
             foreach (RunTally t in new[] { tally, all }) t.Runs++;
@@ -899,7 +1000,7 @@ namespace HellPoker.Core.Tests
             RunSeen.Clear();
             RunVendors.Clear();
             RunFreed = false;
-            ChapterJourney journey = ChapterJourney.Begin(cls, seed, EnvInt("HELLPOKER_CIRCLE", 0));   // a knob: the circle of Hell
+            ChapterJourney journey = ChapterJourney.Begin(cls, seed, SimDifficulty);   // Demo 3.4: the difficulty played (HELLPOKER_DIFFICULTY)
             if (EnvInt("HELLPOKER_SLOTS", 0) > 0) journey.Effects.MaxCarried = EnvInt("HELLPOKER_SLOTS", 0);   // a knob: the relic slots
             int classRelics = 0;
             journey.Effects.Joined += id =>
@@ -960,6 +1061,7 @@ namespace HellPoker.Core.Tests
                     t.BossHouseBusts[ch - 1] += houseBusts;
                     t.Jokers[ch - 1].Add(journey.Sinner.Jokers);
                     t.Cornered[ch - 1] += journey.Run.Hooks.Rule?.CorneredHands ?? 0;
+                    if (journey.Run.Hooks.Rule?.Enraged == true) t.Enraged[ch - 1]++;
                 }
                 if (boss.Phase != GamePhase.Absolved) return;
                 journey.Run.LeaveBossTable(0);
@@ -1003,6 +1105,7 @@ namespace HellPoker.Core.Tests
                 t.BossHouseBusts[3] += lHouseBusts;
                 t.Jokers[3].Add(journey.Sinner.Jokers);
                 t.Cornered[3] += journey.LuciferHooks.Rule?.CorneredHands ?? 0;
+                if (journey.LuciferHooks.Rule?.Enraged == true) t.Enraged[3]++;
                 if (castDown) t.CastDown++;
                 else if (lucifer.Phase == GamePhase.Damned) t.BossDamned[3]++;
                 else if (lucifer.Phase == GamePhase.Absolved)

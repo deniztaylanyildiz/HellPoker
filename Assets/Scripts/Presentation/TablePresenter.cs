@@ -787,7 +787,7 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>The sentence the run began with (the counter's bar fills toward it).</summary>
-        private static int SentenceStartOf(ChapterRun run) => RunSentence.StartFor(run.Sinner.Id, run.Rules.Circle);
+        private static int SentenceStartOf(ChapterRun run) => RunSentence.StartFor(run.Sinner.Id);
 
         /// <summary>The chapter's table changed (a deal, a bet, a draw, a settled hand): the chapter saves its run.</summary>
         public event Action ChapterTableChanged;
@@ -1903,6 +1903,7 @@ namespace HellPoker.Presentation
             bool luciferWaits = _finalDealer != null && _game.Rules.LuciferGateYears > 0;
             // A chapter's table has no final stretch and no "last moments" (those are the Boss Simulator's, the old demo's): only its bar.
             bool finalStretch = _seat == null && (finalTable ? IsLastMoments : _game.IsRaiseForced && !luciferWaits);
+            _view.SetEnraged(BarMode && _kit?.Rule?.Enraged == true);   // Demo 3.4: an enraged demon keeps his burning look
             _view.SetFinalStretch(finalStretch, finalTable
                 ? UiText.LastMomentsBanner
                 : string.Format(UiText.FinalStretchBannerFormat, _game.Rules.ForcedRaiseYears));

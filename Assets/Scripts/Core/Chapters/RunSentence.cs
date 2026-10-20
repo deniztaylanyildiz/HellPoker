@@ -4,8 +4,7 @@ using HellPoker.Core.Game;
 namespace HellPoker.Core.Chapters
 {
     /// <summary>
-    /// A Phase 2 run's sentence in years: the class's whole sentence as the run begins (<see cref="StartFor"/>, the circle's thicker bars
-    /// in it), carried from the first floor to Lucifer and shown as a number. It moves with the demons' bars but is not one: a won hand
+    /// A Phase 2 run's sentence in years: the class's whole sentence as the run begins (<see cref="StartFor"/>), carried from the first floor to Lucifer and shown as a number. It moves with the demons' bars but is not one: a won hand
     /// takes its years off both, a lost one puts its whole cost on the sentence and only <see cref="BossTable.BarHealPercent"/> of it on the
     /// bar (<see cref="HellPokerGame.BarHealPercent"/>); years put on outside a hand (the tribute's, an offer's) go on both. Never below
     /// zero; what is left when the run walks free is its score.
@@ -20,10 +19,8 @@ namespace HellPoker.Core.Chapters
             Years = years;
         }
 
-        /// <summary>The sentence a run as <paramref name="classId"/> begins with in <paramref name="circle"/>: the four shares, the circle's
-        /// bars on them.</summary>
-        public static int StartFor(string classId, int circle) =>
-            Math.Max(1, (int)((long)BossShares.Total(classId) * Circles.BarAt(circle) / 100));
+        /// <summary>The sentence a run as <paramref name="classId"/> begins with: the four shares (Demo 3.4: the same at every difficulty).</summary>
+        public static int StartFor(string classId) => Math.Max(1, BossShares.Total(classId));
 
         public void Add(int years)
         {

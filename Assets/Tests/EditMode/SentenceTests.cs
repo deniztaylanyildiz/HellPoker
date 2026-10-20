@@ -101,13 +101,13 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void ARunBeginsWithTheClassesWholeSentence_TheCirclesBarsOnIt()
+        public void ARunBeginsWithTheClassesWholeSentence_AtEveryDifficulty()
         {
             Assert.AreEqual(6500, ChapterJourney.Begin(SinnerRoster.Peasant, 1).Sentence.Years);
             Assert.AreEqual(8000, ChapterJourney.Begin(SinnerRoster.Find(King.ClassId), 1).Sentence.Years);
             Assert.AreEqual(5000, ChapterJourney.Begin(SinnerRoster.Find(Jester.ClassId), 1).Sentence.Years);
             Assert.AreEqual(5800, ChapterJourney.Begin(SinnerRoster.Find(Summoner.ClassId), 1).Sentence.Years);
-            Assert.AreEqual(6500 * Circles.BarAt(3) / 100, ChapterJourney.Begin(SinnerRoster.Peasant, 1, circle: 3).Sentence.Years, "the third circle's thicker bars");
+            Assert.AreEqual(6500, ChapterJourney.Begin(SinnerRoster.Peasant, 1, Difficulty.Ironman).Sentence.Years, "Demo 3.4: the same at every level");
         }
 
         [Test]
@@ -160,18 +160,18 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheRecords_KeepTheFewestYearsLeft_PerClassAndCircle()
+        public void TheRecords_KeepTheFewestYearsLeft_PerClassAndDifficulty()
         {
             var records = new ChapterRecords();
-            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, 0, 900);
-            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, 0, 420);
-            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, 0, 700);
-            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, 1, 0);
-            records.RunEnded(JourneyEnd.CastDown, 4, King.ClassId, 100, 0, 10);
+            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, Difficulty.Easy, 900);
+            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, Difficulty.Easy, 420);
+            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, Difficulty.Easy, 700);
+            records.RunEnded(JourneyEnd.Freed, 4, Peasant.ClassId, 100, Difficulty.Medium, 0);
+            records.RunEnded(JourneyEnd.CastDown, 4, King.ClassId, 100, Difficulty.Easy, 10);
             ChapterRecords back = ChapterRecords.Decode(records.Encode());
-            Assert.AreEqual(420, back.LowestSentence(Peasant.ClassId, 0));
-            Assert.AreEqual(0, back.LowestSentence(Peasant.ClassId, 1), "spotless");
-            Assert.IsNull(back.LowestSentence(King.ClassId, 0), "only a freedom is a score");
+            Assert.AreEqual(420, back.LowestSentence(Peasant.ClassId, Difficulty.Easy));
+            Assert.AreEqual(0, back.LowestSentence(Peasant.ClassId, Difficulty.Medium), "spotless");
+            Assert.IsNull(back.LowestSentence(King.ClassId, Difficulty.Easy), "only a freedom is a score");
         }
     }
 }

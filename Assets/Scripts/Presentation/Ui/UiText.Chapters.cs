@@ -24,7 +24,7 @@ namespace HellPoker.Presentation.Ui
 
         public static string GameRulesButton => L("THE GAME", "OYUN");
 
-        public static string GameRulesPage() => GameRulesBody().Replace("{CIRCLES}", string.Format(CircleWinRuleFormat, Core.Chapters.Circles.WinStepPercent));
+        public static string GameRulesPage() => GameRulesBody();
 
         private static string GameRulesBody() => L(
             "HELL POKER: Five Card Draw against the House, all the way down to Lucifer. Choose who you were (a class), then go down " +
@@ -42,7 +42,7 @@ namespace HellPoker.Presentation.Ui
             "coins go on both. The bets stay a share of the bar as it began: at its end one win is THE LAST BLOW. Empty his bar and he is " +
             "beaten; let it reach the mark at its end and your soul goes on the table.\n" +
             "LUCIFER waits after Lilith: empty his bar and you are FREE — what is left of your sentence is your score.\n" +
-            "FREEDOM opens things: locked relics (see RECORDS), and for that class the next CIRCLE of Hell. {CIRCLES}\n" +
+            "FREEDOM opens things: locked relics (see RECORDS) and the harder DIFFICULTY levels (chosen under the class cards).\n" +
             "A HAND: two cards turn at the deal; raise, pass or fold at every card; draw; the House shows its cards. The Dead Man's " +
             "Hand (the black aces and eights) beats everything.",
             "HELL POKER: kasaya karşı Beş Kart Poker, Lucifer'e kadar. Kim olduğunu seç (bir sınıf), sonra üç bölüm in: Mammon'un " +
@@ -60,7 +60,7 @@ namespace HellPoker.Presentation.Ui
             "barın başlangıcının payı kalır: sonunda tek kazanç SON DARBE'dir. Barı boşaltırsan yenilir; sonundaki işarete ulaşırsa ruhun " +
             "masaya konur.\n" +
             "LUCIFER Lilith'ten sonra bekler: barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır.\n" +
-            "KURTULUŞ kilit açar: kilitli emanetler (REKORLAR'da) ve o sınıf için cehennemin bir sonraki DAİRESİ. {CIRCLES}\n" +
+            "KURTULUŞ kilit açar: kilitli emanetler (REKORLAR'da) ve daha zor ZORLUK seviyeleri (sınıf kartlarının altında seçilir).\n" +
             "BİR EL: dağıtımda iki kart açılır; her kartta artır, pas ya da çekil; kart değiştir; kasa kartlarını açar. Ölü Adamın Eli " +
             "(siyah aslar ve sekizler) her eli yener.");
 
@@ -116,8 +116,7 @@ namespace HellPoker.Presentation.Ui
         public static string FreedSentenceFormat => L("You walked free. Sentence: {0} years.", "Kurtuldun. Ceza: {0} yıl.");
         public static string FreedClean => L("You walked free. Sentence: none — SPOTLESS.", "Kurtuldun. Ceza: hiç — TERTEMİZ.");
 
-        /// <summary>{0} a circle, {1} the fewest years a run walked free with there (the records).</summary>
-        public static string LowestSentenceFormat => L("C{0} {1} yrs", "D{0} {1} yıl");
+
         /// <summary>The floors' offers left something owing: it goes on the demon's bar at the gate.</summary>
         public static string MapOwed => L("Owed: on your sentence now, on the bar at the gate", "Borç: cezana şimdi, bara kapıda yazılır");
         public static string MapPromptStart => L("Choose where to start.", "Nereden başlayacağını seç.");

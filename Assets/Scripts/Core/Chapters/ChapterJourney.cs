@@ -94,13 +94,13 @@ namespace HellPoker.Core.Chapters
         public static int ChapterSeed(int seed, int chapter) => RandomSeeds.Derive(RandomSeeds.Derive(seed, ChapterStream), chapter);
 
         /// <summary>A new run as <paramref name="sinnerClass"/>: the first chapter, the class's purse.</summary>
-        /// <param name="circle">The circle of Hell the run is played in (<see cref="Circles"/>).</param>
-        public static ChapterJourney Begin(SinnerClass sinnerClass, int seed, int circle = 0)
+        /// <param name="difficulty">Demo 3.4: how hard the run is (<see cref="DifficultyRules"/>).</param>
+        public static ChapterJourney Begin(SinnerClass sinnerClass, int seed, Difficulty difficulty = Difficulty.Easy)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
             var journey = new ChapterJourney(seed, new Sinner(sinnerClass) { JackpotFallsTo = Jester.PhaseTwoJackpotFallsTo }, PhaseTwoEffects())
-                { Chapter = 1, Circle = Circles.Clamp(circle) };
-            journey.Sentence = new RunSentence(RunSentence.StartFor(sinnerClass.Id, journey.Circle));
+                { Chapter = 1, Difficulty = difficulty, RunId = NewRunId() };
+            journey.Sentence = new RunSentence(RunSentence.StartFor(sinnerClass.Id));
             journey.Run = ChapterRun.Begin(journey.RulesFor(1), journey.Sinner, journey.Effects, ChapterSeed(seed, 1),
                 ChapterTuning.MapVersion > 0 ? ChapterTuning.MapVersion : ChapterMap.CurrentVersion);
             journey.Run.Sentence = journey.Sentence;
@@ -125,10 +125,16 @@ namespace HellPoker.Core.Chapters
         /// the run walks free is the score.</summary>
         public RunSentence Sentence { get; private set; }
 
-        /// <summary>The circle of Hell the run is played in (0: the designer's numbers).</summary>
-        public int Circle { get; private set; }
+        /// <summary>Demo 3.4: how hard the run is (Easy: the designer's numbers).</summary>
+        public Difficulty Difficulty { get; private set; }
 
-        private ChapterRules RulesFor(int chapter) => ChapterRules.For(chapter).WithCircle(Circle);
+        /// <summary>Demo 3.4: the run's own id and how many times it was saved (Ironman: a copied old save is known by them).</summary>
+        public string RunId { get; private set; }
+        public int SaveCount { get; set; }
+
+        private static string NewRunId() => Guid.NewGuid().ToString("N").Substring(0, 12);
+
+        private ChapterRules RulesFor(int chapter) => ChapterRules.For(chapter).WithDifficulty(Difficulty);
 
         private Func<string, bool> _relicAvailable;
 
@@ -157,7 +163,9 @@ namespace HellPoker.Core.Chapters
             Run.EndChapter();
             Chapter++;
             ChapterRules rules = RulesFor(Chapter);
-            int floor = minimumPurse >= 0 ? minimumPurse : ChapterRules.StartingCoinsFor(Sinner.Id);
+            // Demo 3.4 (Hard): the purse is topped up only to a share of the class's start.
+            int floor = minimumPurse >= 0 ? minimumPurse
+                : ChapterRules.StartingCoinsFor(Sinner.Id) * DifficultyRules.PurseTopUpFor(Difficulty, Chapter) / 100;
             int coins = Math.Max(floor, Run.Purse.Coins);
             PurseToppedUp = coins - Run.Purse.Coins;
             Run = new ChapterRun(rules, Sinner, Effects, BossShares.For(Sinner.Id, rules.BossId), coins, ChapterSeed(Seed, Chapter), kit: Kit,
@@ -191,19 +199,24 @@ namespace HellPoker.Core.Chapters
                 Run.EndChapter();
                 Stage = JourneyStage.Lucifer;
             }
-            LuciferBarStart = barStart > 0 ? barStart
-                : Math.Max(1, BossShares.For(Sinner.Id, Dealers.DealerRoster.LuciferId) * Circles.BarAt(Circle) / 100);
+            LuciferBarStart = barStart > 0 ? barStart : Math.Max(1, BossShares.For(Sinner.Id, Dealers.DealerRoster.LuciferId));
             Effects.SitAt(Dealers.DealerRoster.LuciferId, fresh: true);
-            HellPokerGame game = BossTable.Create(template, BossTable.Lucifer, LuciferBarStart, 101,
-                BossTable.WinWithRelics(Circles.WinPercentAt(Circle, ChapterRules.LuciferWinPercent), Effects.CombinedRelics, Run.Purse.Coins),
-                ChapterRules.LuciferLoss, RandomSeeds.Derive(Seed, LuciferStream), Sinner, Sinner, Circles.MaliceShortAt(Circle));
+            Dealers.Dealer lucifer = BossTable.Lucifer;
+            HellPokerGame game = BossTable.Create(template, lucifer, LuciferBarStart, 101,
+                BossTable.WinWithRelics(ChapterRules.LuciferWinPercent, Effects.CombinedRelics, Run.Purse.Coins),
+                ChapterRules.LuciferLoss * DifficultyRules.BossLossFor(Difficulty, 3) / 100, RandomSeeds.Derive(Seed, LuciferStream), Sinner, Sinner,
+                DifficultyRules.MaliceShortFor(Difficulty, 3, lucifer.MaliceMax));
             game.UseEffects(Effects);
             BossTable.Arm(game, Effects);
             Sentence.Follow(game);
             Kit.EnterLucifer();
             LuciferHooks = ChapterHooks.Attach(game, Kit, Dealers.DealerRoster.LuciferId, LuciferBarStart, RandomSeeds.Derive(Seed, LuciferStream),
-                Circles.LuciferMirrorsTwoAt(Circle));
-            if ((bar > 0 && bar != LuciferBarStart) || handsPlayed > 0) game.TakeOver(Math.Max(1, bar > 0 ? bar : LuciferBarStart), handsPlayed);
+                Difficulty);
+            if ((bar > 0 && bar != LuciferBarStart) || handsPlayed > 0)
+            {
+                game.TakeOver(Math.Max(1, bar > 0 ? bar : LuciferBarStart), handsPlayed);
+                LuciferHooks.Rule?.CheckRage(game, announce: false);
+            }
             return game;
         }
 
@@ -244,11 +257,12 @@ namespace HellPoker.Core.Chapters
             int chapter = Math.Max(1, Math.Min(ChapterRules.Chapters, save.Chapter));
             var journey = new ChapterJourney(save.Seed, sinner, effects)
             {
-                Chapter = chapter, FloorHands = Math.Max(0, save.FloorHands), Circle = Circles.Clamp(save.Circle)
+                Chapter = chapter, FloorHands = Math.Max(0, save.FloorHands), Difficulty = save.Difficulty,
+                RunId = string.IsNullOrEmpty(save.RunId) ? NewRunId() : save.RunId, SaveCount = Math.Max(0, save.SaveCount)
             };
             for (int i = 0; i < 4 && i < save.BossHands.Count; i++) journey.BossHands[i] = Math.Max(0, save.BossHands[i]);
             ChapterRules rules = journey.RulesFor(chapter);
-            journey.Sentence = new RunSentence(save.Sentence >= 0 ? save.Sentence : SentenceOfAnOldSave(save, journey.Circle));
+            journey.Sentence = new RunSentence(save.Sentence >= 0 ? save.Sentence : SentenceOfAnOldSave(save));
             journey.Run = new ChapterRun(rules, sinner, effects, Math.Max(1, save.Years), Math.Max(0, save.Coins), ChapterSeed(save.Seed, chapter),
                 mapVersion: save.MapVersion)
             {
@@ -280,14 +294,14 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>A save from before the sentence was kept (Demo 2.0.1): what is owed to this chapter's demon (or Lucifer) and the shares
         /// of the demons still ahead.</summary>
-        private static int SentenceOfAnOldSave(ChapterSave save, int circle)
+        private static int SentenceOfAnOldSave(ChapterSave save)
         {
             int now = save.Lucifer || (save.BossBarStart > 0 && !save.BossBeaten && save.BossBar > 0)
                 ? Math.Max(0, save.BossBar > 0 ? save.BossBar : save.LuciferBarStart)
                 : Math.Max(0, save.Years) + Math.Max(0, save.Owed);
             int ahead = 0;
             for (int boss = save.Lucifer ? 4 : Math.Max(1, Math.Min(ChapterRules.Chapters, save.Chapter)) + 1; boss <= 4; boss++)
-                ahead += BossShares.For(save.ClassId, BossShares.Bosses[boss - 1]) * Circles.BarAt(circle) / 100;
+                ahead += BossShares.For(save.ClassId, BossShares.Bosses[boss - 1]);
             return now + ahead;
         }
 
@@ -299,7 +313,9 @@ namespace HellPoker.Core.Chapters
             {
                 ClassId = Sinner.Id,
                 Seed = Seed,
-                Circle = Circle,
+                Difficulty = Difficulty,
+                RunId = RunId,
+                SaveCount = SaveCount,
                 Chapter = Chapter,
                 MapVersion = run.Map.Version,
                 Lucifer = Stage == JourneyStage.Lucifer,

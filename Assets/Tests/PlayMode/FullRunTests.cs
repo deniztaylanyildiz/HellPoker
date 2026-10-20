@@ -43,29 +43,49 @@ namespace HellPoker.PlayMode.Tests
             Time.timeScale = 1f;
         }
 
-        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_English() => Run(0, "English", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator Oracle_Turkish() => Run(1, "Turkish", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator King_English() => Run(2, "English", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator Jester_Turkish() => Run(3, "Turkish", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator Summoner_English() => Run(4, "English", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_FifthCircle_Turkish() => Run(0, "Turkish", 5);
-        [UnityTest, Timeout(3600000)] public IEnumerator Thief_English() => Run(5, "English", 0);
-        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Turkish() => Run(5, "Turkish", 0);
+        // Demo 3.4: every class at every difficulty (Ironman too), the languages taking turns.
+        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_Easy_English() => Run(0, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_Medium_Turkish() => Run(0, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_Hard_English() => Run(0, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator Peasant_Ironman_Turkish() => Run(0, "Turkish", Difficulty.Ironman);
+        [UnityTest, Timeout(3600000)] public IEnumerator Oracle_Easy_English() => Run(1, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator Oracle_Medium_Turkish() => Run(1, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator Oracle_Hard_English() => Run(1, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator Oracle_Ironman_Turkish() => Run(1, "Turkish", Difficulty.Ironman);
+        [UnityTest, Timeout(3600000)] public IEnumerator King_Easy_English() => Run(2, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator King_Medium_Turkish() => Run(2, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator King_Hard_English() => Run(2, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator King_Ironman_Turkish() => Run(2, "Turkish", Difficulty.Ironman);
+        [UnityTest, Timeout(3600000)] public IEnumerator Jester_Easy_English() => Run(3, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator Jester_Medium_Turkish() => Run(3, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator Jester_Hard_English() => Run(3, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator Jester_Ironman_Turkish() => Run(3, "Turkish", Difficulty.Ironman);
+        [UnityTest, Timeout(3600000)] public IEnumerator Summoner_Easy_English() => Run(4, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator Summoner_Medium_Turkish() => Run(4, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator Summoner_Hard_English() => Run(4, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator Summoner_Ironman_Turkish() => Run(4, "Turkish", Difficulty.Ironman);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Easy_English() => Run(5, "English", Difficulty.Easy);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Medium_Turkish() => Run(5, "Turkish", Difficulty.Medium);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Hard_English() => Run(5, "English", Difficulty.Hard);
+        [UnityTest, Timeout(3600000)] public IEnumerator Thief_Ironman_Turkish() => Run(5, "Turkish", Difficulty.Ironman);
 
         private static ChapterPresenter Chapters => ChapterJourneyTests.Chapters;
+
+        /// <summary>The run being played is an Ironman's (it reloads only at a camp).</summary>
+        private static bool _ironman;
         private static TablePresenter Table => (TablePresenter)Chapters.Table;
 
         private static readonly NodeKind[] Kinds =
             { NodeKind.Table, NodeKind.Event, NodeKind.Unknown, NodeKind.BlackMarket, NodeKind.Warden, NodeKind.Treasure, NodeKind.PurgatoryFire };
 
-        /// <summary>The records a player who has been freed before has: the Summoner open, and every circle of the Peasant's.</summary>
+        /// <summary>The records a player who has been freed before has: freed on every level (every level open, whatever the locks).</summary>
         private static string Records()
         {
             var book = new ChapterRecords();
-            for (int circle = 0; circle < Circles.Deepest; circle++)
+            for (Difficulty d = Difficulty.Easy; d <= DifficultyRules.Hardest; d++)
             {
                 book.RunStarted();
-                book.RunEnded(JourneyEnd.Freed, 4, Core.Sinners.Peasant.ClassId, 140, circle, 100);
+                book.RunEnded(JourneyEnd.Freed, 4, Core.Sinners.Peasant.ClassId, 140, d, 100);
             }
             return book.Encode();
         }
@@ -89,7 +109,7 @@ namespace HellPoker.PlayMode.Tests
             public string End;
         }
 
-        private IEnumerator Run(int classIndex, string language, int circle)
+        private IEnumerator Run(int classIndex, string language, Difficulty difficulty)
         {
             KPressed = 0;
             HellPokerBootstrap.BatchStore.Clear();
@@ -98,15 +118,17 @@ namespace HellPoker.PlayMode.Tests
             yield return LoadScene();
             HellPokerScreenshots.Press("NewGameButton");
             yield return new WaitForSeconds(0.8f);
-            for (int c = 0; c < circle; c++)
+            // The difficulty row starts at Medium: step to the level.
+            for (int d = (int)DifficultyRules.Default; d != (int)difficulty; d += Math.Sign((int)difficulty - d))
             {
-                HellPokerScreenshots.Press("CircleUp" + classIndex);
+                HellPokerScreenshots.Press((int)difficulty > d ? "DifficultyUp" : "DifficultyDown");
                 yield return null;
             }
             HellPokerScreenshots.ChooseSinner(classIndex);
             yield return new WaitForSeconds(0.8f);
             Assert.IsNotNull(Chapters.Journey, "the class card opened a run");
-            Assert.AreEqual(circle, Chapters.Journey.Circle, "the circle chosen");
+            Assert.AreEqual(difficulty, Chapters.Journey.Difficulty, "the difficulty chosen");
+            _ironman = difficulty == Difficulty.Ironman;
             string classId = Chapters.Journey.Sinner.Id;
 
             var story = new Story { KitStatAtChapter = KitStat(classId) };
@@ -132,12 +154,13 @@ namespace HellPoker.PlayMode.Tests
                 Assert.Less(sameState, 400, $"stuck at {state}\n{string.Join("\n", story.Notes.Skip(Math.Max(0, story.Notes.Count - 20)))}");
             }
 
-            Debug.Log($"Full run {classId} ({language}, circle {circle}): {story.End}; nodes {string.Join(", ", story.Visited)}; reloads {story.Reloads}; " +
+            Debug.Log($"Full run {classId} ({language}, {DifficultyRules.IdOf(difficulty)}): {story.End}; nodes {string.Join(", ", story.Visited)}; reloads {story.Reloads}; " +
                       $"power in {story.PowerChapters} chapters\n" + string.Join("\n", story.Notes));
             Assert.IsNotNull(story.End, "the run reached an end screen");
             Assert.IsTrue(story.ReachedLucifer, "the run reached Lucifer (" + story.End + ")");
             CollectionAssert.IsSubsetOf(Kinds, story.Visited, "every kind of node was stepped on: " + string.Join(", ", story.Visited));
-            Assert.GreaterOrEqual(story.Reloads, 3, "saved, reloaded and continued once a chapter");
+            // Ironman saves only at the camps: reloaded there (at least once); the others once a chapter.
+            Assert.GreaterOrEqual(story.Reloads, _ironman ? 1 : 3, "saved, reloaded and continued");
             Assert.GreaterOrEqual(story.PowerChapters, 3, "the class's power in every chapter");
         }
 
@@ -221,6 +244,18 @@ namespace HellPoker.PlayMode.Tests
             }
             if (card.Title == UiText.LuciferCallsTitle) story.ReachedLucifer = true;
 
+            // Ironman saves on the way into a camp: reloaded there, once a chapter (the camp's panel comes back).
+            if (_ironman && !story.ReloadedHere && card.Title == UiText.CampTitle && Chapters.Run?.CurrentKind == NodeKind.PurgatoryFire)
+            {
+                story.ReloadedHere = true;
+                story.Reloads++;
+                story.Notes.Add($"reload at a camp in chapter {story.Chapter}");
+                yield return LoadScene();
+                HellPokerScreenshots.Press("ContinueButton");
+                yield return new WaitForSeconds(0.8f);
+                yield break;
+            }
+
             story.PanelPresses.TryGetValue(card.Title, out int presses);
             story.PanelPresses[card.Title] = presses + 1;
             int pick = -1;
@@ -252,8 +287,8 @@ namespace HellPoker.PlayMode.Tests
         {
             ChapterPresenter c = Chapters;
             ChapterRun run = c.Run;
-            // Once a chapter: the run is saved, the scene reloaded, CONTINUE.
-            if (!story.ReloadedHere && run.Current != null)
+            // Once a chapter: the run is saved, the scene reloaded, CONTINUE (Ironman: only standing at a camp, where it saves).
+            if (!story.ReloadedHere && run.Current != null && (!_ironman || run.CurrentKind == NodeKind.PurgatoryFire))
             {
                 story.ReloadedHere = true;
                 story.Reloads++;

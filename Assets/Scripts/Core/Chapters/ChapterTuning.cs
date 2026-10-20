@@ -17,10 +17,6 @@ namespace HellPoker.Core.Chapters
         /// <summary>A chapter's tribute over the class's start in place of its rules'.</summary>
         public static readonly Dictionary<int, int> TributeOverStart = new Dictionary<int, int>();
 
-        /// <summary>Every circle takes this much (percent) off what a won demon's hand takes off his bar: the game's is
-        /// <see cref="Circles.WinStepPercent"/>; the simulation tries others (HELLPOKER_CIRCLE_WIN).</summary>
-        public static int CircleWinStepPercent = Circles.WinStepPercent;
-
         /// <summary>A lost hand heals a demon's bar by this much of its cost: the game's is <see cref="BossTable.BarHealPercent"/>; the
         /// simulation tries others (HELLPOKER_BAR_HEAL).</summary>
         public static int BarHealPercent = BossTable.BarHealPercent;
@@ -53,7 +49,7 @@ namespace HellPoker.Core.Chapters
             StartingCoins.Clear();
             SentenceTotals.Clear();
             TributeOverStart.Clear();
-            CircleWinStepPercent = Circles.WinStepPercent;
+            DifficultyRules.Reset();
             BarHealPercent = BossTable.BarHealPercent;
             BossLossPercent.Clear();
             MapVersion = 0;

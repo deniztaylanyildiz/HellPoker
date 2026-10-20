@@ -43,6 +43,9 @@ namespace HellPoker.Core.Chapters
         {
             bool spaced = version >= 3;
             int floors = Math.Max(4, rules.Floors);
+            // Demo 3.4: Medium on, a less safe map (Easy rolls exactly as before: the same seed, the same map).
+            Difficulty difficulty = rules.Difficulty;
+            int wardenWeight = DifficultyRules.UnknownWardenFor(difficulty, rules.Number);
 
             // The floors' sizes: three first, one camp last, 2-5 between (never the floor above's).
             var sizes = new int[floors];
@@ -97,7 +100,8 @@ namespace HellPoker.Core.Chapters
 
             // The middle camp: every start reaches one; never next to another camp.
             var (cFrom, cTo) = CampWindow(floors);
-            Cover(kinds, next, sizes, NodeKind.PurgatoryFire, f => f >= cFrom && f <= cTo, random, int.MaxValue, spaced ? FloorsBetween : 0);
+            Cover(kinds, next, sizes, NodeKind.PurgatoryFire, f => f >= cFrom && f <= cTo, random, DifficultyRules.MiddleCampsFor(difficulty, rules.Number),
+                spaced ? FloorsBetween : 0);
 
             // The wardens: from the fourth floor on (never the last), every start reaches one, then more up to the chapter's number.
             int wardenLimit = Math.Max(1, rules.MaxWardens);
@@ -125,9 +129,11 @@ namespace HellPoker.Core.Chapters
             {
                 hidden[f] = new NodeKind?[sizes[f]];
                 for (int l = 0; l < sizes[f]; l++)
-                    if (kinds[f][l] == NodeKind.Unknown) hidden[f][l] = HiddenAt(f, random);
+                    if (kinds[f][l] == NodeKind.Unknown) hidden[f][l] = HiddenAt(f, random, wardenWeight);
             }
-            if (spaced) SpaceTheMarkets(kinds, hidden, next, sizes, random);
+            if (spaced) SpaceTheMarkets(kinds, hidden, next, sizes, random, wardenWeight);
+            if (DifficultyRules.WardenOnEveryPath(difficulty, rules.Number))
+                WardenOnEveryPath(kinds, hidden, next, sizes, f => f >= ChapterMap.WardenFromFloor && f < floors - 1, random);
 
             var map = new MapNode[floors][];
             for (int f = 0; f < floors; f++)
@@ -142,7 +148,8 @@ namespace HellPoker.Core.Chapters
         /// node an event, an unknown's content rolled again without the market. What every path carries is kept per node (the floor of its
         /// last market and how many it passed), so no path is missed.
         /// </summary>
-        private static void SpaceTheMarkets(NodeKind[][] kinds, NodeKind?[][] hidden, List<int>[][] next, int[] sizes, IRandomSource random)
+        private static void SpaceTheMarkets(NodeKind[][] kinds, NodeKind?[][] hidden, List<int>[][] next, int[] sizes, IRandomSource random,
+            int wardenWeight = 5)
         {
             const int none = -100;
             var states = new HashSet<(int last, int count)>[kinds.Length][];
@@ -163,7 +170,7 @@ namespace HellPoker.Core.Chapters
                         else
                         {
                             NodeKind again;
-                            do again = HiddenAt(f, random);
+                            do again = HiddenAt(f, random, wardenWeight);
                             while (again == NodeKind.BlackMarket);
                             hidden[f][l] = again;
                         }
@@ -172,6 +179,62 @@ namespace HellPoker.Core.Chapters
                     states[f][l] = market ? new HashSet<(int, int)>(arriving.Select(s => (f, s.count + 1))) : arriving;
                 }
             }
+        }
+
+        /// <summary>A node that holds a warden, open or behind a "?".</summary>
+        public static bool IsWarden(NodeKind kind, NodeKind? hidden) => kind == NodeKind.Warden || (kind == NodeKind.Unknown && hidden == NodeKind.Warden);
+
+        /// <summary>
+        /// Demo 3.4 (Lilith's chapter, Medium on): every path from every start meets a warden. While some path down the map passes none, a
+        /// node of that path on a warden's floors (not a treasure or a camp) becomes one.
+        /// </summary>
+        private static void WardenOnEveryPath(NodeKind[][] kinds, NodeKind?[][] hidden, List<int>[][] next, int[] sizes, Func<int, bool> wardenFloor,
+            IRandomSource random)
+        {
+            for (int guard = 0; guard < 40; guard++)
+            {
+                List<(int f, int l)> path = PathWithoutWarden(kinds, hidden, next, sizes);
+                if (path == null) return;
+                var spots = path.Where(n => wardenFloor(n.f) && kinds[n.f][n.l] != NodeKind.Treasure && kinds[n.f][n.l] != NodeKind.PurgatoryFire).ToList();
+                if (spots.Count == 0) return;
+                var (f, l) = spots[random.Next(spots.Count)];
+                kinds[f][l] = NodeKind.Warden;
+                hidden[f][l] = null;
+            }
+        }
+
+        /// <summary>A path from a start to the last floor with no warden on it; null when every path meets one.</summary>
+        private static List<(int f, int l)> PathWithoutWarden(NodeKind[][] kinds, NodeKind?[][] hidden, List<int>[][] next, int[] sizes)
+        {
+            int floors = kinds.Length;
+            // From the bottom up: the next step of a warden-free way down from each node (-1: none).
+            var step = new int[floors][];
+            var free = new bool[floors][];
+            for (int f = floors - 1; f >= 0; f--)
+            {
+                step[f] = new int[sizes[f]];
+                free[f] = new bool[sizes[f]];
+                for (int l = 0; l < sizes[f]; l++)
+                {
+                    step[f][l] = -1;
+                    if (IsWarden(kinds[f][l], hidden[f][l])) continue;
+                    if (f == floors - 1) { free[f][l] = true; continue; }
+                    foreach (int j in next[f][l])
+                        if (free[f + 1][j]) { free[f][l] = true; step[f][l] = j; break; }
+                }
+            }
+            for (int s = 0; s < sizes[0]; s++)
+            {
+                if (!free[0][s]) continue;
+                var path = new List<(int f, int l)>();
+                for (int f = 0, l = s; f < floors; l = step[f][l], f++)
+                {
+                    path.Add((f, l));
+                    if (f == floors - 1 || step[f][l] < 0) break;
+                }
+                return path;
+            }
+            return null;
         }
 
         /// <summary>A node that is a black market, open or behind a "?".</summary>
@@ -192,10 +255,14 @@ namespace HellPoker.Core.Chapters
             return Roll(weights, random);
         }
 
-        /// <summary>An unknown node's content: <see cref="UnknownWeights"/> (no warden before the fourth floor, no market before the third).</summary>
-        private static NodeKind HiddenAt(int floor, IRandomSource random)
+        /// <summary>An unknown node's content: <see cref="UnknownWeights"/> (no warden before the fourth floor, no market before the third);
+        /// Demo 3.4: a warden weighs <paramref name="wardenWeight"/> of the hundred, the difference off the events'.</summary>
+        private static NodeKind HiddenAt(int floor, IRandomSource random, int wardenWeight = 5)
         {
-            NodeKind kind = Roll(UnknownWeights, random);
+            var weights = wardenWeight == 5 ? UnknownWeights
+                : UnknownWeights.Select(w => w.kind == NodeKind.Warden ? (w.kind, wardenWeight)
+                    : w.kind == NodeKind.Event ? (w.kind, Math.Max(0, w.weight - (wardenWeight - 5))) : w).ToArray();
+            NodeKind kind = Roll(weights, random);
             if (kind == NodeKind.Warden && floor < ChapterMap.WardenFromFloor) return NodeKind.Table;
             if (kind == NodeKind.BlackMarket && floor < 2) return NodeKind.Event;
             return kind;

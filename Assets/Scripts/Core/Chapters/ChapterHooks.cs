@@ -14,11 +14,13 @@ namespace HellPoker.Core.Chapters
         /// <summary>The dice stream of a table's hooks under its seed.</summary>
         public const int HookStream = 6;
 
-        private ChapterHooks(ClassKit kit, DemonRule rule, ClassPowers powers, UpgradeHooks upgrades) : base(new TableHooks[] { rule, powers, upgrades })
+        private ChapterHooks(ClassKit kit, DemonRule rule, DemonRule carried, ClassPowers powers, UpgradeHooks upgrades)
+            : base(new TableHooks[] { rule, carried, powers, upgrades })
         {
             Upgrades = upgrades;
             Kit = kit;
             Rule = rule;
+            Carried = carried;
             Powers = powers;
         }
 
@@ -26,6 +28,9 @@ namespace HellPoker.Core.Chapters
 
         /// <summary>The demon's rule; null at a floor's table.</summary>
         public DemonRule Rule { get; }
+
+        /// <summary>Demo 3.4, Ironman: another demon's rule carried at half strength (Belial: the interest, Lilith: the role swap); null for none.</summary>
+        public DemonRule Carried { get; }
 
         /// <summary>The class's powers; null for the Jester (his jokers are his).</summary>
         public ClassPowers Powers { get; }
@@ -40,11 +45,12 @@ namespace HellPoker.Core.Chapters
         public TheftPowers Theft => Powers as TheftPowers;
 
         /// <summary>The hooks of a table: <paramref name="bossId"/> null for a floor's (no rule), the boss's id at the demon's table.</summary>
-        /// <param name="mirrorsTwo">Lucifer copies a second mechanic too (the fifth circle).</param>
-        public static ChapterHooks For(ClassKit kit, string bossId, int barStart, int seed, bool mirrorsTwo = false)
+        /// <param name="difficulty">Demo 3.4: Medium on, the demon may rage; Ironman, he carries another demon's rule.</param>
+        public static ChapterHooks For(ClassKit kit, string bossId, int barStart, int seed, Difficulty difficulty = Difficulty.Easy)
         {
             IRandomSource Dice(int n) => new SystemRandomSource(RandomSeeds.Derive(RandomSeeds.Derive(seed, HookStream), n));
-            DemonRule rule = bossId == null ? null : DemonRule.For(bossId, barStart, kit, Dice(1), mirrorsTwo);
+            DemonRule rule = bossId == null ? null : DemonRule.For(bossId, barStart, kit, Dice(1), difficulty);
+            DemonRule carried = bossId == null ? null : DemonRule.CarriedFor(bossId, barStart, Dice(4), difficulty);
             ClassPowers powers;
             switch (kit.Kind)
             {
@@ -55,13 +61,13 @@ namespace HellPoker.Core.Chapters
                 case KitKind.Theft: powers = new TheftPowers(kit, Dice(2), bossId != null ? barStart : 0); break;
                 default: powers = null; break;
             }
-            return new ChapterHooks(kit, rule, powers, new UpgradeHooks(kit, Dice(3)));
+            return new ChapterHooks(kit, rule, carried, powers, new UpgradeHooks(kit, Dice(3)));
         }
 
         /// <summary>The hooks on a game: it plays by them from now on.</summary>
-        public static ChapterHooks Attach(HellPokerGame game, ClassKit kit, string bossId, int barStart, int seed, bool mirrorsTwo = false)
+        public static ChapterHooks Attach(HellPokerGame game, ClassKit kit, string bossId, int barStart, int seed, Difficulty difficulty = Difficulty.Easy)
         {
-            ChapterHooks hooks = For(kit, bossId, barStart, seed, mirrorsTwo);
+            ChapterHooks hooks = For(kit, bossId, barStart, seed, difficulty);
             game.UseHooks(hooks);
             // The Thief's glance: one of the demon's face-down cards (the Night Eye: two) plays face up from the deal.
             if (kit.GlanceCards > 0) game.HouseCardsOpenAtDeal = System.Math.Max(game.HouseCardsOpenAtDeal, kit.GlanceCards);

@@ -31,8 +31,8 @@ namespace HellPoker.Presentation.Abstractions
         bool IsConfirming { get; }
 
         /// <summary>Opens a warning: the demon's word on it, what it costs, and the button that goes ahead
-        /// (<paramref name="confirmLabel"/>: ABANDON, QUIT). BACK (or Esc) closes it.</summary>
-        void AskToConfirm(string taunt, string warning, string confirmLabel);
+        /// (<paramref name="confirmLabel"/>: ABANDON, QUIT, YES). BACK (or <paramref name="cancelLabel"/>, or Esc) closes it.</summary>
+        void AskToConfirm(string taunt, string warning, string confirmLabel, string cancelLabel = null);
 
         bool IsVisible { get; }
 

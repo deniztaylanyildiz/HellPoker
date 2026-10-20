@@ -164,7 +164,8 @@ namespace HellPoker.Presentation.Views
 
             Button menu = UiFactory.CreateButton("MapMenuButton", side.transform, "", 8, out Text menuLabel, ButtonSkin.Ash);
             menuLabel.Localized(() => UiText.Menu);
-            ((RectTransform)menu.transform).PlaceTL(8, PixelScreen.Height - 8 - 26, SideWidth - 16, 18);
+            // Demo 3.4: half the row — SAVE stands beside it (SaveButtonView, its own layer over the panels).
+            ((RectTransform)menu.transform).PlaceTL(8, PixelScreen.Height - 8 - 26, 52, 18);
             menu.onClick.AddListener(() => MenuPressed?.Invoke());
 
             // The gate above the last floor.

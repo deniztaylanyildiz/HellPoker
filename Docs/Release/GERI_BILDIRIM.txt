@@ -36,7 +36,8 @@ Poker biliyor musun? (hiç / biraz / iyi):
 
 
 5. ZORLUK
-   Hangi bölüme kadar indin? Lucifer'e ulaştın mı, kurtuldun mu? En zor şeytan hangisiydi, neden?
+   Hangi zorlukta (Kolay / Orta / Zor / Ironman) oynadın? Hangi bölüme kadar indin? Lucifer'e ulaştın mı, kurtuldun mu?
+   En zor şeytan hangisiydi, neden?
 
    >
 
@@ -86,9 +87,8 @@ Poker biliyor musun? (hiç / biraz / iyi):
     >
 
 
-12. KİLİTLER VE DAİRELER
-    Kilitli emanetlerden ya da Çağırıcı'dan birini açtın mı? Kilometre taşları (REKORLAR'da) anlaşılır mıydı?
-    Kurtulduysan bir sonraki daireyi denedin mi, ne kadar zordu?
+12. KİLİTLER
+    Kilitli emanetlerden birini açtın mı? Kilometre taşları (REKORLAR'da) anlaşılır mıydı?
 
     >
 
@@ -127,6 +127,13 @@ Poker biliyor musun? (hiç / biraz / iyi):
 17. ANA MENÜ VE DİL (Demo 3.3)
     Yeni ana menü (zemin, logo, demir kutu, alev imleci, devam kartı) nasıl? Oklarla ve fareyle gezmek rahat mı? Dili AYARLAR ▸ DİL
     sekmesinden bulabildin mi?
+
+    >
+
+
+18. ZORLUK VE KAYDET (Demo 3.4)
+    Orta'da şeytanların ÖFKELENMESİNİ (barın yarısında) fark ettin mi? Haraç keseye göre artınca nasıl hissettirdi? KAYDET düğmesini
+    kullandın mı? Ironman denediysen kampta kaydetmek ve ölünce her şeyin silinmesi nasıldı?
 
     >
 

@@ -4141,3 +4141,39 @@ ve demo kurallarına dokunma.
 ### Sıradaki
 - Aşama 2: zorluk seviyeleri ve KAYDET (Demo 3.4).
 
+## 2026-10-20 — Demo 3.4 (Aşama 2): zorluk seviyeleri ve KAYDET
+
+### İstek (kullanıcı)
+Cehennem Daireleri yerine dört zorluk (Kolay / Orta / Zor / Ironman; her biri öncekinin kurallarını taşır, kurallar kullanıcının), sınıf
+seçiminin yanında seçilir; kilitler (Orta kurtuluşu Zor'u, Zor kurtuluşu Ironman'ı açar), rekorlar sınıf × zorluk; daire kalıntısı kalmasın,
+eski kayıtlar Kolay; KAYDET düğmesi (masada kapalı), Ironman'da yalnız kampta, ölünce silinir, yükleme hilesi olmasın; simülasyon hedefleri
+(Kolay değişmez, Orta −5..−10, Zor %10-20, Ironman %3-8); testler, ekran görüntüleri, build 3.4, duman turları, commit ve etiket.
+
+### Yapılanlar
+- Core: `Difficulty` / `DifficultyRules` (tek yer), `ChapterRules.WithDifficulty`, `ChapterRun.Tribute`, `DemonRule` öfkesi ve taşınan kural,
+  `ChapterHooks.Carried`, `MapMaker` (kamp, "?" bekçi, Lilith yolları), `ChapterJourney` (kese, Lucifer, RunId / SaveCount), `ChapterSave` v2,
+  `ChapterRecords` (seviye rekorları, kilit, ölü koşular, kayıt sayacı, eski daire rekorlarının taşınması). `Circles` silindi, `RunSentence` ve
+  kamp tekliflerinden daire çıktı, Lucifer'in ikinci aynası kalktı.
+- Sunum: zorluk satırı (kartların altında, hover, kilitli seviye ne açar), KAYDET (`SaveButtonView`), öfke (yazı, ses, yanan bakış, bar
+  işareti), taşınan kural ikonu, Ironman çıkış uyarısı, harita / devam kartı / günlük / rapor zorluğu, How to Play'e ZORLUK VE KAYIT sayfası
+  (resmi HowToShots'tan). Sesler `rage`, `saved` (`sounds.py`).
+- Simülasyon önce / sonra (PHASE2_CHAPTERS "Zorluk"): Kolay %33.0 (önceyle birebir), Orta %27.8, Zor %11.4, Ironman ilk %10.7 → ayar →
+  %4.8. Ayar: Ironman göstergesi 3 / 2 / 2 / 1 (istenen 5 / 4 / 3 / 3 yalnız Lilith'i kısaltıyordu), Ironman'ın kendi kese tamamlaması
+  %50 / %25 ve kaybı ×1.25 / 1.5 / 1.75 / 1.75 (taşınan kural tam güçte bile %10.0'du).
+- Testler: EditMode 1190 geçti (yeni `DifficultyTests` 17, `SaveButtonTests` 5, menü testleri); PlayMode TableLayout 11, Scene + MenuGrid +
+  HowToPlay + HoverTip 21, Chapter / Run / Lucifer / Backdrop 10, Cheat / Jester / Salon / Fanfare 25, FullRunTests 24 (6 sınıf × 4 seviye;
+  Oracle_Ironman ilk denemede yeniden yükleme bulamadı → test kamp panelinde yeniden yükleyecek şekilde düzeltildi), kaos 1 — hepsi geçti.
+
+### Kararlar (varsayılanla)
+- Zorluk satırı her karta değil, kartların altına tek satır (seviye sınıftan bağımsız açılıyor).
+- "Lucifer Lilith gibi" ante: Lucifer'in katı yok, uygulanmadı. Öfke Lucifer'de de var (Ayna'nın Göz / Çal aralığı yarıya).
+- Kamp sınırı ortadaki kamplar için (kapı önündeki kamp her zaman var). Pazar ×1.2 / ×1.4, bölümün kendi fiyat artışının üstüne biner.
+- Öfke kuralı: aralıklar yarıya (Belial 4 → 2, Ayna 3 → 2), şans / miktar ×1.5 (Lilith %50 → %75, Faiz ×1.5).
+- Ironman çıkış uyarısı yalnız ÇIKIŞ'ta: MENÜ ▸ ana menü koşuyu bellekte tutuyor (DEVAM ET aynı yerden), ilerleme ancak oyun kapanınca kaybolur.
+- Ironman kaydı oyun kapanırken de yazılmaz; çökme son kamptan devam eder.
+- Taşınan kural yarım güçte kaldı (kullanıcının kuralı); denge Ironman'ın 5-7 sayılarıyla sağlandı.
+
+### Açık sorular
+- Orta'da Mammon'daki ölüm %23 (hedef ~%10): Kolay'ın kendisi %20.6; Kolay'a dokunmadan inilemez.
+- Ironman'ın kendi 5 / 6 sayıları (spec'te yalnız Zor için vardı) kullanıcı onayı bekliyor.
+

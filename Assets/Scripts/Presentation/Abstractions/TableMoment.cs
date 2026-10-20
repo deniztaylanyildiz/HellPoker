@@ -28,6 +28,9 @@ namespace HellPoker.Presentation.Abstractions
         WinGlow,
 
         /// <summary>A hand lost (Phase 2): the screen's edge blinks red, twice.</summary>
-        LossGlow
+        LossGlow,
+
+        /// <summary>Demo 3.4: a demon enraged at half his bar: the text ("ENRAGED") flares up.</summary>
+        Rage
     }
 }

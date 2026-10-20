@@ -19,16 +19,17 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>The run's sentence in years; -1 when the save did not keep it.</summary>
         public int Sentence { get; }
 
-        public int Circle { get; }
+        /// <summary>Demo 3.4: the run's difficulty.</summary>
+        public Core.Chapters.Difficulty Difficulty { get; }
 
-        public ContinueCard(string classId, int chapter, int floor, int coins, int sentence, int circle)
+        public ContinueCard(string classId, int chapter, int floor, int coins, int sentence, Core.Chapters.Difficulty difficulty)
         {
             ClassId = classId;
             Chapter = chapter;
             Floor = floor;
             Coins = coins;
             Sentence = sentence;
-            Circle = circle;
+            Difficulty = difficulty;
         }
     }
 }

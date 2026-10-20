@@ -255,6 +255,9 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A run waits to be gone back to: in this session, or saved from an earlier one.</summary>
         bool CanContinue { get; }
 
+        /// <summary>Demo 3.4: an Ironman run with progress since its last camp (quitting loses it).</summary>
+        bool IronmanUnsaved { get; }
+
         /// <summary>Demo 3.3: the run that waits, in short (the title menu's card); null with none.</summary>
         ContinueCard ContinueCard { get; }
 
@@ -272,8 +275,8 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>A new chapter run as this class (a run in progress is abandoned: it counts as damned).</summary>
         void Start(Core.Sinners.SinnerClass sinnerClass);
 
-        /// <summary>A new chapter run as this class in a circle of Hell (at most the deepest the class has open).</summary>
-        void Start(Core.Sinners.SinnerClass sinnerClass, int circle);
+        /// <summary>A new chapter run as this class at a difficulty (Demo 3.4).</summary>
+        void Start(Core.Sinners.SinnerClass sinnerClass, Core.Chapters.Difficulty difficulty);
 
         /// <summary>Back to the run that waits (the saved one is loaded; a hand left in the middle is lost).</summary>
         void Continue();

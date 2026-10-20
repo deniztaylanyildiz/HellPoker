@@ -166,7 +166,7 @@ namespace HellPoker.PlayMode.Tests
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator TheGamesClassCards_TheirWordsFitAboveTheCircleAndChoose_InBothLanguages()
+        public IEnumerator TheGamesClassCards_TheirWordsFitAboveChoose_AndTheDifficultyRowFits_InBothLanguages()
         {
             foreach (bool turkish in new[] { false, true })
             {
@@ -182,13 +182,11 @@ namespace HellPoker.PlayMode.Tests
                     var ability = (RectTransform)card.Find("Ability");
                     var detail = (RectTransform)card.Find("Detail");
                     var choose = (RectTransform)card.Find("ChooseSinner" + index);
-                    var circle = (RectTransform)card.Find("Circle");
                     float Top(RectTransform r) => -r.anchoredPosition.y;
                     float Bottom(RectTransform r) => Top(r) + r.rect.height;
                     Assert.LessOrEqual(ability.GetComponent<Text>().preferredHeight, ability.rect.height + 0.5f, $"{what}: the power fits its box");
                     Assert.LessOrEqual(detail.GetComponent<Text>().preferredHeight, detail.rect.height + 0.5f, $"{what}: the price fits its box");
                     Assert.GreaterOrEqual(Top(detail), Bottom(ability), $"{what}: the price under the power");
-                    Assert.LessOrEqual(Bottom(detail), circle != null ? Top(circle) : Top(choose), $"{what}: the words end above the circle's row");
                     Assert.LessOrEqual(Bottom(detail), Top(choose), $"{what}: and above CHOOSE");
 
                     // Demo 2.3.1: the hover box holds the whole text, on screen.
@@ -204,6 +202,121 @@ namespace HellPoker.PlayMode.Tests
                     Assert.LessOrEqual(-tip.anchoredPosition.y + tip.rect.height, PixelScreen.Height, what + ": on screen (bottom)");
                     if (UiText.ChapterPassiveLine(id) != null) StringAssert.Contains(turkish ? "PASİF:" : "PASSIVE:", select.TipText, what);
                     select.HideTip();
+                }
+
+                // Demo 3.4: the difficulty row under the cards — every level's name fits it, it keeps clear of the cards, its words fit and
+                // stay on screen; on the 8 px grid.
+                string lang = turkish ? "tr" : "en";
+                var chooser = UnityEngine.Object.FindFirstObjectByType<SinnerSelectView>();
+                Assert.IsTrue(chooser.DifficultyShown, lang + ": the difficulty row");
+                var row = (RectTransform)chooser.transform.GetComponentsInChildren<Transform>(true).First(t => t.name == "DifficultyRow");
+                Text label = row.GetComponentsInChildren<Text>(true).First(t => t.name == "DifficultyLabel");
+                for (int step = 0; step < 4; step++)
+                {
+                    Assert.LessOrEqual(label.preferredWidth, label.rectTransform.rect.width + 0.5f, $"{lang}: '{label.text}' fits the row");
+                    chooser.PointAtDifficulty();
+                    yield return null;
+                    var tip = (RectTransform)chooser.transform.GetComponentsInChildren<Transform>(true).First(t => t.name == "SinnerCardTip");
+                    Text tipText = tip.GetComponentInChildren<Text>();
+                    Assert.LessOrEqual(tipText.preferredHeight, tipText.rectTransform.rect.height + 0.5f, $"{lang}: the level's words fit their box");
+                    Assert.GreaterOrEqual(-tip.anchoredPosition.y, 0f, $"{lang}: the box on screen (top)");
+                    chooser.HideTip();
+                    HellPokerScreenshots.Press(step < 2 ? "DifficultyUp" : "DifficultyDown");
+                    yield return null;
+                }
+                Assert.AreEqual(0, Mathf.RoundToInt(row.anchoredPosition.x) % 8, lang + ": the row on the grid (x)");
+                Assert.LessOrEqual(-row.anchoredPosition.y + row.rect.height, PixelScreen.Height, lang + ": on screen");
+                foreach (Transform card in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                             .Where(t => t.name.StartsWith("Sinner_", StringComparison.Ordinal)))
+                    Assert.IsFalse(Overlaps(Box((RectTransform)card), Box(row)), $"{lang}: the row clear of {card.name}");
+            }
+        }
+
+        // ------------------------------------------------------------------ Demo 3.4: SAVE and the rage's mark
+
+        /// <summary>No button and no words of <paramref name="root"/> (but <paramref name="self"/>'s own) touch <paramref name="box"/>.</summary>
+        private static List<string> Over(Rect box, Transform root, Transform self)
+        {
+            var problems = new List<string>();
+            foreach (Button button in root.GetComponentsInChildren<Button>(false).Where(b => b.isActiveAndEnabled && b.transform != self))
+                if (Overlaps(box, Box((RectTransform)button.transform))) problems.Add("the button " + button.name);
+            foreach (Text text in root.GetComponentsInChildren<Text>(false).Where(t => t.isActiveAndEnabled && !string.IsNullOrWhiteSpace(t.text)
+                         && t.color.a > 0.01f && !t.transform.IsChildOf(self)))
+                if (Overlaps(box, Glyphs(text))) problems.Add($"the words '{Short(text)}' ({text.name})");
+            return problems;
+        }
+
+        [UnityTest, Timeout(300000)]
+        public IEnumerator SAVE_OnTheMapAndAtATable_FitsAndTouchesNothing_TheRageMarkToo_NoCircleLeft_InBothLanguages()
+        {
+            foreach (bool turkish in new[] { false, true })
+            {
+                string lang = turkish ? " (tr)" : " (en)";
+                // The map, a step taken: SAVE beside MENU.
+                ChapterSave map = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 31, 1, "");
+                map.NodeDone = true;
+                map.Difficulty = Difficulty.Medium;
+                yield return Load(turkish, map);
+                yield return null;
+                var save = UnityEngine.Object.FindFirstObjectByType<SaveButtonView>();
+                Assert.AreEqual(SaveButtonPlace.Map, save.Place, "map" + lang);
+                Assert.IsTrue(save.Enabled, "map" + lang);
+                var button = (RectTransform)save.transform.GetComponentsInChildren<Button>(true).First(b => b.name == "SaveButton").transform;
+                Text label = button.GetComponentInChildren<Text>();
+                Assert.LessOrEqual(label.preferredWidth, button.rect.width - 2f, "SAVE fits its button" + lang);
+                var mapView = UnityEngine.Object.FindFirstObjectByType<ChapterMapView>();
+                List<string> problems = Over(Box(button), mapView.transform, button);
+                Assert.IsEmpty(problems, "SAVE on the map" + lang + "\n" + string.Join("\n", problems));
+                Rect screen = Box(HoverTip.ScreenOf(button));
+                Rect b = Box(button);
+                Assert.IsTrue(b.xMin >= screen.xMin - 0.5f && b.yMin >= screen.yMin - 0.5f, "on screen" + lang);
+
+                // A floor's table: SAVE beside HANDS, dim, its hover.
+                yield return Load(turkish, AtNode(Core.Sinners.SinnerRoster.Peasant, NodeKind.Table, "imp"));
+                yield return Settle();
+                ChapterJourneyTests.Chapters.Table.PerformAction();
+                yield return Settle();
+                save = UnityEngine.Object.FindFirstObjectByType<SaveButtonView>();
+                button = (RectTransform)save.transform.GetComponentsInChildren<Button>(true).First(x => x.name == "SaveButton").transform;
+                Assert.AreEqual(SaveButtonPlace.Table, save.Place, "table" + lang);
+                Assert.IsFalse(save.Enabled, "dim at the table" + lang);
+                save.PointAt();
+                yield return null;
+                yield return null;
+                Assert.IsTrue(save.TipShown, "its hover" + lang);
+                var tip = (RectTransform)save.transform.GetComponentsInChildren<Transform>(true).First(t => t.name == "SaveTip");
+                Text tipText = tip.GetComponentInChildren<Text>();
+                Assert.LessOrEqual(tipText.preferredWidth, tip.rect.width - 4f, "the hover's words fit" + lang);
+                problems = Over(Box(button), ChapterJourneyTests.ChapterTableView.transform, button);
+                Assert.IsEmpty(problems, "SAVE at the table" + lang + "\n" + string.Join("\n", problems));
+
+                // An enraged demon: his bar's mark clear of his name and the words.
+                ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 1, "");
+                boss.Difficulty = Difficulty.Medium;
+                boss.NodeDone = false;
+                boss.Match = "boss";
+                boss.BossBarStart = 1600;
+                boss.BossBar = 700;
+                yield return Load(turkish, boss);
+                yield return Settle();
+                TableView view = ChapterJourneyTests.ChapterTableView;
+                Assert.IsTrue(view.BossBar.Shown.Enraged, "the demon came back enraged" + lang);
+                Assert.GreaterOrEqual(view.BossBar.Shown.RageAt, 0f);
+                var flag = (RectTransform)view.BossBar.transform.Find("RageFlag");
+                Assert.IsTrue(flag.GetComponent<Image>().enabled, "the rage's flag" + lang);
+                problems = Over(Box(flag), view.GetComponentInChildren<DealerView>(true).transform, flag);
+                Assert.IsEmpty(problems, "the rage's flag" + lang + "\n" + string.Join("\n", problems));
+
+                // Nothing of the circles left on the class choice.
+                ChapterJourneyTests.Menu.GoBack();
+                yield return new WaitForSeconds(0.6f);
+                HellPokerScreenshots.Press("NewGameButton");
+                yield return new WaitForSeconds(0.6f);
+                if (ChapterJourneyTests.Menu.IsAtMenuRoot == false)
+                {
+                    var select = UnityEngine.Object.FindFirstObjectByType<SinnerSelectView>();
+                    Assert.IsFalse(select.GetComponentsInChildren<Transform>(true).Any(t => t.name.StartsWith("Circle", StringComparison.Ordinal)), "no circle row" + lang);
+                    Assert.IsFalse(select.GetComponentsInChildren<Text>(true).Any(t => t.text.Contains("CIRCLE") || t.text.Contains("DAİRE")), "no circle's words" + lang);
                 }
             }
         }

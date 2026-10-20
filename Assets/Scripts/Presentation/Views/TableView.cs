@@ -408,6 +408,7 @@ namespace HellPoker.Presentation.Views
             BuildResults(screen);
             _stage = new Stage(this);
             ApplyLayout();
+            BuildCarriedRule(screen);
         }
 
         // ------------------------------------------------------------------ a hand's result, plainly (2.1.1)
@@ -802,7 +803,7 @@ namespace HellPoker.Presentation.Views
         private Text _handsLabel;
         private GameObject _handsTip;
         private Text _hint;
-        private const int HintX = 126, WideHintX = 146, HandsWidth = 56, WideHandsWidth = 76;
+        private const int HintX = 126, WideHintX = 206, HandsWidth = 56, WideHandsWidth = 76;   // Demo 3.4: SAVE (144-200) before the hint
 
         /// <summary>Masa birliği: always false — no table has a payouts panel; they are in the hands' panel (H).</summary>
         public bool PayoutTableShown { get; private set; } = true;
@@ -904,6 +905,56 @@ namespace HellPoker.Presentation.Views
                 _leaveLabel.text = state == LeaveState.Summoned ? UiText.NoEscape : locked ? UiText.SoulBound : UiText.LeaveTable;
                 _leaveButton.GetComponent<ButtonFeel>().LabelColor = locked ? Palette.Hell : Palette.Bone;
             });
+        }
+
+        public void SetEnraged(bool enraged) => _sequencer.Do(() => _dealer.SetEnraged(enraged));
+
+        private Image _carried;
+        private GameObject _carriedTip;
+        private Text _carriedTipText;
+
+        /// <summary>The carried rule's icon as shown (for tests): its rule id, null for none.</summary>
+        public string CarriedRuleShown { get; private set; }
+
+        public void SetCarriedRule(string ruleId, string hover)
+        {
+            CarriedRuleShown = ruleId;
+            _carried.gameObject.SetActive(ruleId != null);
+            if (ruleId == null) return;
+            Sprite icon = UiArt.CheatIcon(ruleId == "interest" ? "tithe" : "serpent_swap");
+            Image picture = _carried.transform.Find("Icon").GetComponent<Image>();
+            picture.sprite = icon;
+            picture.color = icon != null ? Color.white : Palette.Ember;
+            _carriedTipText.text = hover ?? "";
+        }
+
+        /// <summary>The carried rule's icon left of the demon's portrait (in the gap before the middle column), and its hover.</summary>
+        private void BuildCarriedRule(Transform screen)
+        {
+            _carried = UiFactory.CreateImage("CarriedRule", screen, Palette.Black);
+            _carried.rectTransform.PlaceTL(Layout.Dealer.x - 22, Layout.Dealer.y + 4, 20, 20);
+            UiFactory.AddBorder(_carried.gameObject, Palette.Ember, 1f);
+            _carried.raycastTarget = true;
+            Image icon = UiFactory.CreateImage("Icon", _carried.transform, Color.white);
+            icon.raycastTarget = false;
+            icon.rectTransform.PlaceTL(2, 2, 16, 16);
+            Image tip = UiFactory.CreateImage("CarriedTip", _carried.transform, Palette.Black);
+            tip.raycastTarget = false;
+            HoverTip.Make(tip.gameObject);
+            UiFactory.AddBorder(tip.gameObject, Palette.Ember, 1f);
+            _carriedTipText = UiFactory.CreateText("Text", tip.transform, "", 8, Palette.Bone, TextAnchor.UpperLeft);
+            _carriedTipText.rectTransform.PlaceTL(4, 3, 172, 40);
+            tip.rectTransform.PlaceTL(-160, 22, 180, 46);
+            _carriedTip = tip.gameObject;
+            _carriedTip.SetActive(false);
+            var hover = _carried.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => _carriedTip.SetActive(true));
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => _carriedTip.SetActive(false));
+            hover.triggers.Add(enter);
+            hover.triggers.Add(exit);
+            _carried.gameObject.SetActive(false);
         }
 
         public void SetFinalStretch(bool active, string banner)

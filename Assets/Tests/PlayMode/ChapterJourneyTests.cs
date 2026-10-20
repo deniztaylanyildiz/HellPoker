@@ -405,9 +405,9 @@ namespace HellPoker.PlayMode.Tests
             yield return new WaitForSeconds(0.6f);
             HellPokerScreenshots.Press("NewGameButton");
             yield return new WaitForSeconds(0.8f);
-            HellPokerScreenshots.Press("CircleUp0");
+            HellPokerScreenshots.Press("DifficultyUp");
             yield return null;
-            yield return HellPokerScreenshots.Shot("114_classes_circle");
+            yield return HellPokerScreenshots.Shot("114_classes_difficulty");
 
             // A demon's table: three relics (their rarity frames) and two upgrades (the pips over the class badge).
             ChapterSave boss = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.Peasant, 11, 1, "");
@@ -441,10 +441,10 @@ namespace HellPoker.PlayMode.Tests
             yield return HellPokerScreenshots.Shot("117_spoils");
 
             ChapterSave fire = ChapterPresenter.PlacedSave(Core.Sinners.SinnerRoster.King, 11, 1, "fire");
-            fire.Circle = 4;
+            fire.Difficulty = Difficulty.Ironman;
             yield return ChapterJourneyTests.LoadWithSave(fire);
             yield return new WaitForSeconds(0.3f);
-            yield return HellPokerScreenshots.Shot("118_fire_circle4");
+            yield return HellPokerScreenshots.Shot("118_fire_ironman");
         }
         /// <summary>A save standing on a node of <paramref name="kind"/> of the first chapter's map (a path walked to it), its panel pending.</summary>
         private static ChapterSave AtNode(Core.Sinners.SinnerClass cls, int seed, NodeKind kind, string pending)

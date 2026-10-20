@@ -195,24 +195,22 @@ namespace HellPoker.Core.Chapters
                 StartPercent = StartPercent,
                 BossWinPercent = BossWinPercent,
                 BossLossPercent = BossLossPercent,
-                Circle = Circle
+                Difficulty = Difficulty
             };
 
-        /// <summary>The circle of Hell the chapter is played in (<see cref="Circles"/>; 0: the designer's numbers).</summary>
-        public int Circle { get; private set; }
+        /// <summary>Demo 3.4: the difficulty the chapter is played at (<see cref="DifficultyRules"/>; Easy: the designer's numbers).</summary>
+        public Difficulty Difficulty { get; private set; }
 
-        /// <summary>The same chapter in <paramref name="circle"/>: the imps' purses, the tribute and the market as the circle has them (the
-        /// bars, the fire, the malice and Lucifer's mirror are the run's to apply).</summary>
-        public ChapterRules WithCircle(int circle)
+        /// <summary>The same chapter at <paramref name="difficulty"/>: the floors' ante pace and the market's prices as the level has them (the
+        /// tribute, the rage, the map, the purse, the losses, the malice and the stacked rules read <see cref="Difficulty"/> where they act).</summary>
+        public ChapterRules WithDifficulty(Difficulty difficulty)
         {
-            circle = Circles.Clamp(circle);
-            if (circle == Circle) return this;
-            ChapterRules designed = Circle == 0 ? this : For(Number);
-            if (circle == 0) return designed;
-            int imp = Circles.ImpPurseAt(circle);
-            ChapterRules copy = designed.With(impCoins: designed.ImpCoins * imp / 100, firstImpCoins: designed.FirstImpCoins * imp / 100,
-                tributeOverStart: designed.TributeOverStart + Circles.TributeAt(circle), pricePercent: designed.PricePercent * Circles.MarketAt(circle) / 100);
-            copy.Circle = circle;
+            if (difficulty == Difficulty) return this;
+            ChapterRules designed = Difficulty == Difficulty.Easy ? this : For(Number);
+            if (difficulty == Difficulty.Easy) return designed;
+            ChapterRules copy = designed.With(anteStepHands: DifficultyRules.AnteStepHandsFor(difficulty, Number) ?? designed.AnteStepHands,
+                pricePercent: designed.PricePercent * DifficultyRules.MarketFor(difficulty, Number) / 100);
+            copy.Difficulty = difficulty;
             return copy;
         }
 

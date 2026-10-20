@@ -62,48 +62,6 @@ namespace HellPoker.Presentation.Ui
         public static string WildFormat => L("The imp runs wild: your {0} is a {1} now.", "İblis azdı: {0} artık {1}.");
         public static string SummonNoCoins => L("Not enough coins: the imps never take your last.", "Yeterli coin yok: iblisler son coinini almaz.");
 
-        // ------------------------------------------------------------------ the circles of Hell
-
-        /// <summary>{0} the circle.</summary>
-        public static string CircleLabelFormat => L("CIRCLE {0}", "{0}. DAİRE");
-        public static string CircleNone => L("NO CIRCLE", "DAİRESİZ");
-
-        /// <summary>What a circle adds (each adds to the ones above it).</summary>
-        public static string CircleEffect(int circle)
-        {
-            switch (circle)
-            {
-                case 1: return L("The imps' purses +25%.", "İblislerin keseleri +%25.");
-                case 2: return L("The tribute +20 coins.", "Haraç +20 coin.");
-                case 3: return L("The demons' bars +15%.", "Şeytanların barları +%15.");
-                case 4: return L("The market ×1.25; the fire offers two boons.", "Pazar ×1,25; ateş iki lütuf sunar.");
-                case 5: return L("Demons sit down one malice short of a cheat; Lucifer copies two powers.",
-                    "Şeytanlar bir hileye bir kala başlar; Lucifer iki gücü kopyalar.");
-                default: return L("The designer's Hell.", "Tasarımcının cehennemi.");
-            }
-        }
-
-        /// <summary>A circle's note on the class choice: its number and every rule down to it.</summary>
-        public static string CircleNote(int circle) =>
-            circle <= 0 ? CircleEffect(0)
-                : string.Format(CircleLabelFormat, circle) + ": " + string.Join(" ", Enumerable.Range(1, circle).Select(CircleEffect)) + " " +
-                  string.Format(CircleWinNoteFormat, Circles.WinStepPercent * circle);
-
-        /// <summary>The circles' toll on every demon's table: {0} the percent a win is worth less there.</summary>
-        public static string CircleWinNoteFormat => L("Wins against a demon: −{0}%.", "Şeytana karşı kazanç: −%{0}.");
-
-        /// <summary>How to Play's line on the circles: {0} the percent each circle takes off a win against a demon.</summary>
-        public static string CircleWinRuleFormat => L("Every circle also makes a win against a demon take {0}% less off his bar.",
-            "Her daire, şeytana karşı kazancın barından sildiğini de %{0} azaltır.");
-
-        /// <summary>{0} the deepest circle open for the class.</summary>
-        public static string CirclesOpenFormat => L("Circles open: 0-{0}", "Açık daireler: 0-{0}");
-        public static string CirclesClosedNote => L("Walk free to open the next circle.", "Sonraki daire için kurtul.");
-        public static string FireCircleNote => L("(The fourth circle: the fire offers only two boons.)", "(Dördüncü daire: ateş yalnızca iki lütuf sunar.)");
-
-        /// <summary>{0} the class, {1} the circle.</summary>
-        public static string CircleOpenedFormat => L("A new circle opens for the {0}: {1}.", "{0} için yeni bir daire açıldı: {1}.");
-
         // ------------------------------------------------------------------ the locks
 
         public static string LockedLabel => L("LOCKED", "KİLİTLİ");
@@ -131,27 +89,36 @@ namespace HellPoker.Presentation.Ui
             }
         }
 
-        /// <summary>A class's fewest years left per circle it walked free in ("  · D0 420 yıl · D1 610 yıl"); empty for none.</summary>
-        private static string LowestSentences(ChapterRecords r, string classId)
+        /// <summary>Demo 3.4: a class's freedoms per level with the fewest years left ("E 2× 420 · M 1× 610 · IRONMAN 1× 900"); "—" for
+        /// none. Ironman's are spelled out (marked apart from the rest).</summary>
+        private static string FreedomsByLevel(ChapterRecords r, string classId)
         {
-            var parts = Enumerable.Range(0, Circles.Deepest + 1).Where(c => r.LowestSentence(classId, c).HasValue)
-                .Select(c => string.Format(LowestSentenceFormat, c, r.LowestSentence(classId, c).Value)).ToList();
-            return parts.Count == 0 ? "" : "  · " + string.Join(" · ", parts);
+            var parts = new List<string>();
+            for (Difficulty d = Difficulty.Easy; d <= DifficultyRules.Hardest; d++)
+            {
+                int n = r.FreedAt(classId, d);
+                if (n <= 0) continue;
+                int? years = r.LowestSentence(classId, d);
+                string label = d == Difficulty.Ironman ? DifficultyName(d) : DifficultyInitial(d);
+                parts.Add(years.HasValue ? string.Format(RecordLevelFormat, label, n, years.Value) : string.Format(RecordLevelCountFormat, label, n));
+            }
+            return parts.Count == 0 ? "—" : string.Join(" · ", parts);
         }
 
         /// <summary>How many locked things the records list by name (the rest are counted).</summary>
         public const int LocksListed = 6;
 
-        /// <summary>The records' lines of the progression (their right column): the deepest circle freed per class, then what is still
-        /// locked and what opens it.</summary>
+        /// <summary>The records' lines of the progression (their right column): each class's freedoms per difficulty (the fewest years
+        /// left), then what is still locked and what opens it.</summary>
         public static IReadOnlyList<string> ProgressRecordLines(ChapterRecords r)
         {
             r = r ?? new ChapterRecords();
-            var lines = new List<string> { L("Deepest circle freed (fewest years left):", "Kurtulunan en derin daire (en az kalan ceza):") };
-            lines.AddRange(SinnerRoster.PhaseTwo.Select(c => "  " + SinnerName(c.Id) + ": " + (r.BestCircle(c.Id) >= 0 ? r.BestCircle(c.Id).ToString() : "—") +
-                LowestSentences(r, c.Id)));
+            var lines = new List<string> { RecordLevelsTitle };
+            lines.AddRange(SinnerRoster.PhaseTwo.Select(c => "  " + SinnerName(c.Id) + ": " + FreedomsByLevel(r, c.Id)));
             lines.Add("");
             var locked = new List<string>();
+            for (Difficulty d = Difficulty.Hard; d <= DifficultyRules.Hardest; d++)
+                if (!r.IsDifficultyOpen(d)) locked.Add("  " + DifficultyName(d) + " — " + DifficultyUnlockText(d));
             if (!ChapterUnlocks.IsClassOpen(Summoner.ClassId, r))
                 locked.Add("  " + SinnerName(Summoner.ClassId) + " — " + MilestoneText(ChapterUnlocks.SummonerMilestone));
             locked.AddRange(ChapterUnlocks.Relics.Where(m => !m.IsReached(r)).Select(m => "  " + RelicName(m.Id) + " — " + MilestoneText(m)));

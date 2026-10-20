@@ -192,8 +192,18 @@ namespace HellPoker.Core.Chapters
         public bool AtGate => Current != null && Current.Floor == Map.FloorCount - 1;
 
         /// <summary>The coins the gate takes from this sinner: their class's starting purse and the chapter's
-        /// <see cref="ChapterRules.TributeOverStart"/>.</summary>
-        public int Tribute => Math.Max(1, Rules.TributeFor(Sinner.Id) * Effects.CombinedRelics.TributePercent / 100);
+        /// <see cref="ChapterRules.TributeOverStart"/> — from Medium on, at least a share of the purse brought to the gate
+        /// (<see cref="DifficultyRules.TributePursePercent"/>; before the gate, of the purse now). The relics' percent on it.</summary>
+        public int Tribute
+        {
+            get
+            {
+                int tribute = Rules.TributeFor(Sinner.Id);
+                int share = DifficultyRules.TributePurseFor(Rules.Difficulty, Rules.Number);
+                if (share > 0) tribute = Math.Max(tribute, (int)((long)(GateCoins >= 0 ? GateCoins : Purse.Coins) * share / 100));
+                return Math.Max(1, tribute * Effects.CombinedRelics.TributePercent / 100);
+            }
+        }
 
         /// <summary>A price of the black market's this chapter: its first-chapter price grown with the chapter, the relics' percent on it.</summary>
         public int PriceOf(int firstChapterPrice) => Math.Max(1, Rules.Price(firstChapterPrice) * Effects.CombinedRelics.MarketPercent / 100);
@@ -214,7 +224,7 @@ namespace HellPoker.Core.Chapters
         {
             int bar = Years + TributeYears(coins) + YearsOwed;
             if (CampBarPercent != 0) bar = Math.Max(1, (int)((long)bar * (100 + CampBarPercent) / 100));
-            int percent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
+            int percent = Effects.CombinedRelics.BossBarPercent;
             return percent == 100 ? bar : Math.Max(1, bar * percent / 100);
         }
 
@@ -726,28 +736,8 @@ namespace HellPoker.Core.Chapters
         public IEnumerable<string> Forgeable =>
             Effects.CombinedRelics.Extra(RelicExtras.NoForge) > 0 ? Enumerable.Empty<string>() : Effects.Relics.Where(r => !Effects.Forged.Contains(r));
 
-        /// <summary>The dice of a camp's offer (the fourth circle: two actions of four, the same every time that camp is shown).</summary>
-        public const int FireStream = 14;
-
-        /// <summary>The actions the camp where the player stands offers: all four — or, from the fourth circle on, two of them.</summary>
-        public IReadOnlyList<CampAction> CampOffers
-        {
-            get
-            {
-                var all = ((CampAction[])Enum.GetValues(typeof(CampAction))).ToList();
-                int count = Circles.FireOffersAt(Rules.Circle);
-                if (count >= all.Count) return all;
-                var dice = new SystemRandomSource(RandomSeeds.Derive(RandomSeeds.Derive(_seed, FireStream), Current?.Floor ?? 0));
-                var offered = new List<CampAction>();
-                while (offered.Count < count)
-                {
-                    int i = dice.Next(all.Count);
-                    offered.Add(all[i]);
-                    all.RemoveAt(i);
-                }
-                return offered.OrderBy(c => c).ToList();
-            }
-        }
+        /// <summary>The actions a camp offers: all four (Demo 3.4: the fourth circle's two of four went with the circles).</summary>
+        public IReadOnlyList<CampAction> CampOffers => ((CampAction[])Enum.GetValues(typeof(CampAction))).ToList();
 
         /// <summary>What the camp's actions allow: the rite is either of its two.</summary>
         public IReadOnlyList<FireChoice> FireOffers
@@ -768,7 +758,7 @@ namespace HellPoker.Core.Chapters
         }
 
         /// <summary>A rest's years off the sentence: <see cref="RestSentencePercent"/> of the class's whole sentence (the Rusted Chain half again).</summary>
-        public int RestYears => RunSentence.StartFor(Sinner.Id, Rules.Circle) * RestSentencePercent / 100 *
+        public int RestYears => RunSentence.StartFor(Sinner.Id) * RestSentencePercent / 100 *
                                 (100 + Effects.CombinedRelics.Extra(RelicExtras.RestBonusPercent)) / 100;
 
         /// <summary>A rest's percent off the next demon's bar (the Rusted Chain half again).</summary>
@@ -864,20 +854,23 @@ namespace HellPoker.Core.Chapters
             CampBarPercent = 0;
             RestedByTheFire = false;
             WhettedSoul = false;
-            int barPercent = Effects.CombinedRelics.BossBarPercent * Circles.BarAt(Rules.Circle) / 100;
+            int barPercent = Effects.CombinedRelics.BossBarPercent;
             if (startBar && barPercent != 100) Years = Math.Max(1, Years * barPercent / 100);
             Dealers.Dealer boss = Rules.Boss;
             Effects.SitAt(boss.Id, fresh: true);
             BossBarStart = Years;
+            // Demo 3.4: Hard's heavier losses, Ironman's shorter malice gauge.
+            int bossIndex = DifficultyRules.BossIndex(boss.Id);
             HellPokerGame game = BossTable.Create(table, boss, Years, Rules.SoulLinePercent,
-                BossTable.WinWithRelics(Circles.WinPercentAt(Rules.Circle, Rules.BossWinPercent), Effects.CombinedRelics, GateCoins >= 0 ? GateCoins : Purse.Coins), Rules.BossLossPercent,
-                RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, Circles.MaliceShortAt(Rules.Circle));
+                BossTable.WinWithRelics(Rules.BossWinPercent, Effects.CombinedRelics, GateCoins >= 0 ? GateCoins : Purse.Coins),
+                Rules.BossLossPercent * DifficultyRules.BossLossFor(Rules.Difficulty, bossIndex) / 100,
+                RandomSeeds.Derive(_seed, BossStream), BossGuard(), Sinner, DifficultyRules.MaliceShortFor(Rules.Difficulty, bossIndex, boss.MaliceMax));
             game.UseEffects(Effects);
             BossTable.Arm(game, Effects);
             if (startBar && BossMaliceFull) game.RestoreMalice(game.MaliceMax, false);   // the confession: he knows
             BossMaliceFull = false;
             Sentence?.Follow(game);
-            Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream));
+            Hooks = ChapterHooks.Attach(game, Kit, boss.Id, BossBarStart, RandomSeeds.Derive(_seed, BossStream), Rules.Difficulty);
             return game;
         }
 
@@ -888,6 +881,7 @@ namespace HellPoker.Core.Chapters
             Years = barStart;
             HellPokerGame game = OpenBossTable(table, startBar: false);
             if (bar != barStart || handsPlayed > 0) game.TakeOver(Math.Max(1, bar), handsPlayed);
+            Hooks?.Rule?.CheckRage(game, announce: false);   // a saved table under half its bar: the demon is still enraged
             return game;
         }
 

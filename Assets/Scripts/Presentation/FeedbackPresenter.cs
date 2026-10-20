@@ -40,7 +40,7 @@ namespace HellPoker.Presentation
                 return body.ToString();
             }
             body.AppendLine("Class: " + context.ClassId);
-            body.AppendLine("Circle: " + context.Circle);
+            body.AppendLine("Difficulty: " + context.Difficulty);
             body.AppendLine("Chapter: " + (context.Chapter >= 4 ? "Lucifer" : context.Chapter.ToString()));
             body.AppendLine("Floor: " + (context.Floor > 0 ? context.Floor.ToString() : "-"));
             body.AppendLine("Last log lines:");

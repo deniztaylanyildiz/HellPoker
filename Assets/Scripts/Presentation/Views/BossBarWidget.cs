@@ -18,7 +18,7 @@ namespace HellPoker.Presentation.Views
         private const float FlashSeconds = 0.6f, GrowSeconds = 0.7f;
 
         private int _width, _height;
-        private Image _fill, _change, _startTick, _line;
+        private Image _fill, _change, _startTick, _line, _rageTick, _rageFlag;
         private GameObject _tooltip;
         private Text _tooltipText;
         private BossBarDisplay _shown = BossBarDisplay.Hidden;
@@ -61,6 +61,13 @@ namespace HellPoker.Presentation.Views
             _line = UiFactory.CreateImage("Line", frame.transform, Palette.Lilac);
             _line.raycastTarget = false;
             _line.rectTransform.PlaceTL(width + 1, -1, 2, height + 2);
+            // Demo 3.4: the rage's mark — a tick rising over the bar where it waits; once enraged it burns red with a small flag on it.
+            _rageTick = UiFactory.CreateImage("RageTick", frame.transform, Palette.Ember);
+            _rageTick.raycastTarget = false;
+            _rageTick.enabled = false;
+            _rageFlag = UiFactory.CreateImage("RageFlag", frame.transform, Palette.Red);
+            _rageFlag.raycastTarget = false;
+            _rageFlag.enabled = false;
 
             if (!hover) return;
             Image tip = UiFactory.CreateImage("BarTip", frame.transform, Palette.Black);
@@ -116,6 +123,13 @@ namespace HellPoker.Presentation.Views
             _startTick.rectTransform.PlaceTL(1 + tick, 1, 1, _height);
             _startTick.enabled = bar.StartMark < 0.995f;
             _line.color = bar.Line == BarLine.Fall ? Palette.Ember : Palette.Lilac;
+            bool rage = bar.RageAt >= 0f;
+            int rageX = 1 + Mathf.Clamp(Mathf.RoundToInt(bar.RageAt * _width), 0, _width - 1);
+            _rageTick.enabled = rage;
+            _rageTick.color = bar.Enraged ? Palette.Red : Palette.Ember;
+            _rageTick.rectTransform.PlaceTL(rageX, -2, 1, 3);
+            _rageFlag.enabled = rage && bar.Enraged;
+            _rageFlag.rectTransform.PlaceTL(rageX + 1, -3, 3, 2);
 
             if (!animate || before < 0 || before == width)
             {

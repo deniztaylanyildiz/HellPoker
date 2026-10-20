@@ -71,6 +71,10 @@ namespace HellPoker.Presentation.Abstractions
         /// <summary>Demo 3.1: a straight flush or a royal flush won at a chapter's table (the longest hand ending).</summary>
         public const string WinBlaze = "win_blaze";
 
+        /// <summary>Demo 3.4: a demon enraged; the run saved by hand.</summary>
+        public const string Rage = "rage";
+        public const string Saved = "saved";
+
         public const string MenuMusic = "menu";
         public const string SoulLayer = "soul_layer";
 

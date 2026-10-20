@@ -35,6 +35,17 @@ namespace HellPoker.Presentation.Abstractions
             LastBlow = lastBlow;
         }
 
+        /// <summary>Demo 3.4: where the demon's rage waits on the bar (0 to 1; negative: no rage at this level), and whether it came.</summary>
+        public float RageAt { get; private set; } = -1f;
+        public bool Enraged { get; private set; }
+
+        /// <summary>The same bar with its rage mark (Medium on).</summary>
+        public BossBarDisplay WithRage(int rageValue, bool enraged) => new BossBarDisplay(Value, Start, Limit, Line, Hint, LastBlow)
+        {
+            RageAt = Limit <= 0 ? -1f : Clamp01(rageValue / (float)Limit),
+            Enraged = enraged
+        };
+
         /// <summary>The share of the whole bar (to its line) the value fills, 0 to 1.</summary>
         public float Fill => Limit <= 0 ? 0f : Clamp01(Value / (float)Limit);
 

@@ -190,6 +190,17 @@ namespace HellPoker.Presentation.Views
                 PlayTalkOrBase();
         }
 
+        private bool _enraged;
+
+        /// <summary>Demo 3.4: an enraged demon keeps the burning look (his "final" one) for the rest of his table.</summary>
+        public void SetEnraged(bool active)
+        {
+            if (_enraged == active) return;
+            _enraged = active;
+            if (!_reacting)
+                PlayTalkOrBase();
+        }
+
         /// <summary>The cold, ghostly look while the player's soul is on the table.</summary>
         public void SetSoul(bool active)
         {
@@ -239,7 +250,7 @@ namespace HellPoker.Presentation.Views
 
         private void PlayBase()
         {
-            Play(_soul ? DealerAnimation.Soul : _finalStretch ? DealerAnimation.Final : DealerAnimation.Idle);
+            Play(_soul ? DealerAnimation.Soul : _finalStretch || _enraged ? DealerAnimation.Final : DealerAnimation.Idle);
         }
 
         private void Play(DealerAnimation animation)

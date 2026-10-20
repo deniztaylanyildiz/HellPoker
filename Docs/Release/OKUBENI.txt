@@ -29,8 +29,17 @@ OYUN NE?
 --------
 YENİ OYUN'da önce kim olduğunu seçersin: Köylü, Kâhin, Kral, Soytarı, Çağırıcı ya da Hırsız (hepsi baştan açık). Cezan cehennemin
 şeytanları arasında paylaştırılmıştır; her şeytanda bir payın var.
-Bir sınıfla kurtulursan o sınıf için cehennemin bir sonraki DAİRESİ açılır (sınıf kartındaki < DAİRE > oklarıyla seçilir; her daire
-biraz daha zor). Bazı emanetler kilitli başlar; ne zaman açılacakları REKORLAR'da yazar.
+ZORLUK: sınıf kartlarının altındaki < ORTA > satırından seçilir (üzerine gelince ne eklediği yazar):
+  - KOLAY: oyunun kendisi.
+  - ORTA (varsayılan): katlarda ante daha hızlı artar (Mammon 3, Belial 2, Lilith her elde), haraç kapıdaki kesenin %40 / %50 / %60'ından
+    az olmaz, şeytan barı yarıya inince ÖFKELENİR (bahis ×1,5, kuralı daha sık; barın üstünde küçük işaret), harita daha az güvenli
+    (daha az kamp, daha pahalı pazar, "?" daha sık bekçi, Lilith'te her yolda bir bekçi).
+  - ZOR: Orta'nın hepsi + bölüm başında kese başlangıcın %75'ine (Belial) / %50'sine (Lilith) tamamlanır, şeytana kayıp daha çok acıtır.
+  - IRONMAN: Zor'un hepsi, daha sert (kese %50 / %25'e tamamlanır, kayıplar daha da ağır) + şeytanların hile göstergesi daha hızlı
+    dolar, Belial Mammon'un Faiz'ini, Lilith Belial'in Rol Takası'nı yarım güçle taşır (portrenin yanındaki ikon); kayıt sadece kampta,
+    ölünce koşu silinir.
+Zor, herhangi bir sınıfla Orta'da kurtulunca; Ironman, Zor'da kurtulunca açılır (bu test sürümünde hepsi baştan açık).
+Bazı emanetler kilitli başlar; ne zaman açılacakları REKORLAR'da yazar.
 
 HARİTA: her bölüm katlardan oluşan bir harita; katlarda 2-5 düğüm, yollar ayrılıp birleşir. İlk kattaki üç düğümden birinden
 başla, sonra yalnızca yanan yollardan in. Düğümün üstüne gelince ne olduğu yazar.
@@ -56,15 +65,15 @@ sınıf rozetinin üzerine gelince sınıfın bütün kuralları yazar.
 Şeytanı yenince ganimetinde onun iki emaneti ve bir SINIF YÜKSELTMESİ vardır (ya da 30 coin).
 Yükseltmeler sınıfını kalıcı olarak güçlendirir; sahip oldukların sınıf rozetinin üstünde altın noktalar olarak görünür.
 
-KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür, kazanç en çok ×3 öder. Bir bölüm başlarken kesen
-sınıfının başlangıç kesesinin altındaysa ona tamamlanır.
+KESE: katlarda cezan değişmez, her şey coin'le oynanır. Ante her 3 elde büyür (Orta ve üstünde daha hızlı), kazanç en çok ×3 öder.
+Bir bölüm başlarken kesen sınıfının başlangıç kesesinin altındaysa ona tamamlanır (Zor ve Ironman'da daha azına).
 
 CEZA ve CAN BARI: cezan (yıl) senindir; haritada, kapıda ve şeytan masasında sağ üstte yazar. Son katın altındaki kapıda şeytan
 coin'le haraç alır; eksik her coin hem cezana hem onun barına yazılır. Sonra masası: portresinin altındaki kırmızı CAN BARI (rakam
 yok). Kazandığın el yıllarını hem bardan hem cezandan siler; kaybettiğin el yıllarını cezana tam, barına yarısını yazar. Bar biterse
 şeytan yenilir ve ganimetini alırsın; barın sonundaki işarete ulaşırsa ruhun masaya konur, ruhun biterse lanetlenirsin.
 
-LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır (REKORLAR'da sınıf ve daire başına en
+LUCIFER: Lilith'ten sonra seni bekler. Barını boşaltırsan ÖZGÜRSÜN — kalan cezan puanındır (REKORLAR'da sınıf ve zorluk başına en
 düşüğü); barı sonundaki işareti geçerse düşersin (koşu biter).
 
 SINIF GÜÇLERİ: her sınıfın bir ana gücü ve bir PASİFİ var; ikisi de kendiliğinden çalışır (K tuşu yalnız Hırsız'da ÇAL'dır, diğer
@@ -116,6 +125,9 @@ gücü ve takılı emanetlerin. Portreye ya da pasif satırına tıklamak K tuş
 Floş); ekran sarsıntısını ve flaşları Ayarlar ▸ GÖRÜNTÜ ▸ EKRAN SARSINTISI ile kapatabilirsin.
 
 Koşun her adımda kaydedilir: menüdeki DEVAM ET kaldığın yerden sürdürür. Bir elin ortasında oyunu kapatırsan o el kaybedilmiş sayılır.
+Haritada (ve pazar, kamp, olay, hazine ekranlarında) MENÜ'nün yanındaki KAYDET o anı hemen kaydeder; masada kayıt yapılamaz (soluk).
+IRONMAN'da KAYDET yalnız kampta görünür, otomatik kayıt da yalnız kampa girerken ve çıkarken olur; ölünce kayıt silinir. Kamp dışında
+ÇIKIŞ'a basarsan son kamptan beri yapılanların kaybolacağını sorar.
 
 
 KONTROLLER
@@ -144,7 +156,7 @@ BİR SORUN OLURSA
 ----------------
 En kolayı: ana menünün sol altındaki HATA / ÖNERİ butonu (oyunun ortasında Esc ile menüye dönersin). Hata mı öneri mi seç, birkaç
 satır yaz, GÖNDER'e bas: e-posta uygulaman caveengine@gmail.com adresine hazır bir e-postayla açılır; konusu hataysa
-"[Hell Poker HATA] ...", öneriyse "[Hell Poker ÖNERİ] ..." olur (gövdede sürüm, sınıf, daire, bölüm, kat ve koşunun son satırları). Açılmazsa rapor panoya kopyalanır; bir e-postaya yapıştırıp o adrese gönder.
+"[Hell Poker HATA] ...", öneriyse "[Hell Poker ÖNERİ] ..." olur (gövdede sürüm, sınıf, zorluk, bölüm, kat ve koşunun son satırları). Açılmazsa rapor panoya kopyalanır; bir e-postaya yapıştırıp o adrese gönder.
 
 Oyun çökerse ya da garip bir şey olursa şu dosyayı da gönder:
 

@@ -71,8 +71,10 @@ namespace HellPoker.Presentation
         /// <param name="logSink">Where the run's diary is written; null: none.</param>
         public ChapterPresenter(IChapterMapView map, IChapterPanelView panel, Func<(TablePresenter presenter, ITableView view)> buildTable,
             IScreenTransition transition, IAudio audio, GameRules bossTable, Func<int> newSeed, ChapterArchive archive = null,
-            IRunLogSink logSink = null, IRelicBagView bag = null)
+            IRunLogSink logSink = null, IRelicBagView bag = null, ISaveButtonView saveButton = null)
         {
+            _saveButton = saveButton;
+            if (_saveButton != null) _saveButton.Pressed += PressSave;
             _bag = bag;
             if (_bag != null)
             {
@@ -116,6 +118,7 @@ namespace HellPoker.Presentation
             _map.RelicsPressed -= ShowRelicsFromMap;
             _map.CompassPressed -= PressCompass;
             _panel.OptionPressed -= Answer;
+            if (_saveButton != null) _saveButton.Pressed -= PressSave;
             if (_bag != null)
             {
                 _bag.PlacePressed -= BagPlacePressed;
@@ -149,8 +152,18 @@ namespace HellPoker.Presentation
 
         public bool HasRun => _journey != null && !_ended;
 
-        /// <summary>A run waits: in memory, or saved from an earlier session.</summary>
-        public bool CanContinue => HasRun || (_archive?.HasRun ?? false);
+        /// <summary>A run waits: in memory, or saved from an earlier session (an Ironman save of a dead run, or a copy put back, is not one).</summary>
+        public bool CanContinue => HasRun || SavedRun() != null;
+
+        /// <summary>The saved run that may be picked up; null for none. Demo 3.4: an Ironman save whose run died, or one older than the last
+        /// save of its run (a copy put back), is thrown away.</summary>
+        private ChapterSave SavedRun()
+        {
+            ChapterSave save = _archive != null && _archive.HasRun ? _archive.LoadRun() : null;
+            if (save == null || !DifficultyRules.SavesOnlyAtCamps(save.Difficulty) || _records.MayLoad(save.RunId, save.SaveCount)) return save;
+            _archive.ClearRun();
+            return null;
+        }
 
         /// <summary>Demo 3.3: the run that waits for the title menu's card — the one in memory, or the saved one; null with none.</summary>
         public ContinueCard ContinueCard
@@ -159,18 +172,18 @@ namespace HellPoker.Presentation
             {
                 if (HasRun)
                     return new ContinueCard(_journey.Sinner.Id, _journey.Stage == JourneyStage.Lucifer ? 4 : _journey.Chapter,
-                        _run.Current == null ? 0 : _run.Current.Floor + 1, _run.Purse.Coins, _journey.Sentence.Years, _journey.Circle);
-                ChapterSave save = _archive != null && _archive.HasRun ? _archive.LoadRun() : null;
+                        _run.Current == null ? 0 : _run.Current.Floor + 1, _run.Purse.Coins, _journey.Sentence.Years, _journey.Difficulty);
+                ChapterSave save = SavedRun();
                 return save == null ? null
-                    : new ContinueCard(save.ClassId, save.Lucifer ? 4 : save.Chapter, save.Trail.Count, save.Coins, save.Sentence, save.Circle);
+                    : new ContinueCard(save.ClassId, save.Lucifer ? 4 : save.Chapter, save.Trail.Count, save.Coins, save.Sentence, save.Difficulty);
             }
         }
 
         public bool IsVisible => _visible;
 
-        /// <summary>Where the run stands, for a bug report (null with no run going on): the class, circle, chapter, floor, the log's lines.</summary>
+        /// <summary>Where the run stands, for a bug report (null with no run going on): the class, difficulty, chapter, floor, the log's lines.</summary>
         public FeedbackContext Feedback => _journey == null ? null
-            : new FeedbackContext(_journey.Sinner.Id, _journey.Circle, _journey.Stage == JourneyStage.Lucifer ? 4 : _journey.Chapter,
+            : new FeedbackContext(_journey.Sinner.Id, DifficultyRules.IdOf(_journey.Difficulty), _journey.Stage == JourneyStage.Lucifer ? 4 : _journey.Chapter,
                 _run.Current == null ? 0 : _run.Current.Floor + 1, _log?.Lines.ToArray());
         public bool IsMapOpen => _visible && !_atTable;
         public bool IsAtTable => _visible && _atTable;
@@ -198,16 +211,15 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ the run
 
-        public void Start(SinnerClass sinnerClass) => Start(sinnerClass, 0);
+        public void Start(SinnerClass sinnerClass) => Start(sinnerClass, Difficulty.Easy);
 
-        /// <summary>A new chapter run as this class in <paramref name="circle"/> (the deepest the class has open at most).</summary>
-        public void Start(SinnerClass sinnerClass, int circle)
+        /// <summary>A new chapter run as this class at <paramref name="difficulty"/> (Demo 3.4).</summary>
+        public void Start(SinnerClass sinnerClass, Difficulty difficulty)
         {
             if (sinnerClass == null) throw new ArgumentNullException(nameof(sinnerClass));
             if (HasRun) Abandon();
             EnsureTable();
-            circle = Math.Max(0, Math.Min(circle, _records.CirclesOpen(sinnerClass.Id)));
-            _journey = ChapterJourney.Begin(sinnerClass, _newSeed(), circle);
+            _journey = ChapterJourney.Begin(sinnerClass, _newSeed(), difficulty);
             _journey.RelicAvailable = id => ChapterUnlocks.IsRelicOpen(id, _records);
             _match = null;
             _bossGame = null;
@@ -220,9 +232,10 @@ namespace HellPoker.Presentation
             _records.RunStarted();
             _archive?.SaveRecords(_records);
             _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", sinnerClass.Id, _journey.Sentence.Years, DateTime.Now);
-            Note($"phase 2 run: {sinnerClass.Id}, circle {circle}, {_run.Purse.Coins} coins, sentence {_journey.Sentence.Years} years");
+            Note($"phase 2 run: {sinnerClass.Id}, difficulty {DifficultyRules.IdOf(difficulty)}, {_run.Purse.Coins} coins, sentence {_journey.Sentence.Years} years");
             ShowMap();
             ShowChapterOpening();
+            if (Ironman) SaveNow(force: true);   // Ironman: once as the run begins (a crash goes back to the very start)
         }
 
         /// <summary>The run that waits: the one in memory, or the saved one (a hand left in the middle is lost now).</summary>
@@ -233,7 +246,7 @@ namespace HellPoker.Presentation
                 Show();
                 return;
             }
-            ChapterSave save = _archive?.LoadRun();
+            ChapterSave save = SavedRun();
             if (save == null) return;
             EnsureTable();
             Resume(save);
@@ -262,7 +275,7 @@ namespace HellPoker.Presentation
             _visible = true;
             if (_atTable && _tableView != null)
             {
-                _tableView.SetVisible(true);
+                SetTableVisible(true);
                 _map.Hide();
             }
             else
@@ -277,7 +290,7 @@ namespace HellPoker.Presentation
             _visible = false;
             _map.Hide();
             _panel.Hide();
-            _tableView?.SetVisible(false);
+            SetTableVisible(false);
         }
 
         private void RequestMenu()
@@ -291,8 +304,51 @@ namespace HellPoker.Presentation
         private void ShowMap()
         {
             if (_journey == null) return;
-            _tableView?.SetVisible(false);
+            SetTableVisible(false);
             _map.Show(MapState());
+            UpdateSaveButton();
+        }
+
+        /// <summary>The chapter's table on screen or off; the SAVE button follows (dim at the table).</summary>
+        private void SetTableVisible(bool visible)
+        {
+            _tableView?.SetVisible(visible);
+            UpdateSaveButton();
+        }
+
+        // ------------------------------------------------------------------ Demo 3.4: SAVE
+
+        private readonly ISaveButtonView _saveButton;
+
+        /// <summary>The run is an Ironman's: saved only at the camps.</summary>
+        private bool Ironman => _journey != null && DifficultyRules.SavesOnlyAtCamps(_journey.Difficulty);
+
+        /// <summary>The player stands at a camp (Ironman's only place to save).</summary>
+        private bool AtCamp => _run?.CurrentKind == NodeKind.PurgatoryFire && !_atTable;
+
+        /// <summary>Ironman: there is progress since the last save at a camp (QUIT warns).</summary>
+        public bool IronmanUnsaved => Ironman && HasRun && _ironmanBehind;
+        private bool _ironmanBehind;
+
+        /// <summary>Where SAVE stands: hidden off the chapter's screens; on the map and its panels, lit; at a table, dim (it cannot save
+        /// there); Ironman's only at a camp.</summary>
+        private void UpdateSaveButton()
+        {
+            if (_saveButton == null) return;
+            if (!_visible || _journey == null || _ended) _saveButton.Show(SaveButtonPlace.Hidden, false);
+            else if (Ironman) _saveButton.Show(AtCamp ? SaveButtonPlace.Map : SaveButtonPlace.Hidden, true);
+            else if (_atTable) _saveButton.Show(SaveButtonPlace.Table, false);
+            else _saveButton.Show(SaveButtonPlace.Map, true);
+        }
+
+        /// <summary>SAVE: the run as it stands now, in the one slot (never at a table; Ironman only at a camp).</summary>
+        private void PressSave()
+        {
+            if (!_visible || _journey == null || _ended || _atTable || (Ironman && !AtCamp)) return;
+            SaveNow(force: true);
+            _saveButton?.Saved();
+            _audio.PlaySfx(SfxIds.Saved);
+            Note("saved by hand");
         }
 
         private ChapterMapState MapState()
@@ -300,6 +356,7 @@ namespace HellPoker.Presentation
             ChapterRules rules = _run.Rules;
             var lines = new List<string>
             {
+                string.Format(UiText.MapDifficultyFormat, UiText.DifficultyName(_journey.Difficulty)),
                 string.Format(UiText.MapSentenceFormat, _journey.Sentence.Years),
                 string.Format(UiText.MapTributeFormat, _run.Tribute)
             };
@@ -551,6 +608,7 @@ namespace HellPoker.Presentation
             _panel.Show(card);
             if (pending == "lucifer") _audio.PlayMusic(MusicId);   // the call: the music holds its breath
             if (!_atTable) _map.Show(MapState());   // the choices go dark under a panel
+            UpdateSaveButton();
         }
 
         private void ClosePanel()
@@ -559,6 +617,7 @@ namespace HellPoker.Presentation
             _pending = null;
             _answers.Clear();
             _panel.Hide();
+            UpdateSaveButton();
         }
 
         private void Answer(int index)
@@ -1031,7 +1090,7 @@ namespace HellPoker.Presentation
         }
 
         /// <summary>
-        /// The Purgatory Camp: one action (rest, whet the soul, a rite, the forge) — from the fourth circle on, two of them are offered —
+        /// The Purgatory Camp: one action (rest, whet the soul, a rite, the forge) —
         /// and, before or after it, the relics arranged as often as the player likes (not an action). <paramref name="done"/>: the words
         /// of the action taken; null while none is.
         /// </summary>
@@ -1086,7 +1145,7 @@ namespace HellPoker.Presentation
                 options.Add(new PanelOption(UiText.PanelOn));
                 answers.Add(Onward);
             }
-            string text = done ?? string.Format(UiText.CampTextFormat, boss) + (_run.CampOffers.Count < 4 ? "\n" + UiText.CampTwoNote : "");
+            string text = done ?? string.Format(UiText.CampTextFormat, boss);
             ShowPanel(new PanelCard("Events/purgatory_fire", null, UiText.CampTitle, text, options), answers, done == null ? "fire" : "fire.done");
         }
 
@@ -1286,7 +1345,7 @@ namespace HellPoker.Presentation
             _map.Hide();
             _table.ChapterLog = _log;
             _table.SitAtFloor(table, _run);
-            if (_visible) _tableView.SetVisible(true);
+            if (_visible) SetTableVisible(true);
             Curtain();
             Save();
         }
@@ -1330,7 +1389,7 @@ namespace HellPoker.Presentation
                  $" (purse {_run.Purse.Coins})" + (given != null ? $", relic {given}" : ""));
             _match = null;
             _atTable = false;
-            _tableView.SetVisible(false);
+            SetTableVisible(false);
             ShowMap();
             Curtain();
             if (_run.PurseEmptied)
@@ -1456,7 +1515,7 @@ namespace HellPoker.Presentation
             _map.Hide();
             _table.ChapterLog = _log;
             _table.SitAtBoss(_bossGame, _run, _run.BossBarStart);
-            if (_visible) _tableView.SetVisible(true);
+            if (_visible) SetTableVisible(true);
             Curtain();
             Save();
         }
@@ -1468,7 +1527,7 @@ namespace HellPoker.Presentation
             _journey.BossHands[_journey.BossIndex] = game.RoundNumber;
             _bossGame = null;
             _atTable = false;
-            _tableView.SetVisible(false);
+            SetTableVisible(false);
             if (game.Phase == GamePhase.Damned)
             {
                 Note($"{rules.BossId}: the soul burned after {game.RoundNumber} hands (sentence {_journey.Sentence.Years})");
@@ -1590,7 +1649,7 @@ namespace HellPoker.Presentation
             _map.Hide();
             _table.ChapterLog = _log;
             _table.SitAtLucifer(_bossGame, _run, _journey.LuciferBarStart, BossTable.LuciferGate(_journey.LuciferBarStart), _journey.IsCastDown);
-            if (_visible) _tableView.SetVisible(true);
+            if (_visible) SetTableVisible(true);
             Curtain();
             Save();
         }
@@ -1601,7 +1660,7 @@ namespace HellPoker.Presentation
             _journey.BossHands[3] = game.RoundNumber;
             _bossGame = null;
             _atTable = false;
-            _tableView.SetVisible(false);
+            SetTableVisible(false);
             JourneyEnd end = game.Phase == GamePhase.Absolved ? JourneyEnd.Freed
                 : game.Phase == GamePhase.Damned ? JourneyEnd.Damned : JourneyEnd.CastDown;
             Note($"lucifer: {end} after {game.RoundNumber} hands (bar {game.Years}, sentence {_journey.Sentence.Years})");
@@ -1617,9 +1676,13 @@ namespace HellPoker.Presentation
             int deepest = journey.Stage == JourneyStage.Lucifer ? 4 : journey.Chapter;
             journey.Finish(end);
             ChapterRecords before = ChapterRecords.Decode(_records.Encode());
-            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands, journey.Circle, journey.Sentence.Years);
+            _records.RunEnded(end, deepest, journey.Sinner.Id, journey.TotalHands, journey.Difficulty, journey.Sentence.Years);
+            // Ironman: a dead run's id is never loaded again (a copied save cannot bring it back).
+            if (DifficultyRules.SavesOnlyAtCamps(journey.Difficulty) && end != JourneyEnd.Freed) _records.RunDied(journey.RunId);
             IReadOnlyList<string> opened = ChapterUnlocks.Opened(before, _records);
-            bool circleOpened = end == JourneyEnd.Freed && _records.CirclesOpen(journey.Sinner.Id) > before.CirclesOpen(journey.Sinner.Id);
+            Difficulty? levelOpened = null;
+            for (Difficulty d = Difficulty.Hard; d <= DifficultyRules.Hardest; d++)
+                if (!before.IsDifficultyOpen(d) && _records.IsDifficultyOpen(d)) levelOpened = d;
             if (opened.Count > 0) Note("unlocked: " + string.Join(", ", opened));
             _archive?.SaveRecords(_records);
             _archive?.ClearRun();
@@ -1661,8 +1724,8 @@ namespace HellPoker.Presentation
             text += "\n\n" + Summary(journey);
             foreach (string id in opened)
                 text += "\n" + string.Format(UiText.UnlockedFormat, id == Core.Sinners.Summoner.ClassId ? UiText.SinnerName(id) : UiText.RelicName(id));
-            if (circleOpened)
-                text += "\n" + string.Format(UiText.CircleOpenedFormat, UiText.SinnerName(journey.Sinner.Id), _records.CirclesOpen(journey.Sinner.Id));
+            if (levelOpened.HasValue)
+                text += "\n" + string.Format(UiText.DifficultyOpenedFormat, UiText.DifficultyName(levelOpened.Value));
             ShowMap();
             ShowPanel(new PanelCard(portrait, UiText.Dealer(portrait).Name, title, text,
                     new[] { new PanelOption(UiText.ChapterNewRun), new PanelOption(UiText.Menu, isLeave: true) }),
@@ -1683,10 +1746,29 @@ namespace HellPoker.Presentation
 
         // ------------------------------------------------------------------ the save
 
-        private void Save()
+        private void Save() => SaveNow(force: false);
+
+        /// <summary>
+        /// The run as it stands into the one slot. Ironman (Demo 3.4): only at a camp (on the way in, at it, on the way out) or when
+        /// <paramref name="force"/>d (the run's start, SAVE at a camp); every save counts, and the records keep the count, so an older copy
+        /// put back is known.
+        /// </summary>
+        private void SaveNow(bool force)
         {
             if (_archive == null || _journey == null || _ended || _journey.IsOver) return;
+            if (Ironman && !force && !AtCamp)
+            {
+                _ironmanBehind = true;
+                return;
+            }
+            _journey.SaveCount++;
             ChapterSave save = _journey.Capture();
+            if (Ironman)
+            {
+                _records.RunSaved(_journey.RunId, _journey.SaveCount);
+                _archive.SaveRecords(_records);
+                _ironmanBehind = false;
+            }
             save.NodeDone = _nodeDone;
             save.Pending = _pending;
             if (_match != null)
@@ -1743,7 +1825,9 @@ namespace HellPoker.Presentation
             _selected = PickDefault(_run.Choices);
             _log = new RunLog(_logSink?.Version, Lang.Current.ToString(), "phase2", journey.Sinner.Id, journey.Sentence.Years, DateTime.Now,
                 Math.Max(1, journey.TotalHands));
-            Note($"resumed: chapter {journey.Chapter}{(journey.Stage == JourneyStage.Lucifer ? " (lucifer)" : "")}, purse {_run.Purse.Coins}, sentence {journey.Sentence.Years}");
+            Note($"resumed: chapter {journey.Chapter}{(journey.Stage == JourneyStage.Lucifer ? " (lucifer)" : "")}, difficulty {DifficultyRules.IdOf(journey.Difficulty)}, " +
+                 $"purse {_run.Purse.Coins}, sentence {journey.Sentence.Years}");
+            _ironmanBehind = false;
             bool handLost = save.HandStake > 0;
 
             switch (save.Match)

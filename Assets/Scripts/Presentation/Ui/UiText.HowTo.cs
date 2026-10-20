@@ -4,18 +4,18 @@ using HellPoker.Core.Relics;
 namespace HellPoker.Presentation.Ui
 {
     /// <summary>
-    /// Demo 2.2's How to Play: ten short pages, each a picture from the game (Art/HowTo/&lt;page&gt;_&lt;lang&gt;.png, made by the PlayMode
+    /// Demo 2.2's How to Play: ten short pages (Demo 3.4: eleven, the difficulty's before the hands), each a picture from the game (Art/HowTo/&lt;page&gt;_&lt;lang&gt;.png, made by the PlayMode
     /// HowToShots) beside at most five short lines; the tenth is the hands table. The Boss Simulator keeps its own long pages.
     /// </summary>
     internal static partial class UiText
     {
         /// <summary>How many pages the game's How to Play has (the last: the hands table).</summary>
-        public const int HowToPages = 10;
+        public const int HowToPages = 11;
 
         /// <summary>The picture's file name (without the language): "01_goal" ...</summary>
         public static string HowToImage(int page)
         {
-            string[] names = { "goal", "map", "floor", "hand", "boss", "cheats", "classes", "relics", "markets", "hands" };
+            string[] names = { "goal", "map", "floor", "hand", "boss", "cheats", "classes", "relics", "markets", "difficulty", "hands" };
             return $"{page + 1:00}_{names[page]}";
         }
 
@@ -32,6 +32,7 @@ namespace HellPoker.Presentation.Ui
                 case 6: return L("SINNERS AND POWERS", "GÜNAHKÂRLAR VE GÜÇLER");
                 case 7: return L("RELICS AND CAMPS", "EMANETLER VE KAMP");
                 case 8: return L("MARKETS AND STRANGERS", "PAZARLAR VE OLAYLAR");
+                case 9: return L("DIFFICULTY AND SAVING", "ZORLUK VE KAYIT");
                 default: return L("THE HANDS", "ELLER");
             }
         }
@@ -124,6 +125,15 @@ namespace HellPoker.Presentation.Ui
                         L("Strangers on the map: some need help, some swindle.", "Haritada yabancılar: kimi yardım ister, kimi dolandırır."),
                         L("A swindler drops a hint; the Oracle sees the trap plainly.", "Dolandırıcı bir ipucu bırakır; Kâhin tuzağı açıkça görür."),
                         L("Each stranger comes once a run.", "Her yabancı koşuda bir kez gelir.")
+                    };
+                case 9:
+                    return new[]
+                    {
+                        L("Choose the level under the class cards: Easy, Medium, Hard, Ironman.", "Seviyeyi sınıf kartlarının altında seç: Kolay, Orta, Zor, Ironman."),
+                        L("Medium: faster ante, tribute from your purse, demons rage at half their bar.", "Orta: ante hızlı artar, haraç keseden, şeytanlar barın yarısında öfkelenir."),
+                        L("Hard: the purse is topped up less, losses to demons hurt more.", "Zor: kese daha az dolar, şeytana kayıp daha çok acıtır."),
+                        L("Ironman: faster cheats, stacked rules; saves only at the camps.", "Ironman: daha sık hile, üst üste kurallar; kayıt sadece kampta."),
+                        L("SAVE on the map and its screens, never at a table.", "KAYDET haritada ve ekranlarında; masada asla.")
                     };
                 default:
                     return new string[0];

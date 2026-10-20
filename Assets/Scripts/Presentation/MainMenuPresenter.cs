@@ -110,7 +110,7 @@ namespace HellPoker.Presentation
             {
                 _sinnerSelect.SinnerChosen += ChooseSinner;
                 _sinnerSelect.BackPressed += BackFromSinners;
-                _sinnerSelect.CircleStepped += StepCircle;
+                _sinnerSelect.DifficultyStepped += StepDifficulty;
             }
             if (_chapters != null)
             {
@@ -189,7 +189,7 @@ namespace HellPoker.Presentation
             {
                 _sinnerSelect.SinnerChosen -= ChooseSinner;
                 _sinnerSelect.BackPressed -= BackFromSinners;
-                _sinnerSelect.CircleStepped -= StepCircle;
+                _sinnerSelect.DifficultyStepped -= StepDifficulty;
             }
             if (_chapters != null)
             {
@@ -340,6 +340,13 @@ namespace HellPoker.Presentation
         {
             // The game's run is saved at every step (a hand left in the middle is lost on the next launch, as its rules say).
             AbandonRisk risk = InSimulator ? _session.AbandonRisk : AbandonRisk.None;
+            // Demo 3.4: an Ironman run is saved only at the camps — leaving now loses what was done since the last one.
+            if (!InSimulator && _chapters != null && _chapters.IronmanUnsaved)
+            {
+                _asking = Asking.Quit;
+                _menu.AskToConfirm(null, UiText.IronmanQuitWarning, UiText.Yes, UiText.No);
+                return;
+            }
             if (risk != AbandonRisk.Hand && risk != AbandonRisk.Soul)
             {
                 _quitter.Quit();
@@ -492,12 +499,24 @@ namespace HellPoker.Presentation
         /// <summary>The classes on the choice screen: the demo's, or Phase 2's (the Summoner too, locked until the first freedom).</summary>
         private SinnerClass[] ChoiceClasses => _chapterChoice ? SinnerRoster.PhaseTwo.ToArray() : _classes;
 
-        /// <summary>The circle of Hell chosen on the class choice, by class (Phase 2).</summary>
-        private readonly Dictionary<string, int> _circleChoice = new Dictionary<string, int>();
-        private string _circleNote;
+        /// <summary>Demo 3.4: the difficulty chosen under the class cards (Phase 2; Medium at first).</summary>
+        private Core.Chapters.Difficulty _difficulty = Core.Chapters.DifficultyRules.Default;
+        private string _difficultyNote;
 
-        private int CircleOf(string classId) =>
-            Math.Min(_circleChoice.TryGetValue(classId, out int c) ? c : 0, _chapters?.Records?.CirclesOpen(classId) ?? 0);
+        private bool DifficultyOpen(Core.Chapters.Difficulty d) =>
+            _chapters?.Records?.IsDifficultyOpen(d) ?? d <= Core.Chapters.Difficulty.Medium;
+
+        /// <summary>The difficulty row: its name, open or locked, its words (what it adds, or what opens it).</summary>
+        private DifficultyChoice DifficultyRow()
+        {
+            Core.Chapters.Difficulty d = _difficulty;
+            bool open = DifficultyOpen(d);
+            return new DifficultyChoice((int)d, UiText.DifficultyName(d), open, open ? UiText.DifficultyHover(d) : UiText.DifficultyLockedHover(d),
+                d > Core.Chapters.Difficulty.Easy, d < Core.Chapters.DifficultyRules.Hardest);
+        }
+
+        /// <summary>The chosen difficulty (tests).</summary>
+        public Core.Chapters.Difficulty ChosenDifficulty => _difficulty;
 
         /// <summary>A Phase 2 class card's hover box (Demo 2.3.1): the whole text the short card leaves out, and its price.</summary>
         private static string ClassCardHover(SinnerClass c)
@@ -511,30 +530,27 @@ namespace HellPoker.Presentation
         private void OpenSinnerChoice(bool curtain)
         {
             HideAll();
-            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury, the imps): their own words, their
-            // locks and their circles.
+            // A chapter run plays the classes' Phase 2 powers (the satchel, the prophecy, the treasury, the imps): their own words and
+            // their locks; the difficulty under the cards.
             Core.Chapters.ChapterRecords records = _chapters?.Records;
             _sinnerSelect.Show(ChoiceClasses.Select(c => _chapterChoice
                     ? new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.ChapterSinnerAbility(c.Id),
                         UiText.ChapterSinnerDetail(c.Id),
                         string.Format(UiText.ChapterSinnerStartFormat, Core.Chapters.BossShares.Total(c.Id), Core.Chapters.ChapterRules.StartingCoinsFor(c.Id)),
                         !Core.Chapters.ChapterUnlocks.IsClassOpen(c.Id, records), UiText.MilestoneText(Core.Chapters.ChapterUnlocks.SummonerMilestone),
-                        CircleOf(c.Id), records?.CirclesOpen(c.Id) ?? 0, ClassCardHover(c))
+                        ClassCardHover(c))
                     : new SinnerCard(c.Id, UiText.SinnerName(c.Id), UiText.SinnerTitle(c.Id), UiText.SinnerAbility(c.Id), UiText.SinnerDetail(c.Id),
                         string.Format(UiText.SinnerStartFormat, c.StartingYears))).ToArray(),
-                _pendingDealer?.Id, _chapterChoice ? _circleNote : null);
+                _pendingDealer?.Id, _chapterChoice ? _difficultyNote : null, _chapterChoice ? DifficultyRow() : null);
             if (curtain) Curtain();
         }
 
-        /// <summary>A class card's circle arrows: the circle steps within what the class has open; its rules show under the title.</summary>
-        private void StepCircle(int index, int delta)
+        /// <summary>The difficulty row's arrows: the level steps (a locked one shows what opens it); its rules show under the title.</summary>
+        private void StepDifficulty(int delta)
         {
-            SinnerClass[] classes = ChoiceClasses;
-            if (!_chapterChoice || index < 0 || index >= classes.Length) return;
-            string id = classes[index].Id;
-            int circle = Math.Max(0, Math.Min(CircleOf(id) + Math.Sign(delta), _chapters?.Records?.CirclesOpen(id) ?? 0));
-            _circleChoice[id] = circle;
-            _circleNote = UiText.CircleNote(circle);
+            if (!_chapterChoice || delta == 0) return;
+            _difficulty = Core.Chapters.DifficultyRules.Clamp((int)_difficulty + Math.Sign(delta));
+            _difficultyNote = DifficultyOpen(_difficulty) ? UiText.DifficultyHover(_difficulty) : UiText.DifficultyLockedHover(_difficulty);
             OpenSinnerChoice(curtain: false);
         }
 
@@ -543,13 +559,20 @@ namespace HellPoker.Presentation
             SinnerClass[] classes = ChoiceClasses;
             if (_pendingDealer == null || index < 0 || index >= classes.Length) return;
             if (_chapterChoice && !Core.Chapters.ChapterUnlocks.IsClassOpen(classes[index].Id, _chapters?.Records)) return;   // locked: the card says why
+            if (_chapterChoice && !DifficultyOpen(_difficulty))
+            {
+                // A locked level: the line under the title says what opens it.
+                _difficultyNote = UiText.DifficultyLockedHover(_difficulty);
+                OpenSinnerChoice(curtain: false);
+                return;
+            }
             Dealer dealer = _pendingDealer;
             _pendingDealer = null;
             if (_chapterChoice)
             {
                 _chapterChoice = false;
-                _circleNote = null;
-                _chapters.Start(classes[index], CircleOf(classes[index].Id));
+                _difficultyNote = null;
+                _chapters.Start(classes[index], _difficulty);
                 OpenChapters();
                 return;
             }

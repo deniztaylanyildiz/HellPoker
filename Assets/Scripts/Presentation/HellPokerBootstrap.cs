@@ -124,7 +124,7 @@ namespace HellPoker.Presentation
                     var presenter = new TablePresenter((dealer, sinner) => HellPokerGameFactory.Create(table, dealer, seed, sinner: sinner), chapterTableView,
                         settings, audio: audio);
                     return (presenter, chapterTableView);
-                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs, relicBag);
+                }, transition, audio, table, () => seed ?? Core.Randomness.RandomSeeds.Fresh(), new ChapterArchive(store), RunLogs, relicBag, SaveButtonView.Create(transform));
 
             _menuPresenter = new MainMenuPresenter(menu, dealerSelect, settingsView, endScreen, records, tableView, _tablePresenter,
                 new UnityApplicationQuitter(), transition, DealerRoster.All, DealerRoster.Lucifer, sinnerSelect, SinnerRoster.All, audio, _chapterPresenter,

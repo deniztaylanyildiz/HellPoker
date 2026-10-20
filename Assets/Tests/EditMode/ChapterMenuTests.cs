@@ -16,21 +16,23 @@ namespace HellPoker.Core.Tests
         {
             public event Action<int> SinnerChosen;
             public event Action BackPressed;
-            public event Action<int, int> CircleStepped;
+            public event Action<int> DifficultyStepped;
+            public DifficultyChoice Difficulty { get; private set; }
             public bool IsVisible { get; private set; }
             public string DealerId { get; private set; }
             public IReadOnlyList<SinnerCard> Cards { get; private set; }
             public string Note { get; private set; }
 
-            public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null)
+            public void Show(IReadOnlyList<SinnerCard> sinners, string dealerId, string note = null, DifficultyChoice difficulty = null)
             {
+                Difficulty = difficulty;
                 IsVisible = true;
                 DealerId = dealerId;
                 Cards = sinners;
                 Note = note;
             }
 
-            public void Step(int index, int delta) => CircleStepped?.Invoke(index, delta);
+            public void Step(int delta) => DifficultyStepped?.Invoke(delta);
 
             public void Hide() => IsVisible = false;
             public void Choose(int index) => SinnerChosen?.Invoke(index);
@@ -41,23 +43,24 @@ namespace HellPoker.Core.Tests
         {
             public bool HasRun { get; set; }
             public bool CanContinue => HasRun;
-            public ContinueCard ContinueCard => HasRun ? new ContinueCard(Core.Sinners.Peasant.ClassId, 1, 2, 90, 6500, 0) : null;
+            public ContinueCard ContinueCard => HasRun ? new ContinueCard(Core.Sinners.Peasant.ClassId, 1, 2, 90, 6500, Core.Chapters.Difficulty.Easy) : null;
+            public bool IronmanUnsaved { get; set; }
             public Core.Chapters.ChapterRecords Records { get; } = new Core.Chapters.ChapterRecords();
             public bool IsVisible { get; private set; }
             public string MusicId => "mammon";
             public FeedbackContext Feedback => null;
             public SinnerClass Started { get; private set; }
-            public int StartedCircle { get; private set; }
+            public Core.Chapters.Difficulty StartedDifficulty { get; private set; }
             public int Abandoned { get; private set; }
             public event Action MenuRequested;
             public event Action NewRunRequested;
 
-            public void Start(SinnerClass sinnerClass) => Start(sinnerClass, 0);
+            public void Start(SinnerClass sinnerClass) => Start(sinnerClass, Core.Chapters.Difficulty.Easy);
 
-            public void Start(SinnerClass sinnerClass, int circle)
+            public void Start(SinnerClass sinnerClass, Core.Chapters.Difficulty difficulty)
             {
                 Started = sinnerClass;
-                StartedCircle = circle;
+                StartedDifficulty = difficulty;
                 HasRun = true;
             }
 
@@ -247,26 +250,52 @@ private MainMenuPresenterTests.FakeMenuView _menu;
         }
 
         [Test]
-        public void ACircleOpensForAClass_WithEachFreedom_AndIsChosenOnItsCard()
+        public void TheDifficultyRow_StartsAtMedium_StepsAndLocks_AndTheRunGetsIt()
         {
-            _menu.PressNewGame();
-            Assert.AreEqual(0, _sinners.Cards[0].CirclesOpen, "no circle before a freedom");
-            _sinners.Step(0, 1);
-            Assert.AreEqual(0, _sinners.Cards[0].Circle);
+            Core.Chapters.ChapterUnlocks.AllClassesOpen = false;
+            try
+            {
+                _menu.PressNewGame();
+                Assert.IsNotNull(_sinners.Difficulty, "the row under the cards");
+                Assert.AreEqual((int)Core.Chapters.Difficulty.Medium, _sinners.Difficulty.Level, "Medium at first");
+                Assert.IsTrue(_sinners.Difficulty.Open);
+                _sinners.Step(1);
+                Assert.AreEqual((int)Core.Chapters.Difficulty.Hard, _sinners.Difficulty.Level);
+                Assert.IsFalse(_sinners.Difficulty.Open, "Hard is locked before a Medium freedom");
+                StringAssert.Contains(Presentation.Ui.UiText.DifficultyUnlockText(Core.Chapters.Difficulty.Hard), _sinners.Difficulty.Hover, "its hover says what opens it");
+                _sinners.Choose(0);
+                Assert.IsNull(_chapters.Started, "a locked level starts nothing");
+                Assert.AreEqual(Presentation.Ui.UiText.DifficultyLockedHover(Core.Chapters.Difficulty.Hard), _sinners.Note);
 
-            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100, circle: 0);
-            _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, Peasant.ClassId, 100, circle: 1);
-            _sinners.Back();
-            _menu.PressNewGame();
-            Assert.AreEqual(2, _sinners.Cards[0].CirclesOpen, "free in the first circle: the second opens");
-            Assert.AreEqual(0, _sinners.Cards[1].CirclesOpen, "for that class only");
-            _sinners.Step(0, 1);
-            _sinners.Step(0, 1);
-            _sinners.Step(0, 1);
-            Assert.AreEqual(2, _sinners.Cards[0].Circle, "never past what is open");
-            Assert.AreEqual(Presentation.Ui.UiText.CircleNote(2), _sinners.Note, "its rules under the title");
-            _sinners.Choose(0);
-            Assert.AreEqual(2, _chapters.StartedCircle);
+                _chapters.Records.RunEnded(Core.Chapters.JourneyEnd.Freed, 4, King.ClassId, 100, Core.Chapters.Difficulty.Medium);
+                _sinners.Step(1);
+                _sinners.Step(-1);
+                Assert.IsTrue(_sinners.Difficulty.Open, "a Medium freedom by any class opens Hard");
+                _sinners.Step(-1);
+                _sinners.Step(-1);
+                _sinners.Step(-1);
+                Assert.AreEqual((int)Core.Chapters.Difficulty.Easy, _sinners.Difficulty.Level, "never below Easy");
+                Assert.IsFalse(_sinners.Difficulty.CanStepDown);
+                _sinners.Step(1);
+                _sinners.Step(1);
+                _sinners.Choose(0);
+                Assert.AreEqual(Core.Chapters.Difficulty.Hard, _chapters.StartedDifficulty);
+            }
+            finally
+            {
+                Core.Chapters.ChapterUnlocks.AllClassesOpen = true;
+            }
+        }
+
+        [Test]
+        public void IronmanProgressSinceTheLastCamp_QuitAsksFirst()
+        {
+            _chapters.HasRun = true;
+            _chapters.IronmanUnsaved = true;
+            _menu.PressQuit();
+            Assert.IsTrue(_menu.IsConfirming, "a warning first");
+            Assert.AreEqual(Presentation.Ui.UiText.IronmanQuitWarning, _menu.Warning);
+            _chapters.IronmanUnsaved = false;
         }
 
         [Test]

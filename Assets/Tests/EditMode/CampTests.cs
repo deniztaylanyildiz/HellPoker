@@ -15,9 +15,9 @@ namespace HellPoker.Core.Tests
         private static string[] Relics(int n) => ChapterRelics.All.Where(id => !RelicRoster.IsReward(id)).Take(n).ToArray();
 
         /// <summary>A run standing at a camp (its first floor's node made one).</summary>
-        private static (ChapterJourney journey, ChapterRun run) AtCamp(int circle = 0, SinnerClass cls = null)
+        private static (ChapterJourney journey, ChapterRun run) AtCamp(Difficulty difficulty = Difficulty.Easy, SinnerClass cls = null)
         {
-            ChapterJourney journey = ChapterJourney.Begin(cls ?? SinnerRoster.Peasant, 9, circle);
+            ChapterJourney journey = ChapterJourney.Begin(cls ?? SinnerRoster.Peasant, 9, difficulty);
             ChapterRun run = journey.Run;
             typeof(ChapterRun).GetProperty(nameof(ChapterRun.Current)).SetValue(run, new MapNode(3, 0, NodeKind.PurgatoryFire, new[] { 0 }));
             return (journey, run);
@@ -138,12 +138,11 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheFourthCircle_OffersTwoActions_TheSameEveryTimeTheCampIsShown()
+        public void EveryCamp_OffersAllFourActions_AtEveryDifficulty()
         {
-            var (_, run) = AtCamp(circle: 4);
-            Assert.AreEqual(2, run.CampOffers.Count);
-            CollectionAssert.AreEqual(run.CampOffers, run.CampOffers);
-            Assert.AreEqual(4, AtCamp().run.CampOffers.Count);
+            // Demo 3.4: the fourth circle's two of four went with the circles.
+            for (Difficulty d = Difficulty.Easy; d <= DifficultyRules.Hardest; d++)
+                Assert.AreEqual(4, AtCamp(d).run.CampOffers.Count, d.ToString());
         }
 
         [Test]
