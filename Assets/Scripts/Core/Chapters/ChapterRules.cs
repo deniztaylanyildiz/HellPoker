@@ -169,7 +169,7 @@ namespace HellPoker.Core.Chapters
         /// goes to the demon, her bar one percent shorter for every <see cref="BribeCoinsPerPercent"/> coins, at most
         /// <see cref="BribeMostPercent"/>. Settable for the simulation (HELLPOKER_BRIBE="coins,most").</summary>
         public const int BribeChapter = 3;
-        public static int BribeCoinsPerPercent = 5, BribeMostPercent = 15;   // simulated 2026-10-20: 10 / 5 / 2 coins all within noise at Medium (PHASE2_CHAPTERS)
+        public static int BribeCoinsPerPercent = 5, BribeMostPercent = 40;   // simulated 2026-10-21 (PHASE2_CHAPTERS "Son Rüşvet"): the most allowed, Medium +0.6
 
         /// <summary>The boss tables' payout percents (BossSimulation 2026-10-10, see PHASE2_CHAPTERS.md): Belial 16.5 hands / 20.5% damned,
         /// Lilith 23.1 / 22.1%. The losses are the sentence's: since Demo 2.1 a loss heals the bar by half of it

@@ -4458,3 +4458,17 @@ Lilith'in kapısında kalan altın rüşvet olur, barı küçültür (tek denge 
 ### Açık soru
 - Son Rüşvet'in tavanı: %15 ile Orta'da etki gürültü içinde. Daha belirgin olsun istenirse tavan yükseltilmeli.
 
+## 2026-10-21 — Demo 3.5.1 kapanış: Son Rüşvet tavanı, testler, build
+
+**İstek:** Son Rüşvet'in etkisi belirgin olsun (oran 5 coin = %1, tavan %25 / %30 / %40 denensin, Orta +1..+3 veren en küçüğü, en çok %40);
+kalan testler, build, etiket.
+
+- **Tavan:** %25 → Orta 28.2 (+0.4), %40 → 28.4 (+0.6); %30 çalıştırılmadı (%40 bile +1'e varmadı). Hedef tutmadı; izinli en büyük tavan
+  **%40** seçildi (`ChapterRules.BribeMostPercent`). Neden: Orta'da Lilith'in kapısına ortalama 45 coinle gelinir (%9), tavan yalnız 125+ coin
+  getiren azınlığı etkiler. Tablolar PHASE2_CHAPTERS "Son Rüşvet: tavan". Sonra: Kolay 33.8, Orta 28.4, Zor 11.4, Ironman 4.9.
+- **Testler:** EditMode 1210 geçti (`LastBribeTests` %40 ile); PlayMode tek tek: BackdropMotion / HandFanfare / Scene / HowToPlay / MenuGrid /
+  RelicCard (31), TableLayout + LastBribe (12), ChapterJourney / HoverTip / BossLoot / Market / DevJump (18), `FullRunTests.Oracle_Medium_Turkish`.
+- **Build:** `Builds/HellPoker-Demo-3.5.1-win64.zip` (39 MB); kayıt yedeği, iki duman turu (normal, `-difficulty=Ironman`): hata yok, her ekran
+  ~60 FPS; yedek geri kondu. Build'den görüntü: `Screenshots/demo351/build_imp_table.png` (iblis masası, KESE / ANTE göstergeleri).
+- CHANGELOG / OKUBENI / CLAUDE.md'de tavan %40.
+

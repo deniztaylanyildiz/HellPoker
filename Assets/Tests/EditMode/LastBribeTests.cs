@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace HellPoker.Core.Tests
 {
     /// <summary>Demo 3.5.1, the Last Bribe: at Lilith's gate every coin left after the tribute goes to her and her bar shrinks — one percent a
-    /// five coins, at most fifteen; nowhere else; once; Mammon's Gold Tooth still counts the coins.</summary>
+    /// five coins, at most forty; nowhere else; once; Mammon's Gold Tooth still counts the coins.</summary>
     public class LastBribeTests
     {
         /// <summary>A run at Lilith's gate (Mammon and Belial beaten the chapters' own way), its purse set to <paramref name="coins"/>.</summary>
@@ -29,8 +29,9 @@ namespace HellPoker.Core.Tests
         [TestCase(5, 1)]
         [TestCase(42, 8)]
         [TestCase(75, 15)]
-        [TestCase(400, 15)]
-        public void TheBribe_IsOnePercentAFiveCoins_AtMostFifteen(int coins, int percent) =>
+        [TestCase(200, 40)]
+        [TestCase(400, 40)]
+        public void TheBribe_IsOnePercentAFiveCoins_AtMostForty(int coins, int percent) =>
             Assert.AreEqual(percent, ChapterRun.BribePercentFor(coins));
 
         [Test]
@@ -53,7 +54,7 @@ namespace HellPoker.Core.Tests
         }
 
         [Test]
-        public void TheBribe_StopsAtFifteenPercent()
+        public void TheBribe_StopsAtItsCap()
         {
             ChapterRun run = AtLilithsGate(5000).Run;
             int unbribed = run.BarAfterGate(5000, bribe: false);

@@ -11,7 +11,7 @@
 
 ### Yeni
 - **Son Rüşvet:** Lilith'in kapısında haraçtan sonra kesende kalan coin'in hepsi Lilith'e gider; her 5 coin onun barını %1 küçültür (en
-  çok %15). Kapı panelinde coinler bara uçar, bar küçülür. Mammon'un Altın Dişi kaybettirmez (rüşvetten önceki coinleri sayar).
+  çok %40). Kapı panelinde coinler bara uçar, bar küçülür. Mammon'un Altın Dişi kaybettirmez (rüşvetten önceki coinleri sayar).
 
 ## Demo 3.5 (3.5.0-demo) — 2026-10-20 — Emanet görselleri, Kara Pazar ve ganimet
 

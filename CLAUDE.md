@@ -48,9 +48,9 @@ kısayolu yansımayla bulur: dosya gidince derleme bozulmaz, kendiliğinden atla
 sikkeleri çubuğa uçar) ve ANTE (kalan el başına nokta, ante artınca parlar; ante'siz eller), boss / Lucifer'de sabit ANTE + kural / taşınan
 kural / öfke ikonları (16 px, hover'lı); satırlar y 120 / 136 (8 px ızgara), diyalog `DealerView.DialogTop` 156; eski kese satırı ve sol taşınan
 kural ikonu kalktı; can barı hover'ı `UiText.BossBarExplain` ile başlar. **Son Rüşvet:** Lilith'in kapısında haraçtan sonra kalan coin'in hepsi
-ona (`ChapterRun.PayTribute`, `BribePercentFor`, `ChapterRules.BribeCoinsPerPercent` 5 / `BribeMostPercent` 15, `GateToll.BribeCoins`,
+ona (`ChapterRun.PayTribute`, `BribePercentFor`, `ChapterRules.BribeCoinsPerPercent` 5 / `BribeMostPercent` 40, `GateToll.BribeCoins`,
 kayıt `bribe.coins`; Altın Diş Lucifer'de kese + rüşvet), kapı paneli `PanelCard.BarBefore` ile sikke uçuşu + bar küçülmesi. Simülasyon
-`HELLPOKER_BRIBE`; Orta'da etki gürültü içinde (PHASE2_CHAPTERS "Son Rüşvet"). Testler: `LastBribeTests`, `ChapterPresenterTests` gösterge
+`HELLPOKER_BRIBE`; Orta +0.6, en büyük izinli tavan (PHASE2_CHAPTERS "Son Rüşvet"). Testler: `LastBribeTests`, `ChapterPresenterTests` gösterge
 testleri, PlayMode `TableLayoutTests.AssertTheGauges`, `LastBribePlayTests` (+ [Explicit] `CaptureDemo351` → `Screenshots/demo351/`).
 
 **Demo 3.5** (etiket `v3.5-demo`, bundleVersion **3.5.0-demo**; DEVLOG 2026-10-20 A–E): **emanet görselleri, Kara Pazar ve ganimet** —

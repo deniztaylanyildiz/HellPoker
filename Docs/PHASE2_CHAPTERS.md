@@ -899,3 +899,28 @@ Hedef (Orta'da +1 … +4 puan) **tutmadı**: oran ne olursa olsun fark 500 koşu
 (Orta ortalaması 45, Zor 20, Ironman 12; haraç kesenin payından alınıyor) ve Orta'da ölümlerin çoğu Lilith'in masasından çok Lucifer'de.
 Kurala göre oran artırıldı (10 → 5 coin); tavanı %15'in üstüne çıkarmak kullanıcının kararına bırakıldı.
 
+### Son Rüşvet: tavan (2026-10-21, kullanıcı: "etki belirgin olsun")
+
+Oran 5 coin = %1 sabit, tavan denendi (500 koşu / sınıf × zorluk, aynı tohumlar), kurtulma %:
+
+| tavan | Kolay | Orta | Zor | Ironman | ort. küçülme (Orta) |
+|---|---|---|---|---|---|
+| yok | 33.0 | 27.8 | 11.4 | 4.8 | — |
+| %15 | 33.7 | 28.0 | 11.4 | 4.9 | %5.6 |
+| %25 | 33.9 | 28.2 | 11.4 | 4.9 | %7.4 |
+| **%40 (seçilen)** | 33.8 | 28.4 | 11.4 | 4.9 | %8.5 |
+
+(%30 çalıştırılmadı: %40 bile +1'e ulaşmadı; %30'un etkisi %25 ile %40 arasında kalır.) Hedef (Orta +1 … +3) hiçbir tavanla tutmadı: Orta'da
+Lilith'in kapısına ortalama 45 coinle gelinir (5 coin = %1 → %9), tavan yalnız 125+ coin getiren az sayıdaki koşuyu etkiler. Kurala göre
+izin verilen en büyük tavan %40 seçildi. Sınıf × zorluk, önce (rüşvet yok) → sonra (5 coin = %1, en çok %40):
+
+| sınıf | Kolay önce → sonra | Orta | Zor | Ironman |
+|---|---|---|---|---|
+| Köylü | 29.8 → 32.4 | 27.8 → 29.2 | 10.8 → 10.4 | 5.2 → 5.2 |
+| Kâhin | 41.0 → 42.8 | 36.4 → 36.8 | 16.2 → 16.2 | 6.2 → 6.2 |
+| Kral | 32.2 → 32.6 | 24.0 → 25.0 | 9.6 → 9.8 | 4.4 → 4.4 |
+| Soytarı | 23.0 → 23.0 | 17.2 → 17.0 | 8.4 → 8.6 | 4.2 → 4.2 |
+| Çağırıcı | 32.6 → 32.4 | 26.4 → 26.2 | 8.2 → 8.2 | 3.6 → 3.6 |
+| Hırsız | 39.4 → 39.4 | 34.8 → 36.0 | 15.0 → 15.4 | 5.2 → 5.6 |
+| hepsi | 33.0 → 33.8 | 27.8 → 28.4 | 11.4 → 11.4 | 4.8 → 4.9 |
+
